@@ -989,9 +989,120 @@
       transition: all 0.2s;
     }
     .popup-btn:hover { background: #0369a1; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+  
+    /* ================= BGM CONTROLLER & DISC ANIMATIONS ================= */
+    .bgm-disc-icon {
+      display: inline-block;
+      font-size: 13px;
+      transition: transform 0.25s ease;
+    }
+    .bgm-disc-icon.playing {
+      animation: discSpin 2.4s linear infinite;
+    }
+    @keyframes discSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .brand-bgm-btn {
+      font-size: 11px;
+      color: #f472b6;
+      background: rgba(244, 114, 182, 0.12);
+      border: 1px solid rgba(244, 114, 182, 0.35);
+      border-radius: 7px;
+      padding: 4px 9px;
+      cursor: pointer;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.22s var(--ease-spring);
+      user-select: none;
+    }
+    .brand-bgm-btn:hover {
+      background: rgba(244, 114, 182, 0.24);
+      border-color: #f472b6;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(244, 114, 182, 0.45);
+      transform: translateY(-1px);
+    }
+    .brand-bgm-btn.active {
+      background: linear-gradient(135deg, rgba(244, 114, 182, 0.28), rgba(236, 72, 153, 0.38));
+      border-color: #f472b6;
+      color: #fff;
+      box-shadow: 0 0 14px rgba(244, 114, 182, 0.45);
+    }
+
+    .hachi-bgm-btn {
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      color: var(--text-sub);
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.22s var(--ease-spring);
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
+    }
+    .hachi-bgm-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(244, 114, 182, 0.4);
+      transform: translateY(-1px);
+    }
+    .hachi-bgm-btn.active {
+      background: linear-gradient(135deg, rgba(244, 114, 182, 0.25), rgba(236, 72, 153, 0.35));
+      border-color: #f472b6;
+      color: #fdf2f8;
+      box-shadow: 0 0 14px rgba(244, 114, 182, 0.4);
+    }
+
+    .bgm-toast {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-25px);
+      background: rgba(13, 20, 36, 0.94);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1.5px solid #f472b6;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), 0 0 20px rgba(244, 114, 182, 0.35);
+      color: #fdf2f8;
+      padding: 9px 20px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 800;
+      z-index: 10000;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bgm-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
 <body>
+  <!-- Chiikawa Pajama Parties Instrumental BGM Audio Track -->
+  <audio id="bgmAudio" loop preload="auto">
+    <source src="assets/pajama_parties_bgm.m4a" type="audio/mp4">
+    <source src="assets/pajama_parties_bgm.webm" type="audio/webm">
+  </audio>
+
+  <!-- BGM Floating Toast Indicator -->
+  <div class="bgm-toast" id="bgmToast">
+    <span class="bgm-disc-icon playing">🎵</span>
+    <span id="bgmToastText">먼작귀 파자마파티즈 BGM (배경음 버전) 재생 중~ 🐾</span>
+  </div>
   <div id="sidebar">
     <div class="sidebar-toggle" onclick="toggleSidebar()" title="사이드바 열기/닫기" id="sidebarToggleBtn">❮</div>
 
@@ -1003,6 +1114,10 @@
           <span>TOKYO MASTER TOUR</span>
         </div>
         <div class="brand-actions">
+          <button class="brand-action-btn brand-bgm-btn" id="brandBgmBtn" onclick="toggleBgm()" title="먼작귀 파자마파티즈 BGM (배경음/반주)">
+            <span class="bgm-disc-icon" id="brandBgmIcon">🎵</span>
+            <span id="brandBgmLabel">파자마 BGM</span>
+          </button>
           <a href="../" class="brand-action-btn brand-hub-link">🏠 메인 허브</a>
         </div>
       </div>
@@ -1119,6 +1234,10 @@
       </label>
       <button class="hachi-voice-btn" id="hachiVoiceBtn" onclick="toggleHachiVoice()" title="도착 안내 음성">
         🎙️ 음성 가이드
+      </button>
+      <button class="hachi-bgm-btn" id="hachiBgmBtn" onclick="toggleBgm()" title="먼작귀 파자마파티즈 BGM (배경음/반주)">
+        <span class="bgm-disc-icon" id="simBgmIcon">🎵</span>
+        <span>BGM</span>
       </button>
     </div>
   </div>
@@ -1601,6 +1720,117 @@
       }
     }
 
+    
+    // =========================================================
+    // 🎵 CHIIKAWA PAJAMA PARTIES INSTRUMENTAL BGM ENGINE
+    // =========================================================
+    let isBgmPlaying = false;
+    let bgmAudioEl = null;
+    let userExplicitlyMuted = false;
+    let bgmToastTimer = null;
+    let targetBgmVolume = 0.32;
+
+    function getBgmElement() {
+      if (!bgmAudioEl) {
+        bgmAudioEl = document.getElementById('bgmAudio');
+        if (bgmAudioEl) bgmAudioEl.volume = targetBgmVolume;
+      }
+      return bgmAudioEl;
+    }
+
+    function showBgmToast(msg) {
+      const toast = document.getElementById('bgmToast');
+      const text = document.getElementById('bgmToastText');
+      if (!toast || !text) return;
+      text.textContent = msg;
+      toast.classList.add('show');
+      if (bgmToastTimer) clearTimeout(bgmToastTimer);
+      bgmToastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2500);
+    }
+
+    function updateBgmUI(playing) {
+      isBgmPlaying = playing;
+      const brandBtn = document.getElementById('brandBgmBtn');
+      const simBtn = document.getElementById('hachiBgmBtn');
+      const brandIcon = document.getElementById('brandBgmIcon');
+      const simIcon = document.getElementById('simBgmIcon');
+      const brandLabel = document.getElementById('brandBgmLabel');
+
+      if (playing) {
+        if (brandBtn) brandBtn.classList.add('active');
+        if (simBtn) simBtn.classList.add('active');
+        if (brandIcon) brandIcon.classList.add('playing');
+        if (simIcon) simIcon.classList.add('playing');
+        if (brandLabel) brandLabel.textContent = '파자마 BGM ON';
+      } else {
+        if (brandBtn) brandBtn.classList.remove('active');
+        if (simBtn) simBtn.classList.remove('active');
+        if (brandIcon) brandIcon.classList.remove('playing');
+        if (simIcon) simIcon.classList.remove('playing');
+        if (brandLabel) brandLabel.textContent = '파자마 BGM';
+      }
+    }
+
+    function playBgm(showNotification = true) {
+      const audio = getBgmElement();
+      if (!audio) return;
+      audio.volume = targetBgmVolume;
+      audio.play().then(() => {
+        updateBgmUI(true);
+        if (showNotification) {
+          showBgmToast('🎵 먼작귀 파자마파티즈 BGM (배경음 버전) 재생 중~ 🐾');
+        }
+      }).catch(err => {
+        console.log('Autoplay prevented until user interaction:', err);
+      });
+    }
+
+    function pauseBgm() {
+      const audio = getBgmElement();
+      if (!audio) return;
+      audio.pause();
+      updateBgmUI(false);
+      showBgmToast('🔇 BGM 일시정지');
+    }
+
+    function toggleBgm() {
+      const audio = getBgmElement();
+      if (!audio) return;
+      if (audio.paused) {
+        userExplicitlyMuted = false;
+        playBgm(true);
+      } else {
+        userExplicitlyMuted = true;
+        pauseBgm();
+      }
+    }
+
+    // Audio Ducking: Smoothly lower BGM volume when Hachiware speaks so speech is crystal clear
+    function duckBgmVolume(duck) {
+      const audio = getBgmElement();
+      if (!audio || audio.paused) return;
+      if (duck) {
+        audio.volume = 0.10;
+      } else {
+        audio.volume = targetBgmVolume;
+      }
+    }
+
+    // First user gesture triggers BGM smoothly if not explicitly muted
+    function setupAutoplayGesture() {
+      const trigger = () => {
+        if (!userExplicitlyMuted && (!bgmAudioEl || bgmAudioEl.paused)) {
+          playBgm(false);
+        }
+        document.removeEventListener('click', trigger);
+        document.removeEventListener('keydown', trigger);
+      };
+      document.addEventListener('click', trigger, { once: true });
+      document.addEventListener('keydown', trigger, { once: true });
+    }
+
     function speakText(text) {
       if (!voiceEnabled || !('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -1608,6 +1838,9 @@
       utter.lang = 'ko-KR';
       utter.rate = 1.0;
       utter.pitch = 1.25;
+      duckBgmVolume(true);
+      utter.onend = () => duckBgmVolume(false);
+      utter.onerror = () => duckBgmVolume(false);
       window.speechSynthesis.speak(utter);
     }
 
@@ -1742,6 +1975,9 @@
         if (charBox) charBox.classList.add('walking');
         if (simProgress >= 1.0) {
           simProgress = 0;
+        }
+        if (!userExplicitlyMuted) {
+          playBgm(false);
         }
         runSimLoop();
       } else {
