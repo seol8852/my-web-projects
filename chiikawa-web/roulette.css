@@ -1,0 +1,201 @@
+/* ==============================================================
+   🎰 모몽가 럭키 룰렛 전용 스타일시트 (roulette.css)
+   ============================================================== */
+
+body {
+  background: #FFF0F6;
+  color: #333;
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+}
+
+.roulette-main-container {
+  max-width: 950px;
+  margin: 0 auto 50px auto;
+  padding: 0 15px;
+}
+
+.roulette-stage-card {
+  background-size: cover;
+  background-position: center;
+  border-radius: 28px;
+  border: 4px solid #FF8787;
+  box-shadow: 0 16px 40px rgba(255, 135, 135, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.roulette-overlay {
+  background: rgba(255, 240, 245, 0.88);
+  backdrop-filter: blur(8px);
+  padding: 30px 20px;
+  min-height: 580px;
+}
+
+.roulette-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.roulette-badge {
+  background: #F06595;
+  color: white;
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 4px 12px;
+  border-radius: 12px;
+  letter-spacing: 1px;
+}
+
+.roulette-header h2 {
+  font-family: 'Jua', sans-serif;
+  font-size: 2.1rem;
+  color: #C2255C;
+  margin: 6px 0 2px 0;
+}
+
+.roulette-subtitle {
+  font-size: 1.05rem;
+  color: #7048E8;
+  font-weight: 700;
+}
+
+.roulette-content-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 30px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+/* 룰렛 회전판 */
+.wheel-wrapper {
+  position: relative;
+  width: 380px;
+  height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  color: #E03131;
+  z-index: 10;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+#wheelCanvas {
+  border-radius: 50%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  border: 6px solid #FFF;
+}
+
+.wheel-center-btn {
+  position: absolute;
+  width: 76px;
+  height: 76px;
+  background: linear-gradient(135deg, #FF6B6B, #FA5252);
+  border: 4px solid #FFF;
+  border-radius: 50%;
+  color: white;
+  font-family: 'Jua', sans-serif;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s;
+  z-index: 5;
+}
+
+.wheel-center-btn:hover {
+  transform: scale(1.08);
+}
+
+/* 컨트롤 패널 */
+.roulette-panel {
+  max-width: 380px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.free-spin-badge {
+  background: #FFF;
+  border: 2px solid #FCC419;
+  color: #E67700;
+  font-family: 'Jua', sans-serif;
+  font-size: 1.2rem;
+  padding: 8px 20px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 12px rgba(255, 212, 59, 0.25);
+}
+
+.momonga-speech-bubble {
+  background: white;
+  border: 2px solid #F06595;
+  border-radius: 18px;
+  padding: 14px 18px;
+  font-family: 'Jua', sans-serif;
+  font-size: 1.15rem;
+  color: #C2255C;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 16px rgba(240, 101, 149, 0.15);
+  position: relative;
+}
+
+.btn-spin-action {
+  background: linear-gradient(135deg, #F06595, #CC5DE8);
+  color: white;
+  border: none;
+  font-family: 'Jua', sans-serif;
+  font-size: 1.35rem;
+  padding: 14px 34px;
+  border-radius: 24px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(240, 101, 149, 0.4);
+  transition: transform 0.2s;
+}
+
+.btn-spin-action:hover {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.spin-cost-note {
+  font-size: 0.85rem;
+  color: #868E96;
+  margin-top: 10px;
+}
+
+.reward-modal-card {
+  text-align: center;
+  background: #FFF0F6 !important;
+  border: 4px solid #F06595 !important;
+  padding: 35px 25px !important;
+}
+
+.reward-icon {
+  font-size: 4.5rem;
+  margin-bottom: 10px;
+}
+
+.reward-highlight-badge {
+  display: inline-block;
+  background: #F06595;
+  color: white;
+  font-family: 'Jua', sans-serif;
+  font-size: 1.3rem;
+  padding: 8px 24px;
+  border-radius: 20px;
+  margin: 15px 0 20px 0;
+  box-shadow: 0 4px 14px rgba(240, 101, 149, 0.35);
+}

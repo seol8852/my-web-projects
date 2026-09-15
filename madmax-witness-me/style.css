@@ -1,0 +1,668 @@
+:root {
+  --color-sand: #d4a373;
+  --color-rust: #8b3a1b;
+  --color-dark-rust: #4a1e0d;
+  --color-metal: #5c554e;
+  --color-metal-dark: #2a2521;
+  --color-fire: #e65100;
+  --color-chrome: #e0e0e0;
+  --color-dark: #0f0c09;
+  --color-card-bg: rgba(26, 20, 16, 0.95);
+  --color-border-rust: #6e3a1e;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: var(--color-dark);
+  color: #d8cfc4;
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(circle at 50% 15%, rgba(139, 58, 27, 0.45) 0%, transparent 70%),
+    radial-gradient(circle at 50% 85%, rgba(74, 30, 13, 0.55) 0%, transparent 60%),
+    linear-gradient(to bottom, #18120d, #0d0a08);
+}
+
+/* 배경 FX 캔버스 */
+#fx-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 발할라 오버드라이브 배너 */
+.valhalla-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle, rgba(255, 230, 180, 0.35) 0%, rgba(180, 60, 15, 0.5) 50%, rgba(0, 0, 0, 0.9) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.valhalla-banner.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.valhalla-banner-text {
+  font-family: 'Black Han Sans', 'Orbitron', sans-serif;
+  font-size: 3.5rem;
+  color: #fff;
+  text-shadow: 0 0 25px #ffaa00, 0 0 50px #ff3300, 2px 4px 10px #000;
+  text-align: center;
+  padding: 20px 40px;
+  background: rgba(20, 10, 5, 0.85);
+  border: 4px solid #ffcc00;
+  border-radius: 8px;
+  animation: bannerPulse 0.4s infinite alternate ease-in-out;
+}
+
+@keyframes bannerPulse {
+  from { transform: scale(1); filter: brightness(1); }
+  to { transform: scale(1.04); filter: brightness(1.3); }
+}
+
+/* HTTPS 보안 배지 */
+.https-badge {
+  position: fixed;
+  top: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, #2b241e, #17120e);
+  border: 2px solid #5a3c28;
+  padding: 6px 20px;
+  border-radius: 4px;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.8rem;
+  color: #c49a6c;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  z-index: 100;
+  letter-spacing: 1px;
+}
+
+.rivet {
+  width: 6px;
+  height: 6px;
+  background: #7a5c43;
+  border-radius: 50%;
+  box-shadow: inset 1px 1px 1px #fff, 1px 1px 2px #000;
+}
+
+.lock-icon {
+  font-size: 0.95rem;
+}
+
+.v8-badge {
+  background: #6e2208;
+  border: 1px solid #a33b12;
+  color: #ffccaa;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+/* 메인 컨테이너 */
+.container {
+  position: relative;
+  z-index: 10;
+  max-width: 860px;
+  width: 94%;
+  margin: 60px auto 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* 헤더 */
+.header {
+  margin-bottom: 16px;
+}
+
+.subtitle-en {
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: 1.05rem;
+  letter-spacing: 7px;
+  color: #a88259;
+  text-shadow: 1px 2px 4px #000;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+
+.main-title {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 4.6rem;
+  line-height: 1.05;
+  letter-spacing: 3px;
+  color: #ece4db;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ffffff 0%, #d5c7b8 35%, #a86c3d 70%, #4a210f 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 15px rgba(180, 70, 20, 0.6));
+  position: relative;
+  display: inline-block;
+}
+
+.witness-en {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: #d17b38;
+  text-shadow: 1px 2px 5px #000;
+  margin-top: 2px;
+}
+
+/* 워보이 카드 */
+.warboy-card {
+  width: 100%;
+  background: var(--color-card-bg);
+  border: 4px solid #4a3424;
+  border-top-color: #694b35;
+  border-bottom-color: #2e1e13;
+  border-radius: 8px;
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.95),
+    inset 0 0 0 2px #1f1610,
+    inset 0 0 30px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 18px;
+  transition: border-color 0.3s ease;
+  cursor: crosshair;
+}
+
+.warboy-card:hover {
+  border-color: #8c532b;
+}
+
+/* 네 모서리 볼트 */
+.corner-bolt {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #5c4434;
+  border-radius: 50%;
+  border: 1px solid #7a5c48;
+  box-shadow: inset 1px 1px 2px rgba(255, 255, 255, 0.3), 1px 1px 3px #000;
+  z-index: 20;
+}
+
+.corner-bolt.top-left { top: 8px; left: 8px; }
+.corner-bolt.top-right { top: 8px; right: 8px; }
+.corner-bolt.bottom-left { bottom: 8px; left: 8px; }
+.corner-bolt.bottom-right { bottom: 8px; right: 8px; }
+
+/* 씬 모드 배지 */
+.scene-badge {
+  position: absolute;
+  top: 10px;
+  right: 25px;
+  background: rgba(15, 10, 8, 0.85);
+  border: 1px solid #6b472e;
+  color: #df9e5c;
+  font-family: 'Orbitron', monospace;
+  font-size: 0.72rem;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 3px;
+  z-index: 15;
+  letter-spacing: 1px;
+}
+
+/* 사진/영상 영역 */
+.visual-container {
+  position: relative;
+  width: 100%;
+  background: #080605;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-bottom: 3px solid #362417;
+  min-height: 420px;
+}
+
+.warboy-video {
+  width: 100%;
+  max-height: 520px;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  background: #000;
+  transition: transform 0.15s ease, filter 0.25s ease;
+}
+
+.warboy-card:hover .warboy-video {
+  transform: scale(1.015);
+}
+
+.warboy-video-chromed {
+  filter: brightness(1.25) contrast(1.3) grayscale(0.2) drop-shadow(0 0 20px rgba(230, 240, 255, 0.85));
+}
+
+/* 🎬 영화관 실제 극장 공식 자막 오버레이 */
+.movie-subtitle-wrap {
+  position: absolute;
+  bottom: 25px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  z-index: 25;
+}
+
+.movie-subtitle {
+  font-family: 'Black Han Sans', 'Noto Sans KR', sans-serif;
+  font-size: 2.8rem;
+  color: #ffffff;
+  letter-spacing: 6px;
+  text-align: center;
+  padding: 4px 20px;
+  text-shadow: 
+    3px 3px 0 #000000,
+    -3px -3px 0 #000000,
+    3px -3px 0 #000000,
+    -3px 3px 0 #000000,
+    0 4px 12px rgba(0, 0, 0, 0.95),
+    0 0 20px rgba(0, 0, 0, 0.9);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  animation: subFlicker 0.2s ease-out;
+}
+
+@keyframes subFlicker {
+  0% { transform: scale(0.92); opacity: 0.4; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 배기구 화염 (Backfire) */
+.exhaust-flame {
+  position: absolute;
+  bottom: 15px;
+  width: 40px;
+  height: 80px;
+  background: radial-gradient(ellipse at bottom, #ffee55 0%, #ff5500 50%, transparent 80%);
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(2px);
+  transform-origin: bottom center;
+  transition: opacity 0.1s ease;
+}
+
+.exhaust-flame.left { left: 40px; transform: rotate(-25deg); }
+.exhaust-flame.right { right: 40px; transform: rotate(25deg); }
+
+.exhaust-flame.firing {
+  opacity: 1;
+  animation: flameFlicker 0.15s infinite alternate;
+}
+
+@keyframes flameFlicker {
+  0% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 15px #ff4500); }
+  100% { transform: scale(1.3) translateY(-10px); filter: drop-shadow(0 0 30px #ffee00); }
+}
+
+/* 스프레이 플래시 */
+.spray-flash-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at 50% 50%, rgba(240, 245, 255, 0.75) 0%, rgba(180, 195, 210, 0.3) 50%, transparent 80%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-out;
+}
+
+.spray-flash-overlay.active {
+  opacity: 1;
+}
+
+/* 상태 바 & V8 RPM 계기판 */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, #1f1813, #120e0b);
+  border-top: 1px solid #3d2719;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stat-label {
+  font-size: 0.82rem;
+  color: #a89380;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* RPM 게이지 */
+.rpm-meter {
+  width: 100px;
+  height: 10px;
+  background: #080605;
+  border: 1px solid #5a3c28;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.rpm-bar {
+  height: 100%;
+  width: 15%;
+  background: linear-gradient(90deg, #2b8a3e, #f59f00, #d9480f, #c92a2a);
+  transition: width 0.1s ease-out;
+}
+
+.rpm-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #e07a2a;
+}
+
+/* 발할라 게이지 */
+.valhalla-meter {
+  width: 120px;
+  height: 10px;
+  background: #0d0a08;
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid #5a3c28;
+}
+
+.meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7a280b, #c45b18, #d49b39);
+  transition: width 0.3s ease;
+}
+
+.stat-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #d98236;
+  text-shadow: 1px 1px 3px #000;
+}
+
+/* 컨트롤 버튼 그리드 */
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #211a14;
+  color: #e2dad0;
+  transition: all 0.12s ease-out;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+  border: 2px solid #4a3525;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.85);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.full-width {
+  grid-column: span 2;
+}
+
+.btn-icon {
+  font-size: 1.8rem;
+  filter: drop-shadow(1px 2px 2px #000);
+}
+
+.btn-text-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.btn-title {
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+.btn-sub {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65rem;
+  letter-spacing: 1.2px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+/* 1. 기억해줘! (WITNESS ME!) 버튼 */
+.btn-witness-me {
+  background: linear-gradient(180deg, #6e2208, #3b1003);
+  border-color: #b83a12;
+  box-shadow: 0 4px 15px rgba(184, 58, 18, 0.4);
+}
+.btn-witness-me:hover {
+  border-color: #ff5511;
+  background: linear-gradient(180deg, #852b0c, #4a1505);
+}
+.btn-witness-me .btn-title {
+  color: #ffbb66;
+  text-shadow: 1px 1px 3px #000;
+}
+
+/* 2. 기억할게! (WITNESSED!) 버튼 */
+.btn-witness {
+  background: linear-gradient(180deg, #4a1c0d, #260c05);
+  border-color: #8c3819;
+}
+.btn-witness:hover {
+  border-color: #b84a21;
+  background: linear-gradient(180deg, #5c2210, #331007);
+}
+.btn-witness .btn-title { color: #f29657; }
+
+/* 💥 3. FA솔루션 뿌시기 버튼 */
+.btn-destroy-fa {
+  background: linear-gradient(180deg, #8b1e0f, #450b04);
+  border-color: #ff3311;
+  box-shadow: 0 4px 18px rgba(255, 51, 17, 0.5);
+  animation: faBtnGlow 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes faBtnGlow {
+  0% { border-color: #ff3311; box-shadow: 0 4px 15px rgba(255, 51, 17, 0.4); }
+  100% { border-color: #ffaa00; box-shadow: 0 6px 25px rgba(255, 170, 0, 0.8); }
+}
+
+.btn-destroy-fa:hover {
+  border-color: #ffdd00;
+  background: linear-gradient(180deg, #aa2413, #5c0f06);
+  transform: translateY(-2px) scale(1.02);
+}
+.btn-destroy-fa .btn-title {
+  color: #fff0aa;
+  text-shadow: 0 0 10px #ff3300, 1px 1px 3px #000;
+}
+.btn-destroy-fa .btn-sub {
+  color: #ffbba8;
+}
+
+/* 4. 크롬 버튼 */
+.btn-chrome {
+  background: linear-gradient(180deg, #3d3d3d, #242424);
+  border-color: #787878;
+}
+.btn-chrome:hover {
+  border-color: #cccccc;
+  background: linear-gradient(180deg, #4d4d4d, #2e2e2e);
+}
+.btn-chrome .btn-title { color: #ffffff; }
+
+/* 5. V8 풀 악셀 버튼 */
+.btn-v8 {
+  background: linear-gradient(180deg, #5a2e0a, #2b1404);
+  border-color: #a85816;
+}
+.btn-v8:hover {
+  border-color: #e0741b;
+  background: linear-gradient(180deg, #6e370c, #3b1c06);
+}
+.btn-v8 .btn-title { color: #ffaa55; }
+
+/* 6. 사운드 버튼 */
+.btn-sound {
+  background: linear-gradient(180deg, #302619, #1c150c);
+  border-color: #6b5231;
+}
+.btn-sound:hover { border-color: #9c7849; }
+
+/* 7. 명대사 버튼 */
+.btn-quote {
+  background: linear-gradient(180deg, #2a231f, #171310);
+  border-color: #57463c;
+}
+.btn-quote:hover { border-color: #806758; }
+
+/* 키보드 가이드 바 */
+.keyboard-guide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: #9c8a7b;
+  margin-bottom: 12px;
+  padding: 6px 14px;
+  background: rgba(20, 14, 10, 0.7);
+  border: 1px dashed #422d1e;
+  border-radius: 4px;
+}
+
+kbd {
+  background: #2b2018;
+  color: #e0a365;
+  border: 1px solid #5a3c28;
+  border-bottom: 2px solid #362215;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-weight: bold;
+  font-size: 0.75rem;
+}
+
+/* 푸터 */
+.footer {
+  font-size: 0.78rem;
+  color: #78695d;
+}
+
+.copyright {
+  letter-spacing: 1.5px;
+  font-size: 0.7rem;
+  opacity: 0.55;
+}
+
+/* 화면 흔들림 */
+.screen-shake {
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.screen-mega-shake {
+  animation: megaShake 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-4px, -1px, 0); }
+  20%, 80% { transform: translate3d(5px, 2px, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, -2px, 0); }
+  40%, 60% { transform: translate3d(6px, 2px, 0); }
+}
+
+@keyframes megaShake {
+  0% { transform: scale(1.08) translate3d(0, 0, 0); }
+  10%, 90% { transform: scale(1.07) translate3d(-10px, -6px, 0) rotate(-2deg); }
+  20%, 80% { transform: scale(1.06) translate3d(12px, 8px, 0) rotate(2deg); }
+  30%, 50%, 70% { transform: scale(1.05) translate3d(-14px, -8px, 0) rotate(-1.5deg); }
+  40%, 60% { transform: scale(1.04) translate3d(14px, 8px, 0) rotate(1.5deg); }
+  100% { transform: scale(1) translate3d(0, 0, 0) rotate(0deg); }
+}
+
+.screen-flash-chrome {
+  animation: flashChrome 0.5s ease-out;
+}
+
+@keyframes flashChrome {
+  0% { box-shadow: inset 0 0 120px rgba(255, 255, 255, 0.7); }
+  100% { box-shadow: inset 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.screen-flash-fire {
+  animation: flashFire 0.5s ease-out;
+}
+
+@keyframes flashFire {
+  0% { box-shadow: inset 0 0 140px rgba(255, 80, 20, 0.9); }
+  100% { box-shadow: inset 0 0 0 rgba(255, 80, 20, 0); }
+}
+
+/* 반응형 */
+@media (max-width: 650px) {
+  .main-title { font-size: 3.2rem; }
+  .witness-en { font-size: 1.2rem; letter-spacing: 4px; }
+  .controls-grid { grid-template-columns: 1fr; }
+  .btn.full-width { grid-column: span 1; }
+  .movie-subtitle { font-size: 2rem; letter-spacing: 4px; }
+  .status-bar { justify-content: center; }
+}

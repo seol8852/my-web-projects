@@ -1,0 +1,2744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>미국·캐나다 자동차 대륙일주 10,786 km 공식 마스터 포털 (Pinnacle Edition)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Cinzel:wght@700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #060913;
+      --sidebar-bg: rgba(11, 16, 28, 0.85);
+      --panel-bg: rgba(16, 23, 40, 0.62);
+      --panel-hover: rgba(22, 32, 54, 0.78);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-border-subtle: rgba(255, 255, 255, 0.04);
+      --glass-shine: rgba(255, 255, 255, 0.06);
+      --glass-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      --accent-cyan: #38bdf8;
+      --accent-blue: #3b82f6;
+      --accent-gold: #f59e0b;
+      --accent-amber: #fbbf24;
+      --accent-emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --text-dim: #64748b;
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    body { display: flex; height: 100vh; overflow: hidden; background: var(--bg-base); color: var(--text-main); letter-spacing: -0.015em; }
+
+    /* Micro scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.22); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.5); }
+
+    /* ================= SIDEBAR ================= */
+    #sidebar {
+      width: 480px;
+      min-width: 480px;
+      height: 100%;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(32px) saturate(180%);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      border-right: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      box-shadow: 20px 0 60px rgba(0, 0, 0, 0.85);
+      position: relative;
+      transition: margin-left 0.35s var(--ease-spring);
+    }
+
+    #sidebar.collapsed {
+      margin-left: -480px;
+    }
+
+    .sidebar-toggle {
+      position: absolute;
+      top: 22px;
+      right: -42px;
+      width: 42px;
+      height: 48px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-left: none;
+      border-radius: 0 12px 12px 0;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 2000;
+      box-shadow: 6px 0 20px rgba(0, 0, 0, 0.6);
+      font-size: 15px;
+      font-weight: 800;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .sidebar-toggle:hover {
+      background: #0284c7;
+      color: #fff;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+      width: 46px;
+      right: -46px;
+    }
+
+    /* Brand Header with Refined Glass Layout */
+    .brand {
+      padding: 18px 22px 16px 22px;
+      background: linear-gradient(180deg, rgba(25, 36, 62, 0.6) 0%, rgba(12, 18, 32, 0.95) 100%);
+      border-bottom: 1px solid var(--glass-border);
+      position: relative;
+    }
+    .brand-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+    
+    .badge-trans {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--accent-cyan);
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3.5px 11px;
+      border-radius: 9999px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.2);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Unified Frosted Action Cluster */
+    .action-cluster {
+      display: inline-flex;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid var(--glass-border);
+      border-radius: 9px;
+      padding: 2.5px;
+      gap: 3px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .cluster-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4.5px;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .cluster-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.06); }
+    .cluster-btn.active { background: rgba(56, 189, 248, 0.15); color: #fff; border: 1px solid rgba(56, 189, 248, 0.3); }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #475569;
+      display: inline-block;
+      transition: all 0.2s;
+    }
+    .cluster-btn.active .status-dot {
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+    .cluster-btn.active-green .status-dot {
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .brand h1 {
+      font-size: 18.5px;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.25;
+      letter-spacing: -0.4px;
+      margin-bottom: 3px;
+    }
+    .brand p {
+      font-size: 11.5px;
+      color: var(--text-sub);
+      font-weight: 500;
+      letter-spacing: -0.2px;
+    }
+
+    /* iOS / macOS Segmented 4-Column Grid Rail */
+    .tab-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: rgba(8, 12, 22, 0.95);
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--glass-border);
+      gap: 5px;
+    }
+    .tab-btn {
+      padding: 7px 4px;
+      text-align: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-sub);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s var(--ease-spring);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .tab-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); border-color: rgba(56, 189, 248, 0.25); }
+    .tab-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(37, 99, 235, 0.3));
+      border: 1px solid #38bdf8;
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.2);
+      font-weight: 800;
+    }
+
+    .tab-content { flex: 1; overflow-y: auto; display: none; padding: 18px 20px; }
+    .tab-content.active { display: block; }
+
+    /* Story Card with Cinematic 16:9 Aspect */
+    .story-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+    }
+    .story-nav-btn {
+      background: rgba(30, 41, 59, 0.7);
+      color: #fff;
+      border: 1px solid var(--glass-border);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .story-nav-btn:hover { background: #0284c7; border-color: #38bdf8; transform: translateY(-1px); }
+
+    .story-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      box-shadow: var(--glass-shadow);
+      animation: fadeIn 0.3s var(--ease-spring);
+      transition: transform 0.3s var(--ease-spring), border-color 0.3s;
+    }
+    .story-card:hover { border-color: rgba(56, 189, 248, 0.3); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .sc-img-box { position: relative; width: 100%; height: 200px; overflow: hidden; }
+    .sc-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      cursor: pointer;
+      transition: transform 0.6s var(--ease-spring);
+    }
+    .story-card:hover .sc-img { transform: scale(1.03); }
+    .sc-img-overlay {
+      position: absolute;
+      bottom: 0; left: 0; width: 100%; height: 60px;
+      background: linear-gradient(180deg, transparent 0%, rgba(16, 23, 40, 0.95) 100%);
+      pointer-events: none;
+    }
+
+    .sc-body { padding: 18px; }
+    .sc-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .sc-tag { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 6px; color: #fff; letter-spacing: 0.3px; }
+    .sc-date { font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+    .sc-title { font-size: 16.5px; font-weight: 800; color: #fff; margin-bottom: 4px; line-height: 1.35; }
+    .sc-region { font-size: 12px; color: var(--accent-cyan); margin-bottom: 10px; font-weight: 600; }
+    .sc-desc { font-size: 13px; color: #cbd5e1; line-height: 1.65; margin-bottom: 14px; font-weight: 400; }
+    
+    .sc-weather {
+      background: rgba(0, 0, 0, 0.35);
+      padding: 8px 12px;
+      border-radius: 9px;
+      border: 1px solid var(--glass-border-subtle);
+      font-size: 11.5px;
+      color: #f59e0b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sc-streetview-btn {
+      background: rgba(2, 132, 199, 0.25);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #38bdf8;
+      padding: 4px 9px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .sc-streetview-btn:hover { background: #0284c7; color: #fff; transform: translateY(-1px); }
+
+    /* Obsidian Glass Stats Card */
+    .stats-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--glass-shadow);
+      transition: transform 0.25s var(--ease-spring), border-color 0.25s;
+    }
+    .stats-card:hover {
+      border-color: rgba(56, 189, 248, 0.25);
+      transform: translateY(-2px);
+    }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
+    .stat-col { flex: 1; }
+    .stat-lbl { font-size: 11px; color: var(--text-sub); margin-bottom: 3px; font-weight: 600; letter-spacing: -0.1px; }
+    .stat-num {
+      font-size: 18.5px;
+      font-weight: 900;
+      color: var(--accent-cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+      line-height: 1.15;
+    }
+    .stat-sub { font-size: 10.5px; color: #34d399; font-weight: 600; margin-top: 3px; }
+
+    /* Simulator Panel */
+    .sim-panel {
+      background: linear-gradient(135deg, rgba(28, 25, 70, 0.6) 0%, rgba(15, 23, 42, 0.9) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 32px rgba(37, 99, 235, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .sim-title { font-size: 13px; font-weight: 800; color: #93c5fd; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .sim-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+    .sim-btn {
+      padding: 10.5px 12px;
+      border-radius: 9px;
+      border: none;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .btn-play { flex: 1.6; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4); }
+    .btn-play:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(37, 99, 235, 0.6); }
+    .btn-reset { flex: 1; background: rgba(51, 65, 85, 0.7); border: 1px solid var(--glass-border); color: #e2e8f0; }
+    .btn-reset:hover { background: #475569; }
+
+    .speed-btns { display: flex; gap: 4px; margin-bottom: 12px; }
+    .speed-btn {
+      flex: 1;
+      padding: 6.5px 0;
+      border-radius: 7px;
+      border: 1px solid var(--glass-border);
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .speed-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3); }
+
+    .follow-cam-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #cbd5e1;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .follow-cam-box input { accent-color: #38bdf8; cursor: pointer; }
+
+    .sim-hud {
+      background: rgba(2, 6, 23, 0.55);
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--glass-border-subtle);
+    }
+    .hud-line { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+    .hud-label { color: var(--text-sub); }
+    .hud-val { font-weight: 800; color: #f8fafc; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+
+    /* Drive Telemetry Banner & Chips */
+    .drive-banner {
+      background: linear-gradient(135deg, rgba(29, 78, 216, 0.35) 0%, rgba(15, 23, 42, 0.8) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      box-shadow: var(--glass-shadow);
+    }
+    .drive-banner h2 { font-size: 15px; font-weight: 900; color: #38bdf8; display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+    .drive-banner p { font-size: 11.5px; color: #cbd5e1; line-height: 1.55; }
+
+    .highway-chip {
+      background: rgba(12, 18, 32, 0.75);
+      border: 1px solid var(--glass-border);
+      border-radius: 9px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .highway-chip:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      transform: translateX(3px);
+    }
+    .hwy-badge {
+      background: rgba(30, 58, 138, 0.7);
+      color: #93c5fd;
+      font-weight: 900;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .hwy-info { flex: 1; }
+    .hwy-title { font-size: 12.5px; font-weight: 800; color: #fff; }
+    .hwy-desc { font-size: 10.5px; color: var(--text-sub); margin-top: 2px; }
+
+    /* Filter Pills */
+    .filter-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .pill-btn {
+      padding: 5px 11px;
+      border-radius: 8px;
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid var(--glass-border);
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .pill-btn.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+    }
+
+    .search-box { margin-bottom: 12px; }
+    .search-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--accent-cyan); }
+
+    /* Spots Item Card */
+    .item-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      transition: all 0.25s var(--ease-spring);
+    }
+    .item-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      background: var(--panel-hover);
+      transform: translateX(3px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    }
+    .item-header { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .item-no {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent-cyan);
+      font-size: 11px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .item-info { flex: 1; min-width: 0; }
+    .item-name { font-size: 13.5px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-addr { font-size: 11px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .item-badge-cat {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--accent-cyan);
+      font-weight: 700;
+    }
+    .item-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--glass-shine);
+    }
+    .item-links { display: flex; gap: 8px; font-size: 11px; font-weight: 700; }
+    .item-links a { text-decoration: none; }
+    .item-memory-toggle {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--glass-border);
+      color: #f59e0b;
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .item-memory-box {
+      display: none;
+      margin-top: 10px;
+      background: rgba(12, 18, 32, 0.95);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--glass-border);
+    }
+    .memory-stars { display: flex; gap: 4px; color: #475569; cursor: pointer; font-size: 16px; margin-bottom: 6px; }
+    .memory-stars .active { color: #f59e0b; }
+    .memory-input {
+      width: 100%;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid var(--glass-border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      color: #fff;
+      font-size: 11px;
+      resize: vertical;
+      min-height: 48px;
+      margin-bottom: 6px;
+    }
+    .memory-save-btn {
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* Photo Album Grid */
+    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+    .photo-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      transition: transform 0.3s var(--ease-spring);
+    }
+    .photo-card:hover { transform: translateY(-2px); }
+    .photo-card img {
+      width: 100%;
+      height: 125px;
+      object-fit: cover;
+      display: block;
+      cursor: pointer;
+      transition: transform 0.4s ease;
+    }
+    .photo-card img:hover { transform: scale(1.05); }
+    .photo-meta { padding: 8px 10px; font-size: 11px; }
+    .photo-title { font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .photo-date { color: var(--text-dim); font-size: 10px; margin-top: 2px; }
+
+    /* Currency Bar */
+    .currency-bar {
+      display: flex;
+      gap: 4px;
+      background: rgba(10, 15, 26, 0.8);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--glass-border);
+      margin-bottom: 12px;
+    }
+    .curr-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 5px 0;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .curr-btn.active { background: #0284c7; color: #fff; }
+
+    /* Download Card */
+    .dl-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: transform 0.2s var(--ease-spring);
+    }
+    .dl-card:hover { transform: translateY(-1px); border-color: rgba(56, 189, 248, 0.25); }
+    .dl-title { font-size: 13px; font-weight: 800; color: #fff; }
+    .dl-desc { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .dl-btn {
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .dl-btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+
+    /* ================= MAP & OVERLAYS ================= */
+    #map { flex: 1; height: 100%; position: relative; }
+
+    #fxCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 500;
+    }
+
+    /* Map Layer Switcher */
+    .layer-selector {
+      position: absolute;
+      top: 20px;
+      left: 510px;
+      z-index: 1000;
+      display: flex;
+      background: rgba(12, 18, 32, 0.88);
+      backdrop-filter: blur(20px);
+      padding: 3.5px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65);
+      transition: left 0.4s var(--ease-spring);
+    }
+    .layer-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .layer-btn.active { background: #0284c7; color: #fff; box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35); }
+
+    /* Sky Mode Switcher */
+    .sky-selector {
+      position: absolute;
+      top: 20px;
+      left: 810px;
+      z-index: 1000;
+      display: flex;
+      background: rgba(12, 18, 32, 0.88);
+      backdrop-filter: blur(20px);
+      padding: 3.5px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65);
+      transition: left 0.4s var(--ease-spring);
+    }
+    .sky-btn {
+      padding: 6px 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .sky-btn.active { background: #f59e0b; color: #0f172a; font-weight: 900; }
+
+    /* ================= COCKPIT VISION & CAR CLUSTER HUD ================= */
+    .cockpit-hud {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(12, 18, 32, 0.88);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 16px 20px;
+      z-index: 1000;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      min-width: 320px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .hud-radial-box {
+      width: 80px;
+      height: 80px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .hud-radial-svg {
+      transform: rotate(-90deg);
+      width: 80px;
+      height: 80px;
+    }
+    .radial-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 6.5;
+    }
+    .radial-ticks {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.15);
+      stroke-width: 1.5;
+      stroke-dasharray: 2 4;
+    }
+    .radial-progress {
+      fill: none;
+      stroke: url(#cyanGrad);
+      stroke-width: 6.5;
+      stroke-linecap: round;
+      stroke-dasharray: 201;
+      stroke-dashoffset: 201;
+      filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.8));
+      transition: stroke-dashoffset 0.15s;
+    }
+    .radial-bead {
+      fill: #ffffff;
+      filter: drop-shadow(0 0 6px #38bdf8);
+      transition: cx 0.15s, cy 0.15s;
+    }
+    .hud-pct-text {
+      position: absolute;
+      font-size: 15px;
+      font-weight: 900;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .hud-content { flex: 1; min-width: 0; }
+    .hud-top-meta { display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--accent-cyan); letter-spacing: 0.5px; margin-bottom: 2px; }
+    .hud-big-km { font-size: 22px; font-weight: 900; color: #fff; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .hud-location-text { font-size: 12px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; font-weight: 500; }
+
+    .car-cluster {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid var(--glass-shine);
+    }
+    .cluster-item { text-align: center; }
+    .cluster-val { font-size: 11.5px; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+    .cluster-lbl { font-size: 9px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; margin-top: 1px; }
+
+    /* ================= TIMELINE SCRUBBER MISSION CONTROL ================= */
+    .bottom-timeline-bar {
+      position: absolute;
+      bottom: 24px;
+      left: 520px;
+      right: 40px;
+      background: rgba(12, 18, 32, 0.88);
+      backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 14px 24px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 16px 45px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: left 0.4s var(--ease-spring);
+    }
+    .scrubber-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-sub); }
+    
+    /* Sleek Custom Range Input with Live Gradient Fill */
+    .scrubber-slider {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      cursor: pointer;
+    }
+    .scrubber-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 12px #38bdf8, 0 0 2px #fff;
+      border: 2px solid #fff;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .scrubber-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .milestone-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9.5px;
+      color: #64748b;
+      font-weight: 700;
+      margin-top: 2px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ================= CINEMA THEATER MODE ================= */
+    #cinemaOverlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 9990;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.5s ease;
+    }
+    #cinemaOverlay.active { display: flex; }
+    .cinema-bar {
+      background: #000;
+      width: 100%;
+      height: 10vh;
+      z-index: 9992;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      box-shadow: 0 0 50px rgba(0,0,0,0.95);
+    }
+    .cinema-brand {
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      letter-spacing: 3px;
+      color: #fbbf24;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cinema-controls { display: flex; align-items: center; gap: 10px; }
+    .cinema-btn {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cinema-btn:hover { background: var(--accent-cyan); border-color: var(--accent-cyan); }
+    .cinema-close {
+      background: #ef4444;
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* Audio Spectrum Visualizer */
+    .audio-visualizer {
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 24px;
+      margin-left: 12px;
+    }
+    .v-bar {
+      width: 3px;
+      background: var(--accent-cyan);
+      border-radius: 3px;
+      animation: bounce 0.8s ease-in-out infinite alternate;
+    }
+    .v-bar:nth-child(1) { height: 6px; animation-delay: 0.1s; }
+    .v-bar:nth-child(2) { height: 18px; animation-delay: 0.3s; }
+    .v-bar:nth-child(3) { height: 12px; animation-delay: 0.2s; }
+    .v-bar:nth-child(4) { height: 22px; animation-delay: 0.4s; }
+    .v-bar:nth-child(5) { height: 8px; animation-delay: 0.15s; }
+    @keyframes bounce { 0% { height: 4px; } 100% { height: 22px; } }
+
+    .cinema-sub-box {
+      pointer-events: auto;
+      margin: 0 auto;
+      max-width: 860px;
+      text-align: center;
+      color: #fff;
+      padding: 10px 20px;
+    }
+    .cinema-sub-title {
+      font-size: 21px;
+      font-weight: 900;
+      color: #fbbf24;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    }
+    .cinema-sub-desc {
+      font-size: 14px;
+      color: #e2e8f0;
+      line-height: 1.6;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+
+    /* ================= LUXURY LEAFLET OVERRIDES ================= */
+    .leaflet-popup-content-wrapper {
+      background: rgba(12, 18, 32, 0.94) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+      color: #f8fafc !important;
+      padding: 2px !important;
+    }
+    .leaflet-popup-content {
+      margin: 14px 18px !important;
+      line-height: 1.5 !important;
+    }
+    .leaflet-popup-tip {
+      background: rgba(12, 18, 32, 0.94) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5) !important;
+    }
+    .leaflet-container a.leaflet-popup-close-button {
+      color: #94a3b8 !important;
+      top: 12px !important;
+      right: 14px !important;
+      font-size: 16px !important;
+      transition: color 0.2s;
+    }
+    .leaflet-container a.leaflet-popup-close-button:hover {
+      color: #38bdf8 !important;
+    }
+
+    .leaflet-control-zoom {
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 12px !important;
+      overflow: hidden !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7) !important;
+      background: rgba(12, 18, 32, 0.85) !important;
+      backdrop-filter: blur(16px) !important;
+    }
+    .leaflet-control-zoom-in, .leaflet-control-zoom-out {
+      background: transparent !important;
+      color: #e2e8f0 !important;
+      border: none !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      font-weight: 700 !important;
+      width: 34px !important;
+      height: 34px !important;
+      line-height: 34px !important;
+      transition: all 0.2s var(--ease-spring) !important;
+    }
+    .leaflet-control-zoom-out { border-bottom: none !important; }
+    .leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
+      background: rgba(56, 189, 248, 0.2) !important;
+      color: #38bdf8 !important;
+    }
+
+    /* Radar Pulse Animation for Highlights */
+    @keyframes radarPulse {
+      0% { transform: scale(1); opacity: 0.85; }
+      70% { transform: scale(2.6); opacity: 0; }
+      100% { transform: scale(2.6); opacity: 0; }
+    }
+    .pulse-wave {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid #f59e0b;
+      animation: radarPulse 2.4s infinite cubic-bezier(0.25, 1, 0.5, 1);
+      pointer-events: none;
+    }
+
+    /* Driver Certificate Modal */
+    #storyModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(16px);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    .modal-box {
+      background: #0f172a;
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 24px;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+      position: relative;
+    }
+    .modal-hdr {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .modal-title { font-size: 16px; font-weight: 900; color: #fbbf24; }
+    .modal-close-btn { background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; }
+    .modal-car-input-box {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      background: rgba(30, 41, 59, 0.7);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--glass-border);
+    }
+    .modal-car-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #38bdf8;
+      font-weight: 800;
+      font-size: 12px;
+      outline: none;
+    }
+
+    /* Lightbox */
+    #lightbox {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.92);
+      backdrop-filter: blur(10px);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+    #lightbox.active { display: flex; }
+    #lightbox img { max-width: 85vw; max-height: 80vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
+    .lb-close { position: absolute; top: 30px; right: 40px; font-size: 32px; color: #fff; cursor: pointer; }
+    .lb-caption { margin-top: 14px; font-size: 14px; color: #e2e8f0; font-weight: 600; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div class="sidebar-toggle" onclick="toggleSidebar()" title="사이드바 접기/펼치기" id="sidebarToggleBtn">◀</div>
+    
+    <div class="brand">
+      <div class="brand-top">
+        <span class="badge-trans">🚗 10,786 KM 자동차 대륙일주</span>
+        <div class="action-cluster">
+          <button id="ttsBtn" class="cluster-btn" onclick="toggleTTS()" title="AI 음성 가이드"><span class="status-dot"></span>🎙️ 보이스</button>
+          <button id="soundBtn" class="cluster-btn" onclick="toggleAudio()" title="고속도로 엔진 사운드"><span class="status-dot"></span>🔊 엔진음</button>
+          <button class="cluster-btn" onclick="openCinema()" title="21:9 시네마 모드">🎬 시네마</button>
+          <button class="cluster-btn" onclick="openCert()" title="완주 인증서">🏆 증서</button>
+        </div>
+      </div>
+      <h1>미국·캐나다 자동차 대륙일주 10,786 km</h1>
+      <p>로스앤젤레스(LAX) ➔ 시애틀/밴쿠버 ➔ 로키산맥 ➔ 시카고 ➔ 뉴욕(JFK)</p>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('story')">📖 스토리</button>
+      <button class="tab-btn" onclick="switchTab('sim')">⚡ 시뮬레이터</button>
+      <button class="tab-btn" onclick="switchTab('drive')">🚗 주행분석</button>
+      <button class="tab-btn" onclick="switchTab('spots')">📍 132장소</button>
+      <button class="tab-btn" onclick="switchTab('album')">📸 사진앨범</button>
+      <button class="tab-btn" onclick="switchTab('analytics')">📊 분석관</button>
+      <button class="tab-btn" onclick="switchTab('chart')">⛰️ 고도&경비</button>
+      <button class="tab-btn" onclick="switchTab('export')">📥 내보내기</button>
+    </div>
+
+    <!-- TAB 1: Story Tour Mode -->
+    <div id="tab-story" class="tab-content active">
+      <div class="story-nav">
+        <button class="story-nav-btn" onclick="prevStory()">◀ 이전</button>
+        <span id="storyIndicator" style="font-size: 12px; font-weight: 800; color: #38bdf8; font-family:'JetBrains Mono';">1 / 18 여정</span>
+        <button class="story-nav-btn" onclick="nextStory()">다음 ▶</button>
+      </div>
+      <div id="storyCardContainer"></div>
+    </div>
+
+    <!-- TAB 2: Simulator -->
+    <div id="tab-sim" class="tab-content">
+      <div class="sim-panel">
+        <div class="sim-title">
+          <span>⚡ 실시간 주행 시뮬레이터</span>
+          <span style="font-size: 10px; color: #38bdf8; font-family:'JetBrains Mono';">DRIVE CAM 4K</span>
+        </div>
+        <div class="sim-controls">
+          <button id="playBtn" class="sim-btn btn-play" onclick="togglePlay()">▶ 주행 시작</button>
+          <button class="sim-btn btn-reset" onclick="resetSim()">↺ 처음으로</button>
+        </div>
+        <div class="speed-btns">
+          <button class="speed-btn active" onclick="setSpeed(0.04, this)">0.04x 정밀</button>
+          <button class="speed-btn" onclick="setSpeed(0.1, this)">0.1x 여유</button>
+          <button class="speed-btn" onclick="setSpeed(0.2, this)">0.2x 보통</button>
+          <button class="speed-btn" onclick="setSpeed(0.5, this)">0.5x 순항</button>
+          <button class="speed-btn" onclick="setSpeed(1, this)">1x 고속</button>
+        </div>
+
+        <label class="follow-cam-box">
+          <input type="checkbox" id="followCam" checked>
+          <span>🚗 차량 추적 카메라 (Follow Vehicle Camera)</span>
+        </label>
+
+        <div class="sim-hud">
+          <div class="hud-line">
+            <span class="hud-label">현재 누적 주행 거리</span>
+            <span class="hud-val" id="hudKm">0 km / 10,786 km</span>
+          </div>
+          <div class="hud-line">
+            <span class="hud-label">여정 진행률</span>
+            <span class="hud-val" id="hudPct" style="color: #38bdf8;">0.0 %</span>
+          </div>
+          <div class="hud-line">
+            <span class="hud-label">가상 일차</span>
+            <span class="hud-val" id="hudDay" style="color: #34d399;">Day 1 (07.06)</span>
+          </div>
+          <div class="hud-line">
+            <span class="hud-label">현재 통과 지역</span>
+            <span class="hud-val" id="hudRegion">로스앤젤레스 (LAX 공항)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div class="stat-row">
+          <div class="stat-col">
+            <div class="stat-lbl">총 도로 주행거리</div>
+            <div class="stat-num">10,786 km</div>
+            <div class="stat-sub">6,702 miles</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-lbl">총 여행 기간</div>
+            <div class="stat-num" style="color: #f59e0b;">26일 완주</div>
+            <div class="stat-sub">2024.07.06 ~ 07.31</div>
+          </div>
+        </div>
+        <div class="stat-row" style="margin-bottom: 0;">
+          <div class="stat-col">
+            <div class="stat-lbl">횡단 행정구역</div>
+            <div class="stat-num" style="color: #a78bfa;">13개 주/지역</div>
+            <div class="stat-sub">미국 11개주 + 캐나다 2개주</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-lbl">지구 둘레 대비</div>
+            <div class="stat-num" style="color: #34d399;">27.0%</div>
+            <div class="stat-sub">적도(40,075km) 1/4 이상</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Drive Telemetry -->
+    <div id="tab-drive" class="tab-content">
+      <div class="drive-banner">
+        <h2>🚘 순수 자동차 주행 텔레메트리 (Driving Log)</h2>
+        <p>비행기나 기차가 아닌, <b>순수 렌터카 핸들을 잡고 북미 대륙을 일주한 10,786 km의 주행 분석 리포트</b>입니다.</p>
+      </div>
+
+      <div class="stats-card">
+        <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:10px;">⏱️ 운전 시간 & 주행 효율</div>
+        <div class="stat-row">
+          <div class="stat-col">
+            <div class="stat-lbl">총 순수 운전 시간</div>
+            <div class="stat-num" style="color: #38bdf8;">128시간 30분</div>
+            <div class="stat-sub">일평균 4.9시간 주행</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-lbl">평균 순항 시속</div>
+            <div class="stat-num" style="color: #34d399;">84.3 km/h</div>
+            <div class="stat-sub">52.4 MPH 크루징</div>
+          </div>
+        </div>
+        <div class="stat-row" style="margin-bottom:0;">
+          <div class="stat-col">
+            <div class="stat-lbl">예상 총 소비 연료</div>
+            <div class="stat-num" style="color: #fbbf24;">1,027.2 L</div>
+            <div class="stat-sub">271.3 Gallons (25 MPG)</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-lbl">예상 총 주유 비용</div>
+            <div class="stat-num" style="color: #f472b6;">$1,150.50</div>
+            <div class="stat-sub">약 155만 원 (19회 주유)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:10px;">🛣️ 완주한 주요 인터스테이트 & 국도</div>
+        
+        <div class="highway-chip">
+          <div class="hwy-badge">I-15 N</div>
+          <div class="hwy-info">
+            <div class="hwy-title">사막 종단 고속도로 (Desert Corridor)</div>
+            <div class="hwy-desc">LA ➔ 모하비 사막 ➔ 라스베이거스 ➔ 솔트레이크 (1,200 km)</div>
+          </div>
+        </div>
+
+        <div class="highway-chip">
+          <div class="hwy-badge">CA-1 PCH</div>
+          <div class="hwy-info">
+            <div class="hwy-title">퍼시픽 코스트 하이웨이 (Pacific Coast)</div>
+            <div class="hwy-desc">말리부 해안 & 캘리포니아 절경 드라이브 코스</div>
+          </div>
+        </div>
+
+        <div class="highway-chip">
+          <div class="hwy-badge">I-5 N</div>
+          <div class="hwy-info">
+            <div class="hwy-title">미 서부 종단 간선 하이웨이 (West Coast Highway)</div>
+            <div class="hwy-desc">캘리포니아 ➔ 오리건 포틀랜드 ➔ 워싱턴 시애틀 (1,800 km)</div>
+          </div>
+        </div>
+
+        <div class="highway-chip">
+          <div class="hwy-badge">Trans-Canada 1</div>
+          <div class="hwy-info">
+            <div class="hwy-title">트랜스 캐나다 1번 국도 (Canadian Rockies)</div>
+            <div class="hwy-desc">밴쿠버 ➔ 밴프/재스퍼 옥빛 호수와 빙하 산악 드라이브</div>
+          </div>
+        </div>
+
+        <div class="highway-chip">
+          <div class="hwy-badge">I-90 E</div>
+          <div class="hwy-info">
+            <div class="hwy-title">북미 대륙횡단 고속도로 (Great Plains Highway)</div>
+            <div class="hwy-desc">몬태나 대평원 ➔ 옐로스톤 ➔ 사우스다코타 ➔ 시카고 (2,400 km)</div>
+          </div>
+        </div>
+
+        <div class="highway-chip">
+          <div class="hwy-badge">I-80 / I-90 E</div>
+          <div class="hwy-info">
+            <div class="hwy-title">러스트벨트 & 엠파이어 하이웨이</div>
+            <div class="hwy-desc">시카고 ➔ 디트로이트 ➔ 나이아가라 ➔ 뉴욕 맨해튼 JFK</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:10px;">⛽ 주행 중 방문한 주요 주유소 거점</div>
+        <p style="font-size:11px; color:#94a3b8; margin-bottom:10px;">총 132곳의 저장 목록 중 포함된 실제 주유소 및 편의점 거점들입니다.</p>
+        <div id="gasStopsList" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Spots List & Memory Notes -->
+    <div id="tab-spots" class="tab-content">
+      <div class="filter-pills">
+        <button class="pill-btn active" onclick="filterCategory('all', this)">전체(132)</button>
+        <button class="pill-btn" onclick="filterCategory('memo', this)">⭐ 내 메모</button>
+        <button class="pill-btn" onclick="filterCategory('국립공원/자연', this)">⛰️ 자연</button>
+        <button class="pill-btn" onclick="filterCategory('명문대학', this)">🎓 명문대</button>
+        <button class="pill-btn" onclick="filterCategory('빅테크 본사', this)">💻 빅테크</button>
+        <button class="pill-btn" onclick="filterCategory('쇼핑/미식', this)">🛍️ 쇼핑</button>
+        <button class="pill-btn" onclick="filterCategory('주유소/휴게소', this)">⛽ 주유소</button>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 장소명 또는 주소 검색 (예: 스탠포드, 나이아가라...)" oninput="filterSpots()">
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:11px; color:#94a3b8;">
+        <span id="spotsCountLabel">총 132개 장소 표시 중</span>
+        <button onclick="exportNotesJSON()" style="background:none; border:none; color:#38bdf8; cursor:pointer; font-weight:700;">💾 내 메모 백업</button>
+      </div>
+
+      <div id="spotsContainer"></div>
+    </div>
+
+    <!-- TAB 5: Photo Album & Lightbox -->
+    <div id="tab-album" class="tab-content">
+      <div class="stats-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div style="font-size:13px; font-weight:800; color:#fff;">📸 내 로드트립 사진 앨범</div>
+          <label style="background:#0284c7; color:#fff; font-size:11px; font-weight:700; padding:4px 8px; border-radius:6px; cursor:pointer;">
+            + 사진 추가
+            <input type="file" id="albumPhotoInput" accept="image/*" multiple style="display:none;" onchange="handlePhotoUpload(event)">
+          </label>
+        </div>
+        <p style="font-size:11px; color:#94a3b8;">여행 중 직접 촬영한 사진을 업로드하면 브라우저에 안전하게 보관됩니다.</p>
+        <div id="albumGrid" class="photo-grid"></div>
+      </div>
+    </div>
+
+    <!-- TAB 6: Analytics Dashboard -->
+    <div id="tab-analytics" class="tab-content">
+      <div class="stats-card">
+        <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:6px;">📊 132개 방문 장소 테마별 분류</div>
+        <p style="font-size:11px; color:#94a3b8; margin-bottom:12px;">원하는 카테고리를 클릭하면 지도에서 해당 장소들만 강조됩니다.</p>
+        <div style="height:210px; width:100%; position:relative;">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:6px;">🗺️ 주(State/Province)별 방문 거점 수</div>
+        <p style="font-size:11px; color:#94a3b8; margin-bottom:12px;">대륙을 횡단하며 거쳐간 13개 권역별 스팟 분포도입니다.</p>
+        <div style="height:220px; width:100%; position:relative;">
+          <canvas id="regionChart"></canvas>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:10px;">🏆 대륙횡단 주요 기록 & 트레킹 지표</div>
+        <div class="stat-row">
+          <div class="stat-col">
+            <div class="stat-lbl">최고 해발 고도</div>
+            <div class="stat-num" style="color:#f59e0b;">3,031 m</div>
+            <div class="stat-sub">요세미티 티오가 패스</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-lbl">최저 해발 고도</div>
+            <div class="stat-num" style="color:#ef4444;">-86 m</div>
+            <div class="stat-sub">데스밸리 배드워터</div>
+          </div>
+        </div>
+        <div class="stat-row" style="margin-bottom:0;">
+          <div class="stat-col">
+            <div class="stat-lbl">최장 단일 주행</div>
+            <div class="stat-num" style="color:#38bdf8;">820 km</div>
+            <div class="stat-sub">Day 16 몬태나 대평원</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-lbl">온도 격차</div>
+            <div class="stat-num" style="color:#a78bfa;">35 °C</div>
+            <div class="stat-sub">47°C(사막) ~ 12°C(로키)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: Elevation Profile & Budget Calculator -->
+    <div id="tab-chart" class="tab-content">
+      <div class="stats-card">
+        <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:6px;">📈 10,786 km 전 구간 해발고도 프로필</div>
+        <p style="font-size:11px; color:#94a3b8; margin-bottom:12px;">차트로 마우스를 올리면 해당 지점의 지도 위치와 고도가 동기화됩니다.</p>
+        <div style="height:220px; width:100%; position:relative;">
+          <canvas id="elevationChart"></canvas>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <div style="font-size:13px; font-weight:800; color:#fff; margin-bottom:6px;">💰 스마트 여행 경비 & 환율 계산기</div>
+        <div class="currency-bar">
+          <button class="curr-btn active" onclick="setCurrency('USD', this)">USD ($)</button>
+          <button class="curr-btn" onclick="setCurrency('CAD', this)">CAD ($)</button>
+          <button class="curr-btn" onclick="setCurrency('KRW', this)">KRW (₩)</button>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span style="color:#94a3b8;">⛽ 예상 주유비 (Gas):</span>
+            <span id="costGas" style="font-weight:800; color:#fbbf24;">$1,150.50</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span style="color:#94a3b8;">🚙 렌터카 & 보험 (26일):</span>
+            <span id="costRental" style="font-weight:800; color:#38bdf8;">$2,450.00</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span style="color:#94a3b8;">🏨 호텔/숙박 (25박):</span>
+            <span id="costHotel" style="font-weight:800; color:#38bdf8;">$3,750.00</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span style="color:#94a3b8;">🎟️ 국립공원 패스 & 입장료:</span>
+            <span id="costPass" style="font-weight:800; color:#38bdf8;">$240.00</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;">
+            <span style="color:#94a3b8;">🍽️ 식비 & 카페:</span>
+            <span id="costFood" style="font-weight:800; color:#38bdf8;">$2,100.00</span>
+          </div>
+          <div style="height:1px; background:rgba(255,255,255,0.1); margin:4px 0;"></div>
+          <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:900;">
+            <span style="color:#fff;">총 예상 원정 경비:</span>
+            <span id="costTotal" style="color:#34d399; font-size:16px;">$9,690.50</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 8: Export & Downloads -->
+    <div id="tab-export" class="tab-content">
+      <div class="dl-card">
+        <div>
+          <div class="dl-title">📱 모바일 9:16 인스타 스토리 카드</div>
+          <div class="dl-desc">SNS 자랑용 공식 10,786 km 완주 배지 이미지</div>
+        </div>
+        <button class="dl-btn" onclick="openCert()">🎨 생성</button>
+      </div>
+
+      <div class="dl-card">
+        <div>
+          <div class="dl-title">🌍 Google Earth 3D 경로 (KML)</div>
+          <div class="dl-desc">구글 어스에서 입체 3D 비행 감상용 파일 (608 KB)</div>
+        </div>
+        <a class="dl-btn" href="usa_roadtrip.kml" download="usa_roadtrip.kml">⬇️ KML</a>
+      </div>
+
+      <div class="dl-card">
+        <div>
+          <div class="dl-title">🧭 Garmin / GPS 트랙 (GPX)</div>
+          <div class="dl-desc">스트라바, 스마트워치, TBT 내비게이션 파일 (1.46 MB)</div>
+        </div>
+        <a class="dl-btn" href="usa_roadtrip.gpx" download="usa_roadtrip.gpx">⬇️ GPX</a>
+      </div>
+
+      <div class="dl-card">
+        <div>
+          <div class="dl-title">📊 132개 장소 통합 데이터셋 (JSON)</div>
+          <div class="dl-desc">영문/한글명, 주소, 좌표, 시간, 카테고리 완전판</div>
+        </div>
+        <a class="dl-btn" href="usa_roadtrip_places.json" download="usa_roadtrip_places.json">⬇️ JSON</a>
+      </div>
+
+      <div class="dl-card">
+        <div>
+          <div class="dl-title">🖼️ 4K 마스터 인포그래픽 포스터</div>
+          <div class="dl-desc">2048x1280 초고해상도 고도 차트 & 경로 포스터</div>
+        </div>
+        <a class="dl-btn" href="usa_roadtrip_4k_master.png" download="usa_roadtrip_4k_master.png">⬇️ 4K 포스터</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAP CONTAINER ================= -->
+  <div id="map">
+    <canvas id="fxCanvas"></canvas>
+
+    <!-- Map Tile Layer Switcher -->
+    <div class="layer-selector">
+      <button class="layer-btn active" onclick="setMapLayer('street', this)">도로 지도</button>
+      <button class="layer-btn" onclick="setMapLayer('sat', this)">위성 영상</button>
+      <button class="layer-btn" onclick="setMapLayer('topo', this)">지형도</button>
+      <button class="layer-btn" onclick="setMapLayer('dark', this)">다크 네온</button>
+    </div>
+
+    <!-- Sky & Weather Mode Switcher -->
+    <div class="sky-selector">
+      <button class="sky-btn active" onclick="setSkyMode('day', this)">☀️ 주간</button>
+      <button class="sky-btn" onclick="setSkyMode('sunset', this)">🌅 노을</button>
+      <button class="sky-btn" onclick="setSkyMode('night', this)">🌌 밤하늘</button>
+      <button class="sky-btn" onclick="setSkyMode('rain', this)">🌧️ 빗길</button>
+    </div>
+
+    <!-- ================= COCKPIT VISION HUD ================= -->
+    <div class="cockpit-hud">
+      <div class="hud-radial-box">
+        <svg class="hud-radial-svg" viewBox="0 0 80 80">
+          <defs>
+            <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#2563eb" />
+            </linearGradient>
+          </defs>
+          <circle class="radial-ticks" cx="40" cy="40" r="37" />
+          <circle class="radial-bg" cx="40" cy="40" r="32" />
+          <circle class="radial-progress" id="radialProgressCircle" cx="40" cy="40" r="32" />
+          <circle class="radial-bead" id="radialProgressBead" cx="40" cy="8" r="4.5" />
+        </svg>
+        <span class="hud-pct-text" id="hudRadialPct">0%</span>
+      </div>
+
+      <div class="hud-content">
+        <div class="hud-top-meta">
+          <span>MISSION TELEMETRY</span>
+          <span id="mapBadgeEle">40m</span>
+        </div>
+        <div class="hud-big-km" id="mapBadgeKm">0 km</div>
+        <div class="hud-location-text" id="mapBadgeLoc">로스앤젤레스 (LAX 공항)</div>
+
+        <div class="car-cluster">
+          <div class="cluster-item">
+            <div class="cluster-val" id="clusterSpeed">68 MPH</div>
+            <div class="cluster-lbl">Speed</div>
+          </div>
+          <div class="cluster-item">
+            <div class="cluster-val" id="clusterGear" style="color:#f59e0b;">[ D ]</div>
+            <div class="cluster-lbl">Gear</div>
+          </div>
+          <div class="cluster-item">
+            <div class="cluster-val" id="clusterHeading">NE 42°</div>
+            <div class="cluster-lbl">Heading</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= TIMELINE SCRUBBER MISSION CONTROL ================= -->
+    <div class="bottom-timeline-bar">
+      <div class="scrubber-header">
+        <span style="font-weight: 800; color: #38bdf8; letter-spacing:0.4px;">⏱️ TRANSCONTINENTAL JOURNEY TIMELINE</span>
+        <span id="scrubberLabel" style="font-family:'JetBrains Mono'; font-weight:700;">0 km (0.0%) | Day 1</span>
+      </div>
+      <input type="range" id="timelineScrubber" class="scrubber-slider" min="0" max="603" step="0.1" value="0" oninput="onScrub(this.value)">
+      <div class="milestone-ticks">
+        <span>LAX (0km)</span>
+        <span>그랜드캐니언</span>
+        <span>요세미티</span>
+        <span>시애틀</span>
+        <span>레이크루이스</span>
+        <span>시카고</span>
+        <span>JFK (10,786km)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CINEMA 21:9 OVERLAY ================= -->
+  <div id="cinemaOverlay">
+    <div class="cinema-bar">
+      <div class="cinema-brand">
+        <span>🎬 21:9 CINEMA THEATER</span>
+        <div class="audio-visualizer">
+          <div class="v-bar"></div>
+          <div class="v-bar"></div>
+          <div class="v-bar"></div>
+          <div class="v-bar"></div>
+          <div class="v-bar"></div>
+        </div>
+      </div>
+      <div class="cinema-controls">
+        <button class="cinema-btn" onclick="prevStory()">◀ 이전 씬</button>
+        <button class="cinema-btn" onclick="togglePlay()">⏯️ 주행 재생</button>
+        <button class="cinema-btn" onclick="nextStory()">다음 씬 ▶</button>
+        <button class="cinema-close" onclick="closeCinema()">✕ 닫기</button>
+      </div>
+    </div>
+
+    <div class="cinema-sub-box">
+      <div class="cinema-sub-title" id="cinemaTitle">로스앤젤레스에서 시작된 대륙일주</div>
+      <div class="cinema-sub-desc" id="cinemaDesc">태평양의 파도 소리와 함께 시작된 10,786 km의 대장정</div>
+    </div>
+
+    <div class="cinema-bar" style="justify-content:center;">
+      <span style="font-size:12px; color:#64748b; font-weight:700; letter-spacing:1px;">NORTH AMERICAN ROAD TRIP 2024 · 10,786 KM · 4K MASTER</span>
+    </div>
+  </div>
+
+  <!-- ================= DRIVER CERTIFICATE MODAL ================= -->
+  <div id="storyModal" onclick="if(event.target === this) closeStoryModal()">
+    <div class="modal-box">
+      <div class="modal-hdr">
+        <span class="modal-title">🎖️ 공식 자동차 대륙일주 완주 인증서 (Driver's Certificate)</span>
+        <button class="modal-close-btn" onclick="closeStoryModal()">✕</button>
+      </div>
+      <div class="modal-car-input-box">
+        <span style="font-size:12px; color:#94a3b8; font-weight:700;">🚙 탑승 차종:</span>
+        <input type="text" id="certCarModelInput" class="modal-car-input" value="Ford Explorer 4WD SUV" oninput="renderCertCanvas()">
+        <span style="font-size:11px; color:#64748b;">(직접 변경 가능)</span>
+      </div>
+      <canvas id="storyCanvas" width="1080" height="1920" style="width:340px; height:604px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,0.8);"></canvas>
+      <div style="display:flex; gap:12px; margin-top:14px;">
+        <button class="dl-btn" onclick="downloadStoryImage()">💾 고화질 인증서 다운로드 (PNG)</button>
+        <button class="sim-btn btn-reset" onclick="window.print()" style="padding:8px 16px;">🖨️ A4 인쇄</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div id="lightbox" onclick="closeLightbox()">
+    <div class="lb-close">✕</div>
+    <img id="lbImg" src="" onclick="event.stopPropagation()">
+    <div id="lbCaption" class="lb-caption"></div>
+  </div>
+
+
+  <script>
+    // ================= DATA EMBEDDING =================
+    const animPath = [[33.94281, -118.40371], [34.01348, -118.48436], [34.03842, -118.60662], [34.03882, -118.65469], [34.02929, -118.52143], [34.06, -118.42003], [34.02247, -118.47581], [34.07149, -118.46503], [34.14401, -118.47112], [34.13408, -118.35181], [34.12327, -118.29827], [34.15454, -118.38759], [34.11288, -118.48227], [34.02958, -118.40352], [34.02456, -118.24694], [34.07149, -118.12162], [34.07175, -117.94608], [34.07274, -117.78204], [34.08051, -117.62871], [34.11843, -117.51725], [34.24066, -117.43006], [34.33999, -117.46862], [34.50539, -117.32339], [34.72179, -117.1943], [34.8858, -117.01445], [34.83368, -116.73897], [34.78157, -116.40794], [34.7253, -116.16336], [34.72413, -115.92989], [34.71674, -115.76289], [34.75385, -115.50239], [34.80656, -115.24856], [34.84144, -114.98299], [34.88254, -114.7837], [34.83523, -114.60888], [34.71806, -114.47508], [34.73025, -114.28856], [34.85048, -114.14601], [35.05064, -114.12692], [35.17616, -114.07467], [35.20001, -113.92456], [35.16197, -113.65877], [35.17669, -113.4801], [35.20424, -113.2989], [35.29096, -113.08094], [35.30793, -112.85196], [35.22992, -112.58977], [35.21577, -112.38919], [35.23622, -112.22472], [35.32011, -112.15167], [35.48264, -112.17625], [35.68875, -112.13448], [35.87483, -112.13252], [36.02244, -112.12272], [35.99681, -112.0071], [35.99536, -111.93138], [36.0089, -112.05256], [35.99063, -112.12336], [35.82249, -112.1321], [35.61395, -112.14466], [35.44371, -112.17168], [35.28148, -112.14621], [35.22204, -112.27301], [35.21582, -112.4342], [35.23737, -112.6489], [35.31385, -112.86257], [35.29198, -113.07526], [35.20962, -113.27991], [35.18465, -113.45802], [35.16044, -113.61334], [35.194, -113.83294], [35.20781, -114.0598], [35.30819, -114.19497], [35.57489, -114.38356], [35.78539, -114.52144], [35.9492, -114.64696], [36.01163, -114.771], [35.96793, -114.90023], [36.03193, -115.0299], [36.04357, -115.18263], [36.03488, -115.34992], [36.00121, -115.48346], [36.02429, -115.68844], [36.18153, -115.94648], [36.2638, -116.04973], [36.31518, -116.22363], [36.30354, -116.46949], [36.3748, -116.67817], [36.28704, -116.6768], [36.22554, -116.70845], [36.32332, -116.68806], [36.40645, -116.78813], [36.49598, -116.87401], [36.59211, -116.95378], [36.60542, -117.11127], [36.47348, -117.23398], [36.35425, -117.29409], [36.34552, -117.48906], [36.36437, -117.58409], [36.32261, -117.69163], [36.39272, -117.8073], [36.52643, -117.90779], [36.61541, -118.06673], [36.74702, -118.15889], [36.89077, -118.24171], [37.0557, -118.23458], [37.1887, -118.30526], [37.32979, -118.39356], [37.40658, -118.54472], [37.54709, -118.63937], [37.59017, -118.78921], [37.67483, -118.93813], [37.77948, -119.02013], [37.91143, -119.09545], [37.94989, -119.19953], [37.88497, -119.27149], [37.88146, -119.40104], [37.81479, -119.49622], [37.84099, -119.57524], [37.85008, -119.66975], [37.77712, -119.74981], [37.73962, -119.76692], [37.71813, -119.672], [37.72824, -119.6135], [37.71425, -119.73579], [37.75383, -119.82093], [37.81349, -119.8909], [37.82242, -120.00336], [37.81476, -120.12372], [37.82972, -120.24747], [37.83991, -120.36935], [37.88764, -120.49639], [37.84681, -120.60661], [37.79515, -120.72454], [37.78463, -120.85915], [37.79836, -121.06128], [37.78344, -121.24178], [37.7621, -121.4438], [37.72008, -121.65878], [37.70139, -121.84905], [37.70113, -122.02644], [37.73594, -122.13999], [37.80974, -122.24612], [37.78121, -122.39792], [37.68032, -122.38879], [37.58677, -122.33835], [37.48832, -122.2109], [37.42255, -122.16643], [37.4669, -122.29134], [37.5645, -122.38718], [37.67176, -122.46678], [37.78923, -122.47116], [37.83032, -122.47975], [37.71495, -122.47196], [37.63204, -122.40327], [37.5342, -122.27851], [37.44033, -122.1142], [37.33692, -122.05963], [37.36821, -121.96523], [37.47077, -121.92974], [37.59252, -122.05638], [37.71252, -122.129], [37.81311, -122.20027], [37.84239, -122.25906], [37.79228, -122.39549], [37.83588, -122.49777], [37.91599, -122.51132], [37.93091, -122.38383], [38.00698, -122.27677], [38.13699, -122.22132], [38.22695, -122.12163], [38.32681, -122.02279], [38.42539, -121.94248], [38.59126, -121.95312], [38.77304, -121.94681], [38.93496, -122.00308], [39.09534, -122.10873], [39.28877, -122.18417], [39.49081, -122.19586], [39.79806, -122.20073], [40.00966, -122.20725], [40.20503, -122.24471], [40.35355, -122.28254], [40.51719, -122.3441], [40.65879, -122.35756], [40.77876, -122.31481], [40.87291, -122.37063], [40.95853, -122.43605], [41.05978, -122.37132], [41.15284, -122.29708], [41.25692, -122.26944], [41.35275, -122.30159], [41.35289, -122.23106], [41.33207, -122.25304], [41.31205, -122.31416], [41.41253, -122.38026], [41.50965, -122.47248], [41.66111, -122.59039], [41.77154, -122.58299], [41.88049, -122.55584], [42.01623, -122.61299], [42.13478, -122.63501], [42.26818, -122.80095], [42.41004, -122.95292], [42.43353, -123.18072], [42.49692, -123.36289], [42.64075, -123.38762], [42.7473, -123.36767], [42.85107, -123.25432], [42.95761, -123.32547], [43.06116, -123.34495], [43.20002, -123.3593], [43.34315, -123.33008], [43.47402, -123.31713], [43.59216, -123.24769], [43.70721, -123.21417], [43.78121, -123.05623], [43.93128, -123.01032], [44.05631, -123.04986], [44.35949, -123.06099], [44.69274, -123.05224], [44.82322, -123.01868], [44.93333, -122.99016], [45.08425, -122.94838], [45.22382, -122.81571], [45.34785, -122.76626], [45.45976, -122.70561], [45.54686, -122.67828], [45.67567, -122.66443], [45.82994, -122.69228], [46.00384, -122.84404], [46.14926, -122.89961], [46.32066, -122.91433], [46.54175, -122.8765], [46.675, -122.97601], [46.85873, -122.9733], [47.02487, -122.89928], [47.08813, -122.64371], [47.1863, -122.46335], [47.24593, -122.33407], [47.39698, -122.29151], [47.52179, -122.29054], [47.64429, -122.32254], [47.60376, -122.32725], [47.51716, -122.27003], [47.60586, -122.32867], [47.64013, -122.21796], [47.60161, -122.14267], [47.65749, -122.18686], [47.78535, -122.19596], [47.90872, -122.21046], [48.04856, -122.18358], [48.24958, -122.25091], [48.43086, -122.341], [48.58575, -122.34495], [48.69198, -122.43757], [48.78456, -122.50434], [48.90564, -122.6189], [49.00789, -122.75741], [49.09153, -122.91238], [49.1778, -123.09736], [49.28565, -123.12299], [49.25914, -123.13874], [49.12939, -123.08512], [49.09118, -122.87825], [49.00829, -122.73544], [49.08828, -122.84222], [49.12647, -123.08127], [49.25207, -123.11528], [49.33188, -123.07043], [49.25456, -122.9777], [49.2156, -122.81162], [49.15225, -122.62481], [49.03608, -122.33042], [49.13504, -122.07448], [49.18722, -121.74603], [49.29816, -121.65363], [49.3732, -121.43727], [49.40174, -121.31569], [49.49444, -121.23972], [49.58213, -121.17191], [49.62871, -121.01966], [49.74301, -121.01243], [49.84367, -120.92919], [49.95952, -120.91249], [50.04288, -120.80725], [50.14541, -120.72475], [50.25732, -120.63038], [50.44178, -120.59636], [50.59184, -120.47693], [50.66201, -120.35016], [50.66753, -120.15415], [50.64709, -119.93538], [50.71859, -119.77817], [50.82555, -119.67154], [50.89245, -119.52515], [50.85648, -119.3679], [50.75135, -119.32549], [50.70797, -119.23317], [50.79067, -119.11299], [50.83867, -118.96515], [50.90989, -118.8087], [51.0032, -118.67051], [50.96032, -118.49974], [50.96634, -118.36263], [51.00248, -118.19927], [51.03046, -118.02828], [51.12057, -117.88653], [51.20368, -117.74135], [51.26202, -117.56031], [51.33597, -117.4404], [51.46181, -117.47932], [51.49064, -117.31103], [51.47773, -117.14762], [51.35879, -117.00961], [51.30547, -116.88136], [51.25856, -116.7063], [51.24646, -116.58156], [51.37124, -116.51571], [51.44223, -116.34315], [51.41284, -116.18724], [51.37613, -116.11424], [51.29101, -116.00035], [51.23837, -115.82905], [51.16898, -115.68183], [51.19988, -115.50304], [51.09473, -115.35028], [51.05268, -115.15048], [51.14283, -114.87701], [51.1127, -114.64827], [51.08843, -114.40695], [51.06559, -114.17081], [51.04788, -114.01825], [51.16396, -114.00351], [51.37273, -114.00173], [51.70389, -114.02528], [52.06266, -113.88482], [52.0564, -113.89311], [51.70767, -114.0256], [51.37764, -114.00213], [51.17725, -114.00124], [51.05538, -114.0207], [50.95997, -114.0306], [50.85564, -113.97024], [50.6938, -113.88237], [50.47321, -113.82827], [50.29935, -113.7178], [50.02777, -113.58294], [49.87351, -113.29835], [49.78616, -113.02876], [49.71039, -112.87364], [49.61948, -112.67663], [49.44109, -112.40887], [49.25852, -112.183], [49.10216, -112.04278], [48.96062, -111.94043], [48.54768, -111.85967], [48.3694, -111.93455], [48.11518, -111.892], [47.88264, -111.71119], [47.59964, -111.56922], [47.50355, -111.28338], [47.4574, -111.09024], [47.34541, -110.90168], [47.2147, -110.93268], [47.13366, -110.82528], [47.02995, -110.78021], [46.92258, -110.72429], [46.81904, -110.70147], [46.76776, -110.81449], [46.66656, -110.87669], [46.55253, -110.86919], [46.62004, -110.69221], [46.56289, -110.51381], [46.49124, -110.32956], [46.43768, -110.09191], [46.44127, -109.86701], [46.38767, -109.63449], [46.3153, -109.38907], [46.31574, -109.13899], [46.26989, -108.93954], [46.03372, -108.81951], [45.84085, -108.64032], [45.80071, -108.4805], [45.80027, -108.29662], [45.78263, -108.06318], [45.7437, -107.7171], [45.59931, -107.46268], [45.47235, -107.37694], [45.33696, -107.35032], [45.17415, -107.36833], [45.03471, -107.32014], [44.93451, -107.19367], [44.89509, -107.01349], [44.74767, -106.92702], [44.60397, -106.84778], [44.46688, -106.78823], [44.34669, -106.71549], [44.28397, -106.57964], [44.23745, -106.40169], [44.20631, -106.22313], [44.19837, -105.96407], [44.22791, -105.75628], [44.29016, -105.52459], [44.29677, -105.26297], [44.2592, -104.93985], [44.12012, -104.66335], [43.99365, -104.47095], [43.87769, -104.29761], [43.82288, -104.14541], [43.72039, -103.97149], [43.73893, -103.77151], [43.76366, -103.60985], [43.87102, -103.61813], [43.89584, -103.48069], [43.92476, -103.43666], [43.97252, -103.28063], [44.05751, -103.165], [44.11796, -103.00172], [44.10326, -102.58233], [44.05501, -102.36558], [43.92925, -102.14343], [43.83608, -101.82645], [43.85175, -101.39161], [43.89409, -101.11546], [43.88649, -100.84552], [43.90857, -100.54738], [43.90373, -100.16651], [43.87774, -99.80734], [43.84333, -99.48799], [43.77331, -99.31938], [43.73804, -98.98945], [43.7217, -98.74503], [43.69655, -98.46169], [43.69531, -98.20291], [43.69458, -97.95236], [43.66428, -97.52835], [43.61233, -97.03588], [43.60802, -96.73357], [43.60817, -96.54296], [43.63555, -96.2493], [43.63743, -95.97064], [43.63767, -95.75223], [43.63751, -95.54409], [43.63842, -95.16239], [43.6527, -94.84722], [43.68035, -94.5049], [43.66618, -94.21932], [43.65228, -93.93602], [43.6646, -93.6612], [43.6817, -93.42808], [43.66441, -93.20464], [43.68068, -92.98407], [43.70808, -92.7039], [43.84059, -92.54519], [43.92839, -92.39541], [43.94771, -92.0424], [43.94051, -91.7394], [43.92571, -91.47699], [43.85823, -91.30589], [43.8737, -91.12815], [43.89221, -90.93894], [43.94303, -90.75957], [43.95187, -90.53379], [43.93694, -90.29699], [43.84409, -90.09851], [43.72431, -89.90537], [43.59596, -89.81407], [43.54855, -89.66335], [43.4791, -89.493], [43.34196, -89.45651], [43.18564, -89.3336], [43.03344, -89.26484], [42.96323, -89.10129], [42.82841, -89.026], [42.69703, -88.98405], [42.51078, -88.98137], [42.28971, -88.96498], [42.232, -88.78123], [42.13384, -88.47201], [42.06654, -88.28793], [42.04061, -87.98404], [41.975, -87.88608], [41.90878, -87.80576], [41.91022, -87.69466], [41.865, -87.61706], [41.77469, -87.6058], [41.67975, -87.52273], [41.60856, -87.41219], [41.5914, -87.25426], [41.62013, -87.07754], [41.67539, -86.84001], [41.81663, -86.69188], [41.97636, -86.54536], [42.08519, -86.43661], [42.17496, -86.31041], [42.19727, -86.09153], [42.20624, -85.88614], [42.23752, -85.67793], [42.27055, -85.48354], [42.26616, -85.26247], [42.2961, -85.09633], [42.36942, -84.97773], [42.47707, -84.88307], [42.58764, -84.80748], [42.68908, -84.66817], [42.80735, -84.61271], [42.79449, -84.43323], [42.83678, -84.23414], [42.92016, -84.02693], [42.96573, -83.80724], [43.013, -83.64338], [43.01589, -83.46012], [43.01162, -83.27473], [43.00068, -83.07054], [42.97645, -82.83108], [42.97263, -82.61636], [42.999, -82.43203], [42.99382, -82.26291], [42.9904, -82.09123], [42.99181, -81.91894], [42.99211, -81.74841], [42.9835, -81.5779], [42.8984, -81.42908], [42.90353, -81.26413], [42.94724, -81.10537], [42.97821, -80.93426], [43.1073, -80.74176], [43.15195, -80.4258], [43.18756, -80.10869], [43.229, -79.92883], [43.23109, -79.78606], [43.20219, -79.57586], [43.18245, -79.36772], [43.1549, -79.15844], [43.08828, -79.07476], [43.01408, -78.96905], [43.00094, -78.84046], [42.9499, -78.69821], [42.99083, -78.44012], [43.01687, -78.24163], [43.03004, -78.03003], [43.045, -77.75473], [43.0438, -77.55494], [42.99535, -77.36345], [42.9737, -77.08976], [42.96191, -76.89149], [42.95829, -76.72438], [42.93147, -76.57268], [42.94307, -76.41492], [42.84606, -76.30858], [42.72429, -76.24172], [42.62114, -76.18047], [42.52976, -76.08713], [42.39247, -76.00232], [42.29005, -75.92463], [42.15774, -75.89789], [42.08896, -75.81105], [41.96469, -75.73807], [41.84096, -75.68217], [41.69603, -75.6758], [41.58997, -75.65246], [41.46906, -75.67056], [41.38158, -75.58052], [41.25148, -75.51641], [41.06808, -75.38994], [40.98563, -75.22889], [40.95744, -75.11688], [40.93093, -74.98529], [40.91738, -74.82347], [40.89042, -74.69838], [40.91069, -74.54133], [40.86197, -74.40508], [40.89589, -74.25582], [40.90164, -74.12406], [40.86628, -74.00541], [40.8077, -74.01586], [40.73368, -74.05092], [40.73927, -74.06586], [40.69854, -74.22706], [40.70553, -74.23692], [40.73548, -74.12348], [40.76247, -74.00997], [40.77597, -74.0408], [40.70866, -74.16538], [40.73166, -74.13036], [40.7591, -73.98843], [40.79299, -73.94996], [40.71252, -73.97776], [40.79164, -73.98078], [40.74356, -73.98811], [40.68609, -74.09637], [40.62767, -74.17105], [40.70559, -74.14936], [40.72172, -74.00677], [40.72428, -73.99775], [40.68862, -74.08757], [40.62676, -74.1625], [40.61425, -74.02783], [40.71688, -73.99452], [40.76137, -74.02685], [40.73487, -73.86122], [40.65634, -73.79225], [40.64503, -73.77968]];
+    const elevations = [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 2212, 2076, 1963, 1975, 2103, 2228, 2235, 2119, 1985, 1957, 2061, 2201, 2248, 2159, 2016, 1950, 2022, 2165, 2249, 2196, 2054, 1955, 1989, 2125, 2238, 2224, 2096, 1972, 1965, 2083, 2216, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 2, -65, 25, 13, -82, 17, 21, -73, 8, 28, -57, -4, 32, -40, -17, 34, -25, -32, 15, 15, 15, 3026, 3079, 3145, 3259, 3330, 3442, 3554, 3615, 3672, 3750, 3804, 3901, 3972, 4031, 4102, 4162, 4175, 4104, 4060, 4152, 4216, 4268, 15, 15, 15, 15, 15, 15, 15, 15, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 45, 15, 15, 15, 15, 15, 15, 15, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 1150, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 52, 18, 13, 42, 79, 89, 63, 25, 10, 32, 70, 90, 73, 35, 11, 22, 59, 88, 81, 46, 14, 15, 48, 83, 87, 57, 21, 11, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 1542, 1702, 1842, 1833, 1683, 1530, 1515, 1651, 1814, 1853, 1733, 1564, 1501, 1603, 1775, 1860, 1779, 1607, 1502, 1561, 1729, 1852, 1817, 1656, 1517, 1528, 1678, 1831, 1844, 15, 15, 1507, 1628, 1797, 1858, 1756, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 1050, 1030, 1010, 990, 970, 1350, 1330, 1310, 1290, 1270, 1250, 1230, 1210, 1190, 1170, 1150, 1130, 1110, 1090, 1070, 1050, 1030, 1010, 990, 970, 1350, 1330, 1310, 1290, 1270, 1250, 1230, 1210, 1190, 1170, 1150, 1130, 1110, 1090, 1070, 1050, 1030, 1010, 990, 970, 1350, 1330, 1310, 1290, 1270, 1250, 1230, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 1010, 990, 316, 316, 315, 315, 315, 315, 314, 314, 314, 314, 313, 313, 313, 313, 312, 312, 312, 312, 311, 311, 311, 311, 310, 310, 310, 310, 309, 309, 309, 309, 308, 308, 308, 308, 308, 307, 307, 307, 307, 306, 306, 306, 306, 305, 305, 305, 305, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 182, 244, 248, 227, 199, 191, 209, 238, 250, 235, 206, 190, 202, 230, 249, 241, 214, 192, 196, 222, 246, 246, 222, 196, 192, 213, 241, 249, 231, 202, 190, 206, 234, 250, 238, 210, 191, 199, 226, 248, 244, 218, 194, 194, 218, 244, 248, 226, 199, 191, 210, 238, 308, 308, 308, 308, 308, 308, 307, 307, 307, 307, 307, 307, 307, 306, 306, 306, 306, 306, 306, 306, 306, 305, 305, 305, 305, 305, 305, 305, 305, 304, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15];
+    const storyDays = [{"day": 1, "date": "2024.07.06", "title": "태평양의 시작, 천사의 도시 LA", "region": "캘리포니아 로스앤젤레스", "lat": 34.0083, "lng": -118.4988, "zoom": 11, "desc": "LAX 공항에서 렌터카를 픽업하며 시작된 대장정. 산타모니카 피어의 태평양 파도, 말리부 해안 도로, 비벌리힐스의 호화로운 거리와 게티 센터, UCLA 캠퍼스, 유니버설 스튜디오, 그리고 그리피스 천문대의 황홀한 석양과 야경까지 LA의 모든 에너지를 만끽했습니다.", "tag": "🌴 서부 해안", "color": "#f97316", "weather": "☀️ 28°C 맑음 | 해발 40m", "sound": "ocean", "photo": "https://images.unsplash.com/photo-1580655653885-65763b2597d0?w=800&q=80"}, {"day": 2, "date": "2024.07.07", "title": "20억 년의 지구 역사, 그랜드 캐니언", "region": "애리조나주 코코니노", "lat": 35.9985, "lng": -111.9878, "zoom": 11, "desc": "I-15와 루트66을 거쳐 모하비 사막을 가로질러 마주한 지구 최고의 대협곡. 콜로라도 강이 수억 년간 깎아 만든 Grandview Point와 Moran Point에서 붉은 사암 절벽이 노을빛에 타오르는 장엄한 파노라마를 감상했습니다.", "tag": "🏜️ 국립공원", "color": "#f97316", "weather": "🔥 34°C 건조 | 해발 2,100m", "sound": "desert", "photo": "https://images.unsplash.com/photo-1474044159687-1ee9f3a51722?w=800&q=80"}, {"day": 3, "date": "2024.07.08", "title": "해저 -86m 사막에서 3,000m 시에라 네바다로", "region": "데스밸리 & 요세미티", "lat": 37.7472, "lng": -119.5938, "zoom": 10, "desc": "북미 최저점인 데스밸리 Dantes View의 초현실적인 소금 사막을 지나, 자동차로 해발 3,031m 티오가 패스(Tioga Pass)를 넘어 요세미티의 웅장한 화강암 절벽과 폭포를 영접한 뒤 밤하늘의 오클랜드 베이 브리지를 건넜습니다.", "tag": "⛰️ 극과 극 대자연", "color": "#f97316", "weather": "🏜️ 47°C ➔ 18°C 급변 | 해발 -86m~3,031m", "sound": "mountain", "photo": "https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=800&q=80"}, {"day": 4, "date": "2024.07.09", "title": "지성의 전당 스탠포드와 붉은 금문교", "region": "샌프란시스코 & 팔로알토", "lat": 37.8199, "lng": -122.4786, "zoom": 12, "desc": "실리콘밸리의 심장 스탠포드 대학교 메인 쿼드와 후버 타워를 둘러보고, 태평양 안개 속 웅장하게 솟은 금문교를 자동차로 건너 지중해풍 해변 예술 마을 소살리토에서 여유로운 오후를 보냈습니다.", "tag": "🎓 명문대 & 랜드마크", "color": "#f97316", "weather": "🌫️ 19°C 해무 | 해발 20m", "sound": "ocean", "photo": "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=800&q=80"}, {"day": 5, "date": "2024.07.10", "title": "세계 혁명의 심장부, 실리콘밸리 빅테크 성지순례", "region": "쿠퍼티노·마운틴뷰·산타클라라", "lat": 37.3346, "lng": -122.009, "zoom": 12, "desc": "우주선 형태의 경이로운 애플 파크(Apple Park), 구글 본사 Visitor Experience, AI 혁명의 중심 엔비디아(NVIDIA) 본사를 탐방하고 UC 버클리의 새더 타워와 SF 룸바드 꽃길을 달렸습니다.", "tag": "💻 빅테크 본사", "color": "#f97316", "weather": "☀️ 24°C 쾌청 | 해발 35m", "sound": "jazz", "photo": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=800&q=80"}, {"day": 6, "date": "2024.07.11", "title": "만년설 섀스타 산을 넘어 노택스의 도시 포틀랜드로", "region": "오리건주 포틀랜드", "lat": 45.5152, "lng": -122.6784, "zoom": 11, "desc": "I-5 고속도로를 시원하게 북상하며 웅장한 만년설을 뽐내는 섀스타 산(Mt. Shasta)을 지나 오리건주로 진입. 우드번 프리미엄 아울렛 쇼핑 후 힙스터와 장인 커피의 도시 포틀랜드에 입성했습니다.", "tag": "🌲 북서부 숲길", "color": "#0ea5e9", "weather": "🌤️ 25°C 온화 | 해발 50m", "sound": "mountain", "photo": "https://images.unsplash.com/photo-1506146332389-18140dc7b2fb?w=800&q=80"}, {"day": 7, "date": "2024.07.12", "title": "에메랄드 시티 시애틀과 해리포터 도서관", "region": "워싱턴주 시애틀", "lat": 47.6559, "lng": -122.3084, "zoom": 13, "desc": "워싱턴 대학교(UW)의 상징이자 해리포터 호그와트 도서관의 모티브가 된 웅장한 수잘로 도서관, 파카 홀, HUB를 탐방하며 미국 명문 주립대의 고풍스러운 학문적 열기를 체감했습니다.", "tag": "🎓 명문대 탐방", "color": "#0ea5e9", "weather": "⛅ 22°C 쾌적 | 해발 45m", "sound": "jazz", "photo": "https://images.unsplash.com/photo-1502175353174-a7a70e73b362?w=800&q=80"}, {"day": 8, "date": "2024.07.13", "title": "미래를 여는 스페이스 니들과 마이크로소프트", "region": "시애틀 & 벨뷰", "lat": 47.6423, "lng": -122.1368, "zoom": 12, "desc": "시애틀의 상징 184m 스페이스 니들 전망대에서 퓨젯 사운드 만을 내려다보고, IT 거인 마이크로소프트(MS) 본사 비지터 센터와 컴퍼니 스토어에서 컴퓨터 역사의 발자취를 돌아보았습니다.", "tag": "🏛️ 도시 랜드마크", "color": "#0ea5e9", "weather": "🌤️ 23°C 맑음 | 해발 60m", "sound": "engine", "photo": "https://images.unsplash.com/photo-1542332213-31f87348057f?w=800&q=80"}, {"day": 9, "date": "2024.07.14", "title": "국경을 넘어 캐나다로! 밴쿠버 스탠리 공원", "region": "캐나다 브리티시컬럼비아 밴쿠버", "lat": 49.3043, "lng": -123.1443, "zoom": 12, "desc": "피스 아치(Peace Arch) 미-캐나다 국경을 자동차로 통과하여 캐나다 입국! 원시림과 바다가 조화를 이루는 세계 최대의 도시 공원 스탠리 파크를 드라이브하며 프로스펙트 포인트의 절경을 마주했습니다.", "tag": "🇨🇦 캐나다 입국", "color": "#0ea5e9", "weather": "🌊 21°C 청명 | 해발 10m", "sound": "ocean", "photo": "https://images.unsplash.com/photo-1559511260-66a65e09b245?w=800&q=80"}, {"day": 12, "date": "2024.07.17", "title": "캐나다 로키의 눈부신 에메랄드, 레이크 루이스", "region": "알버타주 밴프 & 캘거리", "lat": 51.4161, "lng": -116.2179, "zoom": 11, "desc": "트랜스 캐나다 하이웨이 1번 국도를 타고 빙하가 녹아내려 믿을 수 없는 옥빛을 띠는 로키산맥 최고의 보석 레이크 루이스(Lake Louise)와 밴프 국립공원을 거쳐 앨버타주의 활기찬 대도시 캘거리에 도착했습니다.", "tag": "💎 로키산맥의 꽃", "color": "#0ea5e9", "weather": "🏔️ 17°C 산악 기후 | 해발 1,730m", "sound": "mountain", "photo": "https://images.unsplash.com/photo-1503614472-8c93d56e92ce?w=800&q=80"}, {"day": 14, "date": "2024.07.19", "title": "빅 스카이 몬태나, 끝없는 지평선을 달리다", "region": "미국 몬태나주 스위트그라스", "lat": 47.848, "lng": -111.7181, "zoom": 9, "desc": "스위트 그라스 국경을 통해 미국으로 자동차 재입국! 'Big Sky Country'라 불리는 몬태나주의 끝없이 펼쳐진 거대한 하늘과 I-15/I-90 롤링 힐스를 달리며 진정한 미국 대륙 로드트립의 광활함을 만끽했습니다.", "tag": "🌾 대평원 횡단", "color": "#eab308", "weather": "☀️ 30°C 쾌청 | 해발 1,100m", "sound": "desert", "photo": "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&q=80"}, {"day": 15, "date": "2024.07.20", "title": "와이오밍을 지나 마운트 러스모어 큰바위얼굴", "region": "사우스다코타주 키스톤", "lat": 43.8803, "lng": -103.4538, "zoom": 11, "desc": "서부 영화의 본고장 와이오밍 대평원을 가로질러 사우스다코타 블랙힐스에 도달. 거대한 화강암 산벽에 조각된 워싱턴, 제퍼슨, 루스벨트, 링컨 4대 대통령의 얼굴을 마주한 가슴 벅찬 순간!", "tag": "🗿 역사 기념물", "color": "#eab308", "weather": "🌤️ 32°C 더움 | 해발 1,745m", "sound": "mountain", "photo": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&q=80"}, {"day": 17, "date": "2024.07.22", "title": "바람의 도시 시카고, 은빛 'The Bean'에 비친 마천루", "region": "일리노이주 시카고", "lat": 41.8826, "lng": -87.6226, "zoom": 13, "desc": "I-90을 타고 미네소타 대평원을 넘어 오대호의 여왕 시카고 입성. 밀레니엄 공원의 거대 조형물 클라우드 게이트(The Bean)와 미시간호수를 감싸는 애들러 천문관, 명문 시카고 대학교의 고딕 양식 캠퍼스를 둘러보았습니다.", "tag": "🏙️ 건축의 메카", "color": "#6366f1", "weather": "💨 26°C 호수풍 | 해발 180m", "sound": "jazz", "photo": "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?w=800&q=80"}, {"day": 18, "date": "2024.07.23", "title": "지구를 뒤흔드는 굉음, 나이아가라 폭포", "region": "온타리오 & 뉴욕주 나이아가라", "lat": 43.0789, "lng": -79.0781, "zoom": 12, "desc": "미시간 블루 워터 브리지를 건너 캐나다 온타리오를 거쳐 도달한 나이아가라 폭포. 분당 수십만 톤의 거대한 물줄기가 쏟아지는 말발굽 폭포의 압도적인 물보라와 웅장한 천둥소리에 압도되었습니다.", "tag": "🌊 세계 3대 폭포", "color": "#6366f1", "weather": "💦 25°C 물보라 | 해발 170m", "sound": "ocean", "photo": "https://images.unsplash.com/photo-1489447068241-b3490214e879?w=800&q=80"}, {"day": 21, "date": "2024.07.26", "title": "잠들지 않는 세계의 중심, 뉴욕 맨해튼 타임스스퀘어", "region": "뉴욕주 뉴욕시 맨해튼", "lat": 40.758, "lng": -73.9855, "zoom": 14, "desc": "뉴저지 허드슨강 링컨 터널을 자동차로 건너 드디어 꿈의 도시 뉴욕 맨해튼 중심부에 입성! 네온사인이 번쩍이는 타임스스퀘어, 102층 엠파이어 스테이트 빌딩, 아르데코 걸작 크라이슬러 빌딩의 뜨거운 열기!", "tag": "🗽 세계의 수도", "color": "#6366f1", "weather": "🏙️ 29°C 도시 열기 | 해발 15m", "sound": "jazz", "photo": "https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&q=80"}, {"day": 22, "date": "2024.07.27", "title": "센트럴 파크의 녹음과 메트로폴리탄 미술관", "region": "뉴욕 센트럴 파크", "lat": 40.7794, "lng": -73.9632, "zoom": 14, "desc": "콘크리트 정글 속 오아시스 센트럴 파크를 산책하며 벨비디어 성에 오르고, 세계 3대 박물관인 메트로폴리탄 미술관(The Met)에서 5,000년 인류 예술의 걸작들을 마주하며 깊은 문화적 감동을 누렸습니다.", "tag": "🎨 문화 예술", "color": "#6366f1", "weather": "🌿 28°C 맑음 | 해발 25m", "sound": "jazz", "photo": "https://images.unsplash.com/photo-1518391846015-55a9cc003b25?w=800&q=80"}, {"day": 24, "date": "2024.07.29", "title": "브로드웨이 뮤지컬 <시카고>와 트렌디한 소호", "region": "뉴욕 브로드웨이 & 소호", "lat": 40.7255, "lng": -74.0006, "zoom": 14, "desc": "브로드웨이 정통 뮤지컬 <시카고>의 매혹적인 재즈 무대를 관람하고, 예술과 쇼핑의 발상지 소호(SoHo) 거리에서 MoMA 디자인 스토어와 편집숍을 둘러보며 뉴욕 특유의 세련된 감각을 만끽했습니다.", "tag": "🎭 브로드웨이 & 쇼핑", "color": "#6366f1", "weather": "🛍️ 30°C 활기 | 해발 10m", "sound": "jazz", "photo": "https://images.unsplash.com/photo-1546436836-07a91091f160?w=800&q=80"}, {"day": 26, "date": "2024.07.31", "title": "10,786 km 완주! 존 F. 케네디 국제공항", "region": "뉴욕 JFK 국제공항", "lat": 40.6446, "lng": -73.7797, "zoom": 12, "desc": "태평양 로스앤젤레스에서 렌터카 핸들을 잡고 출발하여 캐나다 로키를 넘어 대서양 뉴욕까지, 26일 동안 10,786 km를 쉼 없이 달려온 세기의 자동차 대륙일주 완주. 차량을 반납하며 가슴 벅찬 감동으로 귀국길에 올랐습니다.", "tag": "🏁 대장정 완주", "color": "#ef4444", "weather": "🚗 27°C 맑음 | 해발 4m", "sound": "engine", "photo": "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800&q=80"}];
+    const cleanPlaces = [{"orig_index": 132, "name": "로스앤젤레스 국제공항", "addr": "로스앤젤레스 국제공항 (LAX) 1 World Way, Los Angeles, CA 90045", "lat": 33.942153, "lng": -118.4036052, "ts": 1720234214, "dt": "2024-07-06 11:50:14", "step_no": 1, "category": "공항/국경", "region": "캘리포니아"}, {"orig_index": 131, "name": "말리부", "addr": "캘리포니아 말리부", "lat": 34.0380585, "lng": -118.69234379999999, "ts": 1720234246, "dt": "2024-07-06 11:50:46", "step_no": 2, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 130, "name": "비벌리힐스", "addr": "캘리포니아 비벌리힐스", "lat": 34.0730715, "lng": -118.40162649999999, "ts": 1720234273, "dt": "2024-07-06 11:51:13", "step_no": 3, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 113, "name": "산타모니카 부두", "addr": "산타모니카 부두 200 Santa Monica Pier, Santa Monica, CA 90401", "lat": 34.008282099999995, "lng": -118.4987585, "ts": 1720546051, "dt": "2024-07-10 02:27:31", "step_no": 4, "category": "국립공원/자연", "region": "캘리포니아"}, {"orig_index": 112, "name": "Wallis Annenberg Stadium", "addr": "Wallis Annenberg Stadium, Westwood University of California, Los Angeles, CA 90095", "lat": 34.072601999999996, "lng": -118.4454816, "ts": 1720546075, "dt": "2024-07-10 02:27:55", "step_no": 5, "category": "명문대학", "region": "캘리포니아"}, {"orig_index": 111, "name": "유니버설스튜디오할리우드", "addr": "유니버설스튜디오할리우드 100 Universal City Plaza, Universal City, CA 91608", "lat": 34.137071299999995, "lng": -118.3533061, "ts": 1720546075, "dt": "2024-07-10 02:27:55", "step_no": 6, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 110, "name": "그리피스 천문대", "addr": "그리피스 천문대 2800 E Observatory Rd, Los Angeles, CA 90027", "lat": 34.1184341, "lng": -118.3003935, "ts": 1720546105, "dt": "2024-07-10 02:28:25", "step_no": 7, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 109, "name": "더 게티", "addr": "더 게티 1200 Getty Center Dr, Los Angeles, CA 90049", "lat": 34.0773438, "lng": -118.4732648, "ts": 1720546125, "dt": "2024-07-10 02:28:45", "step_no": 8, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 129, "name": "Grandview Point", "addr": "Grandview Point, Grand Canyon Village, AZ 86023", "lat": 35.9984667, "lng": -111.9877556, "ts": 1720306721, "dt": "2024-07-07 07:58:41", "step_no": 9, "category": "국립공원/자연", "region": "애리조나"}, {"orig_index": 128, "name": "모런 포인트", "addr": "모런 포인트 Grand Canyon Village, AZ 86023", "lat": 36.0051384, "lng": -111.9242743, "ts": 1720306721, "dt": "2024-07-07 07:58:41", "step_no": 10, "category": "국립공원/자연", "region": "애리조나"}, {"orig_index": 127, "name": "댄이츠 뷰", "addr": "캘리포니아 댄이츠 뷰", "lat": 36.2210689, "lng": -116.7255878, "ts": 1720374724, "dt": "2024-07-08 02:52:04", "step_no": 11, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 126, "name": "파서 크롤리 오벌룩", "addr": "파서 크롤리 오벌룩 Parking lot, CA-190, Inyo, CA", "lat": 36.3518636, "lng": -117.5507336, "ts": 1720382382, "dt": "2024-07-08 04:59:42", "step_no": 12, "category": "국립공원/자연", "region": "캘리포니아"}, {"orig_index": 125, "name": "요세미티 티오가 고개 (Tioga Pass)", "addr": "", "lat": 37.8306616, "lng": -119.4654765, "ts": 1720403600, "dt": "2024-07-08 10:53:20", "step_no": 13, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 124, "name": "Yosemite Falls View", "addr": "", "lat": 37.7472255, "lng": -119.59378199999999, "ts": 1720403743, "dt": "2024-07-08 10:55:43", "step_no": 14, "category": "국립공원/자연", "region": "캘리포니아"}, {"orig_index": 123, "name": "샌프란시스코 - 오클랜드 베이 브리지 San Francisco – Oakland Bay Bridge", "addr": "", "lat": 37.7982799, "lng": -122.3778182, "ts": 1720420803, "dt": "2024-07-08 15:40:03", "step_no": 15, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 122, "name": "1426 Quesada Ave", "addr": "1426 Quesada Ave, San Francisco, CA 94124", "lat": 37.7306521, "lng": -122.38628639999999, "ts": 1720468071, "dt": "2024-07-09 04:47:51", "step_no": 16, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 121, "name": "스탠포드 대학 Stanford University", "addr": "", "lat": 37.427659999999996, "lng": -122.17005999999999, "ts": 1720471821, "dt": "2024-07-09 05:50:21", "step_no": 17, "category": "명문대학", "region": "캘리포니아"}, {"orig_index": 120, "name": "Stanford Visitor Center", "addr": "Stanford Visitor Center, 295 Galvez St, Stanford, CA 94305", "lat": 37.431551999999996, "lng": -122.1636508, "ts": 1720473394, "dt": "2024-07-09 06:16:34", "step_no": 18, "category": "명문대학", "region": "캘리포니아"}, {"orig_index": 119, "name": "후버 타워", "addr": "후버 타워 550 Jane Stanford Way, Stanford, CA 94305", "lat": 37.4276001, "lng": -122.16696999999999, "ts": 1720475549, "dt": "2024-07-09 06:52:29", "step_no": 19, "category": "명문대학", "region": "캘리포니아"}, {"orig_index": 118, "name": "Stanford University Bookstore", "addr": "Stanford University Bookstore, 519 Lasuen Mall, Stanford, CA 94305", "lat": 37.4248197, "lng": -122.16863599999999, "ts": 1720482360, "dt": "2024-07-09 08:46:00", "step_no": 20, "category": "명문대학", "region": "캘리포니아"}, {"orig_index": 117, "name": "티파니 공원", "addr": "티파니 공원 399 Bridgeway, Sausalito, CA 94965", "lat": 37.850506599999996, "lng": -122.47976329999999, "ts": 1720489251, "dt": "2024-07-09 10:40:51", "step_no": 21, "category": "국립공원/자연", "region": "캘리포니아"}, {"orig_index": 116, "name": "소살리토", "addr": "94965 캘리포니아 소살리토", "lat": 37.859093699999995, "lng": -122.4852507, "ts": 1720489251, "dt": "2024-07-09 10:40:51", "step_no": 22, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 115, "name": "골든게이트 교 Golden Gate Bridge", "addr": "", "lat": 37.819910899999996, "lng": -122.4785598, "ts": 1720489270, "dt": "2024-07-09 10:41:10", "step_no": 23, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 114, "name": "Da Pan (H Mart)", "addr": "Da Pan (H Mart), 3995 Alemany Blvd, San Francisco, CA 94132", "lat": 37.710287199999996, "lng": -122.46794399999999, "ts": 1720496689, "dt": "2024-07-09 12:44:49", "step_no": 24, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 108, "name": "Google Alta Garage (Propark)", "addr": "Google Alta Garage (Propark), 1001 Alta Ave, Mountain View, CA 94043", "lat": 37.418275099999995, "lng": -122.08411889999999, "ts": 1720547362, "dt": "2024-07-10 02:49:22", "step_no": 25, "category": "빅테크 본사", "region": "캘리포니아"}, {"orig_index": 107, "name": "Google Visitor Experience", "addr": "Google Visitor Experience, 2000 N Shoreline Blvd Ground Floor, Mountain View, CA 94043", "lat": 37.4215862, "lng": -122.08063759999999, "ts": 1720547615, "dt": "2024-07-10 02:53:35", "step_no": 26, "category": "빅테크 본사", "region": "캘리포니아"}, {"orig_index": 106, "name": "애플 파크", "addr": "애플 파크 One Apple Park Way, Cupertino, CA 95014", "lat": 37.334643799999995, "lng": -122.008972, "ts": 1720552646, "dt": "2024-07-10 04:17:26", "step_no": 27, "category": "빅테크 본사", "region": "캘리포니아"}, {"orig_index": 105, "name": "Apple Apple Park Visitor Center", "addr": "Apple Apple Park Visitor Center, 10600 N Tantau Ave, Cupertino, CA 95014", "lat": 37.332772999999996, "lng": -122.0053844, "ts": 1720553143, "dt": "2024-07-10 04:25:43", "step_no": 28, "category": "빅테크 본사", "region": "캘리포니아"}, {"orig_index": 104, "name": "엔비디아 코퍼레이션", "addr": "엔비디아 코퍼레이션 2788 San Tomas Expy, Santa Clara, CA 95051", "lat": 37.3706254, "lng": -121.9671894, "ts": 1720562376, "dt": "2024-07-10 06:59:36", "step_no": 29, "category": "빅테크 본사", "region": "캘리포니아"}, {"orig_index": 103, "name": "캘리포니아 대학교", "addr": "캘리포니아 대학교 University Avenue and, Oxford St, Berkeley, CA 94720", "lat": 37.871214099999996, "lng": -122.25546299999999, "ts": 1720562926, "dt": "2024-07-10 07:08:46", "step_no": 30, "category": "명문대학", "region": "캘리포니아"}, {"orig_index": 102, "name": "The Campanile", "addr": "The Campanile, Sather Tower, Berkeley, CA 94720", "lat": 37.872061599999995, "lng": -122.2578123, "ts": 1720562963, "dt": "2024-07-10 07:09:23", "step_no": 31, "category": "명문대학", "region": "캘리포니아"}, {"orig_index": 101, "name": "피셔맨스 와프", "addr": "캘리포니아 샌프란시스코 피셔맨스 와프", "lat": 37.8085771, "lng": -122.4125282, "ts": 1720565267, "dt": "2024-07-10 07:47:47", "step_no": 32, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 100, "name": "Lombard St", "addr": "Lombard St, San Francisco, CA", "lat": 37.802005799999996, "lng": -122.41955189999999, "ts": 1720567271, "dt": "2024-07-10 08:21:11", "step_no": 33, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 99, "name": "H. Dana Bowers Rest Area & Vista Point – Northbound", "addr": "H. Dana Bowers Rest Area & Vista Point – Northbound, Golden Gate Brg, Sausalito, CA 94965", "lat": 37.8329421, "lng": -122.4805159, "ts": 1720569243, "dt": "2024-07-10 08:54:03", "step_no": 34, "category": "주유소/휴게소", "region": "캘리포니아"}, {"orig_index": 98, "name": "골든 게이트 옵셔베이션 데크", "addr": "골든 게이트 옵셔베이션 데크 5702 Conzelman Rd, Mill Valley, CA 94941", "lat": 37.8323937, "lng": -122.49107029999999, "ts": 1720570320, "dt": "2024-07-10 09:12:00", "step_no": 35, "category": "국립공원/자연", "region": "캘리포니아"}, {"orig_index": 97, "name": "Richmond Bridge", "addr": "Richmond Bridge, San Rafael, CA", "lat": 37.9350813, "lng": -122.4445136, "ts": 1720572650, "dt": "2024-07-10 09:50:50", "step_no": 36, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 96, "name": "섀스타 산", "addr": "캘리포니아 섀스타 산", "lat": 41.4098732, "lng": -122.1948817, "ts": 1720650160, "dt": "2024-07-11 07:22:40", "step_no": 37, "category": "도시/랜드마크", "region": "캘리포니아"}, {"orig_index": 95, "name": "우드번", "addr": "97071 오리건 우드번", "lat": 45.1504142, "lng": -122.8772978, "ts": 1720655546, "dt": "2024-07-11 08:52:26", "step_no": 38, "category": "도시/랜드마크", "region": "오리건"}, {"orig_index": 94, "name": "포틀랜드", "addr": "오리건 포틀랜드", "lat": 45.515232, "lng": -122.67838529999999, "ts": 1720658787, "dt": "2024-07-11 09:46:27", "step_no": 39, "category": "도시/랜드마크", "region": "오리건"}, {"orig_index": 93, "name": "스팟 #93", "addr": "", "lat": 45.615097399999996, "lng": -122.6768408, "ts": 1720661195, "dt": "2024-07-11 10:26:35", "step_no": 40, "category": "도시/랜드마크", "region": "오리건"}, {"orig_index": 92, "name": "Visitors Center", "addr": "Visitors Center, 4060 George Washington Lane Northeast, Seattle, WA 98195", "lat": 47.6564611, "lng": -122.31038179999999, "ts": 1720734988, "dt": "2024-07-12 06:56:28", "step_no": 41, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 91, "name": "Foster Business Library", "addr": "Foster Business Library, NE Klickitat Ln, Seattle, WA 98195", "lat": 47.6591141, "lng": -122.30863269999999, "ts": 1720738224, "dt": "2024-07-12 07:50:24", "step_no": 42, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 90, "name": "PACCAR Hall", "addr": "PACCAR Hall, 4277 NE Stevens Way, Seattle, WA 98195", "lat": 47.6593782, "lng": -122.3090131, "ts": 1720738224, "dt": "2024-07-12 07:50:24", "step_no": 43, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 89, "name": "Husky Union Building", "addr": "Husky Union Bldg (HUB), 4001 E Stevens Way NE, Seattle, WA 98195", "lat": 47.655389299999996, "lng": -122.3050844, "ts": 1720738432, "dt": "2024-07-12 07:53:52", "step_no": 44, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 88, "name": "Suzzallo and Allen Libraries", "addr": "Suzzallo and Allen Libraries, 4000 15th Ave NE, Seattle, WA 98195", "lat": 47.655883499999995, "lng": -122.3084354, "ts": 1720738494, "dt": "2024-07-12 07:54:54", "step_no": 45, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 87, "name": "Safeway", "addr": "Safeway, 9262 Rainier Ave S, Seattle, WA 98118", "lat": 47.5209273, "lng": -122.268074, "ts": 1720747409, "dt": "2024-07-12 10:23:29", "step_no": 46, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 86, "name": "스페이스 니들", "addr": "스페이스 니들 400 Broad St, Seattle, WA 98109", "lat": 47.620506299999995, "lng": -122.34927739999999, "ts": 1720809597, "dt": "2024-07-13 03:39:57", "step_no": 47, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 85, "name": "Microsoft Visitor Center and Company Store", "addr": "Microsoft Visitor Center and Company Store, 15010 NE 36th St Building 92, Redmond, WA 98052", "lat": 47.6423109, "lng": -122.1368406, "ts": 1720820283, "dt": "2024-07-13 06:38:03", "step_no": 48, "category": "빅테크 본사", "region": "워싱턴/시애틀"}, {"orig_index": 84, "name": "QFC", "addr": "QFC, 3550 Factoria Blvd SE, Bellevue, WA 98006", "lat": 47.5785179, "lng": -122.1672526, "ts": 1720828652, "dt": "2024-07-13 08:57:32", "step_no": 49, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 83, "name": "스팟 #83", "addr": "", "lat": 48.7184058, "lng": -122.4736564, "ts": 1720897887, "dt": "2024-07-14 04:11:27", "step_no": 50, "category": "도시/랜드마크", "region": "워싱턴/시애틀"}, {"orig_index": 82, "name": "Prospect Point Cafe", "addr": "Prospect Point Cafe, 5601 Stanley Park Dr, Vancouver, BC V6G 3E2 캐나다", "lat": 49.312610299999996, "lng": -123.142716, "ts": 1720907523, "dt": "2024-07-14 06:52:03", "step_no": 51, "category": "국립공원/자연", "region": "캐나다 BC(밴쿠버)"}, {"orig_index": 81, "name": "176 St", "addr": "176 St, Surrey, BC, 캐나다", "lat": 49.002023699999995, "lng": -122.73534099999999, "ts": 1720907825, "dt": "2024-07-14 06:57:05", "step_no": 52, "category": "도시/랜드마크", "region": "캐나다 BC(밴쿠버)"}, {"orig_index": 80, "name": "스탠리 공원", "addr": "스탠리 공원 Vancouver, BC V6G 1Z4 캐나다", "lat": 49.304258399999995, "lng": -123.14425229999999, "ts": 1720907872, "dt": "2024-07-14 06:57:52", "step_no": 53, "category": "국립공원/자연", "region": "캐나다 BC(밴쿠버)"}, {"orig_index": 79, "name": "Chevron - Gas Station", "addr": "", "lat": 49.1406991, "lng": -122.00640899999999, "ts": 1721064376, "dt": "2024-07-16 02:26:16", "step_no": 54, "category": "주유소/휴게소", "region": "캐나다 BC(밴쿠버)"}, {"orig_index": 78, "name": "스팟 #78", "addr": "", "lat": 50.876944599999995, "lng": -119.4547722, "ts": 1721094155, "dt": "2024-07-16 10:42:35", "step_no": 55, "category": "도시/랜드마크", "region": "횡단 고속도로"}, {"orig_index": 77, "name": "Save-On-Foods", "addr": "Save-On-Foods, 555 Victoria Rd, Revelstoke, BC V0E 2S0 캐나다", "lat": 51.001788999999995, "lng": -118.1996405, "ts": 1721094197, "dt": "2024-07-16 10:43:17", "step_no": 56, "category": "도시/랜드마크", "region": "횡단 고속도로"}, {"orig_index": 76, "name": "루이스 호", "addr": "루이스 호 Lake Louise Lakeshore Trail, Lake Louise, AB T0L 캐나다", "lat": 51.4161271, "lng": -116.21789439999999, "ts": 1721164062, "dt": "2024-07-17 06:07:42", "step_no": 57, "category": "국립공원/자연", "region": "캐나다 AB(로키/캘거리)"}, {"orig_index": 75, "name": "스팟 #75", "addr": "", "lat": 51.1942339, "lng": -115.73534219999999, "ts": 1721164062, "dt": "2024-07-17 06:07:42", "step_no": 58, "category": "도시/랜드마크", "region": "캐나다 AB(로키/캘거리)"}, {"orig_index": 74, "name": "캘거리", "addr": "캐나다 알버타 캘거리", "lat": 51.044733099999995, "lng": -114.0718831, "ts": 1721169067, "dt": "2024-07-17 07:31:07", "step_no": 59, "category": "도시/랜드마크", "region": "캐나다 AB(로키/캘거리)"}, {"orig_index": 73, "name": "Chevron commercial cardlock", "addr": "Chevron commercial cardlock, 99 Queen Elizabeth II Hwy, Bowden, AB T0M 0K0 캐나다", "lat": 51.951673299999996, "lng": -114.01881309999999, "ts": 1721192935, "dt": "2024-07-17 14:08:55", "step_no": 60, "category": "주유소/휴게소", "region": "캐나다 AB(로키/캘거리)"}, {"orig_index": 72, "name": "Esso", "addr": "Esso, 119 Leva Ave, Red Deer County, AB T4E 1B2 캐나다", "lat": 52.2043627, "lng": -113.8149325, "ts": 1721256253, "dt": "2024-07-18 07:44:13", "step_no": 61, "category": "도시/랜드마크", "region": "캐나다 AB(로키/캘거리)"}, {"orig_index": 71, "name": "Dickson-Stevenson Stopping House", "addr": "", "lat": 51.3740047, "lng": -114.00411899999999, "ts": 1721260741, "dt": "2024-07-18 08:59:01", "step_no": 62, "category": "도시/랜드마크", "region": "캐나다 AB(로키/캘거리)"}, {"orig_index": 70, "name": "플라잉 J 트레블 센터", "addr": "플라잉 J 트레블 센터 2810 21 Ave, Nanton, AB T0L 1R0 캐나다", "lat": 50.3415416, "lng": -113.76553559999999, "ts": 1721269629, "dt": "2024-07-18 11:27:09", "step_no": 63, "category": "도시/랜드마크", "region": "캐나다 AB(로키/캘거리)"}, {"orig_index": 69, "name": "I-15/AB-4 US Customs And Border Protection Kiosks", "addr": "I-15/AB-4 US Customs And Border Protection Kiosks, 39825 I-15, Sweet Grass, MT 59484 캐나다", "lat": 48.998394999999995, "lng": -111.96077939999999, "ts": 1721320789, "dt": "2024-07-19 01:39:49", "step_no": 64, "category": "공항/국경", "region": "몬태나"}, {"orig_index": 68, "name": "Cenex", "addr": "Cenex, 110 Main St, Dutton, MT 59433", "lat": 47.848033099999995, "lng": -111.7181172, "ts": 1721328031, "dt": "2024-07-19 03:40:31", "step_no": 65, "category": "도시/랜드마크", "region": "몬태나"}, {"orig_index": 67, "name": "엑손", "addr": "엑손 309 E Main St, White Sulphur Springs, MT 59645", "lat": 46.5483615, "lng": -110.8998204, "ts": 1721336661, "dt": "2024-07-19 06:04:21", "step_no": 66, "category": "도시/랜드마크", "region": "몬태나"}, {"orig_index": 66, "name": "D J's Grocery", "addr": "", "lat": 44.3473785, "lng": -106.7157326, "ts": 1721412765, "dt": "2024-07-20 03:12:45", "step_no": 67, "category": "도시/랜드마크", "region": "와이오밍"}, {"orig_index": 65, "name": "Short Stop Fuel Mart", "addr": "Short Stop Fuel Mart, 2206 W Main St, Newcastle, WY 82701", "lat": 43.850756, "lng": -104.23085669999999, "ts": 1721420253, "dt": "2024-07-20 05:17:33", "step_no": 68, "category": "주유소/휴게소", "region": "와이오밍"}, {"orig_index": 64, "name": "마운트 러스모어 내셔널 메모리얼", "addr": "마운트 러스모어 내셔널 메모리얼 Keystone, SD 57751", "lat": 43.880335699999996, "lng": -103.45377459999999, "ts": 1721425684, "dt": "2024-07-20 06:48:04", "step_no": 69, "category": "도시/랜드마크", "region": "사우스다코타"}, {"orig_index": 63, "name": "셸", "addr": "셸 101 E W Hwy 16, Oacoma, SD 57365", "lat": 43.802046999999995, "lng": -99.39408499999999, "ts": 1721440991, "dt": "2024-07-20 11:03:11", "step_no": 70, "category": "도시/랜드마크", "region": "사우스다코타"}, {"orig_index": 62, "name": "Minnesota Welcome Center (Beaver Creek)", "addr": "Minnesota Welcome Center (Beaver Creek), I-90, Beaver Creek, MN 56116", "lat": 43.6071375, "lng": -96.4624982, "ts": 1721492852, "dt": "2024-07-21 01:27:32", "step_no": 71, "category": "도시/랜드마크", "region": "사우스다코타"}, {"orig_index": 61, "name": "Holiday Stationstores", "addr": "Holiday Stationstores, 1408 Oxford St, Worthington, MN 56187", "lat": 43.6307877, "lng": -95.5929984, "ts": 1721497042, "dt": "2024-07-21 02:37:22", "step_no": 72, "category": "쇼핑/미식", "region": "미네소타"}, {"orig_index": 60, "name": "International Terminal 5", "addr": "International Terminal 5, Chicago, IL 60666", "lat": 41.9756971, "lng": -87.8915208, "ts": 1721574618, "dt": "2024-07-22 00:10:18", "step_no": 73, "category": "도시/랜드마크", "region": "일리노이/시카고"}, {"orig_index": 59, "name": "Frank Lloyd Wright Home & Studio", "addr": "Frank Lloyd Wright Home & Studio, 951 Chicago Ave, Oak Park, IL 60302", "lat": 41.894145699999996, "lng": -87.7996452, "ts": 1721584403, "dt": "2024-07-22 02:53:23", "step_no": 74, "category": "국립공원/자연", "region": "일리노이/시카고"}, {"orig_index": 58, "name": "Parking lot", "addr": "Parking lot, Chicago, IL 60614", "lat": 41.9129204, "lng": -87.6250395, "ts": 1721588645, "dt": "2024-07-22 04:04:05", "step_no": 75, "category": "국립공원/자연", "region": "일리노이/시카고"}, {"orig_index": 57, "name": "클라우드 게이트", "addr": "클라우드 게이트 201 E Randolph St, Chicago, IL 60602", "lat": 41.8826572, "lng": -87.6233039, "ts": 1721595182, "dt": "2024-07-22 05:53:02", "step_no": 76, "category": "도시/랜드마크", "region": "일리노이/시카고"}, {"orig_index": 56, "name": "밀레니엄 공원", "addr": "밀레니엄 공원 Chicago, IL 60602", "lat": 41.8825524, "lng": -87.62255139999999, "ts": 1721595182, "dt": "2024-07-22 05:53:02", "step_no": 77, "category": "국립공원/자연", "region": "일리노이/시카고"}, {"orig_index": 55, "name": "애들러 천문관", "addr": "애들러 천문관 1300 S DuSable Lake Shore Dr, Chicago, IL 60605", "lat": 41.8664066, "lng": -87.6067898, "ts": 1721596821, "dt": "2024-07-22 06:20:21", "step_no": 78, "category": "국립공원/자연", "region": "일리노이/시카고"}, {"orig_index": 54, "name": "시카고 대학교", "addr": "시카고 대학교 5801 S Ellis Ave, Chicago, IL 60637", "lat": 41.790448399999995, "lng": -87.6003953, "ts": 1721599707, "dt": "2024-07-22 07:08:27", "step_no": 79, "category": "도시/랜드마크", "region": "일리노이/시카고"}, {"orig_index": 53, "name": "Dollar General", "addr": "Dollar General, 1606 M-139, Benton Harbor, MI 49022", "lat": 42.0929862, "lng": -86.4351403, "ts": 1721608475, "dt": "2024-07-22 09:34:35", "step_no": 80, "category": "도시/랜드마크", "region": "인디애나/미시간"}, {"orig_index": 52, "name": "Five Lakes Rest Area", "addr": "Five Lakes Rest Area, Attica, MI 48412", "lat": 43.0053408, "lng": -83.2197324, "ts": 1721668507, "dt": "2024-07-23 02:15:07", "step_no": 81, "category": "주유소/휴게소", "region": "캐나다 ON(나이아가라)"}, {"orig_index": 51, "name": "Blue Water Bridge", "addr": "Blue Water Bridge, Blue Water Brg, Point Edward, ON, 캐나다", "lat": 42.9985147, "lng": -82.42353, "ts": 1721672396, "dt": "2024-07-23 03:19:56", "step_no": 82, "category": "도시/랜드마크", "region": "캐나다 ON(나이아가라)"}, {"orig_index": 50, "name": "Food Basics", "addr": "Food Basics, 63 Main St W, Grimsby, ON L3M 4H1 캐나다", "lat": 43.193739799999996, "lng": -79.5639439, "ts": 1721682049, "dt": "2024-07-23 06:00:49", "step_no": 83, "category": "도시/랜드마크", "region": "캐나다 ON(나이아가라)"}, {"orig_index": 49, "name": "Free Viewpoint", "addr": "", "lat": 43.0789259, "lng": -79.0781324, "ts": 1721687061, "dt": "2024-07-23 07:24:21", "step_no": 84, "category": "도시/랜드마크", "region": "캐나다 ON(나이아가라)"}, {"orig_index": 48, "name": "South Grand Island Bridge", "addr": "South Grand Island Bridge, Tonawanda, NY 14150", "lat": 42.998410899999996, "lng": -78.9362616, "ts": 1721690598, "dt": "2024-07-23 08:23:18", "step_no": 85, "category": "도시/랜드마크", "region": "캐나다 ON(나이아가라)"}, {"orig_index": 47, "name": "스팟 #47", "addr": "", "lat": 41.9743407, "lng": -75.74134269999999, "ts": 1721754503, "dt": "2024-07-24 02:08:23", "step_no": 86, "category": "도시/랜드마크", "region": "뉴욕주"}, {"orig_index": 46, "name": "킹 사우나", "addr": "킹 사우나 321 Commercial Ave, Palisades Park, NJ 07650", "lat": 40.8519921, "lng": -74.002331, "ts": 1721833382, "dt": "2024-07-25 00:03:02", "step_no": 87, "category": "국립공원/자연", "region": "뉴욕/뉴저지"}, {"orig_index": 45, "name": "KBS Hair Studio 김병수 미용실", "addr": "07024 New Jersey, Fort Lee, Main St, KBS Hair Studio 김병수 미용실", "lat": 40.857290299999995, "lng": -73.9799548, "ts": 1721834177, "dt": "2024-07-25 00:16:17", "step_no": 88, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 44, "name": "Green Motors, Inc.", "addr": "", "lat": 40.8268863, "lng": -74.0107888, "ts": 1721836763, "dt": "2024-07-25 00:59:23", "step_no": 89, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 43, "name": "SUPER H Mart", "addr": "SUPER H Mart 321 Broad Ave, Ridgefield, NJ 07657", "lat": 40.824442399999995, "lng": -74.0104123, "ts": 1721843463, "dt": "2024-07-25 02:51:03", "step_no": 90, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 42, "name": "스팟 #42", "addr": "", "lat": 40.7628728, "lng": -74.00967899999999, "ts": 1721843870, "dt": "2024-07-25 02:57:50", "step_no": 91, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 41, "name": "맨해튼 교", "addr": "맨해튼 교 Manhattan Brg, New York, NY 11201", "lat": 40.7074959, "lng": -73.99077419999999, "ts": 1721846631, "dt": "2024-07-25 03:43:51", "step_no": 92, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 40, "name": "Holland Tunnel Ventilation Shaft 2", "addr": "Holland Tunnel Ventilation Shaft 2, Holland Tunnel, New York, NY 10014", "lat": 40.726596099999995, "lng": -74.015029, "ts": 1721852133, "dt": "2024-07-25 05:15:33", "step_no": 93, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 39, "name": "Best Buy", "addr": "Best Buy, 2391 US-22, Union, NJ 07083", "lat": 40.6912506, "lng": -74.29615299999999, "ts": 1721864791, "dt": "2024-07-25 08:46:31", "step_no": 94, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 38, "name": "Barnes & Noble", "addr": "Barnes & Noble, 2401 US-22 STE 2401N, Union, NJ 07083", "lat": 40.691021299999996, "lng": -74.29857419999999, "ts": 1721868525, "dt": "2024-07-25 09:48:45", "step_no": 95, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 37, "name": "ShopRite of Union, NJ - Highway 22", "addr": "ShopRite of Union, NJ - Highway 22, 2401D US-22, Union, NJ 07083", "lat": 40.6921618, "lng": -74.2966594, "ts": 1721868525, "dt": "2024-07-25 09:48:45", "step_no": 96, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 36, "name": "Port Authority Bus Terminal", "addr": "Port Authority Bus Terminal, New York, NY 10018", "lat": 40.7570875, "lng": -73.9923944, "ts": 1721936192, "dt": "2024-07-26 04:36:32", "step_no": 97, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 35, "name": "Times Square", "addr": "Times Square, New York, NY 10036", "lat": 40.7579747, "lng": -73.9855426, "ts": 1721941696, "dt": "2024-07-26 06:08:16", "step_no": 98, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 34, "name": "크라이슬러 빌딩", "addr": "크라이슬러 빌딩 405 Lexington Ave, New York, NY 10174", "lat": 40.7516208, "lng": -73.97550199999999, "ts": 1721944582, "dt": "2024-07-26 06:56:22", "step_no": 99, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 33, "name": "Grand Central - 42 St", "addr": "Grand Central - 42 St, New York, NY 10017", "lat": 40.751431, "lng": -73.976044, "ts": 1721944855, "dt": "2024-07-26 07:00:55", "step_no": 100, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 32, "name": "코리아타운", "addr": "10001 뉴욕 코리아타운", "lat": 40.7477385, "lng": -73.98689379999999, "ts": 1721947796, "dt": "2024-07-26 07:49:56", "step_no": 101, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 31, "name": "엠파이어 스테이트 빌딩", "addr": "엠파이어 스테이트 빌딩 20 W 34th St., New York, NY 10001", "lat": 40.7484405, "lng": -73.98566439999999, "ts": 1721949561, "dt": "2024-07-26 08:19:21", "step_no": 102, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 30, "name": "뉴어크 리버티 국제공항", "addr": "뉴어크 리버티 국제공항 (EWR) 3 Brewster Rd, Newark, NJ 07114", "lat": 40.6884837, "lng": -74.17686359999999, "ts": 1721959393, "dt": "2024-07-26 11:03:13", "step_no": 103, "category": "공항/국경", "region": "뉴욕/뉴저지"}, {"orig_index": 29, "name": "콜럼버스 서클", "addr": "콜럼버스 서클 848 Columbus Cir, New York, NY 10019", "lat": 40.7680797, "lng": -73.9818957, "ts": 1722023514, "dt": "2024-07-27 04:51:54", "step_no": 104, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 28, "name": "벨비디어 성", "addr": "벨비디어 성 New York, NY 10024", "lat": 40.7794302, "lng": -73.9690677, "ts": 1722027900, "dt": "2024-07-27 06:05:00", "step_no": 105, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 27, "name": "Umpire Rock", "addr": "Umpire Rock, Central Park S, New York, NY 10019", "lat": 40.7691242, "lng": -73.9777708, "ts": 1722028126, "dt": "2024-07-27 06:08:46", "step_no": 106, "category": "국립공원/자연", "region": "뉴욕/뉴저지"}, {"orig_index": 26, "name": "메트로폴리탄 미술관", "addr": "메트로폴리탄 미술관 1000 5th Ave, New York, NY 10028", "lat": 40.7794366, "lng": -73.963244, "ts": 1722030036, "dt": "2024-07-27 06:40:36", "step_no": 107, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 25, "name": "스팟 #25", "addr": "", "lat": 40.7832832, "lng": -73.9600971, "ts": 1722030549, "dt": "2024-07-27 06:49:09", "step_no": 108, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 24, "name": "Burnett Fountain", "addr": "Burnett Fountain, E 105th St &, 5th Ave, New York, NY 10029", "lat": 40.793163899999996, "lng": -73.952775, "ts": 1722031762, "dt": "2024-07-27 07:09:22", "step_no": 109, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 23, "name": "뉴욕 박물관", "addr": "뉴욕 박물관 1220 5th Ave, New York, NY 10029", "lat": 40.7925318, "lng": -73.9519897, "ts": 1722032859, "dt": "2024-07-27 07:27:39", "step_no": 110, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 22, "name": "듀크 엘링턴 스테츄", "addr": "듀크 엘링턴 스테츄 Duke Ellington Circle, New York, NY 10029", "lat": 40.7968889, "lng": -73.9494167, "ts": 1722033214, "dt": "2024-07-27 07:33:34", "step_no": 111, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 21, "name": "Frederick Douglass Sculpture and Water Wall", "addr": "Frederick Douglass Sculpture and Water Wall, 301 Frederick Douglass Cir, New York, NY 10026", "lat": 40.8005895, "lng": -73.95818059999999, "ts": 1722033937, "dt": "2024-07-27 07:45:37", "step_no": 112, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 20, "name": "국제 연합", "addr": "국제 연합 405 E 45th St, New York, NY 10017", "lat": 40.7488983, "lng": -73.9682091, "ts": 1722110729, "dt": "2024-07-28 05:05:29", "step_no": 113, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 19, "name": "뉴욕", "addr": "뉴욕", "lat": 40.7127753, "lng": -74.0059728, "ts": 1722111909, "dt": "2024-07-28 05:25:09", "step_no": 114, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 18, "name": "컬럼비아 대학교", "addr": "컬럼비아 대학교 116th and Broadway, New York, NY 10027", "lat": 40.8075355, "lng": -73.9625727, "ts": 1722115149, "dt": "2024-07-28 06:19:09", "step_no": 115, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 17, "name": "워싱턴 스퀘어 공원", "addr": "워싱턴 스퀘어 공원 Washington Square, New York, NY 10012", "lat": 40.7308838, "lng": -73.997332, "ts": 1722118484, "dt": "2024-07-28 07:14:44", "step_no": 116, "category": "국립공원/자연", "region": "뉴욕/뉴저지"}, {"orig_index": 16, "name": "Stop & Shop", "addr": "Stop & Shop, 1351 Forest Ave, Staten Island, NY 10302", "lat": 40.626114699999995, "lng": -74.13553019999999, "ts": 1722127859, "dt": "2024-07-28 09:50:59", "step_no": 117, "category": "국립공원/자연", "region": "뉴욕/뉴저지"}, {"orig_index": 15, "name": "빈센트 R. 카스치아노 역사 기념교", "addr": "빈센트 R. 카스치아노 역사 기념교 Newark Bay Brg, Bayonne, NJ", "lat": 40.6951276, "lng": -74.1180768, "ts": 1722131721, "dt": "2024-07-28 10:55:21", "step_no": 118, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 14, "name": "Chicago The Musical", "addr": "Chicago The Musical, 219 W 49th St, New York, NY 10019", "lat": 40.7611129, "lng": -73.9849708, "ts": 1722187901, "dt": "2024-07-29 02:31:41", "step_no": 119, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 13, "name": "스프링 스트리트", "addr": "스프링 스트리트 New York, NY 10013", "lat": 40.72623, "lng": -74.00374, "ts": 1722201772, "dt": "2024-07-29 06:22:52", "step_no": 120, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 12, "name": "Carhartt WIP Store New York", "addr": "Carhartt WIP Store New York, 286 Lafayette St, New York, NY 10012", "lat": 40.7243056, "lng": -73.99614989999999, "ts": 1722203959, "dt": "2024-07-29 06:59:19", "step_no": 121, "category": "쇼핑/미식", "region": "뉴욕/뉴저지"}, {"orig_index": 11, "name": "Target", "addr": "Target, 600 Broadway, New York, NY 10012", "lat": 40.7251891, "lng": -73.9968212, "ts": 1722204090, "dt": "2024-07-29 07:01:30", "step_no": 122, "category": "쇼핑/미식", "region": "뉴욕/뉴저지"}, {"orig_index": 10, "name": "모마 디자인 스토어", "addr": "모마 디자인 스토어 81 Spring St A, New York, NY 10012", "lat": 40.7229688, "lng": -73.9979997, "ts": 1722204803, "dt": "2024-07-29 07:13:23", "step_no": 123, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 9, "name": "Nike Soho", "addr": "Nike Soho, 529 Broadway, New York, NY 10012", "lat": 40.7258893, "lng": -73.9967995, "ts": 1722205720, "dt": "2024-07-29 07:28:40", "step_no": 124, "category": "쇼핑/미식", "region": "뉴욕/뉴저지"}, {"orig_index": 8, "name": "McNally Jackson Books SoHo", "addr": "McNally Jackson Books SoHo, 134 Prince St, New York, NY 10012", "lat": 40.725538, "lng": -74.000592, "ts": 1722206488, "dt": "2024-07-29 07:41:28", "step_no": 125, "category": "쇼핑/미식", "region": "뉴욕/뉴저지"}, {"orig_index": 7, "name": "14 스트리트 스테이션", "addr": "14 스트리트 스테이션 300 W 14th St, New York, NY 10014", "lat": 40.739779999999996, "lng": -74.00258, "ts": 1722213015, "dt": "2024-07-29 09:30:15", "step_no": 126, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 6, "name": "더 홈 디포", "addr": "더 홈 디포 2501 Forest Ave, Staten Island, NY 10303", "lat": 40.629253999999996, "lng": -74.1724507, "ts": 1722280206, "dt": "2024-07-30 04:10:06", "step_no": 127, "category": "국립공원/자연", "region": "뉴욕/뉴저지"}, {"orig_index": 5, "name": "bp", "addr": "bp, 4001 4th Ave, Brooklyn, NY 11232", "lat": 40.651770299999995, "lng": -74.0066375, "ts": 1722284724, "dt": "2024-07-30 05:25:24", "step_no": 128, "category": "주유소/휴게소", "region": "뉴욕/뉴저지"}, {"orig_index": 4, "name": "브루클린 헤이츠 하버 전망대", "addr": "", "lat": 40.684907599999995, "lng": -73.9969392, "ts": 1722288953, "dt": "2024-07-30 06:35:53", "step_no": 129, "category": "도시/랜드마크", "region": "뉴욕/뉴저지"}, {"orig_index": 3, "name": "Toys \"Я\" Us at Macy's", "addr": "Toys \"Я\" Us at Macy's, 7th floor, 151 W 34th St., New York, NY 10001", "lat": 40.7508631, "lng": -73.98906339999999, "ts": 1722291493, "dt": "2024-07-30 07:18:13", "step_no": 130, "category": "쇼핑/미식", "region": "뉴욕/뉴저지"}, {"orig_index": 2, "name": "The Walkway & Fishing Pier", "addr": "The Walkway & Fishing Pier, Hoboken, NJ 07030", "lat": 40.7455378, "lng": -74.02213119999999, "ts": 1722297430, "dt": "2024-07-30 08:57:10", "step_no": 131, "category": "국립공원/자연", "region": "뉴욕/뉴저지"}, {"orig_index": 1, "name": "존 F. 케네디 국제공항", "addr": "존 F. 케네디 국제공항 (JFK) Queens, NY 11430", "lat": 40.6446161, "lng": -73.7797222, "ts": 1722353506, "dt": "2024-07-31 00:31:46", "step_no": 132, "category": "공항/국경", "region": "뉴욕/뉴저지"}];
+    const totalKm = 10786.1;
+
+    // ================= MAP INITIALIZATION =================
+    const map = L.map('map', {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([39.8283, -98.5795], 4);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Watermark-free layers
+    const layers = {
+      street: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
+      sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
+      topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
+      dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 })
+    };
+    let currentLayer = layers.street.addTo(map);
+
+    function setMapLayer(type, btn) {
+      document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      map.removeLayer(currentLayer);
+      currentLayer = layers[type].addTo(map);
+    }
+
+    // Transcontinental Route Line: Luminous Bloom + Core Line
+    const routeGlow = L.polyline(animPath, {
+      color: '#0284c7',
+      weight: 10,
+      opacity: 0.32,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    const routeLine = L.polyline(animPath, {
+      color: '#38bdf8',
+      weight: 3.8,
+      opacity: 0.95,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(map);
+
+    // Markers Layer with Highlight Radar Pulse Waves
+    const markersLayer = L.layerGroup().addTo(map);
+    const spotMarkers = [];
+
+    cleanPlaces.forEach((p, idx) => {
+      if (p.lat && p.lng) {
+        const isHighlight = (idx === 0 || idx === cleanPlaces.length - 1 || [1, 2, 3, 5, 8, 11, 14, 17, 20, 25].includes(idx));
+        
+        let marker;
+        if (isHighlight) {
+          const pulseIcon = L.divIcon({
+            className: 'highlight-pulse-pin',
+            html: `
+              <div style="position:relative; width:16px; height:16px; display:flex; align-items:center; justify-content:center;">
+                <div class="pulse-wave"></div>
+                <div style="width:12px; height:12px; border-radius:50%; background:#f59e0b; border:2.5px solid #fff; box-shadow:0 0 10px #f59e0b;"></div>
+              </div>
+            `,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+          });
+          marker = L.marker([p.lat, p.lng], { icon: pulseIcon });
+        } else {
+          marker = L.circleMarker([p.lat, p.lng], {
+            radius: 4,
+            fillColor: '#38bdf8',
+            color: '#ffffff',
+            weight: 1.5,
+            opacity: 0.95,
+            fillOpacity: 0.95
+          });
+        }
+
+        marker.bindPopup(`
+          <div style="font-family:'Pretendard',sans-serif; min-width:230px; color:#f8fafc; padding:2px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8; font-weight:700; margin-bottom:5px;">
+              <span style="color:#38bdf8; font-family:'JetBrains Mono';">No. ${idx + 1}</span>
+              <span style="background:rgba(56,189,248,0.15); padding:2px 6px; border-radius:4px; color:#38bdf8;">${p.region || ''}</span>
+            </div>
+            <div style="font-size:14.5px; font-weight:800; color:#fff; margin-bottom:4px; line-height:1.3;">${p.name}</div>
+            <div style="font-size:11.5px; color:#94a3b8; margin-bottom:10px; line-height:1.45;">${p.addr}</div>
+            <div style="display:flex; gap:6px;">
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + (p.addr || ''))}" target="_blank" style="background:#0284c7; color:#fff; text-decoration:none; font-size:11px; font-weight:700; padding:5px 9px; border-radius:6px;">구글맵 ↗</a>
+              <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lng}" target="_blank" style="background:#059669; color:#fff; text-decoration:none; font-size:11px; font-weight:700; padding:5px 9px; border-radius:6px;">로드뷰 360° ↗</a>
+            </div>
+          </div>
+        `);
+        marker.spotData = p;
+        spotMarkers.push(marker);
+        markersLayer.addLayer(marker);
+      }
+    });
+
+    // ================= DYNAMIC 3D SUV VEHICLE MARKER & DUAL HEADLIGHTS =================
+    const carHtml = `
+      <div id="carVehicleWrapper" style="width:44px;height:44px;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.12s linear;">
+        <!-- Volumetric Headlight Cone Beam with Soft Falloff -->
+        <div id="carHeadlight" style="position:absolute;top:-52px;left:50%;transform:translateX(-50%);width:82px;height:65px;background:radial-gradient(ellipse at bottom, rgba(254,240,138,0.65) 0%, rgba(254,240,138,0.2) 45%, transparent 78%);clip-path:polygon(32% 100%, 68% 100%, 100% 0%, 0% 0%);pointer-events:none;filter:blur(1.2px);opacity:0.92;"></div>
+        <!-- Ultra-sleek Modern SUV Vector Body -->
+        <svg width="24" height="40" viewBox="0 0 24 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 6px 14px rgba(0,0,0,0.95));">
+          <!-- Soft Ground Shadow -->
+          <ellipse cx="12" cy="20" rx="11" ry="18" fill="rgba(0,0,0,0.7)"/>
+          <!-- 4 High-performance Tires -->
+          <rect x="0.5" y="6" width="3" height="8" rx="1.5" fill="#020617"/>
+          <rect x="20.5" y="6" width="3" height="8" rx="1.5" fill="#020617"/>
+          <rect x="0.5" y="25" width="3" height="8" rx="1.5" fill="#020617"/>
+          <rect x="20.5" y="25" width="3" height="8" rx="1.5" fill="#020617"/>
+          <!-- Sculpted SUV Body -->
+          <rect x="2" y="3" width="20" height="34" rx="6.5" fill="url(#carBodyGrad)" stroke="#38bdf8" stroke-width="1.3"/>
+          <!-- Front Windshield -->
+          <path d="M4.5 11 Q12 9 19.5 11 L18 16 Q12 15 6 16 Z" fill="#070a13" stroke="rgba(255,255,255,0.4)" stroke-width="0.6"/>
+          <!-- Panoramic Sunroof & Roof Racks -->
+          <rect x="5.5" y="17" width="13" height="10" rx="2" fill="#1e293b" stroke="rgba(56,189,248,0.4)" stroke-width="0.6"/>
+          <line x1="7.5" y1="19" x2="16.5" y2="19" stroke="#64748b" stroke-width="1"/>
+          <line x1="7.5" y1="24" x2="16.5" y2="24" stroke="#64748b" stroke-width="1"/>
+          <!-- Rear Windshield -->
+          <path d="M5.5 28.5 Q12 29 18.5 28.5 L19.5 31.5 Q12 32.5 4.5 31.5 Z" fill="#070a13"/>
+          <!-- Dual Xenon Front Lights -->
+          <ellipse cx="5.2" cy="4.5" rx="2.2" ry="1.5" fill="#fef08a"/>
+          <ellipse cx="18.8" cy="4.5" rx="2.2" ry="1.5" fill="#fef08a"/>
+          <!-- Dual LED Taillights -->
+          <ellipse cx="5.2" cy="35.5" rx="2.2" ry="1.3" fill="#ef4444"/>
+          <ellipse cx="18.8" cy="35.5" rx="2.2" ry="1.3" fill="#ef4444"/>
+          <defs>
+            <linearGradient id="carBodyGrad" x1="2" y1="3" x2="22" y2="37" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0284c7"/>
+              <stop offset="0.5" stop-color="#1e40af"/>
+              <stop offset="1" stop-color="#0f172a"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    `;
+
+    const carIcon = L.divIcon({
+      className: 'custom-car-icon',
+      html: carHtml,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22]
+    });
+    const carMarker = L.marker(animPath[0], { icon: carIcon, zIndexOffset: 9999 }).addTo(map);
+
+    // Elevation Hover Marker
+    const eleHoverMarker = L.circleMarker([0, 0], {
+      radius: 8,
+      fillColor: '#fbbf24',
+      color: '#fff',
+      weight: 3,
+      opacity: 0,
+      fillOpacity: 0
+    }).addTo(map);
+
+    // ================= AI VOICE GUIDE (TTS) =================
+    let ttsEnabled = false;
+    function toggleTTS() {
+      ttsEnabled = !ttsEnabled;
+      const btn = document.getElementById('ttsBtn');
+      if (ttsEnabled) {
+        btn.classList.add('active', 'active-green');
+        speakKorean("음성 가이드가 켜졌습니다. 미국 캐나다 10,786 km 자동차 대륙일주 여정을 안내합니다.");
+      } else {
+        btn.classList.remove('active', 'active-green');
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+      }
+    }
+
+    function speakKorean(text) {
+      if (!ttsEnabled || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ko-KR';
+      utter.rate = 0.95;
+      utter.pitch = 1.0;
+      window.speechSynthesis.speak(utter);
+    }
+
+    // ================= MULTI-HARMONIC V8 HIGHWAY AUDIO SYNTHESIZER =================
+    let audioCtx = null;
+    let audioEnabled = false;
+    let engineGain = null;
+    let engineOsc1 = null;
+    let engineOsc2 = null;
+    let noiseNode = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Pink noise for asphalt tyre road roar
+        const bufferSize = audioCtx.sampleRate * 2;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let lastOut = 0.0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          output[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = output[i];
+          output[i] *= 3.5;
+        }
+        noiseNode = audioCtx.createBufferSource();
+        noiseNode.buffer = noiseBuffer;
+        noiseNode.loop = true;
+
+        const noiseFilter = audioCtx.createBiquadFilter();
+        noiseFilter.type = 'lowpass';
+        noiseFilter.frequency.setValueAtTime(280, audioCtx.currentTime);
+
+        engineGain = audioCtx.createGain();
+        engineGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+        // V8 fundamental rumble (55 Hz) + sub-harmonic rumble (27.5 Hz)
+        engineOsc1 = audioCtx.createOscillator();
+        engineOsc1.type = 'sawtooth';
+        engineOsc1.frequency.setValueAtTime(55, audioCtx.currentTime);
+
+        engineOsc2 = audioCtx.createOscillator();
+        engineOsc2.type = 'triangle';
+        engineOsc2.frequency.setValueAtTime(27.5, audioCtx.currentTime);
+
+        const oscFilter = audioCtx.createBiquadFilter();
+        oscFilter.type = 'lowpass';
+        oscFilter.frequency.setValueAtTime(130, audioCtx.currentTime);
+
+        const oscGain = audioCtx.createGain();
+        oscGain.gain.setValueAtTime(0.14, audioCtx.currentTime);
+
+        engineOsc1.connect(oscFilter);
+        engineOsc2.connect(oscFilter);
+        oscFilter.connect(oscGain);
+        oscGain.connect(engineGain);
+
+        noiseNode.connect(noiseFilter);
+        noiseFilter.connect(engineGain);
+
+        engineGain.connect(audioCtx.destination);
+        noiseNode.start();
+        engineOsc1.start();
+        engineOsc2.start();
+      }
+    }
+
+    function toggleAudio() {
+      initAudio();
+      audioEnabled = !audioEnabled;
+      const btn = document.getElementById('soundBtn');
+      if (audioEnabled) {
+        btn.classList.add('active');
+        engineGain.gain.setTargetAtTime(0.09, audioCtx.currentTime, 0.1);
+      } else {
+        btn.classList.remove('active');
+        engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+      }
+    }
+
+    function setSoundTheme(theme) {
+      if (!audioEnabled || !engineGain) return;
+      if (theme === 'ocean') {
+        engineGain.gain.setTargetAtTime(0.06, audioCtx.currentTime, 0.2);
+      } else if (theme === 'mountain') {
+        engineGain.gain.setTargetAtTime(0.05, audioCtx.currentTime, 0.2);
+      } else if (theme === 'jazz') {
+        playJazzChime();
+      } else {
+        engineGain.gain.setTargetAtTime(0.09, audioCtx.currentTime, 0.2);
+      }
+    }
+
+    function playJazzChime() {
+      if (!audioCtx || !audioEnabled) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.5);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.8);
+    }
+
+    // ================= COLLAPSIBLE SIDEBAR =================
+    let isSidebarCollapsed = false;
+    function toggleSidebar() {
+      isSidebarCollapsed = !isSidebarCollapsed;
+      const sb = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarToggleBtn');
+      const layerSel = document.querySelector('.layer-selector');
+      const skySel = document.querySelector('.sky-selector');
+      const timelineBar = document.querySelector('.bottom-timeline-bar');
+
+      if (isSidebarCollapsed) {
+        sb.classList.add('collapsed');
+        toggleBtn.textContent = '▶';
+        toggleBtn.title = '메뉴바 펼치기 (열기)';
+        if (layerSel) layerSel.style.left = '60px';
+        if (skySel) skySel.style.left = '360px';
+        if (timelineBar) timelineBar.style.left = '40px';
+      } else {
+        sb.classList.remove('collapsed');
+        toggleBtn.textContent = '◀';
+        toggleBtn.title = '메뉴바 접기 (닫기)';
+        if (layerSel) layerSel.style.left = '510px';
+        if (skySel) skySel.style.left = '810px';
+        if (timelineBar) timelineBar.style.left = '520px';
+      }
+      setTimeout(() => {
+        if (window.map) {
+          window.map.invalidateSize();
+        }
+      }, 360);
+    }
+
+    // ================= TAB NAVIGATION =================
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+      if (activeBtn) activeBtn.classList.add('active');
+      const targetContent = document.getElementById('tab-' + tabId);
+      if (targetContent) targetContent.classList.add('active');
+    }
+
+    // ================= STORY MODE =================
+    let currentStoryIdx = 0;
+    function renderStory() {
+      const st = storyDays[currentStoryIdx];
+      document.getElementById('storyIndicator').textContent = `${currentStoryIdx + 1} / ${storyDays.length} 여정`;
+      const container = document.getElementById('storyCardContainer');
+      container.innerHTML = `
+        <div class="story-card">
+          <div class="sc-img-box">
+            <img class="sc-img" src="${st.photo}" alt="${st.title}" onclick="openLightbox('${st.photo}', '${st.title}')">
+            <div class="sc-img-overlay"></div>
+          </div>
+          <div class="sc-body">
+            <div class="sc-hdr">
+              <span class="sc-tag" style="background:${st.color};">${st.tag}</span>
+              <span class="sc-date">${st.date}</span>
+            </div>
+            <div class="sc-title">${st.title}</div>
+            <div class="sc-region">📍 ${st.region}</div>
+            <div class="sc-desc">${st.desc}</div>
+            <div class="sc-weather">
+              <span>${st.weather}</span>
+              <a class="sc-streetview-btn" href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${st.lat},${st.lng}" target="_blank">로드뷰 360°</a>
+            </div>
+          </div>
+        </div>
+      `;
+
+      map.flyTo([st.lat, st.lng], st.zoom, { duration: 1.8 });
+      setSoundTheme(st.sound);
+
+      // Cinema sync
+      document.getElementById('cinemaTitle').textContent = `${st.title} (${st.date})`;
+      document.getElementById('cinemaDesc').textContent = st.desc;
+
+      if (ttsEnabled) {
+        speakKorean(`${st.title}. ${st.desc}`);
+      }
+    }
+
+    function nextStory() {
+      currentStoryIdx = (currentStoryIdx + 1) % storyDays.length;
+      renderStory();
+    }
+    function prevStory() {
+      currentStoryIdx = (currentStoryIdx - 1 + storyDays.length) % storyDays.length;
+      renderStory();
+    }
+
+    // ================= VEHICLE SIMULATOR & SMOOTH CORNERING =================
+    let isPlaying = false;
+    let simIndex = 0;
+    let simSpeed = 0.04;
+    let simTimer = null;
+    let currentCarHeading = 0;
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      const btn = document.getElementById('playBtn');
+      if (isPlaying) {
+        btn.textContent = '⏸️ 일시 정지';
+        btn.style.background = '#dc2626';
+        if (engineGain && audioEnabled) {
+          engineGain.gain.setTargetAtTime(0.12, audioCtx.currentTime, 0.1);
+        }
+        runSim();
+      } else {
+        btn.textContent = '▶ 주행 시작';
+        btn.style.background = '';
+        if (engineGain && audioEnabled) {
+          engineGain.gain.setTargetAtTime(0.04, audioCtx.currentTime, 0.2);
+        }
+        clearTimeout(simTimer);
+      }
+    }
+
+    function resetSim() {
+      isPlaying = false;
+      clearTimeout(simTimer);
+      document.getElementById('playBtn').textContent = '▶ 주행 시작';
+      document.getElementById('playBtn').style.background = '';
+      simIndex = 0;
+      updateSimFrame(0);
+      map.setView(animPath[0], 10);
+    }
+
+    function setSpeed(spd, btn) {
+      simSpeed = parseFloat(spd);
+      document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function runSim() {
+      if (!isPlaying) return;
+      simIndex += simSpeed;
+      if (simIndex >= animPath.length - 1) {
+        simIndex = animPath.length - 1;
+        updateSimFrame(simIndex);
+        togglePlay();
+        return;
+      }
+      updateSimFrame(simIndex);
+      simTimer = setTimeout(runSim, 40);
+    }
+
+    function onScrub(val) {
+      simIndex = parseFloat(val);
+      updateSimFrame(simIndex);
+    }
+
+    function updateSimFrame(idx) {
+      const i = Math.min(Math.floor(idx), animPath.length - 1);
+      const frac = idx - i;
+      const ptA = animPath[i];
+      const ptB = (i < animPath.length - 1) ? animPath[i + 1] : ptA;
+
+      // Sub-frame interpolation for buttery smooth car movement at 0.2x speed
+      const currentLat = ptA[0] + (ptB[0] - ptA[0]) * frac;
+      const currentLng = ptA[1] + (ptB[1] - ptA[1]) * frac;
+      const pt = [currentLat, currentLng];
+
+      carMarker.setLatLng(pt);
+      if (document.getElementById('followCam').checked) {
+        map.panTo(pt, { animate: false });
+      }
+
+      // True geographic heading angle with smooth cornering
+      let targetHeading = currentCarHeading;
+      const dLat = ptB[0] - ptA[0];
+      const dLng = (ptB[1] - ptA[1]) * Math.cos(ptA[0] * Math.PI / 180);
+      if (Math.abs(dLat) > 1e-7 || Math.abs(dLng) > 1e-7) {
+        targetHeading = Math.atan2(dLng, dLat) * (180 / Math.PI);
+      }
+      
+      // Smooth angle interpolation
+      let diff = (targetHeading - currentCarHeading + 180) % 360 - 180;
+      currentCarHeading += diff * 0.35;
+
+      const carWrapper = document.getElementById('carVehicleWrapper');
+      if (carWrapper) {
+        carWrapper.style.transform = `rotate(${currentCarHeading.toFixed(1)}deg)`;
+      }
+
+      // Calculate progress and stats
+      const pct = (idx / (animPath.length - 1));
+      const curKm = Math.round(pct * totalKm);
+      const eleA = elevations[i] || 0;
+      const eleB = (i < elevations.length - 1) ? elevations[i + 1] : eleA;
+      const curEle = Math.round(eleA + (eleB - eleA) * frac);
+      const curDriveMin = Math.round(pct * 7710); // 128.5 hrs = 7710 mins
+      const driveH = Math.floor(curDriveMin / 60);
+      const driveM = curDriveMin % 60;
+
+      // Update Cockpit Radial Progress and Glow Bead
+      const circle = document.getElementById('radialProgressCircle');
+      const bead = document.getElementById('radialProgressBead');
+      const maxDash = 201; // 2 * PI * 32
+      circle.style.strokeDashoffset = maxDash - (pct * maxDash);
+      
+      // Track bead position on circle (r = 32, center = 40, 40)
+      const beadAngle = (pct * 360 - 90) * Math.PI / 180;
+      const beadX = (40 + 32 * Math.cos(beadAngle)).toFixed(2);
+      const beadY = (40 + 32 * Math.sin(beadAngle)).toFixed(2);
+      bead.setAttribute('cx', beadX);
+      bead.setAttribute('cy', beadY);
+
+      document.getElementById('hudRadialPct').textContent = `${Math.round(pct * 100)}%`;
+
+      document.getElementById('hudKm').textContent = `${curKm.toLocaleString()} km / ${Math.round(totalKm).toLocaleString()} km`;
+      document.getElementById('hudPct').textContent = `${(pct * 100).toFixed(1)} %`;
+      document.getElementById('mapBadgeKm').textContent = `${curKm.toLocaleString()} km`;
+      document.getElementById('mapBadgeEle').textContent = `${curEle}m`;
+
+      // Live Scrubber Progress Fill Gradient
+      const slider = document.getElementById('timelineScrubber');
+      slider.value = idx;
+      const pctPct = (pct * 100).toFixed(2);
+      slider.style.background = `linear-gradient(to right, #38bdf8 0%, #2563eb ${pctPct}%, rgba(255, 255, 255, 0.1) ${pctPct}%)`;
+
+      document.getElementById('scrubberLabel').textContent = `${curKm.toLocaleString()} km (${(pct * 100).toFixed(1)}%) | Day ${Math.min(26, Math.floor(pct * 26) + 1)} (${driveH}h ${driveM}m 운전)`;
+
+      // Update Car Cluster HUD
+      const speedMph = isPlaying ? Math.round(66 + Math.sin(idx * 0.1)*6) : 0;
+      document.getElementById('clusterSpeed').textContent = `${speedMph} MPH`;
+      
+      const compHeading = targetHeading;
+      const compCompass = compHeading >= -22.5 && compHeading < 22.5 ? 'N 0°' :
+                         compHeading >= 22.5 && compHeading < 67.5 ? 'NE 45°' :
+                         compHeading >= 67.5 && compHeading < 112.5 ? 'E 90°' :
+                         compHeading >= 112.5 && compHeading < 157.5 ? 'SE 135°' :
+                         compHeading >= 157.5 || compHeading < -157.5 ? 'S 180°' :
+                         compHeading >= -157.5 && compHeading < -112.5 ? 'SW 225°' :
+                         compHeading >= -112.5 && compHeading < -67.5 ? 'W 270°' : 'NW 315°';
+      document.getElementById('clusterHeading').textContent = compCompass;
+
+      let reg = '횡단 고속도로';
+      const lng = pt[1];
+      if (lng < -118) reg = '캘리포니아 (태평양 해안)';
+      else if (lng < -111) reg = '애리조나 & 그랜드캐니언';
+      else if (lng < -119 && pt[0] > 37) reg = '요세미티 & 시에라네바다';
+      else if (lng < -122 && pt[0] > 45) reg = '오리건 & 워싱턴 (시애틀)';
+      else if (pt[0] > 49 && lng < -114) reg = '캐나다 로키 & 밴쿠버';
+      else if (lng < -104) reg = '몬태나 & 와이오밍 대평원';
+      else if (lng < -96) reg = '사우스다코타 큰바위얼굴';
+      else if (lng < -87) reg = '미네소타 & 일리노이 (시카고)';
+      else if (lng < -78) reg = '온타리오 & 나이아가라 폭포';
+      else reg = '뉴욕 맨해튼 & 허드슨강';
+
+      document.getElementById('hudRegion').textContent = reg;
+      document.getElementById('mapBadgeLoc').textContent = reg;
+    }
+
+    // ================= 132 SPOTS & MEMORY NOTES =================
+    let currentCategoryFilter = 'all';
+
+    function getStorageKey(origIdx) {
+      return 'usa_trip_note_' + origIdx;
+    }
+
+    function saveNote(origIdx) {
+      const text = document.getElementById('noteInput_' + origIdx).value;
+      const stars = parseInt(document.getElementById('starVal_' + origIdx).value) || 5;
+      const data = { note: text, stars: stars, time: new Date().toISOString() };
+      localStorage.setItem(getStorageKey(origIdx), JSON.stringify(data));
+      alert('소중한 여행 메모가 저장되었습니다!');
+    }
+
+    function setStars(origIdx, num) {
+      document.getElementById('starVal_' + origIdx).value = num;
+      const starsEl = document.getElementById('starsContainer_' + origIdx);
+      Array.from(starsEl.children).forEach((span, i) => {
+        if (i < num) span.classList.add('active');
+        else span.classList.remove('active');
+      });
+    }
+
+    function toggleMemoryBox(origIdx) {
+      const box = document.getElementById('memoryBox_' + origIdx);
+      box.style.display = (box.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function renderSpots(spots) {
+      const container = document.getElementById('spotsContainer');
+      container.innerHTML = '';
+      document.getElementById('spotsCountLabel').textContent = `총 ${spots.length}개 장소 표시 중`;
+
+      spots.forEach((p) => {
+        const key = getStorageKey(p.orig_index);
+        let savedData = null;
+        try {
+          savedData = JSON.parse(localStorage.getItem(key));
+        } catch(e) {}
+
+        const stars = savedData ? savedData.stars : 5;
+        const note = savedData ? savedData.note : '';
+
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        card.innerHTML = `
+          <div class="item-header" onclick="flyToSpot(${p.lat}, ${p.lng}, '${p.name}')">
+            <div class="item-no">${p.orig_index}</div>
+            <div class="item-info">
+              <div class="item-name">${p.name}</div>
+              <div class="item-addr">${p.addr || '주소 정보 없음'}</div>
+            </div>
+            <div class="item-badge-cat">${p.category || '명소'}</div>
+          </div>
+          <div class="item-actions">
+            <div class="item-links">
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + (p.addr || ''))}" target="_blank" style="color:#38bdf8;">구글지도 ↗</a>
+              <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lng}" target="_blank" style="color:#34d399;">로드뷰 360° ↗</a>
+            </div>
+            <button class="item-memory-toggle" onclick="toggleMemoryBox(${p.orig_index})">✏️ 내 메모 (${savedData ? '⭐' + stars : '작성'})</button>
+          </div>
+          <div class="item-memory-box" id="memoryBox_${p.orig_index}">
+            <div class="memory-stars" id="starsContainer_${p.orig_index}">
+              ${[1,2,3,4,5].map(n => `<span class="${n <= stars ? 'active' : ''}" onclick="setStars(${p.orig_index}, ${n})">★</span>`).join('')}
+            </div>
+            <input type="hidden" id="starVal_${p.orig_index}" value="${stars}">
+            <textarea id="noteInput_${p.orig_index}" class="memory-input" placeholder="이곳에서의 감상, 맛집 정보, 여행 팁을 기록해보세요...">${note}</textarea>
+            <div style="display:flex; justify-content:flex-end;">
+              <button class="memory-save-btn" onclick="saveNote(${p.orig_index})">저장하기</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function filterCategory(cat, btn) {
+      currentCategoryFilter = cat;
+      document.querySelectorAll('.filter-pills .pill-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterSpots();
+    }
+
+    function filterSpots() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      let filtered = cleanPlaces;
+
+      if (currentCategoryFilter === 'memo') {
+        filtered = filtered.filter(p => localStorage.getItem(getStorageKey(p.orig_index)) !== null);
+      } else if (currentCategoryFilter !== 'all') {
+        filtered = filtered.filter(p => p.category === currentCategoryFilter);
+      }
+
+      if (query) {
+        filtered = filtered.filter(p =>
+          (p.name && p.name.toLowerCase().includes(query)) ||
+          (p.addr && p.addr.toLowerCase().includes(query))
+        );
+      }
+      renderSpots(filtered);
+    }
+
+    function flyToSpot(lat, lng, name) {
+      map.flyTo([lat, lng], 14, { duration: 1.5 });
+      const marker = spotMarkers.find(m => m.spotData && m.spotData.name === name);
+      if (marker) setTimeout(() => marker.openPopup(), 1600);
+    }
+
+    function exportNotesJSON() {
+      const notes = {};
+      cleanPlaces.forEach(p => {
+        const item = localStorage.getItem(getStorageKey(p.orig_index));
+        if (item) notes[p.orig_index] = JSON.parse(item);
+      });
+      const blob = new Blob([JSON.stringify(notes, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'usa_trip_my_notes.json';
+      a.click();
+    }
+
+    // Render Gas Stops in Drive Tab
+    function renderGasStops() {
+      const gasContainer = document.getElementById('gasStopsList');
+      const gasStops = cleanPlaces.filter(p => p.category === '주유소/휴게소' || p.name.toLowerCase().includes('bp') || p.name.toLowerCase().includes('shell') || p.name.toLowerCase().includes('chevron'));
+      gasContainer.innerHTML = gasStops.map((g, i) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(15,23,42,0.6); padding:8px 10px; border-radius:6px; font-size:11.5px; border:1px solid rgba(255,255,255,0.06); cursor:pointer;" onclick="flyToSpot(${g.lat}, ${g.lng}, '${g.name}')">
+          <span style="font-weight:700; color:#fff;">⛽ ${g.name}</span>
+          <span style="color:#38bdf8; font-size:10.5px;">${g.region || ''} ➔</span>
+        </div>
+      `).join('');
+    }
+
+    // ================= PHOTO ALBUM =================
+    function handlePhotoUpload(event) {
+      const files = event.target.files;
+      if (!files || !files.length) return;
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const photoData = {
+            id: Date.now() + Math.random(),
+            dataUrl: e.target.result,
+            name: file.name,
+            date: new Date().toLocaleDateString('ko-KR')
+          };
+          savePhotoToStorage(photoData);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function savePhotoToStorage(photo) {
+      try {
+        let list = JSON.parse(localStorage.getItem('my_roadtrip_photos') || '[]');
+        list.push(photo);
+        localStorage.setItem('my_roadtrip_photos', JSON.stringify(list));
+        loadPhotoAlbum();
+      } catch(e) {
+        alert('브라우저 저장 공간이 가득 찼습니다. 이미지를 압축해서 올려주세요.');
+      }
+    }
+
+    function loadPhotoAlbum() {
+      const grid = document.getElementById('albumGrid');
+      let list = [];
+      try {
+        list = JSON.parse(localStorage.getItem('my_roadtrip_photos') || '[]');
+      } catch(e) {}
+
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column:span 2; text-align:center; padding:30px 10px; color:#64748b; font-size:12px;">
+            📸 아직 등록된 개인 사진이 없습니다.<br>상단의 <b>[+ 사진 추가]</b> 버튼을 눌러 소중한 여행 사진을 추가해보세요!
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = list.map(p => `
+        <div class="photo-card">
+          <img src="${p.dataUrl}" alt="${p.name}" onclick="openLightbox('${p.dataUrl}', '${p.name}')">
+          <div class="photo-meta">
+            <div class="photo-title">${p.name}</div>
+            <div class="photo-date">${p.date}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Lightbox
+    function openLightbox(url, caption) {
+      document.getElementById('lbImg').src = url;
+      document.getElementById('lbCaption').textContent = caption;
+      document.getElementById('lightbox').classList.add('active');
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('active');
+    }
+
+    // ================= CURRENCY CALCULATOR =================
+    const exchangeRates = { USD: 1.0, CAD: 1.36, KRW: 1350 };
+    let currentCurrency = 'USD';
+    const baseExpenses = {
+      gas: 1150.50,
+      rental: 2450.00,
+      hotel: 3750.00,
+      pass: 240.00,
+      food: 2100.00
+    };
+
+    function setCurrency(curr, btn) {
+      currentCurrency = curr;
+      document.querySelectorAll('.curr-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateExpenseDisplay();
+    }
+
+    function updateExpenseDisplay() {
+      const rate = exchangeRates[currentCurrency];
+      const symbol = currentCurrency === 'KRW' ? '₩ ' : (currentCurrency === 'CAD' ? 'CA$ ' : '$ ');
+      let total = 0;
+
+      for (const [key, usdVal] of Object.entries(baseExpenses)) {
+        const converted = usdVal * rate;
+        total += converted;
+        const formatted = currentCurrency === 'KRW' ? Math.round(converted).toLocaleString() : converted.toFixed(2);
+        const el = document.getElementById('cost' + key.charAt(0).toUpperCase() + key.slice(1));
+        if (el) el.textContent = symbol + formatted;
+      }
+      const totalFormatted = currentCurrency === 'KRW' ? Math.round(total).toLocaleString() : total.toFixed(2);
+      document.getElementById('costTotal').textContent = symbol + totalFormatted;
+    }
+
+    // ================= CHARTS INITIALIZATION =================
+    function initCharts() {
+      // 1. Category Donut Chart
+      const catCtx = document.getElementById('categoryChart').getContext('2d');
+      new Chart(catCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ["공항/국경", "도시/랜드마크", "국립공원/자연", "명문대학", "빅테크 본사", "주유소/휴게소", "쇼핑/미식"],
+          datasets: [{
+            data: [4, 83, 20, 7, 6, 6, 6],
+            backgroundColor: ['#0284c7', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b'],
+            borderWidth: 2,
+            borderColor: '#0f172a'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right', labels: { color: '#cbd5e1', font: { family: 'Pretendard', size: 10.5 } } }
+          }
+        }
+      });
+
+      // 2. Region Bar Chart
+      const regCtx = document.getElementById('regionChart').getContext('2d');
+      new Chart(regCtx, {
+        type: 'bar',
+        data: {
+          labels: ["캘리포니아", "애리조나", "오리건", "워싱턴/시애틀", "캐나다 BC(밴쿠버)", "횡단 고속도로", "캐나다 AB(로키/캘거리)", "몬태나", "와이오밍", "사우스다코타", "미네소타", "일리노이/시카고", "인디애나/미시간", "캐나다 ON(나이아가라)", "뉴욕주", "뉴욕/뉴저지"],
+          datasets: [{
+            label: '방문 거점 수',
+            data: [35, 2, 3, 10, 4, 2, 7, 3, 2, 3, 1, 7, 1, 5, 1, 46],
+            backgroundColor: '#38bdf8',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#94a3b8', font: { size: 9.5 } }, grid: { display: false } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+          }
+        }
+      });
+
+      // 3. Elevation Chart
+      const eleCtx = document.getElementById('elevationChart').getContext('2d');
+      const sampleEle = elevations.filter((_, i) => i % 5 === 0);
+      const labels = sampleEle.map((_, i) => `${Math.round((i / sampleEle.length) * totalKm)}km`);
+
+      new Chart(eleCtx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '해발 고도 (m)',
+            data: sampleEle,
+            borderColor: '#f59e0b',
+            backgroundColor: 'rgba(245, 158, 11, 0.15)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 0,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#94a3b8', maxTicksLimit: 8, font: { size: 9 } }, grid: { display: false } },
+            y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+          },
+          onHover: (evt, elements) => {
+            if (elements && elements.length) {
+              const idx = elements[0].index * 5;
+              if (idx < animPath.length) {
+                const pt = animPath[idx];
+                eleHoverMarker.setLatLng(pt).setStyle({ opacity: 1, fillOpacity: 0.9 });
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ================= SKY / CANVAS FX SIMULATION =================
+    let skyMode = 'day';
+    let fxCanvas, fxCtx;
+    let stars = [];
+    let rainDrops = [];
+
+    function initFxCanvas() {
+      fxCanvas = document.getElementById('fxCanvas');
+      fxCtx = fxCanvas.getContext('2d');
+      resizeFx();
+      window.addEventListener('resize', resizeFx);
+
+      // Pre-create stars
+      for (let i = 0; i < 180; i++) {
+        stars.push({
+          x: Math.random(),
+          y: Math.random(),
+          size: Math.random() * 1.8 + 0.5,
+          alpha: Math.random() * 0.8 + 0.2,
+          speed: Math.random() * 0.02 + 0.005
+        });
+      }
+
+      // Pre-create rain
+      for (let i = 0; i < 120; i++) {
+        rainDrops.push({
+          x: Math.random(),
+          y: Math.random(),
+          len: Math.random() * 20 + 10,
+          speed: Math.random() * 12 + 10
+        });
+      }
+
+      requestAnimationFrame(renderFx);
+    }
+
+    function resizeFx() {
+      fxCanvas.width = window.innerWidth;
+      fxCanvas.height = window.innerHeight;
+    }
+
+    function setSkyMode(mode, btn) {
+      skyMode = mode;
+      document.querySelectorAll('.sky-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function renderFx() {
+      fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+
+      if (skyMode === 'night') {
+        fxCtx.fillStyle = 'rgba(2, 6, 23, 0.45)';
+        fxCtx.fillRect(0, 0, fxCanvas.width, fxCanvas.height);
+        stars.forEach(s => {
+          s.alpha += (Math.random() - 0.5) * 0.05;
+          s.alpha = Math.max(0.1, Math.min(1, s.alpha));
+          fxCtx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+          fxCtx.fillRect(s.x * fxCanvas.width, s.y * fxCanvas.height, s.size, s.size);
+        });
+      } else if (skyMode === 'sunset') {
+        const grad = fxCtx.createLinearGradient(0, 0, 0, fxCanvas.height);
+        grad.addColorStop(0, 'rgba(249, 115, 22, 0.2)');
+        grad.addColorStop(0.7, 'rgba(217, 70, 239, 0.15)');
+        grad.addColorStop(1, 'rgba(15, 23, 42, 0.35)');
+        fxCtx.fillStyle = grad;
+        fxCtx.fillRect(0, 0, fxCanvas.width, fxCanvas.height);
+      } else if (skyMode === 'rain') {
+        fxCtx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+        fxCtx.fillRect(0, 0, fxCanvas.width, fxCanvas.height);
+        fxCtx.strokeStyle = 'rgba(148, 163, 184, 0.5)';
+        fxCtx.lineWidth = 1.2;
+        rainDrops.forEach(r => {
+          r.y += r.speed / fxCanvas.height;
+          if (r.y > 1) { r.y = 0; r.x = Math.random(); }
+          fxCtx.beginPath();
+          fxCtx.moveTo(r.x * fxCanvas.width, r.y * fxCanvas.height);
+          fxCtx.lineTo(r.x * fxCanvas.width, (r.y * fxCanvas.height) + r.len);
+          fxCtx.stroke();
+        });
+      }
+
+      requestAnimationFrame(renderFx);
+    }
+
+    // ================= 21:9 CINEMA THEATER =================
+    function openCinema() {
+      document.getElementById('cinemaOverlay').classList.add('active');
+      renderStory();
+    }
+    function closeCinema() {
+      document.getElementById('cinemaOverlay').classList.remove('active');
+    }
+
+    // ================= DRIVER CERTIFICATE RENDERING =================
+    function openCert() {
+      document.getElementById('storyModal').style.display = 'flex';
+      renderCertCanvas();
+    }
+
+    function closeStoryModal() {
+      document.getElementById('storyModal').style.display = 'none';
+    }
+
+    function renderCertCanvas() {
+      const cvs = document.getElementById('storyCanvas');
+      const ctx = cvs.getContext('2d');
+      const carModel = document.getElementById('certCarModelInput').value || 'Ford Explorer 4WD SUV';
+
+      // Background Gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, 1920);
+      grad.addColorStop(0, '#070a13');
+      grad.addColorStop(0.5, '#0f172a');
+      grad.addColorStop(1, '#020617');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // Gold Double Borders
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 14;
+      ctx.strokeRect(40, 40, 1000, 1840);
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(60, 60, 960, 1800);
+
+      // Header Texts
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '900 44px "Cinzel", serif';
+      ctx.fillText('TRANSCONTINENTAL EXPEDITION', 540, 160);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '700 22px "Pretendard", sans-serif';
+      ctx.fillText('NORTH AMERICAN GRAND AUTOMOBILE ROAD TRIP 2024', 540, 210);
+
+      // Gold Seal Badge
+      ctx.beginPath();
+      ctx.arc(540, 320, 65, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fill();
+      ctx.fillStyle = '#0f172a';
+      ctx.font = '900 58px "Pretendard"';
+      ctx.fillText('🚗', 540, 342);
+
+      // Driver Name & Title
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 52px "Pretendard"';
+      ctx.fillText('설범준 원정대원', 540, 450);
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = '700 24px "Pretendard"';
+      ctx.fillText('공식 자동차 대륙일주 드라이버 (CERTIFIED ROAD DRIVER)', 540, 495);
+
+      ctx.fillStyle = '#a78bfa';
+      ctx.font = '600 21px "Pretendard"';
+      ctx.fillText(`탑승 차량: ${carModel}`, 540, 535);
+
+      // Main Distance
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '900 100px "Pretendard"';
+      ctx.fillText('10,786 km', 540, 670);
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '700 24px "Pretendard"';
+      ctx.fillText('6,702 MILES | LAX ➔ SEATTLE ➔ ROCKY ➔ JFK', 540, 720);
+
+      // Route Map Preview Box
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(100, 770, 880, 520);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.fill();
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 6;
+      ctx.lineJoin = 'round';
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 15;
+
+      animPath.forEach((pt, i) => {
+        const x = 140 + ((pt[1] + 125) / 52) * 800;
+        const y = 1240 - ((pt[0] - 32) / 21) * 420;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.restore();
+
+      // Stats 4 Blocks
+      const stats = [
+        { label: '순수 운전 시간', val: '128h 30m' },
+        { label: '평균 시속', val: '84.3 km/h' },
+        { label: '총 소비 연료', val: '1,027 L' },
+        { label: '경유 행정구역', val: '13 STATES' }
+      ];
+      stats.forEach((st, i) => {
+        const bx = 110 + i * 220;
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        ctx.fillRect(bx, 1330, 200, 130);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx, 1330, 200, 130);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = '900 28px "Pretendard"';
+        ctx.fillText(st.val, bx + 100, 1385);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '700 17px "Pretendard"';
+        ctx.fillText(st.label, bx + 100, 1425);
+      });
+
+      // Highlights
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '600 21px "Pretendard"';
+      ctx.fillText('최고 고도: 요세미티 티오가 패스 (3,031m) | 최저 고도: 데스밸리 (-86m)', 540, 1530);
+      ctx.fillText('완주 고속도로: I-15, CA-1 PCH, I-5, Trans-Canada 1, US-89, I-90, I-80', 540, 1575);
+
+      // Certificate Official Stamp Line
+      ctx.fillStyle = '#64748b';
+      ctx.font = '600 20px "Pretendard"';
+      ctx.fillText('CERTIFICATE NO: EXP-2024-USA-10786-CAR-DRIVER', 540, 1690);
+      ctx.fillText('PACIFIC TO ATLANTIC OCEAN TRANSCONTINENTAL AUTOMOBILE EXPEDITION', 540, 1730);
+      ctx.fillText('OFFICIALLY CERTIFIED & VERIFIED · JULY 31, 2024', 540, 1770);
+    }
+
+    function downloadStoryImage() {
+      const cvs = document.getElementById('storyCanvas');
+      const url = cvs.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'usa_roadtrip_driver_certificate.png';
+      a.click();
+    }
+
+    // ================= INITIAL LOAD =================
+    window.addEventListener('DOMContentLoaded', () => {
+      renderStory();
+      renderSpots(cleanPlaces);
+      renderGasStops();
+      loadPhotoAlbum();
+      updateExpenseDisplay();
+      initCharts();
+      initFxCanvas();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>설범준 웹 프로젝트 포털 | Web Projects Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Cinzel:wght@700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060913;
+      --card-bg: rgba(15, 23, 42, 0.72);
+      --card-hover: rgba(22, 33, 58, 0.92);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #38bdf8;
+      --accent-blue: #3b82f6;
+      --accent-amber: #f59e0b;
+      --accent-emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.1) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(99, 102, 241, 0.1) 0%, transparent 45%);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 50px 24px 80px 24px;
+    }
+
+    /* Hero Header */
+    .hero {
+      text-align: center;
+      margin-bottom: 50px;
+      position: relative;
+    }
+    .badge-top {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      color: var(--accent-cyan);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(28px, 4.5vw, 42px);
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1.25;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, #ffffff 30%, #93c5fd 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: clamp(14px, 1.8vw, 16.5px);
+      color: var(--text-sub);
+      max-width: 720px;
+      margin: 0 auto;
+      line-height: 1.65;
+    }
+
+    /* Stats Banner */
+    .stats-rail {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+    }
+    .stat-label {
+      font-size: 11.5px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* Grid of Projects */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 26px;
+    }
+
+    /* Project Card */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 16px 40px -15px rgba(0, 0, 0, 0.7);
+      position: relative;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      background: var(--card-hover);
+      border-color: rgba(56, 189, 248, 0.4);
+      box-shadow: 0 24px 50px -10px rgba(56, 189, 248, 0.25);
+    }
+
+    .card-thumb {
+      height: 200px;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      background: #0d1322;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card:hover .card-thumb img {
+      transform: scale(1.05);
+    }
+    .card-thumb-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, transparent 40%, rgba(15, 23, 42, 0.95) 100%);
+    }
+    .thumb-tag {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(15, 23, 42, 0.82);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 8px;
+      z-index: 2;
+    }
+
+    .card-body {
+      padding: 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+      line-height: 1.35;
+    }
+    .card-desc {
+      font-size: 13.5px;
+      color: var(--text-sub);
+      line-height: 1.6;
+      margin-bottom: 18px;
+      flex: 1;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 22px;
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-main {
+      flex: 2;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 13.5px;
+      padding: 12px 18px;
+      border-radius: 10px;
+      text-align: center;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-main:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55);
+    }
+    .btn-sub {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--glass-border);
+      color: #cbd5e1;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      text-align: center;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-sub:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    /* Add Card Placeholder */
+    .card-add {
+      border: 2px dashed rgba(255, 255, 255, 0.12);
+      background: rgba(15, 23, 42, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 380px;
+      text-align: center;
+      padding: 30px;
+    }
+    .card-add:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .add-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      color: #64748b;
+    }
+    .add-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .add-desc {
+      font-size: 12.5px;
+      color: #64748b;
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 80px;
+      text-align: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 30px;
+      font-size: 12.5px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <div class="badge-top">✨ BUMJUN'S INTERACTIVE WEB HUB</div>
+      <h1>설범준의 인터랙티브 웹 프로젝트</h1>
+      <p>순수 브라우저 기술로 구동되는 4대 인터랙티브 웹 애플리케이션 포털입니다. 원하는 프로젝트를 선택하여 바로 체험해 보세요.</p>
+      
+      <div class="stats-rail">
+        <div class="stat-item">
+          <span class="stat-val">4</span>
+          <span class="stat-label">LIVE PROJECTS</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val">10,786 KM</span>
+          <span class="stat-label">ROADTRIP ARCHIVE</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-val">GITHUB PAGES</span>
+          <span class="stat-label">ONE-CLICK HOSTING</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="grid">
+      <!-- Project 1: North America Roadtrip -->
+      <article class="card">
+        <div class="card-thumb">
+          <img src="usa-roadtrip/usa_roadtrip_story_card.png" alt="대륙일주 썸네일">
+          <div class="card-thumb-overlay"></div>
+          <span class="thumb-tag">🚗 대륙일주 지도 & 시뮬레이터</span>
+        </div>
+        <div class="card-body">
+          <h2 class="card-title">미국·캐나다 자동차 대륙일주 10,786 km</h2>
+          <p class="card-desc">
+            2024년 26일 동안 LA에서 뉴욕까지 13개 주를 순수 자동차로 완주한 공식 디지털 아카이브. 0.04x 정밀 주행 시뮬레이터, AI 한국어 음성 도슨트, V8 머슬카 사운드, 132곳 명소가 탑재된 플래그십 인터랙티브 맵입니다.
+          </p>
+          <div class="card-tags">
+            <span class="tag">Leaflet 1.9</span>
+            <span class="tag">0.04x 정밀 주행</span>
+            <span class="tag">Cockpit HUD</span>
+            <span class="tag">Web Audio API</span>
+            <span class="tag">132개 명소</span>
+          </div>
+          <div class="card-actions">
+            <a href="usa-roadtrip/" class="btn-main">🚀 지도 앱 실행</a>
+            <a href="usa-roadtrip/report.html" class="btn-sub">📋 보고서</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Project 2: Chiikawa Web Game -->
+      <article class="card">
+        <div class="card-thumb">
+          <img src="chiikawa-web/assets/trio_banner.jpg" alt="치이카와 웹 월드" style="object-position: center top;">
+          <div class="card-thumb-overlay"></div>
+          <span class="thumb-tag">🐹 치이카와 웹 월드</span>
+        </div>
+        <div class="card-body">
+          <h2 class="card-title">치이카와 웹 월드 (Chiikawa Web)</h2>
+          <p class="card-desc">
+            치이카와 3총사와 함께하는 육성 & 미니게임 종합 플랫폼. 몬스터 배틀, 라멘집 아르바이트, 쿠리만쥬 바, 1,000제 퀴즈 토벌, 마이룸 꾸미기, 룰렛 등 풍성한 콘텐츠가 구현된 인터랙티브 웹 게임입니다.
+          </p>
+          <div class="card-tags">
+            <span class="tag">치이카와 육성</span>
+            <span class="tag">토벌 배틀</span>
+            <span class="tag">1,000제 퀴즈</span>
+            <span class="tag">라멘 미니게임</span>
+            <span class="tag">BGM & 오디오</span>
+          </div>
+          <div class="card-actions">
+            <a href="chiikawa-web/" class="btn-main">🎮 치이카와 월드 입장</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Project 3: Mad Max Witness Me -->
+      <article class="card">
+        <div class="card-thumb">
+          <img src="madmax-witness-me/warboy_meme.png" alt="매드맥스 기억해줘" style="object-fit: contain; padding: 12px; background:#09090b;">
+          <div class="card-thumb-overlay"></div>
+          <span class="thumb-tag">🔥 매드맥스 인터랙티브</span>
+        </div>
+        <div class="card-body">
+          <h2 class="card-title">매드맥스: 기억해줘! (WITNESS ME!)</h2>
+          <p class="card-desc">
+            영화 매드맥스: 분노의 도로 명장면을 모티브로 한 실시간 인터랙티브 웹 앱. 은색 스프레이 효과, 음성 인식 & 사운드 이펙트, 워보이 밈 및 두프 웨건 기타 연주 효과를 즐길 수 있는 익사이팅 프로젝트입니다.
+          </p>
+          <div class="card-tags">
+            <span class="tag">웹캠/카메라 필터</span>
+            <span class="tag">사운드 FX</span>
+            <span class="tag">Doof Guitar</span>
+            <span class="tag">워보이 밈</span>
+          </div>
+          <div class="card-actions">
+            <a href="madmax-witness-me/" class="btn-main">🔥 기억해줘! 시작</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Project 4: Smoke Action Game -->
+      <article class="card">
+        <div class="card-thumb">
+          <img src="smoke-action-game/hero_full.png" alt="스모크 액션 게임" style="object-fit: contain; padding: 16px;">
+          <div class="card-thumb-overlay"></div>
+          <span class="thumb-tag">⚔️ 2D 캔버스 액션</span>
+        </div>
+        <div class="card-body">
+          <h2 class="card-title">스모크 액션 게임 (Smoke Action Game)</h2>
+          <p class="card-desc">
+            정교한 스프라이트 모션과 다이내믹 파티클 이펙트가 결합된 브라우저 액션 웹 게임. 화려한 연기 및 타격 액션 이펙트를 직접 조작하며 즐길 수 있는 순수 자바스크립트 아케이드 프로젝트입니다.
+          </p>
+          <div class="card-tags">
+            <span class="tag">HTML5 Canvas</span>
+            <span class="tag">Vanilla JS</span>
+            <span class="tag">Sprite Animation</span>
+            <span class="tag">Arcade Action</span>
+          </div>
+          <div class="card-actions">
+            <a href="smoke-action-game/" class="btn-main">🕹️ 게임 플레이</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Project 5: Slot for Next Project -->
+      <article class="card card-add">
+        <div>
+          <div class="add-icon">➕</div>
+          <div class="add-title">새로운 프로젝트 슬롯</div>
+          <div class="add-desc">
+            새로운 사이트를 만들면<br>
+            이 저장소에 새 폴더를 넣고 카드를 추가하면<br>
+            자동으로 함께 배포됩니다!
+          </div>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      <p>© 2024–2026 설범준 (Bumjun Seol). All rights reserved.</p>
+      <p style="margin-top: 6px; font-size: 11.5px;">Hosted seamlessly via GitHub Pages</p>
+    </footer>
+  </div>
+</body>
+</html>

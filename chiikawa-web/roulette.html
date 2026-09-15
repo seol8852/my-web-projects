@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모몽가의 응석받이 럭키 룰렛 - 먼작귀 가챠 상점</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="roulette.css">
+</head>
+<body>
+
+    <!-- 표준 통합 8대 메뉴 헤더 -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="brand-logo">
+        <span class="logo-emoji">🌸</span>
+        <span class="logo-title">먼작귀 월드</span>
+      </div>
+            <nav class="nav-links">
+        <a href="index.html" class="nav-link "><i class="fa-solid fa-house"></i> 홈</a>
+        <a href="training.html" class="nav-link "><i class="fa-solid fa-dumbbell"></i> 훈련소</a>
+        <a href="battle.html" class="nav-link "><i class="fa-solid fa-skull-crossbones"></i> 토벌전</a>
+        <a href="tower.html" class="nav-link "><i class="fa-solid fa-tower-observation"></i> 무한 타워</a>
+        <a href="roulette.html" class="nav-link active"><i class="fa-solid fa-clover"></i> 모몽가 룰렛</a>
+        <a href="myroom.html" class="nav-link "><i class="fa-solid fa-shirt"></i> 마이룸</a>
+        <a href="kurimanju.html" class="nav-link "><i class="fa-solid fa-utensils"></i> 야시장</a>
+        <a href="ramen.html" class="nav-link "><i class="fa-solid fa-bowl-food"></i> 로우 라멘</a>
+        <a href="achievements.html" class="nav-link "><i class="fa-solid fa-award"></i> 업적</a>
+        <a href="index_monsters.html" class="nav-link "><i class="fa-solid fa-dragon"></i> 괴물 모드</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="btn btn-sound" id="soundToggleBtn">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+          <span id="soundText">효과음 ON</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="roulette-main-container">
+    <div class="roulette-stage-card" style="background-image: url('assets/momonga_bg.jpg');">
+      <div class="roulette-overlay">
+        <div class="roulette-header">
+          <span class="roulette-badge">MOMONGA LUCKY GACHA</span>
+          <h2>🎰 모몽가의 응석받이 럭키 룰렛</h2>
+          <p class="roulette-subtitle">“나를 칭찬해줘! 귀여워해줘! 룰렛을 돌리면 대박 선물을 주지!”</p>
+        </div>
+
+        <div class="roulette-content-box">
+          <!-- 룰렛 캔버스 & 화살표 -->
+          <div class="wheel-wrapper">
+            <div class="wheel-pointer">▼</div>
+            <canvas id="wheelCanvas" width="380" height="380"></canvas>
+            <button class="wheel-center-btn" id="spinCenterBtn" onclick="spinWheel()">
+              <span>SPIN!</span>
+            </button>
+          </div>
+
+          <!-- 컨트롤 패널 -->
+          <div class="roulette-panel">
+            <div class="free-spin-badge" id="freeSpinBadge">🎁 오늘 무료 스핀: <strong>3</strong>회 남음</div>
+            <div class="momonga-speech-bubble" id="momongaSpeech">
+              “어서 돌려봐! 나한테 푹 빠지게 될 거라구!”
+            </div>
+            <div class="roulette-btn-group">
+              <button class="btn btn-spin-action" id="spinMainBtn" onclick="spinWheel()">
+                ✨ 룰렛 힘차게 돌리기!
+              </button>
+            </div>
+            <div class="spin-cost-note">무료 스핀 소진 후: 🌰 50 도토리로 1회 스핀 가능</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 당첨 보상 모달 -->
+  <div class="modal-backdrop hidden" id="rewardModal">
+    <div class="modal-card reward-modal-card">
+      <div class="reward-icon" id="rewardIcon">🎁</div>
+      <h2 id="rewardTitle">축하합니다!</h2>
+      <p id="rewardDesc">보상을 획득했습니다!</p>
+      <div class="reward-highlight-badge" id="rewardBadge">보상 내용</div>
+      <button class="btn btn-primary" onclick="closeRewardModal()">선물 받기 💖</button>
+    </div>
+  </div>
+
+  <div class="toast-popup" id="toastPopup">토스트 메시지</div>
+
+  <script src="audio_player.js"></script>
+  <script src="roulette.js"></script>
+</body>
+</html>

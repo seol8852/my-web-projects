@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>먼가 작고 귀여운 녀석들 (먼작귀) 세상 🌸</title>
+  <!-- Google Fonts: Gaegu & Jua & Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Jua&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 상단 표준 통합 10대 메뉴 헤더 -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="brand-logo">
+        <span class="logo-emoji">🌸</span>
+        <span class="logo-title">먼작귀 월드</span>
+      </div>
+      <nav class="nav-links">
+        <a href="index.html" class="nav-link "><i class="fa-solid fa-house"></i> 홈</a>
+        <a href="training.html" class="nav-link "><i class="fa-solid fa-dumbbell"></i> 훈련소</a>
+        <a href="battle.html" class="nav-link "><i class="fa-solid fa-skull-crossbones"></i> 토벌전</a>
+        <a href="tower.html" class="nav-link "><i class="fa-solid fa-tower-observation"></i> 무한 타워</a>
+        <a href="roulette.html" class="nav-link "><i class="fa-solid fa-clover"></i> 모몽가 룰렛</a>
+        <a href="myroom.html" class="nav-link "><i class="fa-solid fa-shirt"></i> 마이룸</a>
+        <a href="kurimanju.html" class="nav-link "><i class="fa-solid fa-utensils"></i> 야시장</a>
+        <a href="ramen.html" class="nav-link "><i class="fa-solid fa-bowl-food"></i> 로우 라멘</a>
+        <a href="achievements.html" class="nav-link "><i class="fa-solid fa-award"></i> 업적</a>
+        <a href="index_monsters.html" class="nav-link active"><i class="fa-solid fa-dragon"></i> 괴물 모드</a>
+      </nav>
+      <div class="nav-actions">
+        <div class="acorn-display" id="navAcornDisplay">
+          <span class="acorn-icon">🌰</span>
+          <span class="acorn-val" id="navAcorns">300</span>
+        </div>
+        <button class="btn btn-sound" id="soundToggleBtn">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+          <span id="soundText">효과음 ON</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <!-- 메인 히어로 섹션 -->
+  <section class="hero-section">
+    <div class="hero-content">
+      <span class="hero-badge">🚨 위험! 몬스터 대침공 모드 🚨</span>
+      <h1 class="hero-title">먼작귀 몬스터 침공 경보</h1>
+      <p class="hero-subtitle">열심히 일하고, 울고, 웃으며 살아가는 치이카와와 친구들의 세상에 오신 것을 환영합니다!</p>
+
+      <!-- 미니 삼총사 인터랙션 -->
+      <div class="mini-trio-wrap">
+        <!-- 치이카와 -->
+        <div class="trio-member chiikawa-mini" onclick="playCharacterGreeting('chiikawa')">
+          <div class="trio-avatar chiikawa-avatar-frame">
+            <img src="assets/chiikawa.png" alt="치이카와 원작 공식 일러스트" class="avatar-img">
+          </div>
+          <span class="trio-name chiikawa-tag">치이카와</span>
+          <div class="speech-bubble" id="bubble-chiikawa">으아앙-!! 괴물이다!</div>
+        </div>
+
+        <!-- 하치와레 -->
+        <div class="trio-member hachiware-mini" onclick="playCharacterGreeting('hachiware')">
+          <div class="trio-avatar hachiware-avatar-frame">
+            <img src="assets/hachiware.png" alt="하치와레 원작 공식 일러스트" class="avatar-img">
+          </div>
+          <span class="trio-name hachiware-tag">하치와레</span>
+          <div class="speech-bubble" id="bubble-hachiware">난토카나레-!</div>
+        </div>
+
+        <!-- 우사기 -->
+        <div class="trio-member usagi-mini" onclick="playCharacterGreeting('usagi')">
+          <div class="trio-avatar usagi-avatar-frame">
+            <img src="assets/usagi.png" alt="우사기 원작 공식 일러스트" class="avatar-img">
+          </div>
+          <span class="trio-name usagi-tag">우사기</span>
+          <div class="speech-bubble" id="bubble-usagi">이야하-! ⚡</div>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <a href="#characters" class="btn btn-primary"><i class="fa-solid fa-heart"></i> 삼총사 프로필 보기</a>
+        <a href="#game" class="btn btn-secondary"><i class="fa-solid fa-gamepad"></i> 10초 450점 제초 검정</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="characters-section" id="characters">
+    <div class="section-header">
+      <span class="sub-badge">ORIGINAL FRIENDS</span>
+      <h2>먼작귀 대표 삼총사 공식 프로필</h2>
+      <p>카드를 클릭하여 캐릭터별 대사와 통통 튀는 모션을 즐겨보세요!</p>
+    </div>
+
+    <div class="character-grid">
+      <!-- 1. 치이카와 카드 -->
+      <div class="char-card card-chiikawa" id="card-chiikawa" onclick="triggerCharAction('chiikawa')">
+        <div class="card-bg-glow"></div>
+        <div class="card-badge">순수한 울보 주인공 🌸</div>
+        <div class="char-img-wrap">
+          <img src="assets/chiikawa.png" alt="치이카와 원작 공식 일러스트" class="profile-img">
+        </div>
+        <div class="char-info">
+          <h3 class="char-name">치이카와 <span class="jp-name">ちいかわ</span></h3>
+          <p class="char-quote">“와... 와아...!(눈물 글썽)”</p>
+          <div class="char-traits">
+            <span class="trait-tag"><i class="fa-solid fa-award"></i> 제초 5급 도전중</span>
+            <span class="trait-tag"><i class="fa-solid fa-house"></i> 요구르트 경품 집</span>
+            <span class="trait-tag"><i class="fa-solid fa-wand-magic-sparkles"></i> 분홍 삿갓창</span>
+          </div>
+          <p class="char-desc">
+            겁도 많고 눈물도 많지만, 소중한 친구들을 위해서라면 무서움을 꾹 참고 가장 먼저 달려가는 착하고 따뜻한 곰돌이 닮은 아이예요.
+          </p>
+          <button class="char-action-btn btn-pink" onclick="event.stopPropagation(); triggerCharAction('chiikawa')">
+            <i class="fa-solid fa-comment-dots"></i> 치이카와 응원 듣기
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. 하치와레 카드 -->
+      <div class="char-card card-hachiware" id="card-hachiware" onclick="triggerCharAction('hachiware')">
+        <div class="card-bg-glow"></div>
+        <div class="card-badge">다정한 긍정 고양이 📘</div>
+        <div class="char-img-wrap">
+          <img src="assets/hachiware.png" alt="하치와레 원작 공식 일러스트" class="profile-img">
+        </div>
+        <div class="char-info">
+          <h3 class="char-name">하치와레 <span class="jp-name">ハチワレ</span></h3>
+          <p class="char-quote">“난토카나레-! (어떻게든 될 거야!)”</p>
+          <div class="char-traits">
+            <span class="trait-tag"><i class="fa-solid fa-certificate"></i> 제초 5급 합격</span>
+            <span class="trait-tag"><i class="fa-solid fa-mountain"></i> 동굴 거주 중</span>
+            <span class="trait-tag"><i class="fa-solid fa-guitar"></i> 카메라 & 기타 연주</span>
+          </div>
+          <p class="char-desc">
+            삼총사 중 유일하게 말을 유창하게 하는 다재다능한 고양이! 항상 긍정적인 생각과 친구를 배려하는 따뜻한 마음씨를 지녔어요.
+          </p>
+          <button class="char-action-btn btn-blue" onclick="event.stopPropagation(); triggerCharAction('hachiware')">
+            <i class="fa-solid fa-music"></i> 하치와레의 노래 듣기
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. 우사기 카드 -->
+      <div class="char-card card-usagi" id="card-usagi" onclick="triggerCharAction('usagi')">
+        <div class="card-bg-glow"></div>
+        <div class="card-badge">자유영혼 능력자 🧀</div>
+        <div class="char-img-wrap">
+          <img src="assets/usagi.png" alt="우사기 원작 공식 일러스트" class="profile-img">
+        </div>
+        <div class="char-info">
+          <h3 class="char-name">우사기 <span class="jp-name">うさぎ</span></h3>
+          <p class="char-quote">“이야하-! 우라우라 푸루루루루!”</p>
+          <div class="char-traits">
+            <span class="trait-tag"><i class="fa-solid fa-trophy"></i> 제초 3급 엘리트</span>
+            <span class="trait-tag"><i class="fa-solid fa-bolt"></i> 토벌 실력자</span>
+            <span class="trait-tag"><i class="fa-solid fa-sparkles"></i> 무한 텐션</span>
+          </div>
+          <p class="char-desc">
+            말 대신 기합과 괴성을 지르는 자유로운 영혼의 토끼! 엉뚱해 보여도 삼총사 중 가장 강하고 위기 상황마다 해결사 역할을 톡톡히 해내요.
+          </p>
+          <button class="char-action-btn btn-yellow" onclick="event.stopPropagation(); triggerCharAction('usagi')">
+            <i class="fa-solid fa-bolt"></i> 우사기 기합 소리내기
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 대사 & 운세 뽑기 (Gacha & Fortune Section) -->
+  <section class="gacha-section" id="gacha">
+    <div class="gacha-container">
+      <div class="section-header">
+        <span class="sub-badge">FORTUNE CAPSULE</span>
+        <h2>오늘의 먼작귀 운세 & 명대사 캡슐</h2>
+        <p>버튼을 누르면 삼총사가 전하는 오늘의 따뜻한 한마디와 운세가 나와요!</p>
+      </div>
+
+      <div class="gacha-machine-wrap">
+        <div class="capsule-display" id="capsuleDisplay">
+          <div class="capsule-sphere" id="capsuleSphere">
+            <div class="capsule-top"></div>
+            <div class="capsule-bottom"></div>
+            <div class="capsule-center-star">⭐</div>
+          </div>
+        </div>
+
+        <button class="gacha-pull-btn" id="gachaPullBtn" onclick="drawFortune()">
+          <i class="fa-solid fa-rotate"></i> 캡슐 뽑기 돌리기!
+        </button>
+      </div>
+
+      <!-- 운세 결과 카드 -->
+      <div class="fortune-result-card hidden" id="fortuneResult">
+        <div class="fortune-badge" id="fortuneCharacterBadge">치이카와의 응원</div>
+        <div class="fortune-quote" id="fortuneQuote">“후에에... 그래도 포기하지 않을 거야!”</div>
+        <p class="fortune-detail" id="fortuneDetail">오늘은 작은 실수가 있어도 친구의 도움으로 멋지게 해결되는 행운의 날이에요!</p>
+        <div class="fortune-lucky-item">🍀 오늘의 행운 아이템: <strong id="luckyItem">달콤한 딸기 푸딩</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10초 스피드 제초 검정 게임 섹션 -->
+  <section class="game-section" id="game">
+    <div class="game-container">
+      <div class="section-header">
+        <span class="sub-badge">10 SECONDS SPEED CHALLENGE</span>
+        <h2>👾 10초 괴물 습격 제초 검정 (괴물 모드 | 목표: 450점)</h2>
+        <p>
+          <strong>10초 안에 450점을 돌파하지 못하면 원작 속 흉악한 괴물들이 습격해옵니다!</strong><br>
+          0.4초마다 쏟아지는 잡초(🌱)와 황금클로버(🍀)를 뽑고, <strong>키메라 괴물(👾, -40점)</strong>을 절대 피하세요!
+        </p>
+      </div>
+
+      <!-- 단일 난이도 뱃지 -->
+      <div class="hardcore-badge-wrap">
+        <div class="hardcore-mode-tag">
+          ⏱️ <strong>제한시간 10초 | 간격 0.4초 (목표: 450점)</strong>
+        </div>
+      </div>
+
+      <!-- 게임 HUD -->
+      <div class="game-hud">
+        <div class="hud-item score-box">
+          <span class="hud-label">현재 점수 (목표 450점)</span>
+          <span class="hud-val" id="gameScore">0</span> 점
+        </div>
+        <div class="hud-item timer-box">
+          <span class="hud-label">남은 시간</span>
+          <span class="hud-val" id="gameTime">10</span> 초
+        </div>
+        <div class="hud-item combo-box">
+          <span class="hud-label">연속 콤보</span>
+          <span class="hud-val" id="gameCombo">0</span> COMBO
+        </div>
+      </div>
+
+      <!-- 타깃 가이드 -->
+      <div class="game-target-guide">
+        <span>🌱 잡초 <strong>+30점</strong></span>
+        <span>🍀 황금클로버 <strong>+70점 (콤보+2)</strong></span>
+        <span>⚠️ 위험생물 <strong>-20점 & 콤보초기화</strong></span>
+        <span>👾 키메라 <strong>-40점 & 화면흔들림</strong></span>
+        <span style="color:#D9456B;">⚠️ <strong>잡초를 놓쳐도 콤보 리셋!</strong></span>
+      </div>
+
+      <div class="game-board" id="gameBoard">
+        <div class="game-overlay" id="gameOverlay">
+          <div class="overlay-msg">
+            <h3 id="overlayTitle">👾 10초 토벌 & 제초 시험 (괴물 모드)</h3>
+            <p id="overlayDesc">
+              10초 동안 0.4초마다 나타나는 잡초를 신속히 뽑아 <strong>100점</strong>을 넘기세요!<br>
+              실수하거나 놓치면 콤보가 끊깁니다! 450점 미만 시 <strong>FAIL 짤</strong>이 뜹니다!
+            </p>
+            <button class="btn btn-primary start-btn" id="startGameBtn" onclick="startGame()">
+              <i class="fa-solid fa-play"></i> 10초 시험 시작하기!
+            </button>
+          </div>
+        </div>
+        <!-- 12칸 풀밭 구멍 -->
+        <div class="grass-hole" data-index="0"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="1"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="2"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="3"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="4"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="5"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="6"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="7"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="8"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="9"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="10"><div class="hole-content"></div></div>
+        <div class="grass-hole" data-index="11"><div class="hole-content"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 칭찬 스티커판 섹션 -->
+  <section class="sticker-section" id="sticker-board">
+    <div class="sticker-container">
+      <div class="section-header">
+        <span class="sub-badge">STAMP BOARD</span>
+        <h2>💮 오늘의 참잘했어요 칭찬 도장판</h2>
+        <p>오늘 해낸 멋진 일들을 체크하고 삼총사의 칭찬 스티커를 찍어보세요!</p>
+      </div>
+
+      <div class="todo-input-wrap">
+        <input type="text" id="todoInput" placeholder="오늘 해낸 일이나 목표를 적어보세요! (예: 맛있는 밥 챙겨먹기)">
+        <button class="btn btn-secondary" onclick="addCustomTask()"><i class="fa-solid fa-plus"></i> 추가하기</button>
+      </div>
+
+      <div class="task-grid" id="taskGrid">
+        <div class="task-card" onclick="stampTask(this)">
+          <div class="task-text">오늘 물 1잔 이상 마시기 💧</div>
+          <div class="stamp-slot"><span class="stamp-placeholder">도장 찍기</span></div>
+        </div>
+        <div class="task-card" onclick="stampTask(this)">
+          <div class="task-text">기분 좋은 음악 한 곡 듣기 🎶</div>
+          <div class="stamp-slot"><span class="stamp-placeholder">도장 찍기</span></div>
+        </div>
+        <div class="task-card" onclick="stampTask(this)">
+          <div class="task-text">친구에게 따뜻한 말 건네기 💬</div>
+          <div class="stamp-slot"><span class="stamp-placeholder">도장 찍기</span></div>
+        </div>
+        <div class="task-card" onclick="stampTask(this)">
+          <div class="task-text">"난토카나레!" 외치며 기운 내기 🤸</div>
+          <div class="stamp-slot"><span class="stamp-placeholder">도장 찍기</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 푸터 -->
+  <footer class="footer">
+    <div class="footer-trio-walk">
+      <span class="walk-char">🌸</span>
+      <span class="walk-char">📘</span>
+      <span class="walk-char">🧀</span>
+    </div>
+    <p>먼가 작고 귀여운 세상 &copy; 팬메이드 인터랙티브 웹페이지</p>
+    <p class="footer-sub">치이카와, 하치와레, 우사기와 함께 오늘도 행복 가득한 하루 보내세요!</p>
+  </footer>
+
+  <!-- 알림 토스트 -->
+  <div class="toast-popup" id="toastPopup">메시지</div>
+
+  <script src="app_monsters.js"></script>
+
+  <!-- 플로팅 맨 위로 이동 버튼 -->
+  <button onclick="window.scrollTo({top:0, behavior:'smooth'})" id="scrollTopBtn" style="position:fixed; bottom:25px; right:25px; width:45px; height:45px; border-radius:50%; background:#FF5E7E; color:white; border:2px solid white; box-shadow:0 4px 15px rgba(0,0,0,0.25); cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center; z-index:999; transition:transform 0.2s;" title="맨 위로 이동">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+  <script src="audio_player.js"></script>
+</body>
+</html>

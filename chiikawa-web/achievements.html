@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>먼작귀 30종 업적 & 훈장 엠블럼 전시관</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="achievements.css">
+</head>
+<body>
+
+    <!-- 표준 통합 8대 메뉴 헤더 -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="brand-logo">
+        <span class="logo-emoji">🌸</span>
+        <span class="logo-title">먼작귀 월드</span>
+      </div>
+            <nav class="nav-links">
+        <a href="index.html" class="nav-link "><i class="fa-solid fa-house"></i> 홈</a>
+        <a href="training.html" class="nav-link "><i class="fa-solid fa-dumbbell"></i> 훈련소</a>
+        <a href="battle.html" class="nav-link "><i class="fa-solid fa-skull-crossbones"></i> 토벌전</a>
+        <a href="tower.html" class="nav-link "><i class="fa-solid fa-tower-observation"></i> 무한 타워</a>
+        <a href="roulette.html" class="nav-link "><i class="fa-solid fa-clover"></i> 모몽가 룰렛</a>
+        <a href="myroom.html" class="nav-link "><i class="fa-solid fa-shirt"></i> 마이룸</a>
+        <a href="kurimanju.html" class="nav-link "><i class="fa-solid fa-utensils"></i> 야시장</a>
+        <a href="ramen.html" class="nav-link "><i class="fa-solid fa-bowl-food"></i> 로우 라멘</a>
+        <a href="achievements.html" class="nav-link active"><i class="fa-solid fa-award"></i> 업적</a>
+        <a href="index_monsters.html" class="nav-link "><i class="fa-solid fa-dragon"></i> 괴물 모드</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="btn btn-sound" id="soundToggleBtn">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+          <span id="soundText">효과음 ON</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="achieve-main-container">
+    <div class="achieve-header-card">
+      <div class="achieve-header-title">
+        <h2>🎖️ 먼작귀 전설의 30대 명예 훈장 도감</h2>
+        <p>제초, 훈련, 1000제 퀴즈, 토벌전, 마이룸 등 모든 활동을 통해 30가지 훈장을 수집하세요!</p>
+      </div>
+      <div class="achieve-filter-tabs">
+        <button class="filter-tab-btn active" onclick="filterAchievements('all')">전체 (30)</button>
+        <button class="filter-tab-btn" onclick="filterAchievements('weeding')">🌱 제초</button>
+        <button class="filter-tab-btn" onclick="filterAchievements('training')">💪 훈련</button>
+        <button class="filter-tab-btn" onclick="filterAchievements('study')">📚 스터디</button>
+        <button class="filter-tab-btn" onclick="filterAchievements('battle')">⚔️ 토벌전</button>
+        <button class="filter-tab-btn" onclick="filterAchievements('myroom')">🏠 마이룸</button>
+      </div>
+    </div>
+
+    <!-- 30종 업적 그리드 -->
+    <div class="achievements-grid" id="achievementsGrid">
+      <!-- 동적 렌더링 -->
+    </div>
+  </main>
+
+  <div class="toast-popup" id="toastPopup">토스트 메시지</div>
+
+  <script src="audio_player.js"></script>
+  <script src="achievements.js"></script>
+</body>
+</html>

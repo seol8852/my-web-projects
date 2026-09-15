@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>치이카와 로우(郎) 라멘집 - 주문 암기 & 서빙 알바</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="ramen.css">
+</head>
+<body>
+
+  <!-- 상단 네비게이션 -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="brand-logo">
+        <span class="logo-emoji">🌸</span>
+        <span class="logo-title">먼작귀 월드</span>
+      </div>
+            <nav class="nav-links">
+        <a href="index.html" class="nav-link "><i class="fa-solid fa-house"></i> 홈</a>
+        <a href="training.html" class="nav-link "><i class="fa-solid fa-dumbbell"></i> 훈련소</a>
+        <a href="battle.html" class="nav-link "><i class="fa-solid fa-skull-crossbones"></i> 토벌전</a>
+        <a href="tower.html" class="nav-link "><i class="fa-solid fa-tower-observation"></i> 무한 타워</a>
+        <a href="roulette.html" class="nav-link "><i class="fa-solid fa-clover"></i> 모몽가 룰렛</a>
+        <a href="myroom.html" class="nav-link "><i class="fa-solid fa-shirt"></i> 마이룸</a>
+        <a href="kurimanju.html" class="nav-link "><i class="fa-solid fa-utensils"></i> 야시장</a>
+        <a href="ramen.html" class="nav-link active"><i class="fa-solid fa-bowl-food"></i> 로우 라멘</a>
+        <a href="achievements.html" class="nav-link "><i class="fa-solid fa-award"></i> 업적</a>
+        <a href="index_monsters.html" class="nav-link "><i class="fa-solid fa-dragon"></i> 괴물 모드</a>
+      </nav>
+      <div class="nav-actions">
+        <div class="acorn-display" id="navAcornDisplay">
+          <span class="acorn-icon">🌰</span>
+          <span class="acorn-val" id="navAcorns">300</span>
+        </div>
+        <button class="btn btn-sound" id="soundToggleBtn">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+          <span id="soundText">효과음 ON</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="ramen-main-container">
+    <div class="ramen-card">
+      
+      <!-- 헤더 배너 -->
+      <div class="ramen-header">
+        <div class="ramen-title-wrap">
+          <span class="ramen-badge">🏮 줄 서서 먹는 전설의 맛집 🏮</span>
+          <h1 class="ramen-title">🍜 로우(郎) 라멘집 주문 암기 & 서빙 알바</h1>
+          <p class="ramen-desc">손님들의 복잡한 <strong>주문 콜(마늘, 차슈, 숙주, 아부라 등)</strong>을 기억하고 완벽한 라멘을 만들어 서빙하세요!</p>
+        </div>
+        
+        <!-- 대시보드 점수 & 모드 선택 -->
+        <div class="ramen-stats-dashboard">
+          <div class="stat-pill">
+            <span class="pill-label">점수</span>
+            <strong class="pill-val" id="ramenScore">0</strong>
+          </div>
+          <div class="stat-pill">
+            <span class="pill-label">콤보</span>
+            <strong class="pill-val" id="ramenCombo">0 COMBO</strong>
+          </div>
+          <div class="stat-pill">
+            <span class="pill-label">최고 기록</span>
+            <strong class="pill-val" id="ramenBest">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- 모드 선택 버튼 -->
+      <div class="mode-select-row" id="modeSelectRow">
+        <button class="btn-mode active" id="btnRushMode" onclick="selectMode('rush')">
+          ⏱️ 60초 스피드 러시 (추천)
+        </button>
+        <button class="btn-mode" id="btnEndlessMode" onclick="selectMode('endless')">
+          🍜 무한 서빙 시프트 (라이프 3개)
+        </button>
+      </div>
+
+      <!-- 게임 스테이지 영역 -->
+      <div class="ramen-stage-arena" id="ramenStageArena">
+        
+        <!-- 대기 화면 / 시작 화면 -->
+        <div class="game-idle-screen" id="gameIdleScreen">
+          <div class="shisa-welcome-avatar">🦁</div>
+          <h2>라멘 갑옷씨 & 시사의 로우(郎)에 오신 것을 환영합니다!</h2>
+          <p>“어서옵쇼! 주문 콜이 나오면 토핑을 정확히 기억해서 올려주세요!”</p>
+          <button class="btn btn-start-ramen" onclick="startRamenGame()">
+            🍜 라멘집 알바 시작하기!
+          </button>
+        </div>
+
+        <!-- 활성 게임 화면 -->
+        <div class="game-active-screen hidden" id="gameActiveScreen">
+          
+          <!-- 상단: 타이머 바 & 라이프 -->
+          <div class="timer-life-bar">
+            <div class="time-track">
+              <div class="time-fill" id="ramenTimeFill" style="width: 100%;"></div>
+            </div>
+            <div class="time-text-wrap">
+              <span id="timerLabel">남은 시간: <strong id="ramenTimeLeft">60</strong>s</span>
+              <span id="lifeContainer" class="hidden">❤️❤️❤️</span>
+            </div>
+          </div>
+
+          <!-- 손님 & 주문 말풍선 영역 -->
+          <div class="customer-order-zone">
+            <!-- 손님 캐릭터 -->
+            <div class="customer-avatar-box">
+              <div class="customer-icon" id="customerIcon">🐭</div>
+              <div class="customer-name" id="customerName">치이카와</div>
+            </div>
+
+            <!-- 주문 말풍선 -->
+            <div class="order-bubble-box" id="orderBubbleBox">
+              <div class="order-quote" id="customerQuote">“와... 와와...! 마늘 듬뿍 넣어주세요...!”</div>
+              <div class="order-toppings-target" id="orderTargetChips">
+                <!-- 주문할 토핑들 표시 -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 중앙: 제작 중인 라멘 그릇 -->
+          <div class="ramen-crafting-station">
+            <div class="ramen-bowl-wrap" id="ramenBowlWrap">
+              <div class="ramen-bowl-base">
+                <div class="ramen-soup">
+                  <div class="ramen-noodles"></div>
+                </div>
+                <!-- 올라간 토핑들 실시간 표시 -->
+                <div class="ramen-toppings-layer" id="ramenToppingsLayer"></div>
+              </div>
+            </div>
+            
+            <div class="shisa-helper-msg" id="shisaHelperMsg">
+              🦁 시사: “손님의 주문을 확인하고 알맞은 토핑을 담으세요!”
+            </div>
+          </div>
+
+          <!-- 하단: 토핑 클릭 트레이 (6종 토핑 버튼) -->
+          <div class="topping-tray-grid">
+            <button class="btn-topping" onclick="addTopping('garlic')">
+              <span class="top-icon">🧄</span>
+              <span class="top-name">마늘 (닌니쿠)</span>
+              <span class="top-count" id="count_garlic">0</span>
+            </button>
+            <button class="btn-topping" onclick="addTopping('chashu')">
+              <span class="top-icon">🥩</span>
+              <span class="top-name">차슈 (고기)</span>
+              <span class="top-count" id="count_chashu">0</span>
+            </button>
+            <button class="btn-topping" onclick="addTopping('veggie')">
+              <span class="top-icon">🥬</span>
+              <span class="top-name">숙주/야채</span>
+              <span class="top-count" id="count_veggie">0</span>
+            </button>
+            <button class="btn-topping" onclick="addTopping('egg')">
+              <span class="top-icon">🥚</span>
+              <span class="top-name">맛계란 (아지타마)</span>
+              <span class="top-count" id="count_egg">0</span>
+            </button>
+            <button class="btn-topping" onclick="addTopping('fat')">
+              <span class="top-icon">🧈</span>
+              <span class="top-name">아부라 (돼지기름)</span>
+              <span class="top-count" id="count_fat">0</span>
+            </button>
+            <button class="btn-topping" onclick="addTopping('spicy')">
+              <span class="top-icon">🌶️</span>
+              <span class="top-name">카라메 (매운소스)</span>
+              <span class="top-count" id="count_spicy">0</span>
+            </button>
+          </div>
+
+          <!-- 서빙 & 리셋 버튼 -->
+          <div class="action-btn-row">
+            <button class="btn-action-serve" onclick="serveRamen()">
+              <i class="fa-solid fa-bell-concierge"></i> 🍜 완벽한 라멘 서빙하기! (Space)
+            </button>
+            <button class="btn-action-reset" onclick="resetCurrentBowl()">
+              <i class="fa-solid fa-arrow-rotate-left"></i> 다시 담기
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- 게임 결과 모달 -->
+  <div class="modal-backdrop hidden" id="ramenResultModal">
+    <div class="modal-card ramen-result-card">
+      <div class="result-icon-celebrate" id="resultIcon">🏆</div>
+      <h2 class="result-title" id="resultTitle">알바 완료! 수고하셨습니다!</h2>
+      <p class="result-subtitle" id="resultSubtitle">오늘의 로우(郎) 라멘집 매출 정산</p>
+      
+      <div class="result-score-box">
+        <div class="res-row">
+          <span>최종 획득 점수:</span>
+          <strong id="modalFinalScore">0점</strong>
+        </div>
+        <div class="res-row">
+          <span>최대 콤보 기록:</span>
+          <strong id="modalMaxCombo">0 COMBO</strong>
+        </div>
+        <div class="res-row highlight">
+          <span>🎁 도토리 급여 수령:</span>
+          <strong id="modalAcornReward">+150 🌰</strong>
+        </div>
+      </div>
+
+      <div class="shisa-praise-box" id="shisaPraiseBox">
+        🦁 <strong>시사의 칭찬</strong>: “우레시이-!(기뻐-!) 오늘 완벽한 호흡이었어요!”
+      </div>
+
+      <div class="modal-btn-row">
+        <button class="btn btn-secondary" onclick="closeResultModal()">확인</button>
+        <button class="btn btn-primary" onclick="retryRamenGame()">한 번 더 알바하기 🍜</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-popup" id="toastPopup">토스트 메시지</div>
+
+  <script src="ramen.js"></script>
+  <script src="audio_player.js"></script>
+</body>
+</html>

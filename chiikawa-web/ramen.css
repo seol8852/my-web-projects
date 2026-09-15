@@ -1,0 +1,489 @@
+/* ==============================================================
+   치이카와 로우(郎) 라멘집 전용 스타일시트 (ramen.css)
+   ============================================================== */
+
+body {
+  background: #FFF9F2;
+  font-family: 'Noto Sans KR', sans-serif;
+  color: #333;
+}
+
+.ramen-main-container {
+  max-width: 960px;
+  margin: 25px auto 40px auto;
+  padding: 0 16px;
+}
+
+.ramen-card {
+  background: #FFFFFF;
+  border: 3px solid #FFE3E8;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 12px 36px rgba(255, 107, 107, 0.12);
+  position: relative;
+}
+
+.ramen-header {
+  border-bottom: 2px dashed #FFD8A8;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.ramen-badge {
+  display: inline-block;
+  background: #E03131;
+  color: white;
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 6px;
+}
+
+.ramen-title {
+  font-family: 'Jua', sans-serif;
+  font-size: 1.85rem;
+  color: #C92A2A;
+  margin: 0 0 6px 0;
+}
+
+.ramen-desc {
+  font-size: 0.92rem;
+  color: #495057;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.ramen-stats-dashboard {
+  display: flex;
+  gap: 10px;
+}
+
+.stat-pill {
+  background: #FFF4E6;
+  border: 2px solid #FFA94D;
+  border-radius: 14px;
+  padding: 8px 14px;
+  text-align: center;
+  min-width: 80px;
+}
+
+.pill-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #D9480F;
+  font-weight: 700;
+}
+
+.pill-val {
+  font-family: 'Jua', sans-serif;
+  font-size: 1.25rem;
+  color: #D9480F;
+}
+
+/* 모드 선택 */
+.mode-select-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  justify-content: center;
+}
+
+.btn-mode {
+  flex: 1;
+  max-width: 320px;
+  padding: 10px 16px;
+  border-radius: 16px;
+  border: 2px solid #CED4DA;
+  background: #F8F9FA;
+  font-family: 'Jua', sans-serif;
+  font-size: 1rem;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-mode.active {
+  background: linear-gradient(135deg, #FF6B6B, #FA5252);
+  color: white;
+  border-color: #E03131;
+  box-shadow: 0 4px 12px rgba(224, 49, 49, 0.3);
+}
+
+/* 아레나 */
+.ramen-stage-arena {
+  background: linear-gradient(rgba(255,255,255,0.85), rgba(255,255,255,0.92)), url('assets/ramen_bg.jpg') center/cover no-repeat;
+  border-radius: 20px;
+  border: 3px solid #FFD8A8;
+  padding: 24px;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+/* 대기 화면 */
+.game-idle-screen {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.shisa-welcome-avatar {
+  font-size: 4.5rem;
+  margin-bottom: 12px;
+  animation: bounceAvatar 2s infinite ease-in-out;
+}
+
+@keyframes bounceAvatar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.game-idle-screen h2 {
+  font-family: 'Jua', sans-serif;
+  font-size: 1.7rem;
+  color: #C92A2A;
+  margin-bottom: 8px;
+}
+
+.game-idle-screen p {
+  font-size: 1.05rem;
+  color: #495057;
+  margin-bottom: 24px;
+}
+
+.btn-start-ramen {
+  background: linear-gradient(135deg, #E03131, #C92A2A);
+  color: white;
+  font-family: 'Jua', sans-serif;
+  font-size: 1.35rem;
+  padding: 14px 40px;
+  border: 3px solid white;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(201, 42, 42, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-start-ramen:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 30px rgba(201, 42, 42, 0.55);
+}
+
+/* 타이머 */
+.timer-life-bar {
+  margin-bottom: 16px;
+}
+
+.time-track {
+  height: 12px;
+  background: #E9ECEF;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 6px;
+  border: 1px solid #CED4DA;
+}
+
+.time-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #51CF66, #FCC419, #FF6B6B);
+  transition: width 0.1s linear;
+}
+
+.time-text-wrap {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #495057;
+}
+
+/* 손님 & 주문 영역 */
+.customer-order-zone {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #FFA94D;
+  border-radius: 18px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 15px rgba(255, 169, 77, 0.2);
+}
+
+.customer-avatar-box {
+  text-align: center;
+  min-width: 75px;
+}
+
+.customer-icon {
+  font-size: 2.8rem;
+  line-height: 1;
+}
+
+.customer-name {
+  font-family: 'Jua', sans-serif;
+  font-size: 0.95rem;
+  color: #D9480F;
+  margin-top: 4px;
+}
+
+.order-bubble-box {
+  flex: 1;
+}
+
+.order-quote {
+  font-family: 'Jua', sans-serif;
+  font-size: 1.15rem;
+  color: #C92A2A;
+  margin-bottom: 8px;
+}
+
+.order-toppings-target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.target-chip {
+  background: #FFF4E6;
+  border: 2px solid #FD7E14;
+  color: #D9480F;
+  font-weight: 800;
+  font-size: 0.88rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+/* 라멘 제작소 */
+.ramen-crafting-station {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+.ramen-bowl-wrap {
+  display: inline-block;
+  position: relative;
+  width: 220px;
+  height: 120px;
+  margin-bottom: 8px;
+}
+
+.ramen-bowl-base {
+  width: 220px;
+  height: 110px;
+  background: #E03131;
+  border: 4px solid #C92A2A;
+  border-radius: 0 0 110px 110px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.ramen-soup {
+  position: absolute;
+  top: 15px;
+  left: 10px;
+  right: 10px;
+  height: 45px;
+  background: #E8590C;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.ramen-noodles {
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(45deg, #FFE066, #FFE066 4px, #FAB005 4px, #FAB005 8px);
+  opacity: 0.85;
+}
+
+.ramen-toppings-layer {
+  position: absolute;
+  top: 15px;
+  left: 10px;
+  right: 10px;
+  height: 70px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 6px;
+  z-index: 2;
+}
+
+.placed-topping-icon {
+  font-size: 1.6rem;
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+.shisa-helper-msg {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #495057;
+}
+
+/* 토핑 트레이 */
+.topping-tray-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 600px) {
+  .topping-tray-grid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
+
+.btn-topping {
+  background: #FFFFFF;
+  border: 2px solid #FFA94D;
+  border-radius: 14px;
+  padding: 10px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s, background-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.btn-topping:hover {
+  background: #FFF4E6;
+  transform: translateY(-3px);
+}
+
+.btn-topping:active {
+  transform: scale(0.95);
+}
+
+.top-icon {
+  font-size: 1.8rem;
+  margin-bottom: 4px;
+}
+
+.top-name {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #495057;
+}
+
+.top-count {
+  font-family: 'Jua', sans-serif;
+  font-size: 0.85rem;
+  color: #E03131;
+  background: #FFE3E3;
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+/* 액션 버튼 */
+.action-btn-row {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-action-serve {
+  flex: 2;
+  background: linear-gradient(135deg, #51CF66, #2F9E44);
+  color: white;
+  border: 2px solid white;
+  border-radius: 16px;
+  padding: 14px;
+  font-family: 'Jua', sans-serif;
+  font-size: 1.25rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(47, 158, 68, 0.3);
+  transition: transform 0.15s;
+}
+
+.btn-action-serve:hover {
+  transform: scale(1.02);
+}
+
+.btn-action-reset {
+  flex: 1;
+  background: #F1F3F5;
+  border: 2px solid #CED4DA;
+  border-radius: 16px;
+  padding: 14px;
+  font-family: 'Jua', sans-serif;
+  font-size: 1.05rem;
+  color: #495057;
+  cursor: pointer;
+}
+
+/* 결과 모달 */
+.ramen-result-card {
+  background: #FFFFFF;
+  border: 4px solid #FFA94D;
+  border-radius: 28px;
+  padding: 35px 25px;
+  text-align: center;
+  max-width: 450px;
+}
+
+.result-icon-celebrate {
+  font-size: 3.8rem;
+  margin-bottom: 10px;
+}
+
+.result-title {
+  font-family: 'Jua', sans-serif;
+  font-size: 1.75rem;
+  color: #C92A2A;
+  margin: 0 0 4px 0;
+}
+
+.result-subtitle {
+  font-size: 0.95rem;
+  color: #868E96;
+  margin-bottom: 20px;
+}
+
+.result-score-box {
+  background: #FFF4E6;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.res-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+  margin-bottom: 8px;
+}
+
+.res-row.highlight {
+  font-size: 1.15rem;
+  color: #D9480F;
+  border-top: 1px dashed #FFA94D;
+  padding-top: 8px;
+  margin-bottom: 0;
+}
+
+.shisa-praise-box {
+  background: #EBFBEE;
+  border: 2px solid #8CE99A;
+  border-radius: 14px;
+  padding: 12px;
+  font-size: 0.95rem;
+  color: #2B8A3E;
+  margin-bottom: 22px;
+}

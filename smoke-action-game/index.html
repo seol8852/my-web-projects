@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>불사조 병장: 스모크 스트라이커 (Smoky Striker)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Top HUD -->
+    <div id="hud">
+      <!-- Player Profile -->
+      <div class="hud-profile">
+        <div class="avatar-frame">
+          <img id="avatar-img" src="hero_avatar.png" alt="Hero Avatar">
+          <div class="level-badge" id="hud-level">Lv.1</div>
+        </div>
+        <div class="bars-container">
+          <div class="bar-label">
+            <span class="name-tag">🔥 의정부 김윤태</span>
+            <span class="hp-text" id="hud-hp-text">100 / 100</span>
+          </div>
+          <div class="bar-outer hp-bar">
+            <div class="bar-inner" id="hud-hp-bar" style="width: 100%;"></div>
+          </div>
+
+          <div class="bar-label">
+            <span class="exp-label">EXP (라이터 게이지)</span>
+            <span class="exp-text" id="hud-exp-text">0%</span>
+          </div>
+          <div class="bar-outer exp-bar">
+            <div class="bar-inner" id="hud-exp-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Wave & Timer -->
+      <div class="hud-center">
+        <div class="wave-display" id="hud-wave">WAVE 1</div>
+        <div class="timer-display" id="hud-timer">00:00</div>
+        <div class="score-display">SCORE <span id="hud-score">0</span></div>
+      </div>
+
+      <!-- Right Kill & Audio toggle -->
+      <div class="hud-right">
+        <div class="stat-pill">
+          <span class="pill-icon">💀</span>
+          <span id="hud-kills">0</span> 처치
+        </div>
+        <div class="audio-controls">
+          <button id="btn-sound" class="hud-btn" title="사운드 토글">🔊 SFX ON</button>
+          <button id="btn-bgm" class="hud-btn" title="BGM 토글">🎵 BGM ON</button>
+          <button id="btn-pause" class="hud-btn" title="일시정지 (P)">⏸️</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Skill Bar -->
+    <div id="skill-bar">
+      <!-- Normal Attack -->
+      <div class="skill-slot active">
+        <div class="key-bind">L-CLICK</div>
+        <div class="skill-icon">🚬</div>
+        <div class="skill-name">불꽃 탄환</div>
+        <div class="cd-overlay" id="cd-lclick"></div>
+      </div>
+
+      <!-- Dash / Space -->
+      <div class="skill-slot">
+        <div class="key-bind">SPACE</div>
+        <div class="skill-icon">💨</div>
+        <div class="skill-name">스모크 롤</div>
+        <div class="cd-overlay" id="cd-space"></div>
+      </div>
+
+      <!-- Skill Q -->
+      <div class="skill-slot">
+        <div class="key-bind">Q</div>
+        <div class="skill-icon">💣</div>
+        <div class="skill-name">꽁초 수류탄</div>
+        <div class="cd-overlay" id="cd-q"></div>
+      </div>
+
+      <!-- Skill E -->
+      <div class="skill-slot">
+        <div class="key-bind">E</div>
+        <div class="skill-icon">🔥</div>
+        <div class="skill-name">군기 각성</div>
+        <div class="cd-overlay" id="cd-e"></div>
+      </div>
+
+      <!-- Ultimate R -->
+      <div class="skill-slot ult">
+        <div class="key-bind">R</div>
+        <div class="skill-icon">⚡</div>
+        <div class="skill-name">줄담배 빔</div>
+        <div class="cd-overlay" id="cd-r"></div>
+      </div>
+    </div>
+
+    <!-- Controls Guide Floating Panel -->
+    <div id="controls-hint">
+      <span><b>[WASD]</b> 이동</span> • 
+      <span><b>[마우스]</b> 조준 & 사격</span> • 
+      <span><b>[Space]</b> 연막 회피</span> • 
+      <span><b>[Q/E/R]</b> 스킬</span> • 
+      <span><b>[P]</b> 일시정지</span>
+    </div>
+
+    <!-- Start Overlay Screen -->
+    <div id="start-screen" class="overlay-screen active">
+      <div class="screen-box">
+        <div class="hero-poster">
+          <img src="hero_full.png" alt="Hero Poster" class="poster-img">
+        </div>
+        <h1 class="game-title">의정부 불사조 김윤태: 스모크 스트라이커</h1>
+        <p class="subtitle">"오빠는 키가 너무 작대 시발... 집가는게 ㅈㄴ 멀여"</p>
+        <div class="intro-lore">
+          의정부 친구네서 쉬던 중 난입한 금연 로봇과 방해꾼들을 제압하라!<br>
+          "만들어서 파일로 보내놔 나 집가서 하게!"
+        </div>
+        <div class="keys-summary">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 / 회피</div>
+          <div><kbd>마우스 좌클릭</kbd> 조준 사격</div>
+          <div><kbd>Space</kbd> 스모크 대시 (무적)</div>
+          <div><kbd>Q</kbd> 꽁초 수류탄 폭발</div>
+          <div><kbd>E</kbd> 군기 각성 (연사 폭증)</div>
+          <div><kbd>R</kbd> 줄담배 하이퍼 빔</div>
+        </div>
+        <button id="btn-start" class="glow-btn">작전 개시 (START)</button>
+      </div>
+    </div>
+
+    <!-- Level Up Modal -->
+    <div id="levelup-modal" class="overlay-screen">
+      <div class="screen-box levelup-box">
+        <h2 class="levelup-title">⭐ LEVEL UP! ⭐</h2>
+        <p class="levelup-desc">작전 역량 강화 카드를 선택하세요 (1, 2, 3 키로 선택 가능)</p>
+        <div id="cards-container" class="cards-container">
+          <!-- Dynamic upgrade cards -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="overlay-screen">
+      <div class="screen-box gameover-box">
+        <h1 class="gameover-title">💀 작전 실패 💀</h1>
+        <p id="gameover-reason">불사조 병장이 쓰러졌습니다...</p>
+        <div class="final-stats">
+          <div>생존 시간: <span id="stat-time">00:00</span></div>
+          <div>달성 웨이브: <span id="stat-wave">1</span></div>
+          <div>격파한 적: <span id="stat-kills">0</span> 명</div>
+          <div>최종 점수: <span id="stat-score">0</span> 점</div>
+        </div>
+        <button id="btn-restart" class="glow-btn">다시 도전 (RETRY)</button>
+      </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory-screen" class="overlay-screen">
+      <div class="screen-box victory-box">
+        <h1 class="victory-title">🏆 전설의 불사조 병장! 🏆</h1>
+        <p>모든 금연 로봇과 보스를 완벽히 소탕했습니다!</p>
+        <div class="final-stats">
+          <div>생존 시간: <span id="vstat-time">00:00</span></div>
+          <div>격파한 적: <span id="vstat-kills">0</span> 명</div>
+          <div>최종 점수: <span id="vstat-score">0</span> 점</div>
+        </div>
+        <button id="btn-victory-restart" class="glow-btn">다시 플레이</button>
+      </div>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="overlay-screen">
+      <div class="screen-box pause-box">
+        <h2>작전 일시 정지</h2>
+        <p>담배 한 대 태우며 잠시 대기 중...</p>
+        <button id="btn-resume" class="glow-btn">계속하기 (Resume)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

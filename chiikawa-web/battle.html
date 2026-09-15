@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>치이카와 몬스터 토벌전 - 보스 레이드 아레나</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="battle.css">
+</head>
+<body>
+
+  <!-- 상단 네비게이션 -->
+    <!-- 표준 통합 네비게이션 헤더 -->
+    <!-- 표준 통합 8대 메뉴 헤더 -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="brand-logo">
+        <span class="logo-emoji">🌸</span>
+        <span class="logo-title">먼작귀 월드</span>
+      </div>
+            <nav class="nav-links">
+        <a href="index.html" class="nav-link "><i class="fa-solid fa-house"></i> 홈</a>
+        <a href="training.html" class="nav-link "><i class="fa-solid fa-dumbbell"></i> 훈련소</a>
+        <a href="battle.html" class="nav-link active"><i class="fa-solid fa-skull-crossbones"></i> 토벌전</a>
+        <a href="tower.html" class="nav-link "><i class="fa-solid fa-tower-observation"></i> 무한 타워</a>
+        <a href="roulette.html" class="nav-link "><i class="fa-solid fa-clover"></i> 모몽가 룰렛</a>
+        <a href="myroom.html" class="nav-link "><i class="fa-solid fa-shirt"></i> 마이룸</a>
+        <a href="kurimanju.html" class="nav-link "><i class="fa-solid fa-utensils"></i> 야시장</a>
+        <a href="ramen.html" class="nav-link "><i class="fa-solid fa-bowl-food"></i> 로우 라멘</a>
+        <a href="achievements.html" class="nav-link "><i class="fa-solid fa-award"></i> 업적</a>
+        <a href="index_monsters.html" class="nav-link "><i class="fa-solid fa-dragon"></i> 괴물 모드</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="btn btn-sound" id="soundToggleBtn">
+          <i class="fa-solid fa-volume-high" id="soundIcon"></i>
+          <span id="soundText">효과음 ON</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 배틀 대시보드 상단 바 -->
+  <div class="battle-top-bar">
+    <div class="stage-indicator-box">
+      <span class="stage-tag" id="stageTag">STAGE 1 / 50</span>
+      <h2 class="stage-name" id="stageName">숲의 초입 - 맹독 벌레 무리</h2>
+    </div>
+    <div class="top-btn-group">
+            <button class="btn btn-trophy-showcase" onclick="openTrophyModal()">
+        <i class="fa-solid fa-trophy"></i> 🏆 전리품 전시대 (<span id="trophyCount">도감</span>)
+      </button>
+      <button class="btn btn-stage-map" onclick="openStageMapModal()">
+        <i class="fa-solid fa-map-location-dot"></i> 스테이지 지도
+      </button>
+      <a href="training.html" class="btn btn-gym-shortcut">
+        <i class="fa-solid fa-dumbbell"></i> 헬스장에서 스탯 올리기
+      </a>
+    </div>
+  </div>
+
+  <!-- 메인 배틀 아레나 컨테이너 -->
+  <main class="battle-main-container">
+    <div class="battle-arena" id="battleArena">
+      <div class="arena-bg-overlay"></div>
+
+      <!-- 상단: 몬스터 / 보스 정보창 -->
+      <div class="enemy-hud-card">
+        <div class="enemy-header-row">
+          <div class="enemy-badge-wrap">
+            <span class="enemy-type-badge" id="enemyTypeBadge">일반 몬스터</span>
+            <span class="enemy-name" id="enemyName">맹독 벌레</span>
+          </div>
+          <div class="enemy-hp-text">
+            HP <strong id="enemyHpCur">100</strong> / <span id="enemyHpMax">100</span>
+          </div>
+        </div>
+
+        <!-- 몬스터 HP 바 -->
+        <div class="enemy-hp-bar-track">
+          <div class="enemy-hp-bar-fill" id="enemyHpBar" style="width: 100%;"></div>
+        </div>
+
+        <!-- 몬스터 공격 카운트다운 게이지 -->
+        <div class="enemy-charge-wrap">
+          <span class="charge-label"><i class="fa-solid fa-triangle-exclamation"></i> 몬스터 공격 장전</span>
+          <div class="enemy-charge-track">
+            <div class="enemy-charge-fill" id="enemyChargeBar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- 보스 대사 말풍선 -->
+        <div class="enemy-dialogue-bubble" id="enemyDialogue">“키에에엑-!!”</div>
+      </div>
+
+      <!-- 중앙: 전투 비주얼 필드 (플레이어 vs 몬스터) -->
+      <div class="combat-visual-field">
+        <!-- 플레이어 (치이카와 원정대) -->
+        <div class="combatant player-party" id="playerParty">
+          <div class="player-avatar-wrap" id="playerAvatarWrap">
+            <img src="assets/chiikawa.png" alt="치이카와" class="player-sprite" id="playerSprite">
+            <div class="player-weapon" id="playerWeapon">🔱</div>
+          </div>
+          <div class="party-label">치이카와 토벌대</div>
+          <div class="guard-shield hidden" id="guardShield">🛡️ GUARD!</div>
+        </div>
+
+        <!-- VS 표시 -->
+        <div class="vs-badge">VS</div>
+
+        <!-- 몬스터 / 보스 -->
+        <div class="combatant enemy-unit" id="enemyUnit">
+          <div class="enemy-sprite-wrap" id="enemySpriteWrap">
+            <div class="enemy-avatar-icon" id="enemyAvatarIcon">🐛</div>
+          </div>
+          <div class="enemy-danger-aura" id="enemyAura"></div>
+        </div>
+      </div>
+
+      <!-- 하단: 플레이어 HUD & 액션 컨트롤러 -->
+      <div class="player-hud-card">
+        <!-- 플레이어 HP 및 스탯 바 -->
+        <div class="player-stats-row">
+          <div class="player-stat-item">
+            <span class="stat-icon">❤️</span>
+            <div class="hp-info">
+              <div class="hp-labels">
+                <span>내 체력 (체력 Lv.<strong id="myHpLvl">1</strong>)</span>
+                <span><strong id="playerHpCur">125</strong> / <span id="playerHpMax">125</span></span>
+              </div>
+              <div class="player-hp-track">
+                <div class="player-hp-fill" id="playerHpBar" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="player-power-chips">
+            <span class="power-chip"><i class="fa-solid fa-fire"></i> 공격력 <strong id="myAtkVal">21</strong> (Lv.<span id="myAtkLvl">1</span>)</span>
+            <span class="power-chip"><i class="fa-solid fa-bolt"></i> 콤보: <strong id="battleCombo">0</strong></span>
+          </div>
+        </div>
+
+        <!-- 4대 액션 버튼 패널 -->
+        <div class="battle-actions-grid">
+          <!-- 1. 기본 공격 (사스마타 어택) -->
+          <button class="btn-action btn-attack" id="btnAttack" onclick="playerAttack(event)">
+            <div class="btn-action-icon">⚔️</div>
+            <div class="btn-action-text">
+              <strong>사스마타 공격!</strong>
+              <span>마우스 클릭 / 스페이스바</span>
+            </div>
+          </button>
+
+          <!-- 2. 회피 & 방어 (타이밍 가드) -->
+          <button class="btn-action btn-guard" id="btnGuard" onclick="playerGuard()">
+            <div class="btn-action-icon">🛡️</div>
+            <div class="btn-action-text">
+              <strong>회피 & 방어!</strong>
+              <span id="guardStatusText">공격 타이밍에 방어!</span>
+            </div>
+          </button>
+
+          <!-- 3. 요리 힐링 스킬 (동굴 스튜) -->
+          <button class="btn-action btn-skill-heal" id="btnHeal" onclick="useHealSkill()">
+            <div class="btn-action-icon">🍲</div>
+            <div class="btn-action-text">
+              <strong>동굴 스튜 회복</strong>
+              <span id="healSkillText">요리 Lv.1 (HP 25% 회복)</span>
+            </div>
+            <div class="skill-cooldown-overlay hidden" id="healCdOverlay">12s</div>
+          </button>
+
+          <!-- 4. 공부 크리티컬 버프 스킬 (약점 분석) -->
+          <button class="btn-action btn-skill-crit" id="btnCrit" onclick="useCritSkill()">
+            <div class="btn-action-icon">💡</div>
+            <div class="btn-action-text">
+              <strong>약점 집중 분석</strong>
+              <span id="critSkillText">공부 Lv.1 (5초간 2배 극딜)</span>
+            </div>
+            <div class="skill-cooldown-overlay hidden" id="critCdOverlay">15s</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  
+  <!-- 전리품 보물 전시대 모달 -->
+  <div class="modal-backdrop hidden" id="trophyModal">
+    <div class="modal-card trophy-modal-card">
+      <div class="modal-header">
+        <h3>🏆 치이카와 전리품 보물 전시대 (도감)</h3>
+        <button class="modal-close-btn" onclick="closeTrophyModal()">&times;</button>
+      </div>
+      <p class="trophy-modal-subtitle">5스테이지 단위로 토벌을 완수하고 먼작귀들의 소중한 보물들을 수집하세요!</p>
+      <div class="trophy-grid" id="trophyGrid"></div>
+    </div>
+  </div>
+
+  <!-- 신규 전리품 획득 축하 모달 -->
+  <div class="modal-backdrop hidden" id="trophyRewardModal">
+    <div class="modal-card trophy-reward-card">
+      <div class="trophy-reward-sparkle">✨ NEW TROPHY UNLOCKED ✨</div>
+      <div class="trophy-reward-icon" id="trophyRewardIcon">👛</div>
+      <h2 class="trophy-reward-title" id="trophyRewardName">치이카와의 분홍 곰돌이 포셰트</h2>
+      <p class="trophy-reward-lore" id="trophyRewardLore">풀을 뽑아 번 돈으로 산 소중한 첫 번째 가방!</p>
+      <div class="trophy-reward-buff-badge" id="trophyRewardBuff">효과: 기본 공격력 +10 영구 증가</div>
+      <button class="btn btn-primary" onclick="closeTrophyRewardPopup()">보물함에 보관하기 🎁</button>
+    </div>
+  </div>
+
+  <!-- 스테이지 선택 지도 모달 -->
+  <div class="modal-backdrop hidden" id="stageMapModal">
+    <div class="modal-card stage-map-card">
+      <div class="modal-header">
+        <h3>🗺️ 토벌 원정대 스테이지 지도 (1 ~ 50)</h3>
+        <button class="modal-close-btn" onclick="closeStageMapModal()">&times;</button>
+      </div>
+      <p class="stage-map-subtitle">
+        <span class="legend-badge">🚨 5단위: 미니보스</span>
+        <span class="legend-badge" style="background:#C92A2A;">👑 10단위: 대형보스</span>
+      </p>
+      <div class="stage-map-grid" id="stageMapGrid"></div>
+    </div>
+  </div>
+
+  <!-- 승리 (VICTORY) 모달 -->
+  <div class="modal-backdrop hidden" id="victoryModal">
+    <div class="modal-card victory-card">
+      <div class="victory-icon">🏆</div>
+      <h2 class="victory-title">STAGE CLEAR!</h2>
+      <p class="victory-enemy-cleared" id="victoryEnemyText">맹독 벌레를 완벽히 토벌했습니다!</p>
+      <div class="reward-box">
+        <div class="reward-title">🎁 토벌 보상 획득</div>
+        <div class="reward-desc">전투력 상승 및 다음 스테이지 해금!</div>
+      </div>
+      <div class="modal-btn-row">
+        <button class="btn btn-secondary" onclick="retryBattleStage()">다시 도전</button>
+        <button class="btn btn-primary" id="btnNextStage" onclick="goToNextStage()">다음 스테이지 진격 👉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 패배 (DEFEAT) 모달 -->
+  <div class="modal-backdrop hidden" id="defeatModal">
+    <div class="modal-card defeat-card">
+      <div class="defeat-icon">😭</div>
+      <h2 class="defeat-title">토벌 실패...</h2>
+      <p class="defeat-desc" id="defeatDesc">치이카와 토벌대의 체력이 모두 소진되었습니다.</p>
+      <div class="defeat-tip-box">
+        💡 <strong>팁</strong>: 헬스장에서 <strong>공격력(연타)</strong>과 <strong>체력(연타)</strong>을 올리거나, <strong>요리 레벨</strong>을 높여 회복량을 늘려보세요!
+      </div>
+      <div class="modal-btn-row">
+        <button class="btn btn-secondary" onclick="retryBattleStage()">다시 도전</button>
+        <a href="training.html" class="btn btn-primary">💪 헬스장 훈련하러 가기</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-popup" id="toastPopup">토스트 메시지</div>
+
+  <!-- 스크립트 로드 -->
+  <script src="battle.js"></script>
+
+  <!-- 플로팅 맨 위로 이동 버튼 -->
+  <button onclick="window.scrollTo({top:0, behavior:'smooth'})" id="scrollTopBtn" style="position:fixed; bottom:25px; right:25px; width:45px; height:45px; border-radius:50%; background:#FF5E7E; color:white; border:2px solid white; box-shadow:0 4px 15px rgba(0,0,0,0.25); cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center; z-index:999; transition:transform 0.2s;" title="맨 위로 이동">
+    <i class="fa-solid fa-arrow-up"></i>
+  </button>
+
+  <script src="audio_player.js"></script>
+</body>
+</html>

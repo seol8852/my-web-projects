@@ -1,0 +1,150 @@
+/* ==============================================================
+   🏆 30종 업적 도감 스타일시트 (achievements.css)
+   ============================================================== */
+
+body {
+  background: #1A1325;
+  color: #FFF;
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+}
+
+.achieve-count-badge {
+  background: linear-gradient(135deg, #FCC419, #FF922B);
+  color: #212529;
+  font-weight: 900;
+  font-size: 0.92rem;
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+.achieve-main-container {
+  max-width: 1050px;
+  margin: 0 auto 50px auto;
+  padding: 0 15px;
+}
+
+.achieve-header-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 212, 59, 0.3);
+  border-radius: 24px;
+  padding: 24px;
+  margin: 20px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.achieve-header-title h2 {
+  font-family: 'Jua', sans-serif;
+  font-size: 1.8rem;
+  color: #FFE066;
+  margin: 0 0 4px 0;
+}
+
+.achieve-header-title p {
+  color: #CED4DA;
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.achieve-filter-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-tab-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFF;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-family: 'Jua', sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-tab-btn.active, .filter-tab-btn:hover {
+  background: #FF5E7E;
+  border-color: #FF5E7E;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 16px;
+}
+
+.achieve-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.achieve-card.unlocked {
+  border-color: #FFD43B;
+  background: rgba(255, 212, 59, 0.1);
+  box-shadow: 0 6px 20px rgba(255, 212, 59, 0.2);
+}
+
+.achieve-card.locked {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+}
+
+.achieve-icon-box {
+  width: 65px;
+  height: 65px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  flex-shrink: 0;
+}
+
+.achieve-card.unlocked .achieve-icon-box {
+  background: linear-gradient(135deg, #FCC419, #FF922B);
+}
+
+.achieve-info {
+  flex: 1;
+}
+
+.achieve-cat-tag {
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFD43B;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+}
+
+.achieve-title {
+  font-family: 'Jua', sans-serif;
+  font-size: 1.15rem;
+  color: #FFF;
+  margin: 3px 0 2px 0;
+}
+
+.achieve-desc {
+  font-size: 0.82rem;
+  color: #CED4DA;
+  line-height: 1.4;
+}
+
+.achieve-status-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-top: 4px;
+}

@@ -1,0 +1,36 @@
+# 🌟 Bumjun's Interactive Web Projects Hub
+
+설범준의 인터랙티브 웹 프로젝트 포털입니다. 순수 프론트엔드 웹 기술(HTML5, CSS3, Vanilla JS, Canvas, Leaflet)로 제작된 다양한 웹 애플리케이션 및 아카이브를 한곳에서 서비스합니다.
+
+## 🚀 수록 프로젝트 (Live Projects - 총 4개)
+
+### 1. 🚗 [미국·캐나다 자동차 대륙일주 10,786 km](./usa-roadtrip/)
+* **배포 경로**: `/usa-roadtrip/`
+* **주요 기능**:
+  * 10,786 km 전체 주행 궤적 및 132곳 방문 명소 인터랙티브 지도
+  * 0.04x 정밀 자동차 주행 시뮬레이터 (서브프레임 보간)
+  * Web Audio API 기반 V8 머슬카 사운드 신시사이저 & AI 한국어 음성 도슨트
+  * 콕핏 HUD 계기판, 18개 스토리 투어, 4K 마스터 포스터 & KML/GPX 다운로드
+* [📋 상세 여행보고서 바로가기](./usa-roadtrip/report.html)
+
+### 2. 🐹 [치이카와 웹 월드 (Chiikawa Web)](./chiikawa-web/)
+* **배포 경로**: `/chiikawa-web/`
+* **주요 기능**:
+  * 치이카와 육성, 몬스터 토벌 배틀, 1,000제 퀴즈, 라멘 알바, 마이룸 등 종합 웹 게임
+
+### 3. 🔥 [매드맥스: 기억해줘! (WITNESS ME!)](./madmax-witness-me/)
+* **배포 경로**: `/madmax-witness-me/`
+* **주요 기능**:
+  * 실시간 웹캠 필터 효과, 사운드 이펙트, 두프 기타 및 워보이 밈 액션 인터랙티브
+
+### 4. 🎮 [스모크 액션 게임 (Smoke Action Game)](./smoke-action-game/)
+* **배포 경로**: `/smoke-action-game/`
+* **주요 기능**:
+  * HTML5 Canvas 기반 2D 스프라이트 액션 아케이드
+
+---
+
+## 🛠️ GitHub Pages 배포 가이드
+1. 이 리포지토리의 `Settings` > `Pages` 메뉴로 이동합니다.
+2. **Branch**를 `main` (또는 `master`), 폴더를 `/(root)`로 선택하고 **Save**를 누릅니다.
+3. 1~2분 후 나오는 공식 웹 주소(`https://<아이디>.github.io/<저장소이름>/`)로 접속하시면 메인 허브와 모든 사이트가 활성화됩니다!
