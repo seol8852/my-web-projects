@@ -1095,6 +1095,202 @@
     #lightbox img { max-width: 85vw; max-height: 80vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
     .lb-close { position: absolute; top: 30px; right: 40px; font-size: 32px; color: #fff; cursor: pointer; }
     .lb-caption { margin-top: 14px; font-size: 14px; color: #e2e8f0; font-weight: 600; text-align: center; }
+  
+    /* Custom Car Container & Speech Bubble */
+    .custom-car-container {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .car-bubble {
+      position: absolute;
+      bottom: 58px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(10, 16, 30, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1.5px solid #38bdf8;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 20px rgba(56, 189, 248, 0.45);
+      color: #f8fafc;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 7px 15px;
+      border-radius: 12px;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 10000;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s;
+      letter-spacing: -0.015em;
+    }
+    .car-bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6px;
+      border-style: solid;
+      border-color: #38bdf8 transparent transparent transparent;
+    }
+
+    /* Visited & Active Spot Card Styles */
+    .item-card.visited {
+      border-color: rgba(56, 189, 248, 0.3);
+      background: rgba(14, 165, 233, 0.08);
+    }
+    .item-card.visited .item-no {
+      background: rgba(16, 185, 129, 0.22);
+      border-color: #10b981;
+      color: #34d399;
+    }
+    .item-card.sim-active {
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.75) !important;
+      background: rgba(14, 165, 233, 0.24) !important;
+      transform: translateX(5px);
+    }
+    .item-card.sim-active .item-no {
+      background: #0284c7 !important;
+      border-color: #38bdf8 !important;
+      color: #fff !important;
+      box-shadow: 0 0 12px #38bdf8;
+    }
+
+    .item-status-pill {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .item-status-pill.visited {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .item-status-pill.active {
+      background: rgba(56, 189, 248, 0.25);
+      color: #38bdf8;
+      border: 1px solid #38bdf8;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+      animation: pulseActive 1.5s infinite alternate;
+    }
+    .item-status-pill.upcoming {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-dim);
+      border: 1px solid var(--glass-border-subtle);
+    }
+    @keyframes pulseActive {
+      0% { opacity: 0.8; }
+      100% { opacity: 1; transform: scale(1.04); }
+    }
+
+    /* Live Visited Stream in Tab Sim */
+    .sim-spotlight-banner {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.25) 0%, rgba(15, 23, 42, 0.85) 100%);
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+    }
+    .spotlight-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .spotlight-badge {
+      font-size: 10px;
+      font-weight: 900;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .spotlight-name {
+      font-size: 13px;
+      font-weight: 900;
+      color: #fff;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .spotlight-status {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #34d399;
+    }
+    .spotlight-quote {
+      font-size: 12px;
+      color: #bae6fd;
+      line-height: 1.45;
+      word-break: keep-all;
+      background: rgba(15, 23, 42, 0.65);
+      padding: 7px 10px;
+      border-radius: 8px;
+      border-left: 3px solid #38bdf8;
+    }
+    .sim-visited-stream {
+      max-height: 230px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 4px;
+    }
+    .stream-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .stream-item:hover {
+      background: rgba(22, 32, 54, 0.85);
+      border-color: rgba(56, 189, 248, 0.35);
+      transform: translateX(2px);
+    }
+    .stream-item.current {
+      border-color: #38bdf8;
+      background: rgba(14, 165, 233, 0.18);
+    }
+    .stream-item-no {
+      font-size: 10px;
+      font-weight: 800;
+      color: #34d399;
+      font-family: 'JetBrains Mono', monospace;
+      width: 24px;
+    }
+    .stream-item-name {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #e2e8f0;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stream-item-cat {
+      font-size: 9.5px;
+      color: var(--text-dim);
+      padding: 1px 5px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+
   </style>
 </head>
 <body>
@@ -1177,6 +1373,31 @@
             <span class="hud-label">현재 통과 지역</span>
             <span class="hud-val" id="hudRegion">로스앤젤레스 (LAX 공항)</span>
           </div>
+        </div>
+      </div>
+
+      <!-- Real-time Visited Spots Feed (Live in Simulator tab) -->
+      <div class="stats-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div style="font-size:13px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+            <span>📍 방문 장소 실시간 피드</span>
+            <span class="badge-trans" id="simVisitedBadge" style="font-size:10px; padding:2px 7px;">0 / 132 완주</span>
+          </div>
+          <button class="cluster-btn" onclick="switchTab('spots')" style="font-size:10.5px; padding:2.5px 8px; border-radius:6px; cursor:pointer;" title="전체 132개 장소 상세 목록">전체 목록 ↗</button>
+        </div>
+        
+        <div id="simCurrentSpotBanner" class="sim-spotlight-banner">
+          <div class="spotlight-top">
+            <span class="spotlight-badge" id="spotlightStep">STEP 1</span>
+            <span class="spotlight-name" id="spotlightName">로스앤젤레스 국제공항</span>
+            <span class="spotlight-status" id="spotlightStatus">출발 대기</span>
+          </div>
+          <div class="spotlight-quote" id="spotlightQuote">💬 "LAX 공항에서 10,786 km 대륙일주 출발! 🚗💨"</div>
+        </div>
+
+        <div style="font-size:11px; font-weight:700; color:var(--text-sub); margin: 10px 0 6px 0;">최근 방문한 장소:</div>
+        <div id="simVisitedStream" class="sim-visited-stream">
+          <div style="padding: 16px; text-align:center; color: var(--text-dim); font-size:11.5px;">주행을 시작하면 통과한 장소들이 실시간으로 기록됩니다.</div>
         </div>
       </div>
 
@@ -1723,44 +1944,48 @@
       }
     });
 
-    // ================= DYNAMIC 3D SUV VEHICLE MARKER & DUAL HEADLIGHTS =================
+    // ================= DYNAMIC 3D SUV VEHICLE MARKER & DUAL HEADLIGHTS & SPEECH BUBBLE =================
     const carHtml = `
-      <div id="carVehicleWrapper" style="width:44px;height:44px;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.12s linear;">
-        <!-- Volumetric Headlight Cone Beam with Soft Falloff -->
-        <div id="carHeadlight" style="position:absolute;top:-52px;left:50%;transform:translateX(-50%);width:82px;height:65px;background:radial-gradient(ellipse at bottom, rgba(254,240,138,0.65) 0%, rgba(254,240,138,0.2) 45%, transparent 78%);clip-path:polygon(32% 100%, 68% 100%, 100% 0%, 0% 0%);pointer-events:none;filter:blur(1.2px);opacity:0.92;"></div>
-        <!-- Ultra-sleek Modern SUV Vector Body -->
-        <svg width="24" height="40" viewBox="0 0 24 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 6px 14px rgba(0,0,0,0.95));">
-          <!-- Soft Ground Shadow -->
-          <ellipse cx="12" cy="20" rx="11" ry="18" fill="rgba(0,0,0,0.7)"/>
-          <!-- 4 High-performance Tires -->
-          <rect x="0.5" y="6" width="3" height="8" rx="1.5" fill="#020617"/>
-          <rect x="20.5" y="6" width="3" height="8" rx="1.5" fill="#020617"/>
-          <rect x="0.5" y="25" width="3" height="8" rx="1.5" fill="#020617"/>
-          <rect x="20.5" y="25" width="3" height="8" rx="1.5" fill="#020617"/>
-          <!-- Sculpted SUV Body -->
-          <rect x="2" y="3" width="20" height="34" rx="6.5" fill="url(#carBodyGrad)" stroke="#38bdf8" stroke-width="1.3"/>
-          <!-- Front Windshield -->
-          <path d="M4.5 11 Q12 9 19.5 11 L18 16 Q12 15 6 16 Z" fill="#070a13" stroke="rgba(255,255,255,0.4)" stroke-width="0.6"/>
-          <!-- Panoramic Sunroof & Roof Racks -->
-          <rect x="5.5" y="17" width="13" height="10" rx="2" fill="#1e293b" stroke="rgba(56,189,248,0.4)" stroke-width="0.6"/>
-          <line x1="7.5" y1="19" x2="16.5" y2="19" stroke="#64748b" stroke-width="1"/>
-          <line x1="7.5" y1="24" x2="16.5" y2="24" stroke="#64748b" stroke-width="1"/>
-          <!-- Rear Windshield -->
-          <path d="M5.5 28.5 Q12 29 18.5 28.5 L19.5 31.5 Q12 32.5 4.5 31.5 Z" fill="#070a13"/>
-          <!-- Dual Xenon Front Lights -->
-          <ellipse cx="5.2" cy="4.5" rx="2.2" ry="1.5" fill="#fef08a"/>
-          <ellipse cx="18.8" cy="4.5" rx="2.2" ry="1.5" fill="#fef08a"/>
-          <!-- Dual LED Taillights -->
-          <ellipse cx="5.2" cy="35.5" rx="2.2" ry="1.3" fill="#ef4444"/>
-          <ellipse cx="18.8" cy="35.5" rx="2.2" ry="1.3" fill="#ef4444"/>
-          <defs>
-            <linearGradient id="carBodyGrad" x1="2" y1="3" x2="22" y2="37" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#0284c7"/>
-              <stop offset="0.5" stop-color="#1e40af"/>
-              <stop offset="1" stop-color="#0f172a"/>
-            </linearGradient>
-          </defs>
-        </svg>
+      <div class="custom-car-container">
+        <!-- Live Vehicle Speech Bubble -->
+        <div class="car-bubble" id="carBubble">출발 준비 완료! 10,786 km 대륙일주 떠나볼까요? 🚗💨</div>
+        <div id="carVehicleWrapper" style="width:44px;height:44px;position:relative;display:flex;align-items:center;justify-content:center;transition:transform 0.12s linear;">
+          <!-- Volumetric Headlight Cone Beam with Soft Falloff -->
+          <div id="carHeadlight" style="position:absolute;top:-52px;left:50%;transform:translateX(-50%);width:82px;height:65px;background:radial-gradient(ellipse at bottom, rgba(254,240,138,0.65) 0%, rgba(254,240,138,0.2) 45%, transparent 78%);clip-path:polygon(32% 100%, 68% 100%, 100% 0%, 0% 0%);pointer-events:none;filter:blur(1.2px);opacity:0.92;"></div>
+          <!-- Ultra-sleek Modern SUV Vector Body -->
+          <svg width="24" height="40" viewBox="0 0 24 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 6px 14px rgba(0,0,0,0.95));">
+            <!-- Soft Ground Shadow -->
+            <ellipse cx="12" cy="20" rx="11" ry="18" fill="rgba(0,0,0,0.7)"/>
+            <!-- 4 High-performance Tires -->
+            <rect x="0.5" y="6" width="3" height="8" rx="1.5" fill="#020617"/>
+            <rect x="20.5" y="6" width="3" height="8" rx="1.5" fill="#020617"/>
+            <rect x="0.5" y="25" width="3" height="8" rx="1.5" fill="#020617"/>
+            <rect x="20.5" y="25" width="3" height="8" rx="1.5" fill="#020617"/>
+            <!-- Sculpted SUV Body -->
+            <rect x="2" y="3" width="20" height="34" rx="6.5" fill="url(#carBodyGrad)" stroke="#38bdf8" stroke-width="1.3"/>
+            <!-- Front Windshield -->
+            <path d="M4.5 11 Q12 9 19.5 11 L18 16 Q12 15 6 16 Z" fill="#070a13" stroke="rgba(255,255,255,0.4)" stroke-width="0.6"/>
+            <!-- Panoramic Sunroof & Roof Racks -->
+            <rect x="5.5" y="17" width="13" height="10" rx="2" fill="#1e293b" stroke="rgba(56,189,248,0.4)" stroke-width="0.6"/>
+            <line x1="7.5" y1="19" x2="16.5" y2="19" stroke="#64748b" stroke-width="1"/>
+            <line x1="7.5" y1="24" x2="16.5" y2="24" stroke="#64748b" stroke-width="1"/>
+            <!-- Rear Windshield -->
+            <path d="M5.5 28.5 Q12 29 18.5 28.5 L19.5 31.5 Q12 32.5 4.5 31.5 Z" fill="#070a13"/>
+            <!-- Dual Xenon Front Lights -->
+            <ellipse cx="5.2" cy="4.5" rx="2.2" ry="1.5" fill="#fef08a"/>
+            <ellipse cx="18.8" cy="4.5" rx="2.2" ry="1.5" fill="#fef08a"/>
+            <!-- Dual LED Taillights -->
+            <ellipse cx="5.2" cy="35.5" rx="2.2" ry="1.3" fill="#ef4444"/>
+            <ellipse cx="18.8" cy="35.5" rx="2.2" ry="1.3" fill="#ef4444"/>
+            <defs>
+              <linearGradient id="carBodyGrad" x1="2" y1="3" x2="22" y2="37" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0284c7"/>
+                <stop offset="0.5" stop-color="#1e40af"/>
+                <stop offset="1" stop-color="#0f172a"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
       </div>
     `;
 
@@ -2036,6 +2261,7 @@
       document.getElementById('playBtn').textContent = '▶ 주행 시작';
       document.getElementById('playBtn').style.background = '';
       simIndex = 0;
+      lastSpokenStepNo = null;
       updateSimFrame(0);
       map.setView(animPath[0], 10);
     }
@@ -2062,6 +2288,214 @@
     function onScrub(val) {
       simIndex = parseFloat(val);
       updateSimFrame(simIndex);
+    }
+
+
+    // ================= SPOTS TIMELINE MAPPING & CAR DIALOGUE ENGINE =================
+    // Precompute closest animPath index for all cleanPlaces
+    cleanPlaces.forEach(p => {
+      let bestDist = Infinity;
+      let bestIdx = 0;
+      for (let j = 0; j < animPath.length; j++) {
+        const dLat = p.lat - animPath[j][0];
+        const dLng = (p.lng - animPath[j][1]) * Math.cos(p.lat * Math.PI / 180);
+        const d = dLat * dLat + dLng * dLng;
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = j;
+        }
+      }
+      p.closest_anim_idx = bestIdx;
+    });
+
+    let currentActiveStepNo = 1;
+    let lastSpokenStepNo = null;
+    let lastBubbleText = '';
+
+    function updateCarBubble(text) {
+      const bubble = document.getElementById('carBubble');
+      if (!bubble) return;
+      if (lastBubbleText !== text) {
+        lastBubbleText = text;
+        bubble.textContent = text;
+        bubble.style.transform = 'translateX(-50%) scale(1.08)';
+        setTimeout(() => {
+          if (bubble) bubble.style.transform = 'translateX(-50%) scale(1)';
+        }, 150);
+      }
+    }
+
+    function getSpotArrivalLine(spot) {
+      const name = spot.name || '';
+      const cat = spot.category || '';
+      const reg = spot.region || '';
+
+      if (name.includes('공항') || name.includes('LAX') || name.includes('JFK') || name.includes('케네디')) {
+        if (name.includes('JFK') || name.includes('케네디')) {
+          return '🏆 뉴욕 JFK 공항 도착! 10,786 km 대륙일주 공식 완주!';
+        }
+        return `✈️ ${name} 도착! 10,786 km 대장정이 시작된다!`;
+      }
+      if (name.includes('말리부') || name.includes('산타모니카')) {
+        return `🌊 ${name} 도착! 태평양의 시원한 파도와 해안도로!`;
+      }
+      if (name.includes('비벌리') || name.includes('게티') || name.includes('UCLA') || name.includes('Annenberg')) {
+        return `🌴 ${name} 도착! 헐리우드의 화려함과 예술의 도시!`;
+      }
+      if (name.includes('유니버설')) {
+        return `🎬 유니버설 스튜디오 할리우드 도착! 영화 속 세상이다!`;
+      }
+      if (name.includes('그리피스')) {
+        return `✨ 그리피스 천문대 도착! LA의 환상적인 노을과 야경!`;
+      }
+      if (name.includes('그랜드') || name.includes('Grandview') || name.includes('모런')) {
+        return `🏜️ ${name} 도착! 20억 년 지구의 역사가 만든 붉은 대협곡!`;
+      }
+      if (name.includes('데스밸리') || name.includes('댄이츠') || name.includes('파서 크롤리')) {
+        return `🔥 데스밸리 통과! 섭씨 47도 극한의 사막을 건넜다!`;
+      }
+      if (name.includes('티오가') || name.includes('Tioga') || name.includes('요세미티') || name.includes('Yosemite')) {
+        return `⛰️ 해발 3,031m 티오가 패스를 넘어 요세미티 폭포 영접!`;
+      }
+      if (name.includes('스탠포드') || name.includes('후버') || name.includes('Stanford')) {
+        return `🎓 실리콘밸리의 심장 스탠포드 대학교 도착!`;
+      }
+      if (name.includes('골든게이트') || name.includes('금문교') || name.includes('소살리토')) {
+        return `🌉 샌프란시스코의 상징 붉은 금문교 위를 달린다!`;
+      }
+      if (name.includes('구글') || name.includes('애플') || name.includes('엔비디아') || name.includes('Google') || name.includes('Apple') || name.includes('NVIDIA')) {
+        return `💻 AI와 테크 혁명의 성지 ${name} 본사 탐방!`;
+      }
+      if (name.includes('버클리') || name.includes('Campanile')) {
+        return `🎓 명문 UC 버클리와 새더 타워 캠퍼스 도착!`;
+      }
+      if (name.includes('피셔맨') || name.includes('Lombard')) {
+        return `🦀 샌프란시스코 피셔맨스 와프 & 롬바드 꽃길 드라이브!`;
+      }
+      if (name.includes('섀스타')) {
+        return `🏔️ 웅장한 만년설 섀스타 산을 바라보며 북상 중!`;
+      }
+      if (name.includes('포틀랜드') || name.includes('우드번')) {
+        return `🛍️ 노택스 쇼핑과 힙스터의 도시 포틀랜드 도착!`;
+      }
+      if (name.includes('수잘로') || name.includes('워싱턴 대학교') || name.includes('PACCAR') || name.includes('HUB') || name.includes('Suzzallo') || name.includes('Foster')) {
+        return `🏰 해리포터 호그와트 도서관의 모티브, 시애틀 워싱턴대 도착!`;
+      }
+      if (name.includes('스페이스 니들')) {
+        return `🗼 시애틀의 상징 184m 스페이스 니들 전망대 도착!`;
+      }
+      if (name.includes('마이크로소프트') || name.includes('Microsoft')) {
+        return `🖥️ IT 거인 마이크로소프트(MS) 본사 비지터 센터 도착!`;
+      }
+      if (name.includes('스탠리') || name.includes('프로스펙트') || name.includes('Prospect') || name.includes('밴쿠버')) {
+        return `🇨🇦 캐나다 국경 통과! 밴쿠버 스탠리 파크 해변 도착!`;
+      }
+      if (name.includes('루이스') || name.includes('밴프') || name.includes('로키') || name.includes('Lake Louise')) {
+        return `💎 캐나다 로키의 보석, 에메랄드빛 레이크 루이스 도착!`;
+      }
+      if (name.includes('캘거리')) {
+        return `🇨🇦 앨버타 최대의 현대 도시 캘거리 입성!`;
+      }
+      if (name.includes('스위트그라스') || name.includes('몬태나') || reg.includes('몬태나')) {
+        return `🌾 미국 재입국! Big Sky 몬태나주의 끝없는 대평원!`;
+      }
+      if (name.includes('러스모어') || name.includes('큰바위') || name.includes('키스톤')) {
+        return `🗿 사우스다코타 마운트 러스모어 4대 대통령 조각상 도착!`;
+      }
+      if (name.includes('시카고') || name.includes('밀레니엄') || name.includes('클라우드') || name.includes('Cloud Gate')) {
+        return `🏙️ 바람의 도시 시카고! 은빛 조형물 The Bean 도착!`;
+      }
+      if (name.includes('나이아가라') || name.includes('Niagara')) {
+        return `🌊 지구를 뒤흔드는 굉음! 세계 3대 나이아가라 폭포 영접!`;
+      }
+      if (name.includes('타임스스퀘어') || name.includes('엠파이어') || name.includes('맨해튼') || name.includes('Times Square')) {
+        return `🗽 잠들지 않는 세계의 수도, 뉴욕 맨해튼 타임스스퀘어 입성!`;
+      }
+      if (name.includes('센트럴') || name.includes('메트로폴리탄') || name.includes('Central Park') || name.includes('Metropolitan')) {
+        return `🎨 도심 속 오아시스 센트럴 파크 & 메트로폴리탄 미술관 도착!`;
+      }
+      if (name.includes('소호') || name.includes('브로드웨이') || name.includes('SoHo') || name.includes('Nike Soho')) {
+        return `🎭 브로드웨이 뮤지컬 & 트렌디한 소호 거리 도착!`;
+      }
+
+      if (cat.includes('주유소') || cat.includes('휴게소') || name.toLowerCase().includes('gas') || name.toLowerCase().includes('chevron') || name.toLowerCase().includes('safeway') || name.toLowerCase().includes('bp')) {
+        return `⛽ ${name} 도착! 연료 든든히 채우고 안전운전!`;
+      }
+      if (cat.includes('명문대학') || name.includes('대')) {
+        return `🎓 ${name} 캠퍼스 도착! 지성의 열기가 느껴진다!`;
+      }
+      if (cat.includes('자연') || cat.includes('국립공원')) {
+        return `🌲 웅장한 대자연, ${name} 도착!`;
+      }
+      if (cat.includes('쇼핑') || cat.includes('미식')) {
+        return `🛍️ ${name} 도착! 즐거운 쇼핑과 힐링 시간!`;
+      }
+
+      if (name.startsWith('스팟') || name.includes('#')) {
+        return `📍 [Step ${spot.step_no}] ${reg} 통과 거점 도착! 🚗`;
+      }
+      return `📍 [Step ${spot.step_no}] ${name} 도착! (${reg})`;
+    }
+
+    function getSpotMovingLine(fromSpot, toSpot) {
+      const toName = toSpot ? toSpot.name : '다음 목적지';
+      const toReg = toSpot ? toSpot.region : '';
+
+      if (toName.startsWith('스팟') || toName.includes('#')) {
+        return `🚗 ${toReg} 아름다운 횡단 코스를 향해 달리는 중! 💨`;
+      }
+
+      if (toName.includes('그랜드') || toName.includes('Grandview')) {
+        return `🏜️ 모하비 사막을 건너 그랜드 캐니언으로 질주 중! 🚗💨`;
+      }
+      if (toName.includes('요세미티') || toName.includes('티오가')) {
+        return `⛰️ 티오가 패스를 향해 시에라 네바다 산맥을 오르는 중!`;
+      }
+      if (toName.includes('스탠포드') || toName.includes('샌프란시스코') || toName.includes('금문교')) {
+        return `🌉 베이 브리지를 건너 샌프란시스코로 향하는 중!`;
+      }
+      if (toName.includes('시애틀') || toName.includes('스페이스 니들') || toName.includes('워싱턴')) {
+        return `🌲 I-5 북서부 간선도로 타고 시애틀로 순항 중! ☕`;
+      }
+      if (toName.includes('밴쿠버') || toName.includes('스탠리') || toReg.includes('캐나다')) {
+        return `🇨🇦 국경을 넘어 캐나다 밴쿠버로 향하는 중!`;
+      }
+      if (toName.includes('루이스') || toName.includes('밴프') || toName.includes('로키')) {
+        return `🏔️ 트랜스 캐나다 1번 국도 타고 로키산맥으로 달리는 중! 🚗`;
+      }
+      if (toName.includes('몬태나') || toName.includes('러스모어')) {
+        return `🌾 I-90 고속도로 타고 몬태나 대평원을 가르는 중!`;
+      }
+      if (toName.includes('시카고') || toName.includes('밀레니엄')) {
+        return `🏙️ 오대호 미시간호를 향해 시카고로 질주 중! 🚗💨`;
+      }
+      if (toName.includes('나이아가라')) {
+        return `🌊 블루 워터 브리지 건너 나이아가라 폭포로 가는 중!`;
+      }
+      if (toName.includes('뉴욕') || toName.includes('맨해튼') || toName.includes('타임스')) {
+        return `🗽 허드슨강을 건너 꿈의 뉴욕 맨해튼으로 입성 중!`;
+      }
+      if (toName.includes('JFK') || toName.includes('케네디')) {
+        return `🏁 10,786 km 완주 지점, 뉴욕 JFK 공항으로 향하는 중! 🏆`;
+      }
+
+      return `🚗 ${toName} (으)로 이동 중! (${toReg})`;
+    }
+
+    function getCarSpeech(simIdx, currentSpot, nextSpot, isArrived) {
+      if (simIdx <= 0.5) {
+        return '🏁 LAX 공항에서 10,786 km 대륙일주 출발! 🚗💨';
+      }
+      if (simIdx >= animPath.length - 2) {
+        return '🎉 10,786 km 북미 대륙일주 완주 성공! 세기의 대장정 끝! 🏆';
+      }
+      if (isArrived && currentSpot) {
+        return getSpotArrivalLine(currentSpot);
+      }
+      if (nextSpot) {
+        return getSpotMovingLine(currentSpot, nextSpot);
+      }
+      return '🚗 10,786 km 북미 대륙을 시원하게 달리는 중! 💨';
     }
 
     function updateSimFrame(idx) {
@@ -2164,6 +2598,109 @@
 
       document.getElementById('hudRegion').textContent = reg;
       document.getElementById('mapBadgeLoc').textContent = reg;
+
+      // ================= REAL-TIME VISITED PLACES & CAR SPEECH SYNC =================
+      const visitedPlaces = cleanPlaces.filter(p => p.closest_anim_idx <= Math.floor(idx));
+      
+      // Determine closest spot and next upcoming spot
+      let currentSpot = null;
+      let nextSpot = null;
+      let minSpotDist = Infinity;
+
+      for (let s = 0; s < cleanPlaces.length; s++) {
+        const p = cleanPlaces[s];
+        const dist = Math.abs(idx - p.closest_anim_idx);
+        if (dist < minSpotDist) {
+          minSpotDist = dist;
+          currentSpot = p;
+        }
+        if (p.closest_anim_idx > idx && !nextSpot) {
+          nextSpot = p;
+        }
+      }
+      if (!currentSpot && cleanPlaces.length > 0) currentSpot = cleanPlaces[0];
+      if (!nextSpot && cleanPlaces.length > 0) nextSpot = cleanPlaces[cleanPlaces.length - 1];
+
+      currentActiveStepNo = currentSpot ? currentSpot.step_no : 1;
+      const isArrived = minSpotDist <= 1.4;
+
+      // Generate dynamic car speech dialogue
+      const carLine = getCarSpeech(idx, currentSpot, nextSpot, isArrived);
+      updateCarBubble(carLine);
+
+      // AI Voice Guide trigger on spot arrival
+      if (isArrived && currentSpot && isPlaying) {
+        if (lastSpokenStepNo !== currentSpot.step_no) {
+          lastSpokenStepNo = currentSpot.step_no;
+          speakKorean(`${currentSpot.name} 도착! ${carLine}`);
+        }
+      }
+
+      // Update Simulator Tab Live Feed (#tab-sim)
+      const simVisitedBadge = document.getElementById('simVisitedBadge');
+      if (simVisitedBadge) {
+        simVisitedBadge.textContent = `${visitedPlaces.length} / ${cleanPlaces.length} 완주`;
+      }
+      const spotStepEl = document.getElementById('spotlightStep');
+      const spotNameEl = document.getElementById('spotlightName');
+      const spotStatusEl = document.getElementById('spotlightStatus');
+      const spotQuoteEl = document.getElementById('spotlightQuote');
+
+      if (spotStepEl && currentSpot) {
+        spotStepEl.textContent = `STEP ${currentSpot.step_no}`;
+        spotNameEl.textContent = `${currentSpot.name} (${currentSpot.region})`;
+        spotStatusEl.textContent = isArrived ? '📍 방금 도착' : '🚗 이동 중';
+        spotQuoteEl.textContent = `💬 "${carLine}"`;
+      }
+
+      // Update Live Visited Stream in Tab Sim (Show latest 8 in reverse order)
+      const streamEl = document.getElementById('simVisitedStream');
+      if (streamEl && visitedPlaces.length > 0) {
+        const recentVisited = visitedPlaces.slice(-8).reverse();
+        streamEl.innerHTML = recentVisited.map(p => {
+          const isCurr = p.step_no === currentActiveStepNo;
+          return `
+            <div class="stream-item ${isCurr ? 'current' : ''}" onclick="flyToSpot(${p.lat}, ${p.lng}, '${p.name}')">
+              <span class="stream-item-no">#${p.step_no}</span>
+              <span class="stream-item-name">${isCurr ? '🚗 ' : '✅ '}${p.name}</span>
+              <span class="stream-item-cat">${p.category}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Update Tab Spots Cards (.item-card in #tab-spots)
+      cleanPlaces.forEach(p => {
+        const card = document.getElementById(`spotCard_${p.step_no}`);
+        const pill = document.getElementById(`statusPill_${p.step_no}`);
+        if (!card) return;
+
+        const isPassed = p.closest_anim_idx < idx - 0.8;
+        const isCurrent = p.step_no === currentActiveStepNo;
+
+        card.classList.remove('sim-active', 'visited');
+        if (isCurrent) {
+          card.classList.add('sim-active');
+          if (pill) {
+            pill.className = 'item-status-pill active';
+            pill.textContent = '🚗 현재 위치';
+          }
+          if (isPlaying && isArrived) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } else if (isPassed) {
+          card.classList.add('visited');
+          if (pill) {
+            pill.className = 'item-status-pill visited';
+            pill.textContent = '✅ 방문 완료';
+          }
+        } else {
+          if (pill) {
+            pill.className = 'item-status-pill upcoming';
+            pill.textContent = '⏳ 방문 예정';
+          }
+        }
+      });
     }
 
     // ================= 132 SPOTS & MEMORY NOTES =================
@@ -2209,15 +2746,32 @@
 
         const stars = savedData ? savedData.stars : 5;
         const note = savedData ? savedData.note : '';
+        const isPassed = p.closest_anim_idx !== undefined && p.closest_anim_idx < simIndex - 0.8;
+        const isCurrent = p.step_no === currentActiveStepNo;
+
+        let statusClass = 'upcoming';
+        let statusText = '⏳ 방문 예정';
+        if (isCurrent) {
+          statusClass = 'active';
+          statusText = '🚗 현재 위치';
+        } else if (isPassed) {
+          statusClass = 'visited';
+          statusText = '✅ 방문 완료';
+        }
 
         const card = document.createElement('div');
-        card.className = 'item-card';
+        card.className = `item-card ${isPassed ? 'visited' : ''} ${isCurrent ? 'sim-active' : ''}`;
+        card.id = `spotCard_${p.step_no}`;
+
         card.innerHTML = `
           <div class="item-header" onclick="flyToSpot(${p.lat}, ${p.lng}, '${p.name}')">
-            <div class="item-no">${p.orig_index}</div>
+            <div class="item-no">${p.step_no}</div>
             <div class="item-info">
-              <div class="item-name">${p.name}</div>
-              <div class="item-addr">${p.addr || '주소 정보 없음'}</div>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+                <div class="item-name">${p.name}</div>
+                <span class="item-status-pill ${statusClass}" id="statusPill_${p.step_no}">${statusText}</span>
+              </div>
+              <div class="item-addr">${p.region ? `[${p.region}] ` : ''}${p.addr || '주소 정보 없음'}</div>
             </div>
             <div class="item-badge-cat">${p.category || '명소'}</div>
           </div>
