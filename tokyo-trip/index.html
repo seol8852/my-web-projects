@@ -326,6 +326,39 @@
       position: relative;
     }
 
+    /* Map Layer Switcher */
+    .layer-selector {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      z-index: 1000;
+      display: flex;
+      background: rgba(12, 18, 32, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 3.5px;
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65);
+    }
+    .layer-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .layer-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+    .layer-btn.active {
+      background: #0284c7;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
+    }
+
     /* Day Stats Overlay */
     .map-day-hud {
       position: absolute;
@@ -488,7 +521,15 @@
     <div class="spot-list" id="spotList"></div>
   </div>
 
-  <div id="map"></div>
+  <div id="map">
+    <!-- Map Tile Layer Switcher -->
+    <div class="layer-selector">
+      <button class="layer-btn active" onclick="setMapLayer('street', this)">도로 지도</button>
+      <button class="layer-btn" onclick="setMapLayer('sat', this)">위성 사진</button>
+      <button class="layer-btn" onclick="setMapLayer('osm', this)">오픈스트리트</button>
+      <button class="layer-btn" onclick="setMapLayer('topo', this)">지형도</button>
+    </div>
+  </div>
 
   <!-- Day HUD -->
   <div class="map-day-hud" id="dayHud">
@@ -532,21 +573,32 @@
     let polylines = [];
     let isSidebarCollapsed = false;
 
-    // Initialize Leaflet Map (Centered on Tokyo)
+    // Initialize Leaflet Map (Centered on Tokyo) with attributionControl false to remove ugly banners
     const map = L.map('map', {
       center: [35.6895, 139.6917],
       zoom: 12,
-      zoomControl: false
+      zoomControl: false,
+      attributionControl: false
     });
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // Dark Matter Map Tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(map);
+    // Clean, High-Definition Map Tiles (No Watermarks, No API keys required!)
+    const tileLayers = {
+      street: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
+      sat: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 }),
+      osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }),
+      topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18 })
+    };
+
+    let currentLayer = tileLayers.street.addTo(map);
+
+    function setMapLayer(type, btn) {
+      map.removeLayer(currentLayer);
+      currentLayer = tileLayers[type].addTo(map);
+      document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
 
     function toggleSidebar() {
       isSidebarCollapsed = !isSidebarCollapsed;
