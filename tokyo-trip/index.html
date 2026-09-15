@@ -1339,10 +1339,12 @@
     }
 
     // Target Zoom per leg:
-    // Narita Airport Express (> 25km): 14.5x (지나치게 축소되지 않고 주변 지형과 도로를 보면서 시원하게 통과)
-    // All other city touring legs: 18.25x
+    // 1. Narita Airport Express (> 25km): 14.5x (지나치게 축소되지 않고 주변 지형과 도로를 보면서 시원하게 통과)
+    // 2. Wide-area district transit (>= 5km): 16x (구역 간 쾌속 이동)
+    // 3. Local city touring legs (< 5km): 18.25x (도심 스트리트 상세 뷰)
     function getTargetZoomForLeg(distKm) {
       if (distKm > 25) return 14.5;
+      if (distKm >= 5) return 16.0;
       return 18.25;
     }
 
@@ -1687,7 +1689,12 @@
         const pct = Math.round(prog * 100);
 
         const targetZ = (simTargetZooms && simTargetZooms.length > idx) ? simTargetZooms[idx] : 18.25;
-        const zoomModeText = targetZ <= 15.0 ? '14.5x 쾌속 조망' : '18.25x 도심 스트리트';
+        let zoomModeText = '18.25x 도심 스트리트';
+        if (targetZ <= 15.0) {
+          zoomModeText = '14.5x 쾌속 조망';
+        } else if (targetZ <= 16.5) {
+          zoomModeText = '16x 광역 이동';
+        }
         if (statusEl) {
           if (stepInfo.phase === 'moving') {
             statusEl.textContent = `[${spotIdx}/${totalSpots}] ${stepInfo.fromSpot.name_ko} ➔ ${stepInfo.toSpot.name_ko} 이동 중 (${pct}%) · ${zoomModeText}`;
