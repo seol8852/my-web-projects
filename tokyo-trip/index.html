@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>설범준의 도쿄 시티 투어 | 5일간 79개 스팟 인터랙티브 맵</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Cinzel:wght@700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #070a14;
+      --sidebar-bg: rgba(11, 16, 28, 0.88);
+      --panel-bg: rgba(16, 23, 40, 0.72);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #38bdf8;
+      --accent-pink: #ec4899;
+      --accent-purple: #a855f7;
+      --accent-amber: #f59e0b;
+      --accent-emerald: #10b981;
+      --accent-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-sub: #94a3b8;
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
+    body { display: flex; height: 100vh; overflow: hidden; background: var(--bg-base); color: var(--text-main); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 9999px; }
+
+    /* Sidebar */
+    #sidebar {
+      width: 490px;
+      min-width: 490px;
+      height: 100%;
+      background: var(--sidebar-bg);
+      backdrop-filter: blur(32px) saturate(180%);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      border-right: 1px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      position: relative;
+      transition: margin-left 0.35s var(--ease-spring);
+      box-shadow: 20px 0 60px rgba(0, 0, 0, 0.85);
+    }
+
+    #sidebar.collapsed {
+      margin-left: -490px;
+    }
+
+    .sidebar-toggle {
+      position: absolute;
+      top: 22px;
+      right: -42px;
+      width: 42px;
+      height: 48px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-left: none;
+      border-radius: 0 12px 12px 0;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 2000;
+      box-shadow: 6px 0 20px rgba(0, 0, 0, 0.6);
+      font-size: 15px;
+      font-weight: 800;
+      transition: all 0.2s var(--ease-spring);
+    }
+    .sidebar-toggle:hover {
+      background: #0284c7;
+      color: #fff;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+      width: 46px;
+      right: -46px;
+    }
+
+    /* Header */
+    .brand {
+      padding: 20px 22px 16px 22px;
+      background: linear-gradient(180deg, rgba(30, 27, 75, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .brand-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .badge-tokyo {
+      background: rgba(236, 72, 153, 0.15);
+      border: 1px solid rgba(236, 72, 153, 0.35);
+      color: #f472b6;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3.5px 11px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .badge-triple {
+      background: rgba(38, 206, 194, 0.15);
+      border: 1px solid rgba(38, 206, 194, 0.35);
+      color: #2dd4bf;
+      font-size: 10.5px;
+      font-weight: 800;
+      padding: 3px 9px;
+      border-radius: 9999px;
+    }
+
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 4px;
+      letter-spacing: -0.4px;
+      background: linear-gradient(135deg, #ffffff 40%, #f472b6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand p {
+      font-size: 11.5px;
+      color: var(--text-sub);
+    }
+
+    /* Day Selector Tabs */
+    .day-tabs {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      background: rgba(8, 12, 22, 0.95);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--glass-border);
+      gap: 4px;
+    }
+    .day-tab-btn {
+      padding: 8px 3px;
+      text-align: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-sub);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      border-radius: 7px;
+      transition: all 0.2s var(--ease-spring);
+      white-space: nowrap;
+    }
+    .day-tab-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.08); border-color: rgba(236, 72, 153, 0.3); }
+    .day-tab-btn.active {
+      color: #fff;
+      background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+      border-color: #f472b6;
+      box-shadow: 0 2px 10px rgba(236, 72, 153, 0.3);
+      font-weight: 800;
+    }
+
+    /* Category Filter Pills */
+    .filter-bar {
+      padding: 10px 16px;
+      background: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+    }
+    .filter-pill {
+      padding: 5px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-sub);
+      border-radius: 9999px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .filter-pill:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+    .filter-pill.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+    }
+
+    /* Spot List Container */
+    .spot-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Spot Card */
+    .spot-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transition: all 0.25s var(--ease-spring);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+    .spot-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(56, 189, 248, 0.35);
+      background: rgba(24, 34, 58, 0.85);
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.15);
+    }
+    .spot-card.selected {
+      border-color: #f472b6;
+      box-shadow: 0 0 18px rgba(236, 72, 153, 0.4);
+    }
+
+    .spot-header {
+      display: flex;
+      padding: 12px 14px 8px 14px;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .spot-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #3b82f6;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .spot-meta {
+      flex: 1;
+      min-width: 0;
+    }
+    .spot-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .spot-name {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .spot-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: #38bdf8;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .spot-jp {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 1px;
+    }
+    .spot-badges {
+      display: flex;
+      gap: 5px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .badge-cat {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+    }
+    .badge-rating {
+      font-size: 10.5px;
+      color: #fbbf24;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .spot-memo {
+      margin: 8px 14px 12px 14px;
+      padding: 8px 12px;
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 3px solid #38bdf8;
+      border-radius: 0 8px 8px 0;
+      font-size: 12px;
+      color: #bae6fd;
+      line-height: 1.45;
+    }
+
+    .spot-photo {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      display: block;
+      border-top: 1px solid var(--glass-border);
+    }
+
+    /* Map */
+    #map {
+      flex: 1;
+      height: 100%;
+      position: relative;
+    }
+
+    /* Day Stats Overlay */
+    .map-day-hud {
+      position: absolute;
+      top: 20px;
+      left: 520px;
+      z-index: 1000;
+      background: rgba(12, 18, 32, 0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+      transition: left 0.35s var(--ease-spring);
+    }
+    .day-hud-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #f472b6;
+    }
+    .day-hud-sub {
+      font-size: 11px;
+      color: var(--text-sub);
+    }
+    .day-hud-stat {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      color: #38bdf8;
+      font-size: 13px;
+    }
+
+    /* Hub Back Button */
+    .btn-hub-back {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      text-decoration: none;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      transition: all 0.2s;
+    }
+    .btn-hub-back:hover {
+      background: #0284c7;
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Custom Leaflet Dark Popup */
+    .leaflet-popup-content-wrapper {
+      background: rgba(15, 23, 42, 0.95) !important;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 16px !important;
+      color: #f8fafc !important;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8) !important;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      line-height: 1.5 !important;
+    }
+    .leaflet-popup-tip {
+      background: rgba(15, 23, 42, 0.95) !important;
+    }
+    .popup-box {
+      width: 260px;
+    }
+    .popup-img {
+      width: 100%;
+      height: 130px;
+      object-fit: cover;
+      display: block;
+    }
+    .popup-body {
+      padding: 14px;
+    }
+    .popup-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .popup-jp {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .popup-memo {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 3px solid #38bdf8;
+      padding: 6px 8px;
+      font-size: 11.5px;
+      color: #bae6fd;
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 10px;
+    }
+    .popup-links {
+      display: flex;
+      gap: 6px;
+    }
+    .popup-btn {
+      flex: 1;
+      padding: 6px 0;
+      text-align: center;
+      background: #0284c7;
+      color: #fff;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+    }
+    .popup-btn:hover { background: #0369a1; }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <div class="sidebar-toggle" onclick="toggleSidebar()" title="메뉴바 접기/펼치기" id="sidebarToggleBtn">◀</div>
+    
+    <div class="brand">
+      <div class="brand-top">
+        <span class="badge-tokyo">🗼 TOKYO CITY TOUR</span>
+        <span class="badge-triple">TRIPLE 연동 5일간 79스팟</span>
+      </div>
+      <h1>설범준의 도쿄 시티 투어</h1>
+      <p>2026.05.14 - 05.18 | 나리타 ➔ 오다이바 ➔ 하라주쿠·시부야 ➔ 긴자·도쿄타워 ➔ 아키하바라</p>
+    </div>
+
+    <div class="day-tabs">
+      <button class="day-tab-btn active" onclick="filterDay('all', this)">🌟 전체</button>
+      <button class="day-tab-btn" onclick="filterDay(1, this)">Day 1</button>
+      <button class="day-tab-btn" onclick="filterDay(2, this)">Day 2</button>
+      <button class="day-tab-btn" onclick="filterDay(3, this)">Day 3</button>
+      <button class="day-tab-btn" onclick="filterDay(4, this)">Day 4</button>
+      <button class="day-tab-btn" onclick="filterDay(5, this)">Day 5</button>
+    </div>
+
+    <div class="filter-bar">
+      <button class="filter-pill active" onclick="filterCategory('all', this)">전체보기</button>
+      <button class="filter-pill" onclick="filterCategory('goods', this)">🛍️ 굿즈/쇼핑</button>
+      <button class="filter-pill" onclick="filterCategory('food', this)">🍜 맛집/카페</button>
+      <button class="filter-pill" onclick="filterCategory('tour', this)">🗼 랜드마크</button>
+      <button class="filter-pill" onclick="filterCategory('metro', this)">🚇 지하철/교통</button>
+    </div>
+
+    <div class="spot-list" id="spotList"></div>
+  </div>
+
+  <div id="map"></div>
+
+  <!-- Day HUD -->
+  <div class="map-day-hud" id="dayHud">
+    <div>
+      <div class="day-hud-title" id="hudDayTitle">🌟 도쿄 전체 여정 조망</div>
+      <div class="day-hud-sub" id="hudDaySub">총 5일간 79개 스팟 & 56개 핫플레이스</div>
+    </div>
+    <div>
+      <div class="day-hud-stat" id="hudSpotCount">79 SPOTS</div>
+    </div>
+  </div>
+
+  <!-- Back to Main Hub Button -->
+  <a href="../" class="btn-hub-back">
+    <span>🏠 메인 포털로 돌아가기</span>
+  </a>
+
+  <script>
+    const tripData = {"1": [{"id": "260631916", "day": 1, "time": "10:10", "memo": "3터미널 -> 2터미널 -스카이라이너 -> 닛포리역", "poi_id": "Poi:1c5f136c-9cbf-4989-a52d-f8ca13341b63", "name_ko": "나리타 국제공항", "name_en": "Narita International Airport", "name_local": "成田国際空港", "category": ["관광명소"], "lat": 35.770178, "lng": 140.3843215, "address": null, "rating": 4.3, "reviews": 880, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/f42f0681-ed20-4b77-8b52-2558d88ed408.jpeg"}, {"id": "260690567", "day": 1, "time": "12:26", "memo": "닛포리역 - 야마노테선 -> 신바시역", "poi_id": "Poi:15cb672d-4fc6-4df0-beb5-7f343de64b7d", "name_ko": "닛포리 역", "name_en": "Nippori Station", "name_local": "日暮里駅", "category": ["관광명소"], "lat": 35.7281578, "lng": 139.7706414, "address": null, "rating": 4.4, "reviews": 14, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/143502b4-c16a-4369-823e-555f228cfd86.jpeg"}, {"id": "260690880", "day": 1, "time": "12:44", "memo": "신바시역 - 유리카모메 -> 다이바역", "poi_id": "Poi:6bb792aa-c433-43b4-8c6a-7b4e35529f38", "name_ko": "신바시 역", "name_en": "Shinbashi station", "name_local": "新橋駅", "category": ["관광명소"], "lat": 35.666379, "lng": 139.7583398, "address": null, "rating": 3.8, "reviews": 23, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/20b2829d-5b35-427b-8108-3cd41c66e67f.jpeg"}, {"id": "260693194", "day": 1, "time": "13:09", "memo": null, "poi_id": "Poi:4c193010-1512-437f-8037-e1fe50eec704", "name_ko": "다이바 역", "name_en": "Daiba Station", "name_local": "台場駅", "category": ["관광명소"], "lat": 35.6259459, "lng": 139.7714957, "address": null, "rating": 4.8, "reviews": 4, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/9b71b5d4-0317-4300-91ff-91fe5bcc0980.jpeg"}, {"id": "260632593", "day": 1, "time": "14:30", "memo": null, "poi_id": "Poi:3b6f7813-48e6-4987-809c-bc502e60bcba", "name_ko": "건담 베이스 도쿄", "name_en": "The Gundam Base Tokyo", "name_local": "ガンダムベース 東京", "category": ["테마/체험"], "lat": 35.62547679999999, "lng": 139.7761383, "address": null, "rating": 4.3, "reviews": 90, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/e90494ae-639c-4032-850c-36064575a030.jpeg"}, {"id": "260718997", "day": 1, "time": "16:40", "memo": null, "poi_id": "Poi:4c193010-1512-437f-8037-e1fe50eec704", "name_ko": "다이바 역", "name_en": "Daiba Station", "name_local": "台場駅", "category": ["관광명소"], "lat": 35.6259459, "lng": 139.7714957, "address": null, "rating": 4.8, "reviews": 4, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/9b71b5d4-0317-4300-91ff-91fe5bcc0980.jpeg"}, {"id": "260721546", "day": 1, "time": "17:02", "memo": null, "poi_id": "Poi:6bb792aa-c433-43b4-8c6a-7b4e35529f38", "name_ko": "신바시 역", "name_en": "Shinbashi station", "name_local": "新橋駅", "category": ["관광명소"], "lat": 35.666379, "lng": 139.7583398, "address": null, "rating": 3.8, "reviews": 23, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/20b2829d-5b35-427b-8108-3cd41c66e67f.jpeg"}, {"id": "260724477", "day": 1, "time": null, "memo": null, "poi_id": "Poi:0e70da06-1291-4f7d-a8be-b31c1b6392ac", "name_ko": "아케보노바시 역", "name_en": "Akebonobashi Station", "name_local": "曙橋駅", "category": ["테마/체험"], "lat": 35.6923758, "lng": 139.7226303, "address": null, "rating": 0, "reviews": 0, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/9386b99c-6e2c-4139-a491-bfee892f15b2.jpeg"}, {"id": "260632727", "day": 1, "time": "18:00", "memo": "18:40 신주쿠로 출발", "poi_id": "Poi:d2476ca1-bb78-415b-9984-129aa9406398", "name_ko": "펄 호텔 신주쿠 아케보노바시", "name_en": "Pearl Hotel Shinjuku Akebonobashi", "name_local": "パールホテル新宿曙橋", "category": [], "lat": 35.6941842, "lng": 139.7208797, "address": null, "rating": 4.6, "reviews": 75, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/ef6525db-bb2c-4609-b3c1-f12536b3f0f8.jpeg"}, {"id": "260730257", "day": 1, "time": "19:00", "memo": null, "poi_id": "Poi:717e5186-22e9-4732-8b9c-3dbd66d14943", "name_ko": "신주쿠 역", "name_en": "Shinjuku Station", "name_local": "新宿駅", "category": ["관광명소"], "lat": 35.6896067, "lng": 139.7005713, "address": null, "rating": 4.2, "reviews": 197, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/d60e9116-9a39-419f-9f36-b671f99189d3.jpeg"}, {"id": "260732900", "day": 1, "time": "19:13", "memo": null, "poi_id": "Poi:c0a20fad-c668-4885-9586-10eedbc6ab17", "name_ko": "키디랜드 신주쿠 점", "name_en": "KIDDYLAND Shinjuku", "name_local": "キデイランド 新宿店", "category": ["쇼핑"], "lat": 35.6929851, "lng": 139.7009716, "address": null, "rating": 5, "reviews": 3, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/d2f8a093-d86d-458b-8b15-01cbc1fd79cf.jpeg"}, {"id": "260740556", "day": 1, "time": "20:30", "memo": null, "poi_id": "Poi:4abe8184-06ec-481d-ab05-63da9dc87f59", "name_ko": "스루가야 신주쿠 마루이아넥스 점", "name_en": "Surugaya Shinjuku Marianex", "name_local": "駿河屋 新宿マルイアネックス店", "category": ["쇼핑"], "lat": 35.6901514, "lng": 139.7058419, "address": null, "rating": 0, "reviews": 0, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/4d1653f0-10cb-46dd-9c5f-ab0824fade28.jpeg"}, {"id": "260770298", "day": 1, "time": null, "memo": null, "poi_id": "Poi:0ffc1755-a112-47b6-a623-773215646834", "name_ko": "가부키초", "name_en": "Kabukicho", "name_local": "歌舞伎町", "category": ["관광명소"], "lat": 35.6960834, "lng": 139.7026251, "address": null, "rating": 3.7, "reviews": 159, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/87923344-b558-4307-95a5-ae8114590370.jpg"}, {"id": "260770337", "day": 1, "time": "23:20", "memo": null, "poi_id": "Poi:d2476ca1-bb78-415b-9984-129aa9406398", "name_ko": "펄 호텔 신주쿠 아케보노바시", "name_en": "Pearl Hotel Shinjuku Akebonobashi", "name_local": "パールホテル新宿曙橋", "category": [], "lat": 35.6941842, "lng": 139.7208797, "address": null, "rating": 4.6, "reviews": 75, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/ef6525db-bb2c-4609-b3c1-f12536b3f0f8.jpeg"}], "2": [{"id": "260632572", "day": 2, "time": "10:20", "memo": null, "poi_id": "Poi:d2476ca1-bb78-415b-9984-129aa9406398", "name_ko": "펄 호텔 신주쿠 아케보노바시", "name_en": "Pearl Hotel Shinjuku Akebonobashi", "name_local": "パールホテル新宿曙橋", "category": [], "lat": 35.6941842, "lng": 139.7208797, "address": null, "rating": 4.6, "reviews": 75, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/ef6525db-bb2c-4609-b3c1-f12536b3f0f8.jpeg"}, {"id": "260797416", "day": 2, "time": "10:50", "memo": null, "poi_id": "Poi:25ee6e49-bcd1-40dc-8368-a7897272a1a2", "name_ko": "하라주쿠 역", "name_en": "Harajuku Station", "name_local": "原宿駅", "category": ["관광명소"], "lat": 35.671599, "lng": 139.7029143, "address": null, "rating": 4, "reviews": 92, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/b2d8cd07-9553-45f9-805e-df85088bdffc.jpeg"}, {"id": "260797454", "day": 2, "time": "11:00", "memo": null, "poi_id": "Poi:51f3e2fb-092d-4783-99e0-1eb1c3f1965d", "name_ko": "유니클로 하라주쿠 점", "name_en": "Uniqlo Harajuku", "name_local": "ユニクロ 原宿店", "category": ["쇼핑"], "lat": 35.67060399999999, "lng": 139.7032076, "address": null, "rating": 4, "reviews": 1, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/6e4b7787-d087-4508-bed4-8dfb971e6785.jpeg"}, {"id": "260800531", "day": 2, "time": "11:30", "memo": "스테이크 덮밥 ", "poi_id": "Poi:0208f698-ef13-47d2-9aec-c8d3d747352d", "name_ko": "레드록 하라주쿠 점", "name_en": "Red Rock Harajuku", "name_local": "レッドロック 原宿店", "category": ["음식점"], "lat": 35.6714073, "lng": 139.707823, "address": null, "rating": 4.1, "reviews": 324, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/b9455aaf-03c3-477f-84df-9a5f50763bf7.jpg"}, {"id": "260821410", "day": 2, "time": "13:10", "memo": null, "poi_id": "Poi:a043ee04-4352-4bb1-b528-a92cc1bd04f2", "name_ko": "치이카와 베이커리", "name_en": "Chiikawa Bakery", "name_local": "ちいかわベーカリー", "category": ["카페/디저트"], "lat": 35.6687294, "lng": 139.7059549, "address": null, "rating": 3.5, "reviews": 2, "image": null}, {"id": "260821479", "day": 2, "time": "14:30", "memo": null, "poi_id": "Poi:9e86817f-b370-46c0-ac42-5a2712db4708", "name_ko": "키디랜드 하라주쿠 점", "name_en": "Kiddy Land Harajuku Branch", "name_local": "キデイランド 原宿店", "category": ["쇼핑"], "lat": 35.667733, "lng": 139.7065474, "address": null, "rating": 4.3, "reviews": 286, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/af3c2e6a-c051-4ccb-90ee-2a14f3eaf236.jpeg"}, {"id": "260821530", "day": 2, "time": "15:20", "memo": null, "poi_id": "Poi:a043ee04-4352-4bb1-b528-a92cc1bd04f2", "name_ko": "치이카와 베이커리", "name_en": "Chiikawa Bakery", "name_local": "ちいかわベーカリー", "category": ["카페/디저트"], "lat": 35.6687294, "lng": 139.7059549, "address": null, "rating": 3.5, "reviews": 2, "image": null}, {"id": "260828540", "day": 2, "time": "16:26", "memo": null, "poi_id": "Poi:38957325-9283-430b-b4a7-dfe4ace24368", "name_ko": "시퀀스 미야시타 파크", "name_en": "sequence MIYASHITA PARK", "name_local": "sequence MIYASHITA PARK", "category": [], "lat": 35.661987, "lng": 139.701827, "address": null, "rating": 4.4, "reviews": 22, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/df25e586-7ce3-494e-894b-0d5710adf66b.jpeg"}, {"id": "260833330", "day": 2, "time": "17:13", "memo": null, "poi_id": "Poi:ecebe199-56c7-4b9f-932a-c59d71b66b01", "name_ko": "시부야 스크램블 교차로", "name_en": "Shibuya intersection", "name_local": "渋谷スクランブル交差点", "category": ["관광명소"], "lat": 35.659482, "lng": 139.7005596, "address": null, "rating": 4.1, "reviews": 644, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/cc5a9b09-1e20-4593-92e6-91b1f684a30b.jpeg"}, {"id": "260836894", "day": 2, "time": "17:50", "memo": null, "poi_id": "Poi:98b3609b-de28-4c4b-b145-ef8b13cee629", "name_ko": "시부야 파르코", "name_en": "Shibuya Parco", "name_local": "渋谷パルコ", "category": ["쇼핑"], "lat": 35.6620484, "lng": 139.6987767, "address": null, "rating": 4.5, "reviews": 114, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/2e8e8413-e337-490a-851a-f1972d2b4063.jpg"}, {"id": "260837075", "day": 2, "time": "17:54", "memo": null, "poi_id": "Poi:01f03b87-117e-4680-a328-ad8d4cc63423", "name_ko": "닌텐도 도쿄", "name_en": "Nintendo Tokyo", "name_local": "任天堂 東京", "category": ["쇼핑"], "lat": 35.6621161, "lng": 139.6986385, "address": null, "rating": 4.6, "reviews": 30, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/c6b8ca56-98de-4f2b-8bf8-ee51f37e9e80.jpeg"}, {"id": "260842744", "day": 2, "time": "19:56", "memo": null, "poi_id": "Poi:b3f92945-e95c-48ca-88c1-fbf88518dfd1", "name_ko": "만다라케 시부야점", "name_en": "Mandarake Shibuya", "name_local": "まんだらけ 渋谷店", "category": ["쇼핑"], "lat": 35.66153499999999, "lng": 139.6977247, "address": null, "rating": 4, "reviews": 32, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/0ff137a2-8911-41b0-8ed8-28be2af4c86c.jpeg"}, {"id": "260847728", "day": 2, "time": "19:30", "memo": null, "poi_id": "Poi:72ea42ac-bdd4-46d2-908d-53e04b5af4d2", "name_ko": "야키니쿠 라이크 시부야 우다가와초 점", "name_en": "Yakiniku Like Shibuya Udagawacho", "name_local": "焼肉ライク 渋谷宇田川町店", "category": ["음식점"], "lat": 35.6613192, "lng": 139.6979506, "address": null, "rating": 4, "reviews": 12, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/58cdcf80-1093-4a13-8d50-ffd8ee7c6e45.jpeg"}, {"id": "260850057", "day": 2, "time": "20:31", "memo": null, "poi_id": "Poi:4227b5bb-65fd-40bd-937b-e60aacca1382", "name_ko": "빅쿠 카메라 신주쿠 동쪽 출구 점", "name_en": "BIC CAMERA Shinjuku Station East Store", "name_local": "ビックカメラ 新宿東口駅前店", "category": ["쇼핑"], "lat": 35.69201539999999, "lng": 139.7018685, "address": null, "rating": 4.7, "reviews": 12, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/d5101996-fab6-4c73-a53b-562b2c347345.jpeg"}, {"id": "260859695", "day": 2, "time": "21:07", "memo": null, "poi_id": "Poi:11dac7bb-215b-4f67-8210-b62bc4850c1b", "name_ko": "메가 돈키호테 시부야 본점", "name_en": "MEGA Don Quijote Shibuya", "name_local": "MEGAドン・キホーテ渋谷本店", "category": ["쇼핑"], "lat": 35.6605137, "lng": 139.6978782, "address": null, "rating": 4.1, "reviews": 463, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/d78e09ff-af38-42db-9017-2d2bc6dbe06e.jpeg"}, {"id": "260864742", "day": 2, "time": "22:50", "memo": null, "poi_id": "Poi:717e5186-22e9-4732-8b9c-3dbd66d14943", "name_ko": "신주쿠 역", "name_en": "Shinjuku Station", "name_local": "新宿駅", "category": ["관광명소"], "lat": 35.6896067, "lng": 139.7005713, "address": null, "rating": 4.2, "reviews": 197, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/d60e9116-9a39-419f-9f36-b671f99189d3.jpeg"}, {"id": "260873587", "day": 2, "time": "23:20", "memo": null, "poi_id": "Poi:d2476ca1-bb78-415b-9984-129aa9406398", "name_ko": "펄 호텔 신주쿠 아케보노바시", "name_en": "Pearl Hotel Shinjuku Akebonobashi", "name_local": "パールホテル新宿曙橋", "category": [], "lat": 35.6941842, "lng": 139.7208797, "address": null, "rating": 4.6, "reviews": 75, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/ef6525db-bb2c-4609-b3c1-f12536b3f0f8.jpeg"}], "3": [{"id": "260632573", "day": 3, "time": "10:10", "memo": "출발", "poi_id": "Poi:d2476ca1-bb78-415b-9984-129aa9406398", "name_ko": "펄 호텔 신주쿠 아케보노바시", "name_en": "Pearl Hotel Shinjuku Akebonobashi", "name_local": "パールホテル新宿曙橋", "category": [], "lat": 35.6941842, "lng": 139.7208797, "address": null, "rating": 4.6, "reviews": 75, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/ef6525db-bb2c-4609-b3c1-f12536b3f0f8.jpeg"}, {"id": "260900791", "day": 3, "time": "10:47", "memo": null, "poi_id": "Poi:f695abe4-dd7a-4ecc-8063-01121cf9bbca", "name_ko": "시부야 역", "name_en": "Shibuya Station", "name_local": "渋谷駅", "category": ["관광명소"], "lat": 35.6580339, "lng": 139.7016358, "address": null, "rating": 4.2, "reviews": 115, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/6c3beffc-9d9b-49b8-ba58-a2b573912277.jpeg"}, {"id": "260904901", "day": 3, "time": "11:40", "memo": null, "poi_id": "Poi:96fa531b-2c11-4395-a488-21644be89f01", "name_ko": "시부야 스카이", "name_en": "Shibuya Sky", "name_local": "渋谷スカイ", "category": ["관광명소"], "lat": 35.6584466, "lng": 139.7021636, "address": null, "rating": 4.6, "reviews": 351, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/619605d3-e4ef-4372-a1a7-78706c4c5d7e.jpeg"}, {"id": "260911532", "day": 3, "time": "13:00", "memo": null, "poi_id": "Poi:f695abe4-dd7a-4ecc-8063-01121cf9bbca", "name_ko": "시부야 역", "name_en": "Shibuya Station", "name_local": "渋谷駅", "category": ["관광명소"], "lat": 35.6580339, "lng": 139.7016358, "address": null, "rating": 4.2, "reviews": 115, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/6c3beffc-9d9b-49b8-ba58-a2b573912277.jpeg"}, {"id": "260916650", "day": 3, "time": "13:40", "memo": null, "poi_id": "Poi:265dcc91-8185-4227-ad11-9c43e7ecf4d7", "name_ko": "호텔 컴팩트", "name_en": "Hotel Comfact", "name_local": "ホテルコンファクト", "category": [], "lat": 35.718153, "lng": 139.781931, "address": null, "rating": 4, "reviews": 2, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/05f898da-0957-4c56-b3a0-36820ee615e8.jpeg"}, {"id": "260921190", "day": 3, "time": "14:30", "memo": null, "poi_id": "Poi:06921f0d-97e7-4398-81e9-214b1c6104a5", "name_ko": "쿠라우조 함바그 앤 스테에키 쇼쿠도", "name_en": "Kurauzo Hambagu & Suteki Shokudo", "name_local": "Kurauzo ハンバーグ & ステーキ食堂", "category": ["음식점"], "lat": 35.7080934, "lng": 139.7743073, "address": null, "rating": 4.5, "reviews": 2, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/69babdff-b887-4a94-b54f-39f78182344e.jpeg"}, {"id": "260928929", "day": 3, "time": "15:35", "memo": null, "poi_id": "Poi:db0de498-bab9-45d6-a3bd-4bb411d12fe2", "name_ko": "야마시로야", "name_en": "Yamashiroya", "name_local": "Yamashiroya", "category": ["쇼핑"], "lat": 35.71132800000001, "lng": 139.7753067, "address": null, "rating": 4, "reviews": 10, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/e67fd69a-2ab8-488a-9f97-97c3a7905e19.jpeg"}, {"id": "260936173", "day": 3, "time": "15:59", "memo": "16:38 출발", "poi_id": "Poi:265dcc91-8185-4227-ad11-9c43e7ecf4d7", "name_ko": "호텔 컴팩트", "name_en": "Hotel Comfact", "name_local": "ホテルコンファクト", "category": [], "lat": 35.718153, "lng": 139.781931, "address": null, "rating": 4, "reviews": 2, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/05f898da-0957-4c56-b3a0-36820ee615e8.jpeg"}, {"id": "260938638", "day": 3, "time": null, "memo": null, "poi_id": "Poi:5205ceb4-30d0-4db6-978f-8e843cfbc7f0", "name_ko": "우에노", "name_en": "Ueno", "name_local": "上野", "category": ["관광명소"], "lat": 35.7087296, "lng": 139.7741538, "address": null, "rating": 4.3, "reviews": 51, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/02b1c63a-4115-49e8-9f9b-68bc71c0c060.jpeg"}, {"id": "260938639", "day": 3, "time": "16:57", "memo": null, "poi_id": "Poi:964b44a0-48de-4430-b6e9-cf44a27ce95a", "name_ko": "우에노 역", "name_en": "Ueno Station", "name_local": "上野駅", "category": ["관광명소"], "lat": 35.7141672, "lng": 139.7774091, "address": null, "rating": 4.6, "reviews": 20, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/b5c893f3-4fb5-4719-aaad-46cebc94e81e.jpeg"}, {"id": "260940382", "day": 3, "time": "17:08", "memo": null, "poi_id": "Poi:440b2ae3-a108-4fe8-b804-4796672b481a", "name_ko": "도쿄 역", "name_en": "Tokyo Station", "name_local": "東京駅", "category": ["관광명소"], "lat": 35.68123620000001, "lng": 139.7671248, "address": null, "rating": 4.3, "reviews": 274, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/4c3b2651-09e0-4d8d-a942-91db12240230.jpeg"}, {"id": "260958599", "day": 3, "time": null, "memo": null, "poi_id": "Poi:1452f663-c29a-4b9a-905f-fea6f6fe65b3", "name_ko": "도쿄 캐릭터 스트리트", "name_en": "Tokyo Character Street", "name_local": "東京キャラクタ－ストリ－ト", "category": ["관광명소"], "lat": 35.6820335, "lng": 139.7686549, "address": null, "rating": 4.2, "reviews": 157, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/1062d071-9c14-42f2-9fbc-13337379dcdb.jpg"}, {"id": "260949542", "day": 3, "time": "18:30", "memo": null, "poi_id": "Poi:a18641d1-9029-49bf-8718-e6f363df883b", "name_ko": "세이코 하우스 긴자 시계탑", "name_en": "Seiko House Ginza Clock Tower", "name_local": "セイコーハウス銀座 時計塔", "category": ["관광명소"], "lat": 35.67156969999999, "lng": 139.7650504, "address": null, "rating": 4.8, "reviews": 4, "image": null}, {"id": "260952115", "day": 3, "time": "18:43", "memo": null, "poi_id": "Poi:78471f50-b7f1-4edc-ab49-0295f00a51a3", "name_ko": "유니클로 긴자 점", "name_en": "Uniqlo Ginza", "name_local": "ユニクロ 銀座店", "category": ["쇼핑"], "lat": 35.6702448, "lng": 139.7634686, "address": null, "rating": 4.1, "reviews": 87, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/d3ba9a2e-2b00-46d8-b5fc-f7d8b65125a4.jpeg"}, {"id": "260958636", "day": 3, "time": "20:20", "memo": null, "poi_id": "Poi:39ec0638-479e-416b-a433-cc0f117793c1", "name_ko": "하쿠힌칸 토이 파크", "name_en": "Hakuhinkan Toy Park", "name_local": "博品館トイパーク", "category": ["쇼핑"], "lat": 35.6677914, "lng": 139.7611249, "address": null, "rating": 4.1, "reviews": 42, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/5ab89f72-e685-471e-b4b7-2d832a791f89.jpeg"}, {"id": "260958719", "day": 3, "time": "19:56", "memo": "GOAT", "poi_id": "Poi:867a5f4f-513b-422c-841a-34537fb2b4ae", "name_ko": "우나기노 에이토 긴자 점", "name_en": "Unagino Eito Ginza", "name_local": "鰻のエイト 銀座店", "category": ["음식점"], "lat": 35.6700218, "lng": 139.7610886, "address": null, "rating": 5, "reviews": 2, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/11dc8ab4-1db9-4251-be60-66a26ab2a26b.jpeg"}, {"id": "260966213", "day": 3, "time": "21:04", "memo": null, "poi_id": "Poi:88da796a-16f6-46da-afb7-e1dacb9e7fad", "name_ko": "가미야초 역", "name_en": "Kamiyacho Station", "name_local": "神谷町駅", "category": ["관광명소"], "lat": 35.6631176, "lng": 139.7451826, "address": null, "rating": 5, "reviews": 1, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/1c019d6f-34f1-4005-ad2c-0687ccddd3e2.jpeg"}, {"id": "260969571", "day": 3, "time": "21:34", "memo": null, "poi_id": "Poi:c3d2ef37-f0ef-42b4-a210-039dc08143bf", "name_ko": "도쿄 타워", "name_en": "Tokyo Tower", "name_local": "東京タワー", "category": ["관광명소"], "lat": 35.6585805, "lng": 139.7454329, "address": null, "rating": 4.4, "reviews": 874, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/54c1befc-094b-4464-bbc7-ba754984fd6f.jpeg"}, {"id": "260984364", "day": 3, "time": "22:50", "memo": null, "poi_id": null, "name_ko": "자유 일정"}, {"id": "260984231", "day": 3, "time": "23:34", "memo": null, "poi_id": "Poi:33bf0931-c2da-4665-8956-fd17d5b6b79f", "name_ko": "하마마쓰초 역", "name_en": "Hamamatsucho Station", "name_local": "浜松町駅", "category": ["관광명소"], "lat": 35.6553809, "lng": 139.7571289, "address": null, "rating": 0, "reviews": 0, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/4708671b-d8a1-4965-bddf-224b427727b3.jpeg"}, {"id": "260988702", "day": 3, "time": "00:13", "memo": null, "poi_id": "Poi:265dcc91-8185-4227-ad11-9c43e7ecf4d7", "name_ko": "호텔 컴팩트", "name_en": "Hotel Comfact", "name_local": "ホテルコンファクト", "category": [], "lat": 35.718153, "lng": 139.781931, "address": null, "rating": 4, "reviews": 2, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/05f898da-0957-4c56-b3a0-36820ee615e8.jpeg"}], "4": [{"id": "261023357", "day": 4, "time": "11:48", "memo": "11:48출발", "poi_id": "Poi:265dcc91-8185-4227-ad11-9c43e7ecf4d7", "name_ko": "호텔 컴팩트", "name_en": "Hotel Comfact", "name_local": "ホテルコンファクト", "category": [], "lat": 35.718153, "lng": 139.781931, "address": null, "rating": 4, "reviews": 2, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/05f898da-0957-4c56-b3a0-36820ee615e8.jpeg"}, {"id": "261029390", "day": 4, "time": "12:20", "memo": "13:40 나옴", "poi_id": "Poi:6af2cbbc-96d4-42fa-9073-e25a01a8195e", "name_ko": "가마치쿠", "name_en": "Kamachiku", "name_local": "釜竹", "category": ["음식점"], "lat": 35.718082, "lng": 139.766965, "address": null, "rating": 4, "reviews": 1, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/efae25fe-04f0-4790-b9f0-39b213fb6119.jpeg"}, {"id": "261040186", "day": 4, "time": "14:00", "memo": null, "poi_id": "Poi:3cf1a16c-8c15-40b1-a5eb-45b5bc6eef0a", "name_ko": "우에노 온시 공원", "name_en": "Ueno Onshi Park", "name_local": "上野恩賜公園", "category": ["관광명소"], "lat": 35.7147557, "lng": 139.7734312, "address": null, "rating": 4.1, "reviews": 311, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/c2069e63-e368-48dc-8a35-8c4213b8a5b8.jpeg"}, {"id": "261042452", "day": 4, "time": "14:39", "memo": null, "poi_id": "Poi:a32ba2c1-9d67-42a3-b89d-9fb02901d159", "name_ko": "게이세이 우에노 역", "name_en": "Keisei Ueno Station", "name_local": "京成上野駅", "category": ["관광명소"], "lat": 35.711144862085185, "lng": 139.7738874790985, "address": null, "rating": 4.6, "reviews": 23, "image": null}, {"id": "261044027", "day": 4, "time": "14:49", "memo": null, "poi_id": "Poi:634dd2a2-0f4f-42f8-b159-77e70c6230b0", "name_ko": "스에히로초 역", "name_en": "Suehirocho Station", "name_local": "末広町駅", "category": ["관광명소"], "lat": 35.7028977, "lng": 139.7716539, "address": null, "rating": 3, "reviews": 1, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/a061af2d-e2af-4324-91f2-4f104f07539e.jpeg"}, {"id": "261058145", "day": 4, "time": null, "memo": null, "poi_id": "Poi:a506e9c4-a648-4d47-8ff0-26bbb84356d4", "name_ko": "정글 아키하바라 1호점", "name_en": "Jungle Akihabara 1st Store", "name_local": "ジャングル秋葉原1号店", "category": ["쇼핑"], "lat": 35.7016095, "lng": 139.7706636, "address": null, "rating": 3, "reviews": 1, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/319afb07-18d1-47c7-aec4-dfac8c8d5d34.jpeg"}, {"id": "261058169", "day": 4, "time": "16:00", "memo": null, "poi_id": "Poi:9f92c57b-2091-48bd-a2b7-562fd2d4f1a3", "name_ko": "만다라케 컴플렉스", "name_en": "Mandarake Complex", "name_local": "まんだらけコンプレックス", "category": ["쇼핑"], "lat": 35.7003733, "lng": 139.7705031, "address": null, "rating": 4.2, "reviews": 27, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/58071800-085f-40b0-b64b-ff624525147f.jpeg"}, {"id": "261063451", "day": 4, "time": null, "memo": null, "poi_id": null, "name_ko": "자유 일정"}, {"id": "261068291", "day": 4, "time": "16:51", "memo": null, "poi_id": "Poi:eadef802-8bcc-457e-88eb-435703da8933", "name_ko": "라신반 아키하바라 신관 점 ", "name_en": "Lashinbang Akihabara New Building", "name_local": "らしんばん秋葉原店新館", "category": ["쇼핑"], "lat": 35.6995096, "lng": 139.7703856, "address": null, "rating": 4.3, "reviews": 16, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/8c56614b-5ebb-44e3-9a95-6f6d05bf74bf.jpeg"}, {"id": "261088519", "day": 4, "time": "18:40", "memo": null, "poi_id": "Poi:62c0a9aa-d045-449b-bfa5-8579d5ae3b5c", "name_ko": "오타추 아키하바라 4호점 건담 전문관", "name_en": "Otachu Akihabara No. 4 Gundam Museum", "name_local": "おたちゅう4号店 ガンダム専門館", "category": ["쇼핑"], "lat": 35.6980094, "lng": 139.7724164, "address": null, "rating": 4.3, "reviews": 3, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/ea45a6e8-c768-47f3-9f6c-0915506df2e7.jpeg"}, {"id": "261095074", "day": 4, "time": "19:38", "memo": null, "poi_id": "Poi:905599e5-13e7-4708-b6bb-486be532af0b", "name_ko": "아키하바라 라디오 회관", "name_en": "Akihabara Radio Hall", "name_local": "秋葉原ラジオ会館", "category": ["관광명소"], "lat": 35.6979149, "lng": 139.7719571, "address": null, "rating": 4.4, "reviews": 75, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/4b8ce94e-e459-488b-98ce-524fb1da2881.jpeg"}, {"id": "261095185", "day": 4, "time": "20:16", "memo": null, "poi_id": null, "name_ko": "자유 일정"}, {"id": "261112047", "day": 4, "time": "22:45", "memo": null, "poi_id": "Poi:5d7de4f3-882b-4e5c-a56e-d21e1decacd3", "name_ko": "빅 카메라 아키바 점 ", "name_en": "Big Camera AKIBA", "name_local": "ビックカメラ AKIBA", "category": ["쇼핑"], "lat": 35.699826, "lng": 139.7717547, "address": null, "rating": 4.2, "reviews": 10, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/e6bf2225-38f7-4834-8673-52e6ed59eda0.jpeg"}, {"id": "261113843", "day": 4, "time": "22:09", "memo": null, "poi_id": "Poi:947f73da-1db0-418c-aebf-b19fe356b198", "name_ko": "돈키호테 아키하바라 점", "name_en": "Don Quijote Akihabara", "name_local": "ドン・キホーテ 秋葉原店", "category": ["쇼핑"], "lat": 35.7007345, "lng": 139.7717177, "address": null, "rating": 3.7, "reviews": 79, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/a3105769-02b4-49cc-8635-2f2a9be2f565.jpeg"}, {"id": "261129341", "day": 4, "time": "23:34", "memo": null, "poi_id": "Poi:5b0b3cc7-9662-4273-a901-e563d511821b", "name_ko": "아키하바라 역", "name_en": "Akihabara Station", "name_local": "秋葉原駅", "category": ["관광명소"], "lat": 35.69838299999999, "lng": 139.7730717, "address": null, "rating": 3.6, "reviews": 5, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/2221e221-1579-459b-aca0-3e5b2cd4c397.jpeg"}, {"id": "261133662", "day": 4, "time": "23:41", "memo": null, "poi_id": "Poi:964b44a0-48de-4430-b6e9-cf44a27ce95a", "name_ko": "우에노 역", "name_en": "Ueno Station", "name_local": "上野駅", "category": ["관광명소"], "lat": 35.7141672, "lng": 139.7774091, "address": null, "rating": 4.6, "reviews": 20, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/b5c893f3-4fb5-4719-aaad-46cebc94e81e.jpeg"}, {"id": "261133747", "day": 4, "time": "00:03", "memo": null, "poi_id": "Poi:265dcc91-8185-4227-ad11-9c43e7ecf4d7", "name_ko": "호텔 컴팩트", "name_en": "Hotel Comfact", "name_local": "ホテルコンファクト", "category": [], "lat": 35.718153, "lng": 139.781931, "address": null, "rating": 4, "reviews": 2, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/05f898da-0957-4c56-b3a0-36820ee615e8.jpeg"}], "5": [{"id": "261163539", "day": 5, "time": "09:46", "memo": "출발", "poi_id": "Poi:265dcc91-8185-4227-ad11-9c43e7ecf4d7", "name_ko": "호텔 컴팩트", "name_en": "Hotel Comfact", "name_local": "ホテルコンファクト", "category": [], "lat": 35.718153, "lng": 139.781931, "address": null, "rating": 4, "reviews": 2, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/05f898da-0957-4c56-b3a0-36820ee615e8.jpeg"}, {"id": "261163619", "day": 5, "time": "10:10", "memo": null, "poi_id": "Poi:964b44a0-48de-4430-b6e9-cf44a27ce95a", "name_ko": "우에노 역", "name_en": "Ueno Station", "name_local": "上野駅", "category": ["관광명소"], "lat": 35.7141672, "lng": 139.7774091, "address": null, "rating": 4.6, "reviews": 20, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/b5c893f3-4fb5-4719-aaad-46cebc94e81e.jpeg"}, {"id": "261168260", "day": 5, "time": "10:20", "memo": null, "poi_id": "Poi:4141a864-1f01-4ab2-8486-d336eb546868", "name_ko": "오카치마치 역", "name_en": "Okachimachi Station", "name_local": "御徒町駅", "category": ["관광명소"], "lat": 35.7075185, "lng": 139.7748564, "address": null, "rating": 4, "reviews": 3, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/d0d1d4a1-829b-4d0e-a41d-6aecac0dd7ed.jpeg"}, {"id": "261168318", "day": 5, "time": "11:50", "memo": null, "poi_id": "Poi:f8e53046-9a16-4625-86ba-229b1c717ec6", "name_ko": "카레노 시민 알바 아키하바라 본점", "name_en": "Kareno Shimin Alba Akihabara Honten", "name_local": "カレーの市民アルバ 秋葉原本店", "category": ["음식점"], "lat": 35.70054096637779, "lng": 139.7703661, "address": null, "rating": 0, "reviews": 0, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/3aa116ea-5992-4eae-aa92-ff9f3d8cf9ab.jpeg"}, {"id": "261193591", "day": 5, "time": "14:46", "memo": null, "poi_id": null, "name_ko": "자유 일정"}, {"id": "261200337", "day": 5, "time": "15:43", "memo": null, "poi_id": "Poi:5b0b3cc7-9662-4273-a901-e563d511821b", "name_ko": "아키하바라 역", "name_en": "Akihabara Station", "name_local": "秋葉原駅", "category": ["관광명소"], "lat": 35.69838299999999, "lng": 139.7730717, "address": null, "rating": 3.6, "reviews": 5, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/2221e221-1579-459b-aca0-3e5b2cd4c397.jpeg"}, {"id": "261203387", "day": 5, "time": "16:04", "memo": "16:20 스카이라이너 - 나리타 공항 2터미널", "poi_id": null, "name_ko": "16:20 스카이라이너 - 나리타 공항 2터미널", "lat": 35.7126, "lng": 139.7744}, {"id": "261237960", "day": 5, "time": "17:05", "memo": null, "poi_id": "Poi:21f8e4b2-c9f5-478c-955b-9885a040cd07", "name_ko": "나리타 공항 역", "name_en": "Narita Airport Station", "name_local": "成田空港駅", "category": ["관광명소"], "lat": 35.7648331, "lng": 140.3860192, "address": null, "rating": 4.3, "reviews": 3, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/630fd3a5-13f2-44e4-a994-09bb0ec5d8f3.jpeg"}, {"id": "261220355", "day": 5, "time": "18:55", "memo": null, "poi_id": "Poi:1c5f136c-9cbf-4989-a52d-f8ca13341b63", "name_ko": "나리타 국제공항", "name_en": "Narita International Airport", "name_local": "成田国際空港", "category": ["관광명소"], "lat": 35.770178, "lng": 140.3843215, "address": null, "rating": 4.3, "reviews": 880, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/f42f0681-ed20-4b77-8b52-2558d88ed408.jpeg"}, {"id": "261238543", "day": 5, "time": "21:20", "memo": null, "poi_id": "Poi:42e13a8f-ff7d-49e9-a40b-4fa0dc358a4b", "name_ko": "인천 국제공항 제1여객터미널", "name_en": "Incheon International Airport Terminal 1", "name_local": "인천 국제공항 제1여객터미널", "category": ["관광명소"], "lat": 37.44907672961736, "lng": 126.4517834661316, "address": null, "rating": 4.8, "reviews": 39, "image": "https://media.triple.guide/triple-cms/c_limit,f_auto,h_1024,w_1024/12ea0312-1a4d-4760-9c83-072c8e5a05cd.jpeg"}]};
+
+    const dayColors = {
+      1: '#a855f7', // Purple (Odaiba & Shinjuku)
+      2: '#10b981', // Emerald (Harajuku, Shibuya & Chiikawa Bakery)
+      3: '#3b82f6', // Tokyo Blue (Shibuya Sky, Ginza, Tokyo Tower)
+      4: '#f59e0b', // Electric Amber (Ueno & Akihabara)
+      5: '#ef4444'  // Crimson (Akihabara & Narita return)
+    };
+
+    const dayTitles = {
+      'all': { title: '🌟 도쿄 전체 여정 조망', sub: '5일간 79개 스팟 & 서브컬처 성지순례' },
+      1: { title: 'Day 1: 나리타 ➔ 오다이바 건담 ➔ 신주쿠 가부키초', sub: '스카이라이너, 유리카모메, 건담 베이스, 키디랜드' },
+      2: { title: 'Day 2: 하라주쿠 ➔ 시부야 ➔ 치이카와 베이커리', sub: '레드록 스테이크동, 닌텐도 도쿄, 스크램블 교차로' },
+      3: { title: 'Day 3: 시부야스카이 ➔ 긴자 우나기 GOAT ➔ 도쿄타워', sub: '시부야 스카이 전망대, 긴자 세이코 시계탑, 도쿄타워 야경' },
+      4: { title: 'Day 4: 우에노 ➔ 아키하바라 덕질 성지 완전정복', sub: '가마치쿠 우동, 만다라케 컴플렉스, 라디오회관, 건담관' },
+      5: { title: 'Day 5: 아키하바라 알바 카레 ➔ 나리타 귀국', sub: '카레노 시민 알바 본점, 스카이라이너, 인천공항 도착' }
+    };
+
+    let currentDay = 'all';
+    let currentCat = 'all';
+    let markers = [];
+    let polylines = [];
+    let isSidebarCollapsed = false;
+
+    // Initialize Leaflet Map (Centered on Tokyo)
+    const map = L.map('map', {
+      center: [35.6895, 139.6917],
+      zoom: 12,
+      zoomControl: false
+    });
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Dark Matter Map Tiles
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    function toggleSidebar() {
+      isSidebarCollapsed = !isSidebarCollapsed;
+      const sb = document.getElementById('sidebar');
+      const toggleBtn = document.getElementById('sidebarToggleBtn');
+      const hud = document.getElementById('dayHud');
+
+      if (isSidebarCollapsed) {
+        sb.classList.add('collapsed');
+        toggleBtn.textContent = '▶';
+        toggleBtn.title = '메뉴바 펼치기 (열기)';
+        if (hud) hud.style.left = '60px';
+      } else {
+        sb.classList.remove('collapsed');
+        toggleBtn.textContent = '◀';
+        toggleBtn.title = '메뉴바 접기 (닫기)';
+        if (hud) hud.style.left = '520px';
+      }
+
+      setTimeout(() => map.invalidateSize(), 360);
+    }
+
+    function getCategoryTag(item) {
+      const name = item.name_ko || '';
+      const memo = item.memo || '';
+      const cats = (item.category || []).join(' ');
+
+      if (name.includes('역') || name.includes('공항') || name.includes('터미널') || memo.includes('스카이라이너') || memo.includes('야마노테선')) {
+        return 'metro';
+      }
+      if (name.includes('베이커리') || name.includes('키디랜드') || name.includes('건담') || name.includes('닌텐도') || 
+          name.includes('만다라케') || name.includes('빅쿠') || name.includes('돈키호테') || name.includes('유니클로') || 
+          name.includes('스루가야') || name.includes('라디오') || name.includes('라신반') || name.includes('파르코') || 
+          name.includes('오타추') || name.includes('토이') || name.includes('야마시로야') || name.includes('정글')) {
+        return 'goods';
+      }
+      if (cats.includes('음식점') || cats.includes('카페') || name.includes('레드록') || name.includes('야키니쿠') || 
+          name.includes('쿠라우조') || name.includes('우나기') || name.includes('가마치쿠') || name.includes('카레') || 
+          name.includes('식당') || memo.includes('스테이크') || memo.includes('GOAT')) {
+        return 'food';
+      }
+      return 'tour';
+    }
+
+    function renderView() {
+      // Clear markers and polylines
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+      polylines.forEach(p => map.removeLayer(p));
+      polylines = [];
+
+      const spotListEl = document.getElementById('spotList');
+      spotListEl.innerHTML = '';
+
+      let itemsToShow = [];
+      const daysToProcess = currentDay === 'all' ? [1, 2, 3, 4, 5] : [parseInt(currentDay)];
+
+      daysToProcess.forEach(d => {
+        const dayItems = tripData[d] || [];
+        dayItems.forEach((it, idx) => {
+          it._origDay = d;
+          it._origIdx = idx + 1;
+          it._cat = getCategoryTag(it);
+          if (currentCat === 'all' || it._cat === currentCat) {
+            itemsToShow.push(it);
+          }
+        });
+      });
+
+      // Update HUD
+      const info = dayTitles[currentDay] || dayTitles['all'];
+      document.getElementById('hudDayTitle').textContent = info.title;
+      document.getElementById('hudDaySub').textContent = info.sub;
+      document.getElementById('hudSpotCount').textContent = `${itemsToShow.length} SPOTS`;
+
+      // Group for polylines by day
+      const dayCoords = {};
+      const latLngBounds = [];
+
+      itemsToShow.forEach(it => {
+        // Build card
+        const card = document.createElement('div');
+        card.className = 'spot-card';
+        card.id = `card_${it.id}`;
+
+        const dayColor = dayColors[it._origDay] || '#38bdf8';
+        const ratingHtml = it.rating ? `<span class="badge-rating">⭐ ${it.rating}</span>` : '';
+        const memoHtml = it.memo ? `<div class="spot-memo">💬 ${it.memo}</div>` : '';
+        const photoHtml = it.image ? `<img src="${it.image}" class="spot-photo" loading="lazy" alt="${it.name_ko}">` : '';
+        const catLabel = it._cat === 'food' ? '🍜 맛집' : it._cat === 'goods' ? '🛍️ 쇼핑/굿즈' : it._cat === 'metro' ? '🚇 교통' : '🗼 명소';
+
+        card.innerHTML = `
+          <div class="spot-header">
+            <div class="spot-num" style="background:${dayColor};">${it._origIdx}</div>
+            <div class="spot-meta">
+              <div class="spot-title-row">
+                <div class="spot-name">${it.name_ko || '일정'}</div>
+                <div class="spot-time">${it.time || 'Day ' + it._origDay}</div>
+              </div>
+              <div class="spot-jp">${it.name_local || it.name_en || ''}</div>
+              <div class="spot-badges">
+                <span class="badge-cat">${catLabel}</span>
+                ${ratingHtml}
+                <span style="font-size:10px; color:#64748b;">Day ${it._origDay}</span>
+              </div>
+            </div>
+          </div>
+          ${memoHtml}
+          ${photoHtml}
+        `;
+
+        card.onclick = () => {
+          if (it.lat && it.lng) {
+            map.flyTo([it.lat, it.lng], 16, { duration: 0.8 });
+            const m = markers.find(mk => mk._spotId === it.id);
+            if (m) m.openPopup();
+          }
+          document.querySelectorAll('.spot-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+        };
+
+        spotListEl.appendChild(card);
+
+        // Add Leaflet Marker if has coords
+        if (it.lat && it.lng) {
+          latLngBounds.push([it.lat, it.lng]);
+
+          if (!dayCoords[it._origDay]) dayCoords[it._origDay] = [];
+          dayCoords[it._origDay].push([it.lat, it.lng]);
+
+          // Custom Marker Icon
+          const customIcon = L.divIcon({
+            className: 'custom-tokyo-pin',
+            html: `
+              <div style="
+                width: 28px; height: 28px;
+                background: ${dayColor};
+                border: 2px solid #fff;
+                border-radius: 50%;
+                color: #fff;
+                font-weight: 800;
+                font-size: 11px;
+                display: flex; align-items: center; justify-content: center;
+                box-shadow: 0 0 12px ${dayColor};
+                cursor: pointer;
+              ">${it._origIdx}</div>
+            `,
+            iconSize: [28, 28],
+            iconAnchor: [14, 14],
+            popupAnchor: [0, -16]
+          });
+
+          const marker = L.marker([it.lat, it.lng], { icon: customIcon }).addTo(map);
+          marker._spotId = it.id;
+
+          const popImg = it.image ? `<img src="${it.image}" class="popup-img" alt="${it.name_ko}">` : '';
+          const popMemo = it.memo ? `<div class="popup-memo">💬 ${it.memo}</div>` : '';
+          const gmapUrl = `https://www.google.com/maps/search/?api=1&query=${it.lat},${it.lng}`;
+
+          marker.bindPopup(`
+            <div class="popup-box">
+              ${popImg}
+              <div class="popup-body">
+                <div style="font-size:11px; font-weight:700; color:${dayColor};">DAY ${it._origDay} · ${it.time || ''}</div>
+                <div class="popup-title">${it.name_ko}</div>
+                <div class="popup-jp">${it.name_local || it.name_en || ''}</div>
+                ${popMemo}
+                <div class="popup-links">
+                  <a href="${gmapUrl}" target="_blank" class="popup-btn">📍 구글 지도</a>
+                </div>
+              </div>
+            </div>
+          `);
+
+          marker.on('click', () => {
+            const c = document.getElementById(`card_${it.id}`);
+            if (c) {
+              c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              document.querySelectorAll('.spot-card').forEach(x => x.classList.remove('selected'));
+              c.classList.add('selected');
+            }
+          });
+
+          markers.push(marker);
+        }
+      });
+
+      // Draw Glowing Polylines for each day
+      Object.keys(dayCoords).forEach(d => {
+        const pts = dayCoords[d];
+        if (pts.length > 1) {
+          const poly = L.polyline(pts, {
+            color: dayColors[d] || '#38bdf8',
+            weight: 4,
+            opacity: 0.85,
+            dashArray: '6, 8',
+            lineJoin: 'round'
+          }).addTo(map);
+          polylines.push(poly);
+        }
+      });
+
+      // Fit map bounds
+      if (latLngBounds.length > 0) {
+        map.fitBounds(latLngBounds, { padding: [60, 60], maxZoom: 14 });
+      }
+    }
+
+    function filterDay(day, btn) {
+      currentDay = day;
+      document.querySelectorAll('.day-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderView();
+    }
+
+    function filterCategory(cat, btn) {
+      currentCat = cat;
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderView();
+    }
+
+    // Initial render
+    window.addEventListener('DOMContentLoaded', () => {
+      renderView();
+    });
+  </script>
+</body>
+</html>

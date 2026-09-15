@@ -2,7 +2,7 @@
 
 설범준의 인터랙티브 웹 프로젝트 포털입니다. 순수 프론트엔드 웹 기술(HTML5, CSS3, Vanilla JS, Canvas, Leaflet)로 제작된 다양한 웹 애플리케이션 및 아카이브를 한곳에서 서비스합니다.
 
-## 🚀 수록 프로젝트 (Live Projects - 총 4개)
+## 🚀 수록 프로젝트 (Live Projects - 총 5대 프로젝트)
 
 ### 1. 🚗 [미국·캐나다 자동차 대륙일주 10,786 km](./usa-roadtrip/)
 * **배포 경로**: `/usa-roadtrip/`
@@ -13,17 +13,25 @@
   * 콕핏 HUD 계기판, 18개 스토리 투어, 4K 마스터 포스터 & KML/GPX 다운로드
 * [📋 상세 여행보고서 바로가기](./usa-roadtrip/report.html)
 
-### 2. 🐹 [치이카와 웹 월드 (Chiikawa Web)](./chiikawa-web/)
+### 2. 🗼 [도쿄 핫플레이스 & 서브컬처 성지순례](./tokyo-trip/)
+* **배포 경로**: `/tokyo-trip/`
+* **주요 기능**:
+  * 트리플(Triple) 앱 공식 연동 5일간 79개 스팟 & 56개 핫플레이스 정밀 지도
+  * 오다이바 유니콘 건담, 하라주쿠 치이카와 베이커리, 시부야 스카이, 긴자 우나기(GOAT), 도쿄타워 야경
+  * 우에노 온시공원 & 아키하바라 덕질 성지(만다라케, 라디오회관, 라신반, 오타추)
+  * 일자별(Day 1~5) 동선 및 맛집/쇼핑/교통 카테고리 필터, 고화질 사진 & 상세 메모 수록
+
+### 3. 🐹 [치이카와 웹 월드 (Chiikawa Web)](./chiikawa-web/)
 * **배포 경로**: `/chiikawa-web/`
 * **주요 기능**:
   * 치이카와 육성, 몬스터 토벌 배틀, 1,000제 퀴즈, 라멘 알바, 마이룸 등 종합 웹 게임
 
-### 3. 🔥 [매드맥스: 기억해줘! (WITNESS ME!)](./madmax-witness-me/)
+### 4. 🔥 [매드맥스: 기억해줘! (WITNESS ME!)](./madmax-witness-me/)
 * **배포 경로**: `/madmax-witness-me/`
 * **주요 기능**:
   * 실시간 웹캠 필터 효과, 사운드 이펙트, 두프 기타 및 워보이 밈 액션 인터랙티브
 
-### 4. 🎮 [스모크 액션 게임 (Smoke Action Game)](./smoke-action-game/)
+### 5. 🎮 [스모크 액션 게임 (Smoke Action Game)](./smoke-action-game/)
 * **배포 경로**: `/smoke-action-game/`
 * **주요 기능**:
   * HTML5 Canvas 기반 2D 스프라이트 액션 아케이드
