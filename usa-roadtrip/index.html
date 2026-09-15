@@ -1291,279 +1291,6 @@
       border-radius: 4px;
     }
 
-  
-    /* ================= DAY NAVIGATION TABS (TOKYO TOUR STYLE) ================= */
-    .day-nav-container {
-      display: flex;
-      align-items: center;
-      background: rgba(10, 16, 30, 0.85);
-      border-bottom: 1px solid var(--glass-border);
-      padding: 6px 12px;
-      gap: 6px;
-      position: relative;
-      flex-shrink: 0;
-    }
-    .day-nav-scroll-btn {
-      width: 28px;
-      height: 28px;
-      min-width: 28px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--glass-border);
-      color: var(--text-sub);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 11px;
-      transition: all 0.2s;
-    }
-    .day-nav-scroll-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-      border-color: #38bdf8;
-    }
-    .day-tabs {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      scroll-behavior: smooth;
-      padding: 4px 2px;
-      flex: 1;
-      scrollbar-width: none;
-    }
-    .day-tabs::-webkit-scrollbar { display: none; }
-    .day-tab-btn {
-      flex: 0 0 auto;
-      padding: 7px 11px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid var(--glass-border);
-      border-radius: 10px;
-      color: var(--text-sub);
-      font-size: 11.5px;
-      font-weight: 700;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      white-space: nowrap;
-    }
-    .day-tab-btn .tab-sub {
-      font-size: 9.5px;
-      font-weight: 500;
-      color: var(--text-dim);
-      transition: color 0.2s;
-    }
-    .day-tab-btn:hover {
-      background: rgba(255, 255, 255, 0.09);
-      color: #fff;
-      border-color: rgba(56, 189, 248, 0.35);
-      transform: translateY(-1px);
-    }
-    .day-tab-btn.active {
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      color: #fff;
-      border-color: #38bdf8;
-      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.5);
-    }
-    .day-tab-btn.active .tab-sub {
-      color: rgba(255, 255, 255, 0.9);
-      font-weight: 600;
-    }
-
-    /* ================= DAY ROUTE OVERVIEW CARD ================= */
-    .day-overview-card {
-      margin: 10px 14px 6px 14px;
-      padding: 13px 15px;
-      background: linear-gradient(135deg, rgba(26, 38, 64, 0.85) 0%, rgba(12, 18, 34, 0.95) 100%);
-      border: 1px solid rgba(56, 189, 248, 0.32);
-      border-radius: 14px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      flex-shrink: 0;
-      position: relative;
-      overflow: hidden;
-    }
-    .day-overview-card::before {
-      content: '';
-      position: absolute;
-      top: -30px;
-      right: -30px;
-      width: 90px;
-      height: 90px;
-      background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .doc-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-    .doc-badge {
-      font-size: 11px;
-      font-weight: 800;
-      color: #38bdf8;
-      letter-spacing: 0.04em;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .doc-actions {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-    .doc-count {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--accent-cyan);
-      background: rgba(56, 189, 248, 0.15);
-      padding: 2.5px 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(56, 189, 248, 0.35);
-    }
-    .doc-play-btn {
-      padding: 4px 11px;
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      border: 1px solid #38bdf8;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 11.5px;
-      font-weight: 800;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      transition: all 0.2s;
-      box-shadow: 0 3px 10px rgba(2, 132, 199, 0.45);
-    }
-    .doc-play-btn:hover {
-      background: #0ea5e9;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.7);
-      transform: translateY(-1px);
-    }
-    .doc-title {
-      font-size: 14px;
-      font-weight: 800;
-      color: #fff;
-      line-height: 1.35;
-      margin-bottom: 4px;
-    }
-    .doc-meta-sub {
-      font-size: 11px;
-      color: #94a3b8;
-      display: flex;
-      gap: 10px;
-      margin-bottom: 6px;
-      align-items: center;
-    }
-    .doc-route {
-      font-size: 11.5px;
-      color: #cbd5e1;
-      line-height: 1.45;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      word-break: keep-all;
-    }
-    .doc-desc {
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
-      font-size: 11.5px;
-      color: #94a3b8;
-      line-height: 1.45;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    /* Day Finished Celebration Banner */
-    .day-finish-modal {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.95);
-      background: rgba(10, 16, 32, 0.96);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
-      border: 1.5px solid #38bdf8;
-      border-radius: 20px;
-      padding: 24px 30px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(56, 189, 248, 0.35);
-      z-index: 10005;
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .day-finish-modal.active {
-      opacity: 1;
-      pointer-events: auto;
-      transform: translate(-50%, -50%) scale(1);
-    }
-    .df-badge {
-      display: inline-block;
-      font-size: 11px;
-      font-weight: 800;
-      color: #34d399;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      border-radius: 9999px;
-      padding: 3px 12px;
-      margin-bottom: 10px;
-    }
-    .df-title {
-      font-size: 18px;
-      font-weight: 900;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-    .df-desc {
-      font-size: 12.5px;
-      color: var(--text-sub);
-      line-height: 1.5;
-      margin-bottom: 18px;
-    }
-    .df-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-    }
-    .df-next-btn {
-      padding: 9px 20px;
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      border: 1px solid #38bdf8;
-      border-radius: 10px;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.5);
-      transition: all 0.2s;
-    }
-    .df-next-btn:hover {
-      background: #0ea5e9;
-      transform: translateY(-1px);
-    }
-    .df-close-btn {
-      padding: 9px 16px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--glass-border);
-      border-radius: 10px;
-      color: var(--text-sub);
-      font-size: 12.5px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
   </style>
 </head>
 <body>
@@ -1585,72 +1312,121 @@
     </div>
 
     <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab('daytour')">🗺️ 일자별 로드트립</button>
+      <button class="tab-btn active" onclick="switchTab('story')">📖 스토리</button>
+      <button class="tab-btn" onclick="switchTab('sim')">⚡ 시뮬레이터</button>
       <button class="tab-btn" onclick="switchTab('drive')">🚗 주행분석</button>
+      <button class="tab-btn" onclick="switchTab('spots')">📍 132장소</button>
       <button class="tab-btn" onclick="switchTab('album')">📸 사진앨범</button>
       <button class="tab-btn" onclick="switchTab('analytics')">📊 분석관</button>
       <button class="tab-btn" onclick="switchTab('chart')">⛰️ 고도&경비</button>
       <button class="tab-btn" onclick="switchTab('export')">📥 내보내기</button>
     </div>
 
-        <!-- TAB 1: Day Tour Mode (Tokyo Trip Style Day-by-Day Experience) -->
-    <div id="tab-daytour" class="tab-content active" style="padding:0; display:flex; flex-direction:column; height:100%; min-height:0; overflow:hidden;">
-      
-      <!-- Day Navigation Tabs Bar with Destination Pills -->
-      <div class="day-nav-container">
-        <button class="day-nav-scroll-btn" onclick="scrollDayTabs(-140)" title="이전 일자">◀</button>
-        <div class="day-tabs" id="dayTabsBar">
-          <button class="day-tab-btn active" id="dayBtn_all" onclick="filterDay('all', this)">
-            <span>전체</span>
-            <span class="tab-sub">26일 조망</span>
-          </button>
-          <!-- Dynamic Day buttons generated via JS -->
-        </div>
-        <button class="day-nav-scroll-btn" onclick="scrollDayTabs(140)" title="다음 일자">▶</button>
+    <!-- TAB 1: Story Tour Mode -->
+    <div id="tab-story" class="tab-content active">
+      <div class="story-nav">
+        <button class="story-nav-btn" onclick="prevStory()">◀ 이전</button>
+        <span id="storyIndicator" style="font-size: 12px; font-weight: 800; color: #38bdf8; font-family:'JetBrains Mono';">1 / 18 여정</span>
+        <button class="story-nav-btn" onclick="nextStory()">다음 ▶</button>
       </div>
+      <div id="storyCardContainer"></div>
+    </div>
 
-      <!-- Day Route Overview Card -->
-      <div class="day-overview-card" id="dayOverviewCard">
-        <div class="doc-top">
-          <div class="doc-badge" id="docBadge">
-            <span>🌟</span>
-            <span id="docBadgeText">DAY 1 여정 · 2024.07.06</span>
+    <!-- TAB 2: Simulator -->
+    <div id="tab-sim" class="tab-content">
+      <div class="sim-panel">
+        <div class="sim-title">
+          <span>⚡ 실시간 주행 시뮬레이터</span>
+          <span style="font-size: 10px; color: #38bdf8; font-family:'JetBrains Mono';">DRIVE CAM 4K</span>
+        </div>
+        <div class="sim-controls">
+          <button id="playBtn" class="sim-btn btn-play" onclick="togglePlay()">▶ 주행 시작</button>
+          <button class="sim-btn btn-reset" onclick="resetSim()">↺ 처음으로</button>
+        </div>
+        <div class="speed-btns">
+          <button class="speed-btn active" onclick="setSpeed(0.04, this)">0.04x 정밀</button>
+          <button class="speed-btn" onclick="setSpeed(0.1, this)">0.1x 여유</button>
+          <button class="speed-btn" onclick="setSpeed(0.2, this)">0.2x 보통</button>
+          <button class="speed-btn" onclick="setSpeed(0.5, this)">0.5x 순항</button>
+          <button class="speed-btn" onclick="setSpeed(1, this)">1x 고속</button>
+        </div>
+
+        <label class="follow-cam-box">
+          <input type="checkbox" id="followCam" checked>
+          <span>🚗 차량 추적 카메라 (Follow Vehicle Camera)</span>
+        </label>
+
+        <div class="sim-hud">
+          <div class="hud-line">
+            <span class="hud-label">현재 누적 주행 거리</span>
+            <span class="hud-val" id="hudKm">0 km / 10,786 km</span>
           </div>
-          <div class="doc-actions">
-            <span class="doc-count" id="docCount">3 SPOTS</span>
-            <button class="doc-play-btn" id="docPlayBtn" onclick="togglePlay()">
-              <span id="docPlayIcon">▶</span>
-              <span id="docPlayText">주행</span>
-            </button>
+          <div class="hud-line">
+            <span class="hud-label">여정 진행률</span>
+            <span class="hud-val" id="hudPct" style="color: #38bdf8;">0.0 %</span>
+          </div>
+          <div class="hud-line">
+            <span class="hud-label">가상 일차</span>
+            <span class="hud-val" id="hudDay" style="color: #34d399;">Day 1 (07.06)</span>
+          </div>
+          <div class="hud-line">
+            <span class="hud-label">현재 통과 지역</span>
+            <span class="hud-val" id="hudRegion">로스앤젤레스 (LAX 공항)</span>
           </div>
         </div>
-        <div class="doc-title" id="docTitle">태평양의 시작, 천사의 도시 LA</div>
-        <div class="doc-meta-sub">
-          <span id="docRegion">캘리포니아 로스앤젤레스</span>
-          <span>·</span>
-          <span id="docWeather">☀️ 28°C 맑음 | 해발 40m</span>
+      </div>
+
+      <!-- Real-time Visited Spots Feed (Live in Simulator tab) -->
+      <div class="stats-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <div style="font-size:13px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
+            <span>📍 방문 장소 실시간 피드</span>
+            <span class="badge-trans" id="simVisitedBadge" style="font-size:10px; padding:2px 7px;">0 / 132 완주</span>
+          </div>
+          <button class="cluster-btn" onclick="switchTab('spots')" style="font-size:10.5px; padding:2.5px 8px; border-radius:6px; cursor:pointer;" title="전체 132개 장소 상세 목록">전체 목록 ↗</button>
         </div>
-        <div class="doc-route">
-          <span>📍</span>
-          <span id="docRoute">로스앤젤레스 국제공항 ➔ 말리부 ➔ 비벌리힐스</span>
+        
+        <div id="simCurrentSpotBanner" class="sim-spotlight-banner">
+          <div class="spotlight-top">
+            <span class="spotlight-badge" id="spotlightStep">STEP 1</span>
+            <span class="spotlight-name" id="spotlightName">로스앤젤레스 국제공항</span>
+            <span class="spotlight-status" id="spotlightStatus">출발 대기</span>
+          </div>
+          <div class="spotlight-quote" id="spotlightQuote">💬 "LAX 공항에서 10,786 km 대륙일주 출발! 🚗💨"</div>
         </div>
-        <div class="doc-desc" id="docDesc">
-          LAX 공항에서 렌터카를 픽업하며 시작된 대장정. 산타모니카 피어의 태평양 파도와 비벌리힐스 거리를 둘러보았습니다.
+
+        <div style="font-size:11px; font-weight:700; color:var(--text-sub); margin: 10px 0 6px 0;">최근 방문한 장소:</div>
+        <div id="simVisitedStream" class="sim-visited-stream">
+          <div style="padding: 16px; text-align:center; color: var(--text-dim); font-size:11.5px;">주행을 시작하면 통과한 장소들이 실시간으로 기록됩니다.</div>
         </div>
       </div>
 
-      <!-- Search & Category Filter Pills -->
-      <div class="filter-pills" style="padding: 6px 14px 8px 14px; background: rgba(10, 16, 28, 0.4); border-bottom: 1px solid var(--glass-border); flex-shrink: 0; margin-bottom: 0; display:flex; gap:6px; overflow-x:auto;">
-        <button class="pill-btn active" onclick="filterCategory('all', this)">전체 (<span id="catCountAll">132</span>)</button>
-        <button class="pill-btn" onclick="filterCategory('도시/랜드마크', this)">도시/랜드마크 (<span id="catCountLandmark">0</span>)</button>
-        <button class="pill-btn" onclick="filterCategory('국립공원/자연', this)">자연/국립공원 (<span id="catCountNature">0</span>)</button>
-        <button class="pill-btn" onclick="filterCategory('명문대학', this)">명문대학 (<span id="catCountUniv">0</span>)</button>
-        <button class="pill-btn" onclick="filterCategory('공항/국경', this)">공항/국경 (<span id="catCountAirport">0</span>)</button>
-        <button class="pill-btn" onclick="filterCategory('쇼핑/미식', this)">쇼핑/미식 (<span id="catCountShop">0</span>)</button>
+      <div class="stats-card">
+        <div class="stat-row">
+          <div class="stat-col">
+            <div class="stat-lbl">총 도로 주행거리</div>
+            <div class="stat-num">10,786 km</div>
+            <div class="stat-sub">6,702 miles</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-lbl">총 여행 기간</div>
+            <div class="stat-num" style="color: #f59e0b;">26일 완주</div>
+            <div class="stat-sub">2024.07.06 ~ 07.31</div>
+          </div>
+        </div>
+        <div class="stat-row" style="margin-bottom: 0;">
+          <div class="stat-col">
+            <div class="stat-lbl">횡단 행정구역</div>
+            <div class="stat-num" style="color: #a78bfa;">13개 주/지역</div>
+            <div class="stat-sub">미국 11개주 + 캐나다 2개주</div>
+          </div>
+          <div class="stat-col">
+            <div class="stat-lbl">지구 둘레 대비</div>
+            <div class="stat-num" style="color: #34d399;">27.0%</div>
+            <div class="stat-sub">적도(40,075km) 1/4 이상</div>
+          </div>
+        </div>
       </div>
-
-      <!-- Scrollable Spots Container for this Day -->
-      <div id="spotsContainer" class="spots-container" style="flex:1; min-height:0; overflow-y:auto; overflow-x:hidden; padding: 10px 14px 100px 14px;"></div>
     </div>
 
     <!-- TAB 3: Drive Telemetry -->
@@ -1927,18 +1703,6 @@
 
   <!-- ================= MAP CONTAINER ================= -->
   <div id="map">
-
-    <!-- Day Finished Celebration Modal -->
-    <div class="day-finish-modal" id="dayFinishModal">
-      <div class="df-badge" id="dfBadge">DAY COMPLETE!</div>
-      <div class="df-title" id="dfTitle">🎉 Day 1 여정 완주!</div>
-      <div class="df-desc" id="dfDesc">오늘의 방문지를 모두 무사히 주행했습니다.<br>다음 날 여정으로 계속 이어갈까요?</div>
-      <div class="df-actions">
-        <button class="df-next-btn" id="dfNextBtn" onclick="advanceNextDay()">▶ 다음 Day 2 출발</button>
-        <button class="df-close-btn" onclick="closeDayModal()">닫기</button>
-      </div>
-    </div>
-
     <canvas id="fxCanvas"></canvas>
 
     <!-- Map Tile Layer Switcher -->
@@ -2406,589 +2170,6 @@
     }
 
     // ================= TAB NAVIGATION =================
-    
-    // ================= DAY-BY-DAY TOUR METADATA & ENGINE =================
-    const startTripDate = new Date('2024-07-06T00:00:00');
-    
-    // Assign Day (1-26) to each cleanPlace
-    cleanPlaces.forEach(p => {
-      if (p.dt) {
-        const dStr = p.dt.split(' ')[0];
-        const pDate = new Date(dStr + 'T00:00:00');
-        const diffDays = Math.round((pDate - startTripDate) / (1000 * 60 * 60 * 24)) + 1;
-        p.day = diffDays;
-      } else {
-        p.day = 1;
-      }
-    });
-
-    const dayTourMeta = {
-      'all': {
-        day: 'all',
-        badge: '🌟 10,786 km 대륙일주 전 코스 조망',
-        title: '26일간의 북미 대륙 횡단 대장정',
-        region: '미국 11개주 & 캐나다 2개주',
-        route: 'LAX ➔ 그랜드캐니언 ➔ 요세미티 ➔ 시애틀/밴쿠버 ➔ 로키 ➔ 시카고 ➔ 나이아가라 ➔ 뉴욕 JFK',
-        weather: '☀️ 다채로운 기후 | 해발 -86m ~ 3,031m',
-        shortTag: '전체 조망',
-        desc: '로스앤젤레스에서 출발하여 태평양 해안선, 그랜드 캐니언, 요세미티, 시애틀, 캐나다 로키, 시카고, 나이아가라 폭포를 거쳐 뉴욕 맨해튼과 JFK 공항까지 순수 렌터카로 완주한 10,786 km 대기록입니다.'
-      },
-      1: {
-        day: 1,
-        date: '2024.07.06',
-        badge: 'DAY 1 여정 · 2024.07.06',
-        title: '태평양의 시작, 천사의 도시 LA',
-        region: '캘리포니아 로스앤젤레스',
-        route: 'LAX 공항 ➔ 말리부 해안 ➔ 비벌리힐스',
-        weather: '☀️ 28°C 맑음 | 해발 40m',
-        shortTag: 'LA',
-        desc: 'LAX 공항에서 렌터카를 픽업하며 시작된 대장정. 말리부 해안 도로의 시원한 태평양 파도와 비벌리힐스의 화려한 로데오 거리를 거닐며 설레는 첫날을 시작했습니다.'
-      },
-      2: {
-        day: 2,
-        date: '2024.07.07',
-        badge: 'DAY 2 여정 · 2024.07.07',
-        title: '20억 년의 지구 역사, 그랜드 캐니언',
-        region: '애리조나주 코코니노',
-        route: '모하비 사막 ➔ Grandview Point ➔ 모런 포인트',
-        weather: '🔥 34°C 건조 | 해발 2,100m',
-        shortTag: '캐니언',
-        desc: 'I-15와 루트66을 거쳐 모하비 사막을 가로질러 마주한 지구 최고의 대협곡. 콜로라도 강이 깎아 만든 Grandview Point와 Moran Point에서 붉은 사암 절벽의 웅장함을 영접했습니다.'
-      },
-      3: {
-        day: 3,
-        date: '2024.07.08',
-        badge: 'DAY 3 여정 · 2024.07.08',
-        title: '해저 -86m 사막에서 3,000m 시에라 네바다로',
-        region: '데스밸리 & 요세미티',
-        route: '단테스 뷰 ➔ 티오가 고개 ➔ 오클랜드 베이 브리지',
-        weather: '🏜️ 47°C ➔ 18°C 급변 | 해발 -86m~3,031m',
-        shortTag: '요세미티',
-        desc: '북미 최저점인 데스밸리 Dantes View 소금 사막을 지나, 해발 3,031m 티오가 패스(Tioga Pass)를 넘어 요세미티의 화강암 절벽을 감상한 뒤 밤하늘의 베이 브리지를 건넜습니다.'
-      },
-      4: {
-        day: 4,
-        date: '2024.07.09',
-        badge: 'DAY 4 여정 · 2024.07.09',
-        title: '지성의 전당 스탠포드와 붉은 금문교',
-        region: '샌프란시스코 & 팔로알토',
-        route: '스탠포드 대학 ➔ 트윈픽스 ➔ 금문교 ➔ 롬바드 스트리트',
-        weather: '🌫️ 17°C 해무 | 해발 10m~280m',
-        shortTag: '샌프란',
-        desc: '실리콘밸리의 뿌리 스탠포드 캠퍼스를 걷고, 트윈픽스 파노라마와 샌프란시스코의 상징 붉은 금문교를 차로 건너며 가파른 롬바드 꽃길을 통과했습니다.'
-      },
-      5: {
-        day: 5,
-        date: '2024.07.10',
-        badge: 'DAY 5 여정 · 2024.07.10',
-        title: '세계 혁명의 심장부, 실리콘밸리 빅테크 성지순례',
-        region: '쿠퍼티노 · 마운틴뷰 · 산타클라라',
-        route: 'Apple Park ➔ Googleplex ➔ Meta ➔ NVIDIA 본사',
-        weather: '☀️ 26°C 쾌청 | 실리콘밸리',
-        shortTag: '실리콘밸리',
-        desc: '세계 기술 혁신을 주도하는 애플 파크, 구글 본사, 메타, 엔비디아 캠퍼스와 컴퓨터 역사 박물관을 둘러보며 전율을 느낀 특별한 하루였습니다.'
-      },
-      6: {
-        day: 6,
-        date: '2024.07.11',
-        badge: 'DAY 6 여정 · 2024.07.11',
-        title: '만년설 섀스타 산을 넘어 노택스의 도시 포틀랜드로',
-        region: '오리건주 포틀랜드',
-        route: 'Mt. Shasta 만년설 ➔ 포틀랜드 파월 북스',
-        weather: '🌲 24°C 상쾌 | 해발 1,100m',
-        shortTag: '포틀랜드',
-        desc: '캘리포니아 북부의 영봉 섀스타 산을 바라보며 캐스케이드 산맥을 넘어, 세련된 문화와 파월 북스가 있는 오리건주 포틀랜드에 도착했습니다.'
-      },
-      7: {
-        day: 7,
-        date: '2024.07.12',
-        badge: 'DAY 7 여정 · 2024.07.12',
-        title: '에메랄드 시티 시애틀과 해리포터 도서관',
-        region: '워싱턴주 시애틀',
-        route: '워싱턴 대학교 수잘로 도서관 ➔ 파이크 플레이스 마켓',
-        weather: '⛅ 22°C 온화 | 시애틀',
-        shortTag: '시애틀',
-        desc: '해리포터 호그와트를 연상시키는 워싱턴 대학 수잘로 도서관의 웅장한 고딕 아치와 파이크 플레이스 마켓의 활기를 체험했습니다.'
-      },
-      8: {
-        day: 8,
-        date: '2024.07.13',
-        badge: 'DAY 8 여정 · 2024.07.13',
-        title: '미래를 여는 스페이스 니들과 마이크로소프트',
-        region: '시애틀 & 벨뷰',
-        route: '스페이스 니들 ➔ 치훌리 가든 ➔ MS 비지터 센터',
-        weather: '☀️ 23°C 맑음 | 벨뷰',
-        shortTag: 'MS·벨뷰',
-        desc: '시애틀의 아이콘 스페이스 니들 전망대와 치훌리의 환상적인 유리 공예를 관람한 후, IT 제국 마이크로소프트 본사를 탐방했습니다.'
-      },
-      9: {
-        day: 9,
-        date: '2024.07.14',
-        badge: 'DAY 9 여정 · 2024.07.14',
-        title: '국경을 넘어 캐나다로! 밴쿠버 스탠리 공원',
-        region: '캐나다 BC 밴쿠버',
-        route: '피스 아치 국경 ➔ 스탠리 공원 ➔ 개스타운',
-        weather: '🌲 21°C 쾌적 | 캐나다 BC',
-        shortTag: '밴쿠버',
-        desc: '피스 아치 국경을 통과해 캐나다에 입국! 원시림과 바다가 어우러진 스탠리 공원을 드라이브하고 유서 깊은 증기 시계가 있는 개스타운을 둘러보았습니다.'
-      },
-      11: {
-        day: 11,
-        date: '2024.07.16',
-        badge: 'DAY 11 여정 · 2024.07.16',
-        title: '콜롬비아 대빙원과 재스퍼 국립공원',
-        region: '캐나다 BC/AB 아이스필드',
-        route: '아이스필즈 파크웨이 ➔ 아타바스카 빙하 ➔ 재스퍼',
-        weather: '❄️ 8°C 만년설 빙하 | 해발 2,000m',
-        shortTag: '로키/빙원',
-        desc: '세계에서 가장 아름다운 도로 아이스필즈 파크웨이를 달리며 수천 년의 세월이 응축된 아타바스카 빙하와 에메랄드빛 호수들을 만났습니다.'
-      },
-      12: {
-        day: 12,
-        date: '2024.07.17',
-        badge: 'DAY 12 여정 · 2024.07.17',
-        title: '캐나다 로키의 눈부신 에메랄드, 레이크 루이스',
-        region: '알버타주 밴프 & 캘거리',
-        route: '레이크 루이스 ➔ 밴프 국립공원 ➔ 보우 폭포 ➔ 캘거리',
-        weather: '🏔️ 16°C 맑음 | 해발 1,731m',
-        shortTag: '레이크루이스',
-        desc: '빅토리아 빙하 아래 영롱한 옥빛을 뽐내는 레이크 루이스와 마릴린 먼로의 영화 배경인 보우 폭포를 감상하고 캘거리로 이동했습니다.'
-      },
-      13: {
-        day: 13,
-        date: '2024.07.18',
-        badge: 'DAY 13 여정 · 2024.07.18',
-        title: '앨버타 대평원을 가로지르는 횡단',
-        region: '캐나다 앨버타주',
-        route: '캘거리 외곽 ➔ 앨버타 대평원 고속도로',
-        weather: '🌾 26°C 쾌적 | 캐나다 대평원',
-        shortTag: '앨버타',
-        desc: '지평선 끝까지 펼쳐진 광활한 앨버타 대평원을 시원하게 달리며 캐나다 프레리 지역의 대자연을 질주했습니다.'
-      },
-      14: {
-        day: 14,
-        date: '2024.07.19',
-        badge: 'DAY 14 여정 · 2024.07.19',
-        title: '빅 스카이 몬태나, 끝없는 지평선을 달리다',
-        region: '미국 몬태나주 스위트그라스',
-        route: '스위트그라스 미국 국경 ➔ 몬태나 I-15',
-        weather: '☀️ 30°C 건조 | 빅 스카이 컨트리',
-        shortTag: '몬태나',
-        desc: '스위트그라스 국경을 통해 다시 미국에 입국! 끝없이 푸른 하늘이 펼쳐지는 몬태나주의 시원한 도로를 힘차게 달렸습니다.'
-      },
-      15: {
-        day: 15,
-        date: '2024.07.20',
-        badge: 'DAY 15 여정 · 2024.07.20',
-        title: '와이오밍을 지나 마운트 러스모어 큰바위얼굴',
-        region: '사우스다코타주 키스톤',
-        route: '와이오밍 평원 ➔ 마운트 러스모어 내셔널 메모리얼',
-        weather: '☀️ 31°C 맑음 | 블랙힐스',
-        shortTag: '러스모어',
-        desc: '와이오밍을 가로질러 사우스다코타 블랙힐스의 화강암 절벽에 새겨진 4인 미국 대통령 얼굴 조각상 마운트 러스모어의 위용을 마주했습니다.'
-      },
-      16: {
-        day: 16,
-        date: '2024.07.21',
-        badge: 'DAY 16 여정 · 2024.07.21',
-        title: '미네소타 대평원과 중서부 횡단',
-        region: '미네소타주 비버크릭',
-        route: '비버크릭 웰컴센터 ➔ 미네소타 I-90',
-        weather: '🌽 28°C 맑음 | 콘벨트 대평원',
-        shortTag: '미네소타',
-        desc: '미국 농업의 심장부인 옥수수밭 지평선을 가로지르며 미네소타 I-90 고속도로를 따라 미시간 호수로 순항했습니다.'
-      },
-      17: {
-        day: 17,
-        date: '2024.07.22',
-        badge: 'DAY 17 여정 · 2024.07.22',
-        title: '바람의 도시 시카고, 은빛 The Bean에 비친 마천루',
-        region: '일리노이주 시카고',
-        route: '오헤어 공항 ➔ 클라우드 게이트 ➔ 밀레니엄 파크 ➔ 시카고대',
-        weather: '🏙️ 25°C 바람 | 미시간 호숫가',
-        shortTag: '시카고',
-        desc: '시카고의 랜드마크 클라우드 게이트(The Bean)에 비친 마천루와 밀레니엄 파크를 산책하고 노벨상 명문 시카고 대학을 탐방했습니다.'
-      },
-      18: {
-        day: 18,
-        date: '2024.07.23',
-        badge: 'DAY 18 여정 · 2024.07.23',
-        title: '지구를 뒤흔드는 굉음, 나이아가라 폭포',
-        region: '온타리오 & 뉴욕주 나이아가라',
-        route: '블루 워터 브리지 ➔ 나이아가라 폭포 ➔ 레인보우 브리지',
-        weather: '🌊 24°C 물보라 | 나이아가라 협곡',
-        shortTag: '나이아가라',
-        desc: '블루 워터 브리지를 건너 지구에서 가장 거대한 폭포 나이아가라를 영접! 쏟아지는 거대한 물보라와 굉음 속에서 대자연의 에너지를 만끽했습니다.'
-      },
-      19: {
-        day: 19,
-        date: '2024.07.24',
-        badge: 'DAY 19 여정 · 2024.07.24',
-        title: '업스테이트 뉴욕 캣츠킬 산악 도로',
-        region: '뉴욕주 업스테이트',
-        route: '뉴욕주 I-86 ➔ 캣츠킬 숲길',
-        weather: '🌲 23°C 숲바람 | 업스테이트 뉴욕',
-        shortTag: '뉴욕주',
-        desc: '나이아가라를 뒤로하고 뉴욕주 내륙의 푸른 산과 숲길을 따라 최종 목적지인 뉴욕 대도시권을 향해 달렸습니다.'
-      },
-      20: {
-        day: 20,
-        date: '2024.07.25',
-        badge: 'DAY 20 여정 · 2024.07.25',
-        title: '뉴저지 입성과 맨해튼 관문',
-        region: '뉴욕/뉴저지 포트리',
-        route: '킹 사우나 ➔ 포트리 한인타운 ➔ 맨해튼 교 ➔ 홀랜드 터널',
-        weather: '☀️ 27°C 온화 | 허드슨 강변',
-        shortTag: '뉴저지',
-        desc: '허드슨 강 건너 뉴욕의 실루엣을 바라보며 킹 사우나에서 장거리 운전 피로를 풀고 맨해튼 진입로를 탐색했습니다.'
-      },
-      21: {
-        day: 21,
-        date: '2024.07.26',
-        badge: 'DAY 21 여정 · 2024.07.26',
-        title: '잠들지 않는 세계의 중심, 뉴욕 맨해튼 타임스스퀘어',
-        region: '뉴욕주 뉴욕시 맨해튼',
-        route: '타임스스퀘어 ➔ 엠파이어 스테이트 ➔ 그랜드 센트럴 ➔ 코리아타운',
-        weather: '✨ 28°C 네온사인 | 미드타운 맨해튼',
-        shortTag: '타임스스퀘어',
-        desc: '세계의 교차로 타임스스퀘어의 눈부신 전광판, 엠파이어 스테이트 빌딩의 위용, 그랜드 센트럴 역의 웅장함을 마주하며 심장이 뛰었습니다.'
-      },
-      22: {
-        day: 22,
-        date: '2024.07.27',
-        badge: 'DAY 22 여정 · 2024.07.27',
-        title: '센트럴 파크의 녹음과 메트로폴리탄 미술관',
-        region: '뉴욕 센트럴 파크',
-        route: '콜럼버스 서클 ➔ 벨비디어 성 ➔ 메트로폴리탄 미술관',
-        weather: '🌳 26°C 상쾌 | 센트럴 파크',
-        shortTag: '센트럴파크',
-        desc: '도심 속 거대한 오아시스 센트럴 파크의 호수와 숲을 거닐고, 세계 3대 미술관 중 하나인 메트로폴리탄의 불멸의 명작들을 감상했습니다.'
-      },
-      23: {
-        day: 23,
-        date: '2024.07.28',
-        badge: 'DAY 23 여정 · 2024.07.28',
-        title: '국제 연합(UN) 본부와 컬럼비아 대학교',
-        region: '뉴욕 맨해튼 & 브롱크스',
-        route: 'UN 본부 ➔ 워싱턴 스퀘어 파크 ➔ 컬럼비아 대학교',
-        weather: '🏛️ 27°C 맑음 | 어퍼 맨해튼',
-        shortTag: 'UN·컬럼비아',
-        desc: '세계 평화의 심장 UN 본부를 거쳐 그리니치 빌리지의 워싱턴 스퀘어 공원과 유서 깊은 아이비리그 명문 컬럼비아 대학교를 탐방했습니다.'
-      },
-      24: {
-        day: 24,
-        date: '2024.07.29',
-        badge: 'DAY 24 여정 · 2024.07.29',
-        title: '브로드웨이 뮤지컬 <시카고>와 트렌디한 소호',
-        region: '뉴욕 브로드웨이 & 소호',
-        route: '브로드웨이 극장 ➔ 스프링 스트리트 ➔ 소호 쇼핑 ➔ 모마 스토어',
-        weather: '🎭 26°C 낭만 | 다운타운 소호',
-        shortTag: '브로드웨이',
-        desc: '브로드웨이에서 전설적인 뮤지컬 <시카고>를 관람하고 캐스트아이언 건축물과 트렌디한 샵들이 가득한 소호 거리를 만끽했습니다.'
-      },
-      25: {
-        day: 25,
-        date: '2024.07.30',
-        badge: 'DAY 25 여정 · 2024.07.30',
-        title: '브루클린 헤이츠와 뉴욕만 해안 산책',
-        region: '뉴욕 브루클린 & 허드슨',
-        route: '브루클린 헤이츠 전망대 ➔ 메이시스 백화점 ➔ 허드슨 피어',
-        weather: '🌉 27°C 석양 | 브루클린 워터프론트',
-        shortTag: '브루클린',
-        desc: '석양빛에 물드는 로어 맨해튼 스카이라인을 브루클린 헤이츠 산책로에서 바라보며 대륙일주의 감동적인 여운을 즐겼습니다.'
-      },
-      26: {
-        day: 26,
-        date: '2024.07.31',
-        badge: 'DAY 26 여정 · 2024.07.31',
-        title: '10,786 km 완주! 존 F. 케네디 국제공항',
-        region: '뉴욕 JFK 국제공항',
-        route: '존 F. 케네디 국제공항 귀국',
-        weather: '✈️ 28°C 완주 성공! | 10,786 km 대륙횡단 피날레',
-        shortTag: 'JFK 귀국',
-        desc: '서부 LA에서 출발해 동부 뉴욕까지 10,786 km의 북미 대륙을 두 바퀴로 완주하고 JFK 공항에서 귀국 비행기에 올랐습니다. 일생일대의 눈부신 모험 완주 성공!'
-      }
-    };
-
-    let currentDay = 1;
-    let currentCategory = 'all';
-    let currentSimPath = [];
-    let currentSimStepDetails = [];
-    let dayRoutePolyline = null;
-    let dayRouteGlow = null;
-
-    // Distinct Day sequence list with visited places
-    const availableDays = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26];
-
-    function initDayTabs() {
-      const container = document.getElementById('dayTabsBar');
-      if (!container) return;
-      container.innerHTML = `
-        <button class="day-tab-btn" id="dayBtn_all" onclick="filterDay('all', this)">
-          <span>전체</span>
-          <span class="tab-sub">26일 조망</span>
-        </button>
-      `;
-
-      availableDays.forEach(d => {
-        const meta = dayTourMeta[d] || { shortTag: `Day ${d}` };
-        const btn = document.createElement('button');
-        btn.className = `day-tab-btn ${d === currentDay ? 'active' : ''}`;
-        btn.id = `dayBtn_${d}`;
-        btn.onclick = function() { filterDay(d, this); };
-        btn.innerHTML = `
-          <span>Day ${d}</span>
-          <span class="tab-sub">${meta.shortTag}</span>
-        `;
-        container.appendChild(btn);
-      });
-    }
-
-    function scrollDayTabs(dx) {
-      const el = document.getElementById('dayTabsBar');
-      if (el) el.scrollBy({ left: dx, behavior: 'smooth' });
-    }
-
-    function filterDay(dayNo, btnEl) {
-      currentDay = dayNo;
-      isPlaying = false;
-      clearTimeout(simTimer);
-      const playBtn = document.getElementById('playBtn');
-      if (playBtn) { playBtn.textContent = '▶ 주행 시작'; playBtn.style.background = ''; }
-      const docPlayIcon = document.getElementById('docPlayIcon');
-      if (docPlayIcon) docPlayIcon.textContent = '▶';
-      const docPlayText = document.getElementById('docPlayText');
-      if (docPlayText) docPlayText.textContent = '주행';
-
-      // Update active tab buttons
-      document.querySelectorAll('.day-tab-btn').forEach(b => b.classList.remove('active'));
-      if (btnEl) {
-        btnEl.classList.add('active');
-        btnEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      } else {
-        const targetBtn = document.getElementById(`dayBtn_${dayNo}`);
-        if (targetBtn) {
-          targetBtn.classList.add('active');
-          targetBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-      }
-
-      // Update Day Overview Card
-      const meta = dayTourMeta[dayNo] || dayTourMeta['all'];
-      const docBadgeText = document.getElementById('docBadgeText');
-      if (docBadgeText) docBadgeText.textContent = meta.badge;
-      const docTitle = document.getElementById('docTitle');
-      if (docTitle) docTitle.textContent = meta.title;
-      const docRegion = document.getElementById('docRegion');
-      if (docRegion) docRegion.textContent = meta.region;
-      const docWeather = document.getElementById('docWeather');
-      if (docWeather) docWeather.textContent = meta.weather;
-      const docRoute = document.getElementById('docRoute');
-      if (docRoute) docRoute.textContent = meta.route;
-      const docDesc = document.getElementById('docDesc');
-      if (docDesc) docDesc.textContent = meta.desc;
-
-      // Filter spots for this day
-      let daySpots = (dayNo === 'all') ? cleanPlaces : cleanPlaces.filter(p => p.day == dayNo);
-      const docCount = document.getElementById('docCount');
-      if (docCount) docCount.textContent = `${daySpots.length} SPOTS`;
-
-      // Render spot cards in sidebar
-      renderSpots(daySpots);
-
-      // Build simulation path for this day
-      buildDaySimPath(dayNo, daySpots);
-
-      // Map Polyline & Bounds for this day
-      if (dayRoutePolyline) { map.removeLayer(dayRoutePolyline); dayRoutePolyline = null; }
-      if (dayRouteGlow) { map.removeLayer(dayRouteGlow); dayRouteGlow = null; }
-
-      if (dayNo === 'all') {
-        if (routeLine) {
-          map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
-        }
-      } else if (currentSimPath.length > 0) {
-        dayRouteGlow = L.polyline(currentSimPath, {
-          color: '#38bdf8',
-          weight: 8,
-          opacity: 0.35,
-          smoothFactor: 1
-        }).addTo(map);
-
-        dayRoutePolyline = L.polyline(currentSimPath, {
-          color: '#38bdf8',
-          weight: 3.5,
-          opacity: 0.95,
-          dashArray: '7, 8',
-          smoothFactor: 1
-        }).addTo(map);
-
-        const bounds = L.latLngBounds(currentSimPath);
-        map.fitBounds(bounds, { padding: [90, 90], maxZoom: 14.5 });
-      }
-
-      // Reset Simulation state to 0%
-      simIndex = 0;
-      updateSimFrame(0);
-    }
-
-    // Build buttery smooth, resampled day path along real GPX road waypoints
-    function buildDaySimPath(dayNo, daySpots) {
-      currentSimPath = [];
-      currentSimStepDetails = [];
-
-      if (!daySpots || daySpots.length === 0) return;
-
-      if (dayNo === 'all') {
-        currentSimPath = animPath.slice();
-        for (let i = 0; i < currentSimPath.length; i++) {
-          const frac = i / (currentSimPath.length - 1);
-          currentSimStepDetails.push({
-            spot: cleanPlaces[Math.min(Math.floor(frac * cleanPlaces.length), cleanPlaces.length - 1)],
-            phase: 'moving',
-            fromSpot: cleanPlaces[0],
-            toSpot: cleanPlaces[cleanPlaces.length - 1],
-            legIdx: 0,
-            legFrac: frac
-          });
-        }
-        const scrubber = document.getElementById('timelineScrubber');
-        if (scrubber) { scrubber.max = currentSimPath.length - 1; scrubber.value = 0; }
-        return;
-      }
-
-      if (daySpots.length === 1) {
-        const sp = daySpots[0];
-        currentSimPath = [[sp.lat, sp.lng]];
-        currentSimStepDetails = [{
-          spot: sp,
-          phase: 'final',
-          fromSpot: sp,
-          toSpot: sp,
-          legIdx: 0,
-          legFrac: 1.0
-        }];
-        const scrubber = document.getElementById('timelineScrubber');
-        if (scrubber) { scrubber.max = 0; scrubber.value = 0; }
-        return;
-      }
-
-      // Collect anchor points along GPX animPath
-      const anchors = [];
-      const spotAnchorIndices = [];
-
-      for (let i = 0; i < daySpots.length; i++) {
-        const sp = daySpots[i];
-        spotAnchorIndices.push(anchors.length);
-        anchors.push([sp.lat, sp.lng]);
-        if (i < daySpots.length - 1) {
-          const spNext = daySpots[i + 1];
-          const idxA = sp.closest_anim_idx;
-          const idxB = spNext.closest_anim_idx;
-          if (idxB !== undefined && idxA !== undefined && idxB > idxA && (idxB - idxA) < 150) {
-            const step = Math.max(1, Math.floor((idxB - idxA) / 8));
-            for (let pIdx = idxA + 1; pIdx < idxB; pIdx += step) {
-              anchors.push(animPath[pIdx]);
-            }
-          }
-        }
-      }
-
-      const totalLegs = daySpots.length - 1;
-      const targetStepsPerLeg = Math.max(35, Math.min(120, Math.floor(800 / Math.max(1, totalLegs))));
-
-      for (let i = 0; i < daySpots.length - 1; i++) {
-        const spA = daySpots[i];
-        const spB = daySpots[i + 1];
-        const idxStart = spotAnchorIndices[i];
-        const idxEnd = spotAnchorIndices[i + 1];
-        const legAnchors = anchors.slice(idxStart, idxEnd + 1);
-
-        const dists = [0.0];
-        for (let aIdx = 0; aIdx < legAnchors.length - 1; aIdx++) {
-          const d = Math.hypot(legAnchors[aIdx + 1][0] - legAnchors[aIdx][0], legAnchors[aIdx + 1][1] - legAnchors[aIdx][1]);
-          dists.push(dists[dists.length - 1] + d);
-        }
-        const legLen = dists[dists.length - 1];
-        const steps = targetStepsPerLeg;
-
-        for (let s = 0; s < steps; s++) {
-          const frac = s / steps;
-          const targetD = frac * legLen;
-
-          let segIdx = 0;
-          while (segIdx < dists.length - 2 && dists[segIdx + 1] < targetD) {
-            segIdx++;
-          }
-
-          const segLen = dists[segIdx + 1] - dists[segIdx];
-          const segT = segLen <= 1e-9 ? 0.0 : (targetD - dists[segIdx]) / segLen;
-          const p1 = legAnchors[segIdx];
-          const p2 = legAnchors[segIdx + 1];
-
-          currentSimPath.push([
-            p1[0] + (p2[0] - p1[0]) * segT,
-            p1[1] + (p2[1] - p1[1]) * segT
-          ]);
-
-          let phase = 'moving';
-          let spot = spB;
-          if (frac < 0.15) {
-            phase = (i === 0 && s === 0) ? 'start' : 'depart';
-            spot = spA;
-          } else if (frac >= 0.85) {
-            phase = 'arrive';
-            spot = spB;
-          }
-
-          currentSimStepDetails.push({
-            spot: spot,
-            phase: phase,
-            fromSpot: spA,
-            toSpot: spB,
-            legIdx: i,
-            legFrac: frac
-          });
-        }
-      }
-
-      const last = daySpots[daySpots.length - 1];
-      currentSimPath.push([last.lat, last.lng]);
-      currentSimStepDetails.push({
-        spot: last,
-        phase: 'final',
-        fromSpot: last,
-        toSpot: last,
-        legIdx: daySpots.length - 1,
-        legFrac: 1.0
-      });
-
-      const scrubber = document.getElementById('timelineScrubber');
-      if (scrubber) {
-        scrubber.max = currentSimPath.length - 1;
-        scrubber.value = 0;
-      }
-    }
-
-    function advanceNextDay() {
-      closeDayModal();
-      const curIdx = availableDays.indexOf(currentDay);
-      if (curIdx >= 0 && curIdx < availableDays.length - 1) {
-        const nextDay = availableDays[curIdx + 1];
-        filterDay(nextDay);
-        setTimeout(() => {
-          togglePlay();
-        }, 500);
-      } else {
-        filterDay(1);
-      }
-    }
-
-    function closeDayModal() {
-      const m = document.getElementById('dayFinishModal');
-      if (m) m.classList.remove('active');
-    }
-
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -3004,7 +2185,6 @@
       const st = storyDays[currentStoryIdx];
       document.getElementById('storyIndicator').textContent = `${currentStoryIdx + 1} / ${storyDays.length} 여정`;
       const container = document.getElementById('storyCardContainer');
-      if (!container) return;
       container.innerHTML = `
         <div class="story-card">
           <div class="sc-img-box">
@@ -3055,29 +2235,19 @@
     let simTimer = null;
     let currentCarHeading = 0;
 
-    
     function togglePlay() {
-      if (!currentSimPath || currentSimPath.length === 0) {
-        buildDaySimPath(currentDay, (currentDay === 'all') ? cleanPlaces : cleanPlaces.filter(p => p.day == currentDay));
-      }
-
       isPlaying = !isPlaying;
       const btn = document.getElementById('playBtn');
-      const docPlayIcon = document.getElementById('docPlayIcon');
-      const docPlayText = document.getElementById('docPlayText');
-
       if (isPlaying) {
-        if (btn) { btn.textContent = '⏸️ 일시 정지'; btn.style.background = '#dc2626'; }
-        if (docPlayIcon) docPlayIcon.textContent = '⏸️';
-        if (docPlayText) docPlayText.textContent = '정지';
+        btn.textContent = '⏸️ 일시 정지';
+        btn.style.background = '#dc2626';
         if (engineGain && audioEnabled) {
           engineGain.gain.setTargetAtTime(0.12, audioCtx.currentTime, 0.1);
         }
         runSim();
       } else {
-        if (btn) { btn.textContent = '▶ 주행 시작'; btn.style.background = ''; }
-        if (docPlayIcon) docPlayIcon.textContent = '▶';
-        if (docPlayText) docPlayText.textContent = '주행';
+        btn.textContent = '▶ 주행 시작';
+        btn.style.background = '';
         if (engineGain && audioEnabled) {
           engineGain.gain.setTargetAtTime(0.04, audioCtx.currentTime, 0.2);
         }
@@ -3088,67 +2258,31 @@
     function resetSim() {
       isPlaying = false;
       clearTimeout(simTimer);
-      const btn = document.getElementById('playBtn');
-      if (btn) { btn.textContent = '▶ 주행 시작'; btn.style.background = ''; }
-      const docPlayIcon = document.getElementById('docPlayIcon');
-      if (docPlayIcon) docPlayIcon.textContent = '▶';
-      const docPlayText = document.getElementById('docPlayText');
-      if (docPlayText) docPlayText.textContent = '주행';
-      if (engineGain && audioEnabled) {
-        engineGain.gain.setTargetAtTime(0.04, audioCtx.currentTime, 0.2);
-      }
+      document.getElementById('playBtn').textContent = '▶ 주행 시작';
+      document.getElementById('playBtn').style.background = '';
       simIndex = 0;
+      lastSpokenStepNo = null;
       updateSimFrame(0);
-      closeDayModal();
+      map.setView(animPath[0], 10);
+    }
+
+    function setSpeed(spd, btn) {
+      simSpeed = parseFloat(spd);
+      document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
     }
 
     function runSim() {
       if (!isPlaying) return;
-      const totalSteps = currentSimPath.length;
-      if (totalSteps <= 1) {
-        togglePlay();
-        return;
-      }
-
-      // Step increment tuned for smooth driving animation
-      const stepInc = (1.0 + (simSpeed * 1.5));
-      simIndex += stepInc;
-
-      if (simIndex >= totalSteps - 1) {
-        simIndex = totalSteps - 1;
+      simIndex += simSpeed;
+      if (simIndex >= animPath.length - 1) {
+        simIndex = animPath.length - 1;
         updateSimFrame(simIndex);
         togglePlay();
-
-        // Celebration on Day completion!
-        const curMeta = dayTourMeta[currentDay] || dayTourMeta['all'];
-        updateCarBubble(`🎉 Day ${currentDay} 주행 완주 성공! 멋진 여정이었다! 🚗✨`);
-        speakKorean(`Day ${currentDay} 여정을 모두 완주했습니다! 참 멋진 하루였어요!`);
-
-        // Show Day Finish Modal
-        const modal = document.getElementById('dayFinishModal');
-        const dfTitle = document.getElementById('dfTitle');
-        const dfDesc = document.getElementById('dfDesc');
-        const dfNextBtn = document.getElementById('dfNextBtn');
-
-        const curIdx = availableDays.indexOf(currentDay);
-        if (modal && curIdx >= 0 && curIdx < availableDays.length - 1) {
-          const nextDay = availableDays[curIdx + 1];
-          const nextMeta = dayTourMeta[nextDay] || { title: `Day ${nextDay} 여정`, shortTag: `Day ${nextDay}` };
-          if (dfTitle) dfTitle.textContent = `🎉 Day ${currentDay} 완주 성공!`;
-          if (dfDesc) dfDesc.innerHTML = `<b>${curMeta.title}</b> 코스를 무사히 마쳤습니다!<br>다음 <b>Day ${nextDay} (${nextMeta.shortTag})</b> 여정으로 이어갈까요?`;
-          if (dfNextBtn) dfNextBtn.textContent = `▶ 다음 Day ${nextDay} (${nextMeta.shortTag}) 출발`;
-          modal.classList.add('active');
-        } else if (modal) {
-          if (dfTitle) dfTitle.textContent = `🏆 10,786 km 대장정 완주!`;
-          if (dfDesc) dfDesc.innerHTML = `서부 LA부터 동부 뉴욕 JFK까지 26일간의 북미 대륙일주를 성공적으로 마쳤습니다!`;
-          if (dfNextBtn) dfNextBtn.textContent = `🔄 Day 1부터 다시보기`;
-          modal.classList.add('active');
-        }
         return;
       }
-
       updateSimFrame(simIndex);
-      simTimer = setTimeout(runSim, 35);
+      simTimer = setTimeout(runSim, 40);
     }
 
     function onScrub(val) {
@@ -3156,8 +2290,26 @@
       updateSimFrame(simIndex);
     }
 
-    
-    let lastSpokenSpot = null;
+
+    // ================= SPOTS TIMELINE MAPPING & CAR DIALOGUE ENGINE =================
+    // Precompute closest animPath index for all cleanPlaces
+    cleanPlaces.forEach(p => {
+      let bestDist = Infinity;
+      let bestIdx = 0;
+      for (let j = 0; j < animPath.length; j++) {
+        const dLat = p.lat - animPath[j][0];
+        const dLng = (p.lng - animPath[j][1]) * Math.cos(p.lat * Math.PI / 180);
+        const d = dLat * dLat + dLng * dLng;
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = j;
+        }
+      }
+      p.closest_anim_idx = bestIdx;
+    });
+
+    let currentActiveStepNo = 1;
+    let lastSpokenStepNo = null;
     let lastBubbleText = '';
 
     function updateCarBubble(text) {
@@ -3174,7 +2326,6 @@
     }
 
     function getSpotArrivalLine(spot) {
-      if (!spot) return '🚗 목적지에 도착했습니다!';
       const name = spot.name || '';
       const cat = spot.category || '';
       const reg = spot.region || '';
@@ -3280,13 +2431,19 @@
         return `🛍️ ${name} 도착! 즐거운 쇼핑과 힐링 시간!`;
       }
 
-      return `📍 ${name} 도착! (${reg})`;
+      if (name.startsWith('스팟') || name.includes('#')) {
+        return `📍 [Step ${spot.step_no}] ${reg} 통과 거점 도착! 🚗`;
+      }
+      return `📍 [Step ${spot.step_no}] ${name} 도착! (${reg})`;
     }
 
-    function getSpotMovingLine(toSpot) {
-      if (!toSpot) return '🚗 도로를 따라 힘차게 순항 중! 💨';
-      const toName = toSpot.name || '다음 목적지';
-      const toReg = toSpot.region || '';
+    function getSpotMovingLine(fromSpot, toSpot) {
+      const toName = toSpot ? toSpot.name : '다음 목적지';
+      const toReg = toSpot ? toSpot.region : '';
+
+      if (toName.startsWith('스팟') || toName.includes('#')) {
+        return `🚗 ${toReg} 아름다운 횡단 코스를 향해 달리는 중! 💨`;
+      }
 
       if (toName.includes('그랜드') || toName.includes('Grandview')) {
         return `🏜️ 모하비 사막을 건너 그랜드 캐니언으로 질주 중! 🚗💨`;
@@ -3321,98 +2478,233 @@
       if (toName.includes('JFK') || toName.includes('케네디')) {
         return `🏁 10,786 km 완주 지점, 뉴욕 JFK 공항으로 향하는 중! 🏆`;
       }
-      return `🚗 ${toName} (으)로 이동 중! 쾌속 순항이다! 💨`;
+
+      return `🚗 ${toName} (으)로 이동 중! (${toReg})`;
+    }
+
+    function getCarSpeech(simIdx, currentSpot, nextSpot, isArrived) {
+      if (simIdx <= 0.5) {
+        return '🏁 LAX 공항에서 10,786 km 대륙일주 출발! 🚗💨';
+      }
+      if (simIdx >= animPath.length - 2) {
+        return '🎉 10,786 km 북미 대륙일주 완주 성공! 세기의 대장정 끝! 🏆';
+      }
+      if (isArrived && currentSpot) {
+        return getSpotArrivalLine(currentSpot);
+      }
+      if (nextSpot) {
+        return getSpotMovingLine(currentSpot, nextSpot);
+      }
+      return '🚗 10,786 km 북미 대륙을 시원하게 달리는 중! 💨';
     }
 
     function updateSimFrame(idx) {
-      if (!currentSimPath || currentSimPath.length === 0) return;
-      const total = currentSimPath.length;
-      const i = Math.min(Math.floor(idx), total - 1);
+      const i = Math.min(Math.floor(idx), animPath.length - 1);
       const frac = idx - i;
-      const ptA = currentSimPath[i];
-      const ptB = (i < total - 1) ? currentSimPath[i + 1] : ptA;
+      const ptA = animPath[i];
+      const ptB = (i < animPath.length - 1) ? animPath[i + 1] : ptA;
 
+      // Sub-frame interpolation for buttery smooth car movement at 0.2x speed
       const currentLat = ptA[0] + (ptB[0] - ptA[0]) * frac;
       const currentLng = ptA[1] + (ptB[1] - ptA[1]) * frac;
       const pt = [currentLat, currentLng];
 
-      if (carMarker) {
-        carMarker.setLatLng(pt);
-      }
-
-      const followCam = document.getElementById('followCam');
-      if (followCam && followCam.checked) {
+      carMarker.setLatLng(pt);
+      if (document.getElementById('followCam').checked) {
         map.panTo(pt, { animate: false });
       }
 
-      // Scrubber slider sync
-      const scrubber = document.getElementById('timelineScrubber');
-      if (scrubber) scrubber.value = idx;
+      // True geographic heading angle with smooth cornering
+      let targetHeading = currentCarHeading;
+      const dLat = ptB[0] - ptA[0];
+      const dLng = (ptB[1] - ptA[1]) * Math.cos(ptA[0] * Math.PI / 180);
+      if (Math.abs(dLat) > 1e-7 || Math.abs(dLng) > 1e-7) {
+        targetHeading = Math.atan2(dLng, dLat) * (180 / Math.PI);
+      }
+      
+      // Smooth angle interpolation
+      let diff = (targetHeading - currentCarHeading + 180) % 360 - 180;
+      currentCarHeading += diff * 0.35;
 
-      // Calculate progress percentage
-      const pct = (idx / Math.max(1, total - 1)) * 100;
-
-      // Telemetry Cockpit update
-      const radialPct = document.getElementById('hudRadialPct');
-      if (radialPct) radialPct.textContent = `${Math.round(pct)}%`;
-      const radialCircle = document.getElementById('radialProgressCircle');
-      if (radialCircle) {
-        const circ = 2 * Math.PI * 32;
-        radialCircle.style.strokeDasharray = `${circ} ${circ}`;
-        radialCircle.style.strokeDashoffset = circ * (1 - (pct / 100));
+      const carWrapper = document.getElementById('carVehicleWrapper');
+      if (carWrapper) {
+        carWrapper.style.transform = `rotate(${currentCarHeading.toFixed(1)}deg)`;
       }
 
-      // Step & Spot details for the active day
-      const stepInfo = currentSimStepDetails[i] || (currentSimStepDetails.length > 0 ? currentSimStepDetails[0] : null);
-      if (stepInfo && stepInfo.spot) {
-        const curSpot = stepInfo.spot;
-        const fromSpot = stepInfo.fromSpot;
-        const toSpot = stepInfo.toSpot;
+      // Calculate progress and stats
+      const pct = (idx / (animPath.length - 1));
+      const curKm = Math.round(pct * totalKm);
+      const eleA = elevations[i] || 0;
+      const eleB = (i < elevations.length - 1) ? elevations[i + 1] : eleA;
+      const curEle = Math.round(eleA + (eleB - eleA) * frac);
+      const curDriveMin = Math.round(pct * 7710); // 128.5 hrs = 7710 mins
+      const driveH = Math.floor(curDriveMin / 60);
+      const driveM = curDriveMin % 60;
 
-        // Telemetry location badge
-        const badgeLoc = document.getElementById('mapBadgeLoc');
-        if (badgeLoc) badgeLoc.textContent = curSpot.name;
-        const hudLoc = document.getElementById('hudRegion');
-        if (hudLoc) hudLoc.textContent = curSpot.name;
+      // Update Cockpit Radial Progress and Glow Bead
+      const circle = document.getElementById('radialProgressCircle');
+      const bead = document.getElementById('radialProgressBead');
+      const maxDash = 201; // 2 * PI * 32
+      circle.style.strokeDashoffset = maxDash - (pct * maxDash);
+      
+      // Track bead position on circle (r = 32, center = 40, 40)
+      const beadAngle = (pct * 360 - 90) * Math.PI / 180;
+      const beadX = (40 + 32 * Math.cos(beadAngle)).toFixed(2);
+      const beadY = (40 + 32 * Math.sin(beadAngle)).toFixed(2);
+      bead.setAttribute('cx', beadX);
+      bead.setAttribute('cy', beadY);
 
-        // Day label
-        const meta = dayTourMeta[currentDay] || dayTourMeta['all'];
-        const hudDay = document.getElementById('hudDay');
-        if (hudDay) hudDay.textContent = currentDay === 'all' ? '전체 대륙일주' : `Day ${currentDay} (${meta.shortTag})`;
+      document.getElementById('hudRadialPct').textContent = `${Math.round(pct * 100)}%`;
 
-        // Speech bubble update
-        if (stepInfo.phase === 'start') {
-          updateCarBubble(`🚩 ${fromSpot.name}에서 Day ${currentDay} 출발! 🚗💨`);
-        } else if (stepInfo.phase === 'depart') {
-          updateCarBubble(`📍 ${fromSpot.name} 출발! 다음 목적지로 향합니다.`);
-        } else if (stepInfo.phase === 'moving') {
-          updateCarBubble(getSpotMovingLine(toSpot));
-        } else if (stepInfo.phase === 'arrive' || stepInfo.phase === 'final') {
-          updateCarBubble(getSpotArrivalLine(toSpot));
-          if (lastSpokenSpot !== toSpot.name && isPlaying) {
-            lastSpokenSpot = toSpot.name;
-            speakKorean(`${toSpot.name} 도착!`);
+      document.getElementById('hudKm').textContent = `${curKm.toLocaleString()} km / ${Math.round(totalKm).toLocaleString()} km`;
+      document.getElementById('hudPct').textContent = `${(pct * 100).toFixed(1)} %`;
+      document.getElementById('mapBadgeKm').textContent = `${curKm.toLocaleString()} km`;
+      document.getElementById('mapBadgeEle').textContent = `${curEle}m`;
+
+      // Live Scrubber Progress Fill Gradient
+      const slider = document.getElementById('timelineScrubber');
+      slider.value = idx;
+      const pctPct = (pct * 100).toFixed(2);
+      slider.style.background = `linear-gradient(to right, #38bdf8 0%, #2563eb ${pctPct}%, rgba(255, 255, 255, 0.1) ${pctPct}%)`;
+
+      document.getElementById('scrubberLabel').textContent = `${curKm.toLocaleString()} km (${(pct * 100).toFixed(1)}%) | Day ${Math.min(26, Math.floor(pct * 26) + 1)} (${driveH}h ${driveM}m 운전)`;
+
+      // Update Car Cluster HUD
+      const speedMph = isPlaying ? Math.round(66 + Math.sin(idx * 0.1)*6) : 0;
+      document.getElementById('clusterSpeed').textContent = `${speedMph} MPH`;
+      
+      const compHeading = targetHeading;
+      const compCompass = compHeading >= -22.5 && compHeading < 22.5 ? 'N 0°' :
+                         compHeading >= 22.5 && compHeading < 67.5 ? 'NE 45°' :
+                         compHeading >= 67.5 && compHeading < 112.5 ? 'E 90°' :
+                         compHeading >= 112.5 && compHeading < 157.5 ? 'SE 135°' :
+                         compHeading >= 157.5 || compHeading < -157.5 ? 'S 180°' :
+                         compHeading >= -157.5 && compHeading < -112.5 ? 'SW 225°' :
+                         compHeading >= -112.5 && compHeading < -67.5 ? 'W 270°' : 'NW 315°';
+      document.getElementById('clusterHeading').textContent = compCompass;
+
+      let reg = '횡단 고속도로';
+      const lng = pt[1];
+      if (lng < -118) reg = '캘리포니아 (태평양 해안)';
+      else if (lng < -111) reg = '애리조나 & 그랜드캐니언';
+      else if (lng < -119 && pt[0] > 37) reg = '요세미티 & 시에라네바다';
+      else if (lng < -122 && pt[0] > 45) reg = '오리건 & 워싱턴 (시애틀)';
+      else if (pt[0] > 49 && lng < -114) reg = '캐나다 로키 & 밴쿠버';
+      else if (lng < -104) reg = '몬태나 & 와이오밍 대평원';
+      else if (lng < -96) reg = '사우스다코타 큰바위얼굴';
+      else if (lng < -87) reg = '미네소타 & 일리노이 (시카고)';
+      else if (lng < -78) reg = '온타리오 & 나이아가라 폭포';
+      else reg = '뉴욕 맨해튼 & 허드슨강';
+
+      document.getElementById('hudRegion').textContent = reg;
+      document.getElementById('mapBadgeLoc').textContent = reg;
+
+      // ================= REAL-TIME VISITED PLACES & CAR SPEECH SYNC =================
+      const visitedPlaces = cleanPlaces.filter(p => p.closest_anim_idx <= Math.floor(idx));
+      
+      // Determine closest spot and next upcoming spot
+      let currentSpot = null;
+      let nextSpot = null;
+      let minSpotDist = Infinity;
+
+      for (let s = 0; s < cleanPlaces.length; s++) {
+        const p = cleanPlaces[s];
+        const dist = Math.abs(idx - p.closest_anim_idx);
+        if (dist < minSpotDist) {
+          minSpotDist = dist;
+          currentSpot = p;
+        }
+        if (p.closest_anim_idx > idx && !nextSpot) {
+          nextSpot = p;
+        }
+      }
+      if (!currentSpot && cleanPlaces.length > 0) currentSpot = cleanPlaces[0];
+      if (!nextSpot && cleanPlaces.length > 0) nextSpot = cleanPlaces[cleanPlaces.length - 1];
+
+      currentActiveStepNo = currentSpot ? currentSpot.step_no : 1;
+      const isArrived = minSpotDist <= 1.4;
+
+      // Generate dynamic car speech dialogue
+      const carLine = getCarSpeech(idx, currentSpot, nextSpot, isArrived);
+      updateCarBubble(carLine);
+
+      // AI Voice Guide trigger on spot arrival
+      if (isArrived && currentSpot && isPlaying) {
+        if (lastSpokenStepNo !== currentSpot.step_no) {
+          lastSpokenStepNo = currentSpot.step_no;
+          speakKorean(`${currentSpot.name} 도착! ${carLine}`);
+        }
+      }
+
+      // Update Simulator Tab Live Feed (#tab-sim)
+      const simVisitedBadge = document.getElementById('simVisitedBadge');
+      if (simVisitedBadge) {
+        simVisitedBadge.textContent = `${visitedPlaces.length} / ${cleanPlaces.length} 완주`;
+      }
+      const spotStepEl = document.getElementById('spotlightStep');
+      const spotNameEl = document.getElementById('spotlightName');
+      const spotStatusEl = document.getElementById('spotlightStatus');
+      const spotQuoteEl = document.getElementById('spotlightQuote');
+
+      if (spotStepEl && currentSpot) {
+        spotStepEl.textContent = `STEP ${currentSpot.step_no}`;
+        spotNameEl.textContent = `${currentSpot.name} (${currentSpot.region})`;
+        spotStatusEl.textContent = isArrived ? '📍 방금 도착' : '🚗 이동 중';
+        spotQuoteEl.textContent = `💬 "${carLine}"`;
+      }
+
+      // Update Live Visited Stream in Tab Sim (Show latest 8 in reverse order)
+      const streamEl = document.getElementById('simVisitedStream');
+      if (streamEl && visitedPlaces.length > 0) {
+        const recentVisited = visitedPlaces.slice(-8).reverse();
+        streamEl.innerHTML = recentVisited.map(p => {
+          const isCurr = p.step_no === currentActiveStepNo;
+          return `
+            <div class="stream-item ${isCurr ? 'current' : ''}" onclick="flyToSpot(${p.lat}, ${p.lng}, '${p.name}')">
+              <span class="stream-item-no">#${p.step_no}</span>
+              <span class="stream-item-name">${isCurr ? '🚗 ' : '✅ '}${p.name}</span>
+              <span class="stream-item-cat">${p.category}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Update Tab Spots Cards (.item-card in #tab-spots)
+      cleanPlaces.forEach(p => {
+        const card = document.getElementById(`spotCard_${p.step_no}`);
+        const pill = document.getElementById(`statusPill_${p.step_no}`);
+        if (!card) return;
+
+        const isPassed = p.closest_anim_idx < idx - 0.8;
+        const isCurrent = p.step_no === currentActiveStepNo;
+
+        card.classList.remove('sim-active', 'visited');
+        if (isCurrent) {
+          card.classList.add('sim-active');
+          if (pill) {
+            pill.className = 'item-status-pill active';
+            pill.textContent = '🚗 현재 위치';
+          }
+          if (isPlaying && isArrived) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } else if (isPassed) {
+          card.classList.add('visited');
+          if (pill) {
+            pill.className = 'item-status-pill visited';
+            pill.textContent = '✅ 방문 완료';
+          }
+        } else {
+          if (pill) {
+            pill.className = 'item-status-pill upcoming';
+            pill.textContent = '⏳ 방문 예정';
           }
         }
-
-        // Highlight sidebar spot card
-        document.querySelectorAll('.item-card').forEach(c => c.classList.remove('sim-active'));
-        const activeCard = document.getElementById(`place_card_${curSpot.orig_index}`);
-        if (activeCard) {
-          activeCard.classList.add('sim-active');
-          if (isPlaying && (stepInfo.phase === 'arrive' || stepInfo.phase === 'start' || stepInfo.phase === 'final')) {
-            activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }
-      }
-
-      // Update cluster telemetry
-      const clusterSpd = document.getElementById('clusterSpeed');
-      if (clusterSpd) {
-        const spd = isPlaying ? Math.round(55 + Math.sin(idx * 0.2) * 15) : 0;
-        clusterSpd.textContent = `${spd} MPH`;
-      }
+      });
     }
+
+    // ================= 132 SPOTS & MEMORY NOTES =================
+    let currentCategoryFilter = 'all';
 
     function getStorageKey(origIdx) {
       return 'usa_trip_note_' + origIdx;
@@ -3440,86 +2732,64 @@
       box.style.display = (box.style.display === 'block') ? 'none' : 'block';
     }
 
-    
     function renderSpots(spots) {
       const container = document.getElementById('spotsContainer');
-      if (!container) return;
       container.innerHTML = '';
+      document.getElementById('spotsCountLabel').textContent = `총 ${spots.length}개 장소 표시 중`;
 
-      // Count categories for active day
-      const catCounts = { all: spots.length, '도시/랜드마크': 0, '국립공원/자연': 0, '명문대학': 0, '공항/국경': 0, '쇼핑/미식': 0 };
-      spots.forEach(p => {
-        const cat = p.category || '기타';
-        if (catCounts[cat] !== undefined) catCounts[cat]++;
-      });
-
-      const cAll = document.getElementById('catCountAll'); if (cAll) cAll.textContent = catCounts.all;
-      const cLm = document.getElementById('catCountLandmark'); if (cLm) cLm.textContent = catCounts['도시/랜드마크'];
-      const cNat = document.getElementById('catCountNature'); if (cNat) cNat.textContent = catCounts['국립공원/자연'];
-      const cUniv = document.getElementById('catCountUniv'); if (cUniv) cUniv.textContent = catCounts['명문대학'];
-      const cAir = document.getElementById('catCountAirport'); if (cAir) cAir.textContent = catCounts['공항/국경'];
-      const cShop = document.getElementById('catCountShop'); if (cShop) cShop.textContent = catCounts['쇼핑/미식'];
-
-      // Filter by active category
-      const filtered = (currentCategory === 'all') ? spots : spots.filter(p => p.category === currentCategory);
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div style="padding: 40px 20px; text-align: center; color: var(--text-dim);">
-            <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--text-sub);">해당 카테고리의 방문지가 없습니다</div>
-            <div style="font-size: 11.5px; margin-top: 4px;">다른 카테고리를 선택해보세요</div>
-          </div>
-        `;
-        return;
-      }
-
-      filtered.forEach((p, idx) => {
+      spots.forEach((p) => {
         const key = getStorageKey(p.orig_index);
         let savedData = null;
-        try { savedData = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+        try {
+          savedData = JSON.parse(localStorage.getItem(key));
+        } catch(e) {}
+
         const stars = savedData ? savedData.stars : 5;
         const note = savedData ? savedData.note : '';
+        const isPassed = p.closest_anim_idx !== undefined && p.closest_anim_idx < simIndex - 0.8;
+        const isCurrent = p.step_no === currentActiveStepNo;
+
+        let statusClass = 'upcoming';
+        let statusText = '⏳ 방문 예정';
+        if (isCurrent) {
+          statusClass = 'active';
+          statusText = '🚗 현재 위치';
+        } else if (isPassed) {
+          statusClass = 'visited';
+          statusText = '✅ 방문 완료';
+        }
 
         const card = document.createElement('div');
-        card.className = 'item-card';
-        card.id = `place_card_${p.orig_index}`;
-        card.style.cssText = 'margin-bottom: 10px; padding: 12px 14px;';
-        card.onclick = () => {
-          flyToSpot(p.lat, p.lng, p.name);
-          document.querySelectorAll('.item-card').forEach(c => c.classList.remove('sim-active'));
-          card.classList.add('sim-active');
-        };
-
-        const starsHtml = [1, 2, 3, 4, 5].map(s => 
-          `<span class="${s <= stars ? 'active' : ''}" onclick="setStars(${p.orig_index}, ${s}, event)">★</span>`
-        ).join('');
+        card.className = `item-card ${isPassed ? 'visited' : ''} ${isCurrent ? 'sim-active' : ''}`;
+        card.id = `spotCard_${p.step_no}`;
 
         card.innerHTML = `
-          <div class="item-header">
-            <div class="item-no" style="width: 26px; height: 26px; font-size: 11px;">${p.step_no}</div>
+          <div class="item-header" onclick="flyToSpot(${p.lat}, ${p.lng}, '${p.name}')">
+            <div class="item-no">${p.step_no}</div>
             <div class="item-info">
-              <div class="item-name" style="font-size: 13px;">${p.name}</div>
-              <div class="item-addr" style="font-size: 11px;">${p.addr || ''}</div>
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+                <div class="item-name">${p.name}</div>
+                <span class="item-status-pill ${statusClass}" id="statusPill_${p.step_no}">${statusText}</span>
+              </div>
+              <div class="item-addr">${p.region ? `[${p.region}] ` : ''}${p.addr || '주소 정보 없음'}</div>
             </div>
-            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
-              <span class="item-badge-cat">${p.category || '명소'}</span>
-              <span class="item-status-pill upcoming" id="status_pill_${p.orig_index}">Day ${p.day || 1}</span>
-            </div>
+            <div class="item-badge-cat">${p.category || '명소'}</div>
           </div>
-
           <div class="item-actions">
             <div class="item-links">
-              <a href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}" target="_blank" onclick="event.stopPropagation()" style="color:var(--accent-cyan);">↗ 구글맵</a>
+              <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.name + ' ' + (p.addr || ''))}" target="_blank" style="color:#38bdf8;">구글지도 ↗</a>
+              <a href="https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${p.lat},${p.lng}" target="_blank" style="color:#34d399;">로드뷰 360° ↗</a>
             </div>
-            <button class="item-memory-toggle" onclick="toggleMemoryBox(${p.orig_index}, event)">✏️ 감상/평점</button>
+            <button class="item-memory-toggle" onclick="toggleMemoryBox(${p.orig_index})">✏️ 내 메모 (${savedData ? '⭐' + stars : '작성'})</button>
           </div>
-
-          <div class="item-memory-box" id="mem_box_${p.orig_index}">
-            <div class="memory-stars" id="stars_${p.orig_index}">${starsHtml}</div>
-            <textarea class="memory-input" id="note_${p.orig_index}" placeholder="이 장소에 대한 감상 메모를 남겨보세요...">${note}</textarea>
+          <div class="item-memory-box" id="memoryBox_${p.orig_index}">
+            <div class="memory-stars" id="starsContainer_${p.orig_index}">
+              ${[1,2,3,4,5].map(n => `<span class="${n <= stars ? 'active' : ''}" onclick="setStars(${p.orig_index}, ${n})">★</span>`).join('')}
+            </div>
+            <input type="hidden" id="starVal_${p.orig_index}" value="${stars}">
+            <textarea id="noteInput_${p.orig_index}" class="memory-input" placeholder="이곳에서의 감상, 맛집 정보, 여행 팁을 기록해보세요...">${note}</textarea>
             <div style="display:flex; justify-content:flex-end;">
-              <button class="memory-save-btn" onclick="saveNote(${p.orig_index}, event)">저장</button>
+              <button class="memory-save-btn" onclick="saveNote(${p.orig_index})">저장하기</button>
             </div>
           </div>
         `;
@@ -3528,11 +2798,10 @@
     }
 
     function filterCategory(cat, btn) {
-      currentCategory = cat;
+      currentCategoryFilter = cat;
       document.querySelectorAll('.filter-pills .pill-btn').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-      const daySpots = (currentDay === 'all') ? cleanPlaces : cleanPlaces.filter(p => p.day == currentDay);
-      renderSpots(daySpots);
+      btn.classList.add('active');
+      filterSpots();
     }
 
     function filterSpots() {
@@ -4016,8 +3285,8 @@
 
     // ================= INITIAL LOAD =================
     window.addEventListener('DOMContentLoaded', () => {
-      initDayTabs();
-      filterDay(1);
+      renderStory();
+      renderSpots(cleanPlaces);
       renderGasStops();
       loadPhotoAlbum();
       updateExpenseDisplay();
