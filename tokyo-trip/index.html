@@ -1169,10 +1169,12 @@
     let markers = [];
     let polylines = [];
 
-    // ================= MAP INITIALIZATION =================
+    // ================= MAP INITIALIZATION (LOCKED TO 19x ZOOM) =================
     window.map = L.map('map', {
       center: [35.6812, 139.7671],
-      zoom: 12,
+      zoom: 19,
+      minZoom: 10,
+      maxZoom: 19,
       zoomControl: false,
       attributionControl: false,
       zoomSnap: 0.25,
@@ -1299,32 +1301,55 @@
     let simSpeed = 0.1; // Default to 0.1x leisurely speed
     let simSpots = [];
     let simPath = []; // High-density interpolated coordinate points
-    let simSegments = []; // Maps path index back to original spot
-    let simTargetZooms = []; // Target zoom for each interpolated step
+    let simStepDetails = []; // Detailed step tracking: spot, phase, fromSpot, toSpot, legIdx, legFrac
     let voiceEnabled = false;
     let lastSpokenSpotId = null;
 
-    // Haversine distance in km between two lat/lng coordinates
-    function getDistanceKm(lat1, lon1, lat2, lon2) {
-      const R = 6371; // Earth radius in km
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c;
+    // Rich context-aware dialogue generator for all 79 Tokyo spots
+    function getHachiReaction(spot) {
+      if (!spot) return '도쿄 여행 너무 신난다냥! 🐾';
+      const name = spot.name_ko || '';
+      const memo = spot.memo || '';
+      const cat = spot._cat || '';
+
+      if (name.includes('치이카와')) return '🍞 치이카와 베이커리 도착! 빵 냄새 좋다냥!';
+      if (name.includes('건담')) return '🤖 우와앗! 실물 크기 유니콘 건담 발견이다냥!';
+      if (name.includes('스카이')) return '✨ 시부야 스카이 전망 최고야! 가슴이 뻥 뚫린다냥!';
+      if (name.includes('타워')) return '🗼 도쿄타워 불빛 너무 예쁘다냥! 낭만 가득해~';
+      if (name.includes('공항')) return '✈️ 나리타 공항 도착! 여행 출발/귀국이다냥!';
+      if (name.includes('호텔')) return '🛏️ 호텔 도착! 체크인하고 푹 쉬자냥~';
+      if (name.includes('키디랜드')) return '🧸 키디랜드 캐릭터 굿즈 구경할 시간이다냥!';
+      if (name.includes('닌텐도') || name.includes('포켓몬') || name.includes('점프')) {
+        return '🎯 닌텐도 & 캐릭터 스토어 도착! 지갑 조심이다냥!';
+      }
+      if (name.includes('라디오회관') || name.includes('만다라케') || name.includes('애니메이트')) {
+        return '🎮 아키하바라 굿즈 성지 도착! 피규어 천국이다냥!';
+      }
+      if (name.includes('우나기') || name.includes('스시') || name.includes('라멘') || name.includes('스테이크') || cat === 'food') {
+        return `🍜 침 고인다냥! ${name} 맛집 도착!`;
+      }
+      if (name.includes('공원') || name.includes('신사') || name.includes('신주쿠교엔') || name.includes('우에노')) {
+        return `🌳 공기 상쾌해~ ${name} 산책이다냥!`;
+      }
+      if (name.includes('스카이라이너') || name.includes('유리카모메') || name.includes('역')) {
+        return `🚆 슝슝~ ${name} 환승/탑승이다냥!`;
+      }
+      if (memo && memo.trim()) {
+        const shortMemo = memo.length > 18 ? memo.slice(0, 18) + '...' : memo;
+        return `✨ ${name} (${shortMemo})`;
+      }
+      return `📍 ${name} 도착했다냥! 둘러보자냥! 🐾`;
     }
 
-    // Dynamic Smart Zoom scaled for Japan city scale (18~19 Close-Up Range):
-    // User request: "일본은 애초에 땅이 크지 않으니까 처음부터 확대레벨 18~19정도로 다녀도 될거 같아"
-    function getTargetZoomForLeg(distKm) {
-      if (distKm > 25) return 14.5;  // Long airport highway/skyliner express (~55km)
-      if (distKm > 10) return 16.5;  // Long suburban/bay transit (10-25km)
-      if (distKm > 3)  return 17.5;  // Inter-district metro (3-10km)
-      if (distKm > 1)  return 18.25; // District transit (1-3km)
-      if (distKm > 0.3) return 18.75; // Street / avenue walk (300m-1km)
-      return 19.0;                   // Ultra close-up store / alleyway (< 300m)
+    // Speech bubble with soft pop animation on update
+    function updateHachiBubble(text) {
+      const bubble = document.getElementById('hachiBubble');
+      if (!bubble) return;
+      if (bubble.textContent !== text) {
+        bubble.textContent = text;
+        bubble.style.transform = 'scale(1.08)';
+        setTimeout(() => { if (bubble) bubble.style.transform = 'scale(1)'; }, 120);
+      }
     }
 
     // Create Hachiware Leaflet Marker
@@ -1372,17 +1397,22 @@
       window.speechSynthesis.speak(utter);
     }
 
-    // Build smooth high-density path & calculate dynamic smart zoom per leg
+    // Build smooth high-density path with precise step phases
     function buildSimPath() {
       simPath = [];
-      simSegments = [];
-      simTargetZooms = [];
+      simStepDetails = [];
       if (simSpots.length === 0) return;
 
       if (simSpots.length === 1) {
         simPath.push([simSpots[0].lat, simSpots[0].lng]);
-        simSegments.push(simSpots[0]);
-        simTargetZooms.push(18.75);
+        simStepDetails.push({
+          spot: simSpots[0],
+          phase: 'start',
+          fromSpot: simSpots[0],
+          toSpot: simSpots[0],
+          legIdx: 0,
+          legFrac: 1.0
+        });
         return;
       }
 
@@ -1392,11 +1422,8 @@
         const latA = spA.lat, lngA = spA.lng;
         const latB = spB.lat, lngB = spB.lng;
 
-        const distKm = getDistanceKm(latA, lngA, latB, lngB);
-        const targetZoom = getTargetZoomForLeg(distKm);
-
-        // High-density steps for smooth 0.1x animation
-        const steps = Math.max(60, Math.min(240, Math.round(distKm * 2.5) + 60));
+        const dist = Math.hypot(latB - latA, lngB - lngA);
+        const steps = Math.max(60, Math.min(220, Math.round(dist * 1200)));
 
         for (let s = 0; s < steps; s++) {
           const t = s / steps;
@@ -1404,15 +1431,45 @@
             latA + (latB - latA) * t,
             lngA + (lngB - lngA) * t
           ]);
-          simSegments.push(t < 0.5 ? spA : spB);
-          simTargetZooms.push(targetZoom);
+
+          // Precise phase segmentation:
+          // 1. Depart phase: t < 0.20 (at/leaving spA)
+          // 2. Moving phase: 0.20 <= t < 0.80 (heading towards spB)
+          // 3. Arrive phase: t >= 0.80 (arriving at spB)
+          let phase = 'moving';
+          let spot = spB;
+          if (t < 0.20) {
+            phase = (i === 0) ? 'start' : 'depart';
+            spot = spA;
+          } else if (t >= 0.80) {
+            phase = 'arrive';
+            spot = spB;
+          } else {
+            phase = 'moving';
+            spot = spB;
+          }
+
+          simStepDetails.push({
+            spot: spot,
+            phase: phase,
+            fromSpot: spA,
+            toSpot: spB,
+            legIdx: i,
+            legFrac: t
+          });
         }
       }
+
       const last = simSpots[simSpots.length - 1];
       simPath.push([last.lat, last.lng]);
-      simSegments.push(last);
-      const lastZoom = simTargetZooms.length > 0 ? simTargetZooms[simTargetZooms.length - 1] : 18.75;
-      simTargetZooms.push(lastZoom);
+      simStepDetails.push({
+        spot: last,
+        phase: 'final',
+        fromSpot: last,
+        toSpot: last,
+        legIdx: simSpots.length - 1,
+        legFrac: 1.0
+      });
     }
 
     function initHachiware() {
@@ -1472,10 +1529,10 @@
       if (charBox) charBox.classList.remove('walking');
 
       simProgress = 0;
+      lastSpokenSpotId = null;
       updateSimFrame(0);
       if (simPath.length > 0) {
-        const initZoom = simTargetZooms[0] || 18.5;
-        map.flyTo(simPath[0], initZoom, { duration: 0.8 });
+        map.setView(simPath[0], 19);
       }
     }
 
@@ -1536,14 +1593,10 @@
         hachiTrail.setLatLngs(trailPts);
       }
 
-      // Dynamic Smart Camera Follow (Smooth Zoom & Position tracking)
+      // Fixed Zoom 19 Camera Follow (Locked strictly to 19 throughout entire tour)
       const followCam = document.getElementById('hachiFollowCam');
       if (followCam && followCam.checked) {
-        const targetZ = simTargetZooms[idx] || 18.5;
-        const curZ = map.getZoom();
-        // Silky smooth lerp for zoom: 0.08 transition factor prevents abrupt zoom shifts
-        const smoothZ = curZ + (targetZ - curZ) * 0.08;
-        map.setView(curPt, smoothZ, { animate: false });
+        map.setView(curPt, 19, { animate: false });
       }
 
       // Direction flip (Left/Right)
@@ -1556,58 +1609,57 @@
         }
       }
 
-      // Current spot & speech bubble
-      const currentSpot = simSegments[idx];
+      // Step & Spot details
+      const stepInfo = simStepDetails[idx] || (simSpots.length > 0 ? { spot: simSpots[0], phase: 'start', fromSpot: simSpots[0], toSpot: simSpots[0] } : null);
       const slider = document.getElementById('hachiSlider');
       if (slider) slider.value = Math.round(prog * 1000);
 
       const statusEl = document.getElementById('hachiSimStatus');
-      const bubble = document.getElementById('hachiBubble');
 
-      if (currentSpot) {
+      if (stepInfo && stepInfo.spot) {
+        const currentSpot = stepInfo.spot;
         const spotIdx = simSpots.indexOf(currentSpot) + 1;
         const totalSpots = simSpots.length;
         const pct = Math.round(prog * 100);
-        const targetZ = simTargetZooms[idx] || 18.5;
-        const zoomDesc = targetZ >= 18.5 ? '🔍 초근접 18~19x 뷰' : (targetZ >= 17.0 ? '🏙️ 도심 17~18x 뷰' : '✈️ 쾌속 이동 뷰');
 
         if (statusEl) {
-          statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} 이동 중 (${pct}%) · ${zoomDesc}`;
-        }
-
-        if (bubble) {
-          if (currentSpot.name_ko.includes('건담')) {
-            bubble.textContent = '우와! 건담 베이스 엄청 크다냥! 🤖';
-          } else if (currentSpot.name_ko.includes('치이카와')) {
-            bubble.textContent = '치이카와 빵집 도착! 냄새 좋다냥! 🍞';
-          } else if (currentSpot.name_ko.includes('스카이')) {
-            bubble.textContent = '시부야 스카이 전망 최고야! ✨';
-          } else if (currentSpot.name_ko.includes('타워')) {
-            bubble.textContent = '도쿄타워 야경 너무 낭만적이야~ 🗼';
-          } else if (currentSpot.name_ko.includes('공항')) {
-            bubble.textContent = '나리타 공항 도착! 여행 출발이다냥! ✈️';
-          } else if (currentSpot.name_ko.includes('호텔')) {
-            bubble.textContent = '호텔 체크인 완료! 푹 쉬어가자냥~ 🛏️';
+          if (stepInfo.phase === 'moving') {
+            statusEl.textContent = `[${spotIdx}/${totalSpots}] ${stepInfo.fromSpot.name_ko} ➔ ${stepInfo.toSpot.name_ko} 이동 중 (${pct}%) · 19x 고정 뷰`;
           } else {
-            bubble.textContent = `${currentSpot.name_ko} 향하는 중이다냥! 🐾`;
+            statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} (${pct}%) · 19x 고정 뷰`;
           }
         }
+
+        // Dynamic Speech Bubble: Always timely, never late, changes at every point!
+        let bubbleText = '';
+        if (stepInfo.phase === 'start') {
+          bubbleText = `🚩 ${stepInfo.fromSpot.name_ko} 에서 투어 출발이다냥! 🐾`;
+        } else if (stepInfo.phase === 'depart') {
+          bubbleText = `📍 ${stepInfo.fromSpot.name_ko} 출발!`;
+        } else if (stepInfo.phase === 'moving') {
+          bubbleText = `🐾 ${stepInfo.toSpot.name_ko} (으)로 이동 중이다냥!`;
+        } else if (stepInfo.phase === 'arrive' || stepInfo.phase === 'final') {
+          bubbleText = getHachiReaction(stepInfo.toSpot);
+        }
+        updateHachiBubble(bubbleText);
 
         // Highlight sidebar card
         document.querySelectorAll('.spot-card').forEach(c => c.classList.remove('sim-active'));
         const cardEl = document.getElementById(`card_${currentSpot.id}`);
         if (cardEl) {
           cardEl.classList.add('sim-active');
-          if (isSimPlaying) {
+          if (isSimPlaying && (stepInfo.phase === 'arrive' || stepInfo.phase === 'start' || stepInfo.phase === 'final')) {
             cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
         }
 
-        // Voice guide
-        if (lastSpokenSpotId !== currentSpot.id) {
-          lastSpokenSpotId = currentSpot.id;
-          if (isSimPlaying) {
-            speakText(`${currentSpot.name_ko} 도착!`);
+        // Voice guide: Triggers reliably on arrival at each spot
+        if (stepInfo.phase === 'arrive' || stepInfo.phase === 'start' || stepInfo.phase === 'final') {
+          if (lastSpokenSpotId !== currentSpot.id) {
+            lastSpokenSpotId = currentSpot.id;
+            if (isSimPlaying) {
+              speakText(`${currentSpot.name_ko} 도착!`);
+            }
           }
         }
       }
@@ -1742,7 +1794,7 @@
           document.querySelectorAll('.spot-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
           if (it.lat && it.lng) {
-            map.flyTo([it.lat, it.lng], 16.75, { duration: 1.2 });
+            map.setView([it.lat, it.lng], 19);
             if (it._marker) it._marker.openPopup();
           }
         };
@@ -1814,13 +1866,9 @@
         }
       });
 
-      // Fit bounds for whole trip view, or zoom straight in to 18.5 for specific day
+      // Center view on start spot at fixed zoom 19
       if (latLngBounds.length > 0) {
-        if (currentDay === 'all') {
-          map.fitBounds(latLngBounds, { padding: [70, 70], maxZoom: 14 });
-        } else {
-          map.setView(latLngBounds[0], 18.5);
-        }
+        map.setView(latLngBounds[0], 19);
       }
 
       // Build & Init Hachiware simulation path for current view
