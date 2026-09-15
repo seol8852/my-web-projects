@@ -3,47 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>설범준의 도쿄 시티 투어 | 5일간 79개 스팟 인터랙티브 맵 & 하치와레 시뮬레이터</title>
+  <title>설범준의 도쿄 시티 투어 | 5일간 79개 스팟 인터랙티브 맵 & 하치와레 시뮬레이터 (Pinnacle Edition)</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Cinzel:wght@700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&family=Cinzel:wght@700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-base: #070a14;
-      --sidebar-bg: rgba(11, 16, 28, 0.92);
-      --panel-bg: rgba(16, 23, 40, 0.72);
-      --panel-hover: rgba(24, 34, 58, 0.88);
-      --glass-border: rgba(255, 255, 255, 0.08);
+      --bg-base: #050813;
+      --sidebar-bg: rgba(10, 15, 28, 0.94);
+      --panel-bg: rgba(16, 24, 44, 0.68);
+      --panel-hover: rgba(26, 38, 68, 0.88);
+      --glass-border: rgba(255, 255, 255, 0.09);
+      --glass-border-subtle: rgba(255, 255, 255, 0.04);
+      --glass-shine: inset 0 1px 0 rgba(255, 255, 255, 0.12);
       --accent-cyan: #38bdf8;
       --accent-blue: #3b82f6;
-      --accent-pink: #ec4899;
-      --accent-purple: #a855f7;
-      --accent-amber: #f59e0b;
-      --accent-emerald: #10b981;
-      --accent-red: #ef4444;
+      --accent-pink: #f472b6;
+      --accent-purple: #c084fc;
+      --accent-amber: #fbbf24;
+      --accent-emerald: #34d399;
+      --accent-red: #f87171;
       --text-main: #f8fafc;
       --text-sub: #94a3b8;
+      --text-dim: #64748b;
       --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
-    body { display: flex; width: 100vw; height: 100vh; overflow: hidden; background: var(--bg-base); color: var(--text-main); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; }
+    body { display: flex; width: 100vw; height: 100vh; overflow: hidden; background: var(--bg-base); color: var(--text-main); letter-spacing: -0.015em; }
 
-    /* Micro Scrollbar */
+    /* Micro Custom Scrollbar */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 9999px; }
-    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.6); }
+    ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.28); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.65); }
 
-    /* Sidebar */
+    /* ================= SIDEBAR ================= */
     #sidebar {
       width: 500px;
       min-width: 500px;
       height: 100%;
       min-height: 0;
       background: var(--sidebar-bg);
-      backdrop-filter: blur(32px) saturate(180%);
-      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      backdrop-filter: blur(36px) saturate(190%);
+      -webkit-backdrop-filter: blur(36px) saturate(190%);
       border-right: 1px solid var(--glass-border);
       display: flex;
       flex-direction: column;
@@ -64,9 +67,9 @@
       right: -42px;
       width: 42px;
       height: 48px;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      background: rgba(14, 20, 38, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--glass-border);
       border-left: none;
       border-radius: 0 12px 12px 0;
@@ -76,7 +79,7 @@
       justify-content: center;
       cursor: pointer;
       z-index: 2000;
-      box-shadow: 6px 0 20px rgba(0, 0, 0, 0.6);
+      box-shadow: 6px 0 24px rgba(0, 0, 0, 0.65);
       font-size: 15px;
       font-weight: 800;
       transition: all 0.2s var(--ease-spring);
@@ -84,66 +87,94 @@
     .sidebar-toggle:hover {
       background: #0284c7;
       color: #fff;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.65);
       width: 46px;
       right: -46px;
     }
 
-    /* Brand Header */
+    /* ================= BRAND HEADER ================= */
     .brand {
-      padding: 16px 20px 12px 20px;
-      background: linear-gradient(180deg, rgba(25, 36, 62, 0.75) 0%, rgba(12, 18, 32, 0.95) 100%);
+      padding: 16px 20px 14px 20px;
+      background: linear-gradient(180deg, rgba(22, 34, 60, 0.8) 0%, rgba(10, 15, 28, 0.98) 100%);
       border-bottom: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shine);
       flex-shrink: 0;
+      position: relative;
     }
     .brand-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .brand-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(236, 72, 153, 0.15);
-      border: 1px solid rgba(236, 72, 153, 0.35);
-      padding: 3px 9px;
+      background: linear-gradient(135deg, rgba(244, 114, 182, 0.16) 0%, rgba(192, 132, 252, 0.16) 100%);
+      border: 1px solid rgba(244, 114, 182, 0.35);
+      padding: 3.5px 10px;
       border-radius: 9999px;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       color: #f472b6;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
     }
-    .brand-hub-link {
+    .live-pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: livePulse 1.5s infinite;
+    }
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .brand-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand-action-btn {
       font-size: 11px;
-      color: var(--accent-cyan);
+      color: var(--text-sub);
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 3px 8px;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: 6px;
-      transition: all 0.2s;
+      padding: 4px 9px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s var(--ease-spring);
     }
-    .brand-hub-link:hover {
-      background: #0284c7;
+    .brand-action-btn:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
       color: #fff;
     }
+    .brand-hub-link {
+      color: var(--accent-cyan);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
     .brand h1 {
-      font-size: 19px;
+      font-size: 20px;
       font-weight: 900;
       color: #fff;
       display: flex;
       align-items: center;
       gap: 8px;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.025em;
     }
     .brand-meta {
       display: flex;
-      gap: 14px;
+      gap: 16px;
       margin-top: 8px;
       font-size: 11.5px;
       color: var(--text-sub);
@@ -151,63 +182,93 @@
     .brand-meta-item strong {
       color: var(--accent-cyan);
       font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
     }
 
-    /* Day Navigation Tabs */
+    /* ================= DAY NAVIGATION TABS ================= */
     .day-tabs {
       display: flex;
       padding: 10px 16px;
       gap: 6px;
-      background: rgba(15, 23, 42, 0.6);
+      background: rgba(14, 20, 36, 0.65);
       border-bottom: 1px solid var(--glass-border);
       flex-shrink: 0;
     }
     .day-tab-btn {
       flex: 1;
-      padding: 8px 6px;
-      background: rgba(255, 255, 255, 0.04);
+      padding: 8px 4px;
+      background: rgba(255, 255, 255, 0.035);
       border: 1px solid var(--glass-border);
-      border-radius: 9px;
+      border-radius: 10px;
       color: var(--text-sub);
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       text-align: center;
-      transition: all 0.2s var(--ease-spring);
+      transition: all 0.22s var(--ease-spring);
       white-space: nowrap;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .day-tab-btn .tab-sub {
+      font-size: 9.5px;
+      font-weight: 500;
+      color: var(--text-dim);
+      transition: color 0.2s;
     }
     .day-tab-btn:hover {
       background: rgba(255, 255, 255, 0.08);
       color: #fff;
+      border-color: rgba(255, 255, 255, 0.16);
     }
     .day-tab-btn.active {
-      background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+      background: linear-gradient(135deg, #ec4899 0%, #d946ef 100%);
       color: #fff;
       border-color: #f472b6;
-      box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);
+      box-shadow: 0 4px 16px rgba(236, 72, 153, 0.45);
+    }
+    .day-tab-btn.active .tab-sub {
+      color: rgba(255, 255, 255, 0.85);
     }
 
-    /* Day Route Overview Card */
+    /* ================= DAY ROUTE OVERVIEW CARD ================= */
     .day-overview-card {
-      margin: 12px 16px 6px 16px;
-      padding: 12px 14px;
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
-      border: 1px solid rgba(236, 72, 153, 0.25);
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      margin: 12px 16px 8px 16px;
+      padding: 13px 15px;
+      background: linear-gradient(135deg, rgba(30, 44, 76, 0.75) 0%, rgba(14, 20, 38, 0.95) 100%);
+      border: 1px solid rgba(236, 72, 153, 0.28);
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
       flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .day-overview-card::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, transparent 70%);
+      pointer-events: none;
     }
     .doc-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
     }
     .doc-badge {
       font-size: 11px;
       font-weight: 800;
       color: #f472b6;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     .doc-actions {
       display: flex;
@@ -219,58 +280,97 @@
       font-size: 11px;
       font-weight: 800;
       color: var(--accent-cyan);
-      background: rgba(56, 189, 248, 0.12);
-      padding: 2px 8px;
+      background: rgba(56, 189, 248, 0.14);
+      padding: 2.5px 8px;
       border-radius: 6px;
-      border: 1px solid rgba(56, 189, 248, 0.25);
+      border: 1px solid rgba(56, 189, 248, 0.3);
     }
     .doc-play-btn {
-      padding: 3px 9px;
+      padding: 3.5px 10px;
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       border: 1px solid #38bdf8;
-      border-radius: 6px;
+      border-radius: 7px;
       color: #fff;
       font-size: 11px;
       font-weight: 800;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);
     }
     .doc-play-btn:hover {
       background: #0ea5e9;
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+      transform: translateY(-1px);
     }
     .doc-title {
-      font-size: 13.5px;
+      font-size: 14px;
       font-weight: 800;
       color: #fff;
       line-height: 1.35;
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
     .doc-route {
       font-size: 11.5px;
       color: #94a3b8;
-      line-height: 1.4;
+      line-height: 1.45;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
     }
 
-    /* Filter Bar */
+    /* ================= SEARCH & FILTER BAR ================= */
+    .filter-container {
+      padding: 6px 16px 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-bottom: 1px solid var(--glass-border);
+      background: rgba(10, 15, 28, 0.5);
+      flex-shrink: 0;
+    }
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .search-input {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 9px;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .search-input:focus {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+    }
+    .search-input::placeholder {
+      color: var(--text-dim);
+    }
+    .search-icon {
+      position: absolute;
+      left: 11px;
+      font-size: 13px;
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
     .filter-bar {
       display: flex;
-      padding: 8px 16px;
       gap: 6px;
-      border-bottom: 1px solid var(--glass-border);
       overflow-x: auto;
-      background: rgba(12, 18, 32, 0.4);
-      flex-shrink: 0;
     }
     .filter-bar::-webkit-scrollbar { display: none; }
     .filter-pill {
-      padding: 5px 11px;
+      padding: 4.5px 10px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--glass-border);
       color: var(--text-sub);
@@ -280,70 +380,90 @@
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
-    .filter-pill:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+    .filter-pill:hover { color: #fff; background: rgba(255, 255, 255, 0.09); border-color: rgba(255, 255, 255, 0.16); }
     .filter-pill.active {
       background: #0284c7;
       color: #fff;
       border-color: #38bdf8;
-      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
     }
 
-    /* Spot List Container */
+    /* ================= SPOT LIST CONTAINER ================= */
     .spot-list {
       flex: 1;
       min-height: 0;
       overflow-y: auto;
-      padding: 12px 16px 90px 16px;
+      padding: 12px 16px 96px 16px;
       display: flex;
       flex-direction: column;
       gap: 10px;
     }
 
-    /* Spot Card */
+    /* ================= SPOT CARD ================= */
     .spot-card {
       background: var(--panel-bg);
       border: 1px solid var(--glass-border);
-      border-radius: 12px;
+      border-radius: 13px;
       padding: 12px 14px;
       transition: all 0.25s var(--ease-spring);
       cursor: pointer;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .spot-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 3.5px;
+      height: 100%;
+      background: var(--card-accent, #38bdf8);
+      opacity: 0.75;
+      transition: opacity 0.2s;
     }
     .spot-card:hover {
-      transform: translateX(3px);
-      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateX(4px);
+      border-color: rgba(56, 189, 248, 0.45);
       background: var(--panel-hover);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+    }
+    .spot-card:hover::before {
+      opacity: 1;
+      box-shadow: 0 0 12px var(--card-accent, #38bdf8);
     }
     .spot-card.selected {
-      border-color: #f472b6;
-      box-shadow: 0 0 18px rgba(236, 72, 153, 0.45);
-      background: rgba(30, 41, 65, 0.95);
+      border-color: #f472b6 !important;
+      box-shadow: 0 0 22px rgba(236, 72, 153, 0.45) !important;
+      background: rgba(30, 42, 70, 0.95) !important;
     }
     .spot-card.sim-active {
       border-color: #38bdf8 !important;
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.6) !important;
-      background: rgba(14, 165, 233, 0.18) !important;
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.65) !important;
+      background: rgba(14, 165, 233, 0.22) !important;
     }
 
     .spot-card-top {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 11px;
     }
     .spot-num-badge {
-      width: 26px;
-      height: 26px;
-      min-width: 26px;
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
       border-radius: 50%;
       background: rgba(56, 189, 248, 0.12);
       border: 1px solid rgba(56, 189, 248, 0.3);
       color: var(--accent-cyan);
       font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 800;
       display: flex;
       align-items: center;
@@ -397,7 +517,7 @@
     }
 
     .spot-memo-box {
-      padding: 8px 11px;
+      padding: 8px 12px;
       background: rgba(56, 189, 248, 0.08);
       border-left: 3px solid #38bdf8;
       border-radius: 0 8px 8px 0;
@@ -407,32 +527,61 @@
       word-break: keep-all;
     }
 
-    .spot-photo {
+    .spot-photo-wrap {
       width: 100%;
       height: 120px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+    .spot-photo {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       display: block;
-      border-radius: 8px;
-      margin-top: 2px;
+      transition: transform 0.3s var(--ease-spring);
+    }
+    .spot-card:hover .spot-photo {
+      transform: scale(1.04);
     }
 
-    /* Map Container */
+    /* Card Action Footer on hover */
+    .spot-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      padding-top: 2px;
+    }
+    .spot-act-link {
+      font-size: 10.5px;
+      color: var(--text-dim);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: color 0.15s;
+    }
+    .spot-act-link:hover {
+      color: var(--accent-cyan);
+    }
+
+    /* ================= MAP CONTAINER ================= */
     #map {
       flex: 1;
       height: 100%;
       min-width: 0;
       position: relative;
-      background: #070a14;
+      background: #050813;
     }
 
-    /* Map Layer Switcher (USA Roadtrip Style: Left Top next to sidebar) */
+    /* ================= MAP LAYER SWITCHER ================= */
     .layer-selector {
       position: absolute;
       top: 20px;
       left: 530px;
       z-index: 1000;
       display: flex;
-      background: rgba(12, 18, 32, 0.92);
+      background: rgba(10, 15, 28, 0.92);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       padding: 4px;
@@ -476,17 +625,36 @@
       left: 530px;
       right: 24px;
       z-index: 1000;
-      background: rgba(11, 16, 28, 0.92);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: 16px;
+      background: rgba(9, 14, 26, 0.94);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 18px;
       padding: 10px 18px;
       display: flex;
       align-items: center;
       gap: 14px;
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.15);
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.85), 0 0 24px rgba(56, 189, 248, 0.16), var(--glass-shine);
       transition: left 0.35s var(--ease-spring);
+    }
+
+    .hachi-avatar-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1.5px solid #38bdf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+    .hachi-avatar-img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
     }
 
     .hachi-sim-left {
@@ -509,17 +677,17 @@
       gap: 6px;
       transition: all 0.2s;
       white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.45);
     }
     .hachi-play-btn:hover {
       background: #0ea5e9;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.65);
       transform: translateY(-1px);
     }
     .hachi-play-btn.playing {
       background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
       border-color: #f87171;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
     }
 
     .hachi-ctrl-btn {
@@ -547,7 +715,7 @@
       gap: 2px;
     }
     .hachi-spd-btn {
-      padding: 4px 7px;
+      padding: 4px 8px;
       background: transparent;
       border: none;
       color: var(--text-sub);
@@ -561,7 +729,7 @@
     .hachi-spd-btn.active {
       background: #0284c7;
       color: #fff;
-      box-shadow: 0 2px 6px rgba(56, 189, 248, 0.35);
+      box-shadow: 0 2px 6px rgba(56, 189, 248, 0.4);
     }
 
     .hachi-sim-center {
@@ -583,8 +751,8 @@
       font-family: 'JetBrains Mono', monospace;
       color: #f472b6;
       background: rgba(236, 72, 153, 0.15);
-      border: 1px solid rgba(236, 72, 153, 0.3);
-      padding: 2px 7px;
+      border: 1px solid rgba(236, 72, 153, 0.35);
+      padding: 2px 8px;
       border-radius: 5px;
       white-space: nowrap;
     }
@@ -614,7 +782,11 @@
       border-radius: 50%;
       background: #38bdf8;
       cursor: pointer;
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.8);
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
+      transition: transform 0.15s;
+    }
+    .hachi-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.3);
     }
 
     .hachi-sim-right {
@@ -654,32 +826,46 @@
       background: rgba(16, 185, 129, 0.2);
       border-color: #10b981;
       color: #34d399;
-      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
     }
 
     /* ================= HACHIWARE MAP MARKER ================= */
     .hachiware-marker-container {
       position: relative;
-      width: 64px;
-      height: 64px;
+      width: 66px;
+      height: 66px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-end;
       pointer-events: auto;
     }
+    .hachi-radar-wave {
+      position: absolute;
+      bottom: 6px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid #38bdf8;
+      animation: radarPulse 2s infinite;
+      pointer-events: none;
+    }
+    @keyframes radarPulse {
+      0% { transform: scale(0.5); opacity: 0.9; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
     .hachi-bubble {
       position: absolute;
-      bottom: 66px;
-      background: rgba(11, 16, 28, 0.95);
+      bottom: 68px;
+      background: rgba(11, 16, 28, 0.96);
       color: #38bdf8;
       border: 1.5px solid #38bdf8;
       border-radius: 12px;
-      padding: 4px 10px;
-      font-size: 11px;
+      padding: 4px 11px;
+      font-size: 11.5px;
       font-weight: 800;
       white-space: nowrap;
-      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.45);
       pointer-events: none;
       transition: all 0.2s;
       z-index: 10000;
@@ -695,10 +881,11 @@
       border-color: #38bdf8 transparent transparent transparent;
     }
     .hachi-character-box {
-      width: 54px;
-      height: 54px;
+      width: 56px;
+      height: 56px;
       transition: transform 0.15s ease-out;
       transform-origin: center bottom;
+      z-index: 2;
     }
     .hachi-character-box.walking {
       animation: hachiWaddle 0.45s infinite alternate ease-in-out;
@@ -711,16 +898,17 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
-      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.7));
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.75));
     }
     .hachi-shadow {
       position: absolute;
       bottom: 2px;
       width: 32px;
       height: 8px;
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.55);
       border-radius: 50%;
       filter: blur(2px);
+      z-index: 1;
     }
 
     /* Leaflet Custom Marker Icons */
@@ -730,7 +918,7 @@
       justify-content: center;
       border-radius: 50%;
       border: 2px solid #fff;
-      box-shadow: 0 0 12px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 14px rgba(0, 0, 0, 0.65), 0 0 18px rgba(56, 189, 248, 0.5);
       color: #fff;
       font-weight: 900;
       font-size: 11px;
@@ -739,7 +927,7 @@
       transition: transform 0.2s;
     }
     .custom-spot-marker:hover {
-      transform: scale(1.3);
+      transform: scale(1.35);
       z-index: 9999 !important;
     }
 
@@ -748,9 +936,9 @@
       background: rgba(11, 16, 28, 0.96) !important;
       backdrop-filter: blur(24px) !important;
       border: 1px solid var(--glass-border) !important;
-      border-radius: 12px !important;
+      border-radius: 14px !important;
       color: #fff !important;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8) !important;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.85) !important;
       padding: 0 !important;
       overflow: hidden;
     }
@@ -762,7 +950,7 @@
       background: rgba(11, 16, 28, 0.96) !important;
     }
     .popup-title {
-      font-size: 14px;
+      font-size: 14.5px;
       font-weight: 800;
       color: #fff;
       margin-bottom: 2px;
@@ -776,22 +964,24 @@
       font-size: 12px;
       color: #bae6fd;
       background: rgba(56, 189, 248, 0.1);
-      padding: 6px 10px;
-      border-left: 2px solid #38bdf8;
+      padding: 7px 11px;
+      border-left: 3px solid #38bdf8;
       border-radius: 0 6px 6px 0;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
+      line-height: 1.45;
     }
     .popup-btn {
       display: inline-block;
-      padding: 4px 10px;
+      padding: 5px 11px;
       background: #0284c7;
       color: #fff;
       text-decoration: none;
       font-size: 11px;
       font-weight: 700;
-      border-radius: 6px;
+      border-radius: 7px;
+      transition: all 0.2s;
     }
-    .popup-btn:hover { background: #0369a1; }
+    .popup-btn:hover { background: #0369a1; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
   </style>
 </head>
 <body>
@@ -801,28 +991,51 @@
     <!-- Brand Header -->
     <div class="brand">
       <div class="brand-top">
-        <span class="brand-badge">🇯🇵 TOKYO MASTER TOUR</span>
-        <a href="../" class="brand-hub-link">🏠 메인 포털 허브</a>
+        <div class="brand-badge">
+          <span class="live-pulse-dot"></span>
+          <span>TOKYO MASTER TOUR</span>
+        </div>
+        <div class="brand-actions">
+          <a href="../" class="brand-action-btn brand-hub-link">🏠 메인 허브</a>
+        </div>
       </div>
       <h1>🗼 설범준의 도쿄 시티 투어</h1>
       <div class="brand-meta">
         <div class="brand-meta-item">일정: <strong>5 DAYS</strong></div>
         <div class="brand-meta-item">방문지: <strong>79 SPOTS</strong></div>
-        <div class="brand-meta-item">동행: <strong>하치와레 🐾</strong></div>
+        <div class="brand-meta-item">가이드: <strong>하치와레 🐾</strong></div>
       </div>
     </div>
 
-    <!-- Day Navigation Tabs -->
+    <!-- Day Navigation Tabs with destinations -->
     <div class="day-tabs">
-      <button class="day-tab-btn active" onclick="filterDay('all', this)">전체</button>
-      <button class="day-tab-btn" onclick="filterDay(1, this)">Day 1</button>
-      <button class="day-tab-btn" onclick="filterDay(2, this)">Day 2</button>
-      <button class="day-tab-btn" onclick="filterDay(3, this)">Day 3</button>
-      <button class="day-tab-btn" onclick="filterDay(4, this)">Day 4</button>
-      <button class="day-tab-btn" onclick="filterDay(5, this)">Day 5</button>
+      <button class="day-tab-btn active" onclick="filterDay('all', this)">
+        <span>전체</span>
+        <span class="tab-sub">5일 조망</span>
+      </button>
+      <button class="day-tab-btn" onclick="filterDay(1, this)">
+        <span>Day 1</span>
+        <span class="tab-sub">오다이바</span>
+      </button>
+      <button class="day-tab-btn" onclick="filterDay(2, this)">
+        <span>Day 2</span>
+        <span class="tab-sub">시부야</span>
+      </button>
+      <button class="day-tab-btn" onclick="filterDay(3, this)">
+        <span>Day 3</span>
+        <span class="tab-sub">긴자/타워</span>
+      </button>
+      <button class="day-tab-btn" onclick="filterDay(4, this)">
+        <span>Day 4</span>
+        <span class="tab-sub">아키하바라</span>
+      </button>
+      <button class="day-tab-btn" onclick="filterDay(5, this)">
+        <span>Day 5</span>
+        <span class="tab-sub">도쿄역/귀국</span>
+      </button>
     </div>
 
-    <!-- Day Route Overview Card with Quick Play Button -->
+    <!-- Day Route Overview Card -->
     <div class="day-overview-card" id="dayOverviewCard">
       <div class="doc-top">
         <span class="doc-badge" id="docBadge">🌟 도쿄 전체 여정 조망</span>
@@ -835,13 +1048,19 @@
       <div class="doc-route" id="docRoute">오다이바 · 시부야 · 긴자 · 신주쿠 · 아키하바라 전 코스</div>
     </div>
 
-    <!-- Category Filter Bar -->
-    <div class="filter-bar">
-      <button class="filter-pill active" onclick="filterCategory('all', this)">전체보기</button>
-      <button class="filter-pill" onclick="filterCategory('goods', this)">🛍️ 굿즈/쇼핑</button>
-      <button class="filter-pill" onclick="filterCategory('food', this)">🍜 맛집/카페</button>
-      <button class="filter-pill" onclick="filterCategory('tour', this)">🗼 랜드마크</button>
-      <button class="filter-pill" onclick="filterCategory('metro', this)">🚇 지하철/교통</button>
+    <!-- Real-time Search & Filter Container -->
+    <div class="filter-container">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="장소명, 역, 메모 검색 (예: 건담, 치이카와, 스시...)" oninput="filterSpots()">
+      </div>
+      <div class="filter-bar">
+        <button class="filter-pill active" onclick="filterCategory('all', this)">전체 (<span id="countAll">79</span>)</button>
+        <button class="filter-pill" onclick="filterCategory('goods', this)">🛍️ 굿즈 (<span id="countGoods">0</span>)</button>
+        <button class="filter-pill" onclick="filterCategory('food', this)">🍜 맛집 (<span id="countFood">0</span>)</button>
+        <button class="filter-pill" onclick="filterCategory('tour', this)">🗼 관광 (<span id="countTour">0</span>)</button>
+        <button class="filter-pill" onclick="filterCategory('metro', this)">🚇 교통 (<span id="countMetro">0</span>)</button>
+      </div>
     </div>
 
     <!-- Scrollable Spot Cards List -->
@@ -850,7 +1069,7 @@
 
   <div id="map"></div>
 
-  <!-- Map Tile Layer Switcher (USA Roadtrip Style: Left Top next to sidebar) -->
+  <!-- Map Tile Layer Switcher (USA Roadtrip Style) -->
   <div class="layer-selector" id="layerSelector">
     <button class="layer-btn active" onclick="setMapLayer('street', this)">🗺️ 도로 지도</button>
     <button class="layer-btn" onclick="setMapLayer('sat', this)">🛰️ 위성 영상</button>
@@ -858,8 +1077,12 @@
     <button class="layer-btn" onclick="setMapLayer('dark', this)">🌃 다크 네온</button>
   </div>
 
-  <!-- Hachiware Travel Simulator Bar (USA Roadtrip Style Floating Controller) -->
+  <!-- Hachiware Travel Simulator Bar -->
   <div class="hachi-sim-bar" id="hachiSimBar">
+    <div class="hachi-avatar-badge" title="하치와레">
+      <img src="assets/hachiware.png" class="hachi-avatar-img" alt="하치와레">
+    </div>
+
     <div class="hachi-sim-left">
       <button class="hachi-play-btn" id="hachiPlayBtn" onclick="toggleHachiSim()">
         ▶ 하치와레 투어 시작
@@ -939,6 +1162,7 @@
 
     let currentDay = 'all';
     let currentCat = 'all';
+    let searchQuery = '';
     let markers = [];
     let polylines = [];
 
@@ -1001,7 +1225,7 @@
       if (btn) btn.classList.add('active');
     }
 
-    // ================= SIDEBAR TOGGLE (WITH SMOOTH RESIZE) =================
+    // ================= SIDEBAR TOGGLE =================
     let isSidebarCollapsed = false;
     function toggleSidebar() {
       isSidebarCollapsed = !isSidebarCollapsed;
@@ -1037,7 +1261,7 @@
       requestAnimationFrame(stepResize);
     }
 
-    // ================= CATEGORY FILTER =================
+    // ================= CATEGORY DETECTION =================
     function getCategoryTag(item) {
       const name = (item.name_ko || '').toLowerCase();
       const memo = (item.memo || '').toLowerCase();
@@ -1063,7 +1287,7 @@
       return 'tour';
     }
 
-    // ================= HACHIWARE SIMULATOR STATE (0.1x LEISURELY SPEED) =================
+    // ================= HACHIWARE SIMULATOR STATE =================
     let isSimPlaying = false;
     let simTimer = null;
     let simProgress = 0; // 0.0 to 1.0
@@ -1078,6 +1302,7 @@
     const hachiHtml = `
       <div class="hachiware-marker-container">
         <div class="hachi-bubble" id="hachiBubble">도쿄 투어 시작이다냥! 🐾</div>
+        <div class="hachi-radar-wave"></div>
         <div class="hachi-character-box" id="hachiCharBox">
           <img src="assets/hachiware.png" class="hachi-img" alt="하치와레">
         </div>
@@ -1088,8 +1313,8 @@
     const hachiIcon = L.divIcon({
       className: 'custom-hachi-icon',
       html: hachiHtml,
-      iconSize: [64, 64],
-      iconAnchor: [32, 60]
+      iconSize: [66, 66],
+      iconAnchor: [33, 62]
     });
 
     let hachiMarker = null;
@@ -1168,7 +1393,7 @@
         hachiTrail = L.polyline([startPt], {
           color: '#38bdf8',
           weight: 5,
-          opacity: 0.8,
+          opacity: 0.85,
           dashArray: '6, 8'
         }).addTo(map);
       } else {
@@ -1232,7 +1457,6 @@
       if (!isSimPlaying) return;
 
       const totalSteps = simPath.length;
-      // Precision smooth step increment calibrated for 0.1x leisurely speed
       const stepInc = (1 / totalSteps) * simSpeed * 1.5;
       simProgress += stepInc;
 
@@ -1319,6 +1543,8 @@
             bubble.textContent = '도쿄타워 야경 너무 낭만적이야~ 🗼';
           } else if (currentSpot.name_ko.includes('공항')) {
             bubble.textContent = '나리타 공항 도착! 여행 출발이다냥! ✈️';
+          } else if (currentSpot.name_ko.includes('호텔')) {
+            bubble.textContent = '호텔 체크인 완료! 푹 쉬어가자냥~ 🛏️';
           } else {
             bubble.textContent = `${currentSpot.name_ko} 향하는 중이다냥! 🐾`;
           }
@@ -1344,6 +1570,12 @@
       }
     }
 
+    // ================= REAL-TIME SEARCH =================
+    function filterSpots() {
+      searchQuery = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+      renderView();
+    }
+
     // ================= RENDER VIEW & SPOTS =================
     function renderView() {
       // Clear previous markers & polylines
@@ -1355,8 +1587,12 @@
       const spotListEl = document.getElementById('spotList');
       spotListEl.innerHTML = '';
 
+      let allDayItems = [];
       let itemsToShow = [];
       const daysToProcess = currentDay === 'all' ? [1, 2, 3, 4, 5] : [parseInt(currentDay)];
+
+      // Count stats by category for currently active day
+      let counts = { all: 0, goods: 0, food: 0, tour: 0, metro: 0 };
 
       daysToProcess.forEach(d => {
         const dayItems = tripData[d] || [];
@@ -1364,11 +1600,29 @@
           it._origDay = d;
           it._origIdx = idx + 1;
           it._cat = getCategoryTag(it);
-          if (currentCat === 'all' || it._cat === currentCat) {
+
+          counts.all++;
+          if (counts[it._cat] !== undefined) counts[it._cat]++;
+
+          // Filter by category and search query
+          const matchCat = (currentCat === 'all' || it._cat === currentCat);
+          const nameKo = (it.name_ko || '').toLowerCase();
+          const nameEn = (it.name_en || '').toLowerCase();
+          const memo = (it.memo || '').toLowerCase();
+          const matchSearch = (!searchQuery || nameKo.includes(searchQuery) || nameEn.includes(searchQuery) || memo.includes(searchQuery));
+
+          if (matchCat && matchSearch) {
             itemsToShow.push(it);
           }
         });
       });
+
+      // Update category counts in pills
+      document.getElementById('countAll').textContent = counts.all;
+      document.getElementById('countGoods').textContent = counts.goods;
+      document.getElementById('countFood').textContent = counts.food;
+      document.getElementById('countTour').textContent = counts.tour;
+      document.getElementById('countMetro').textContent = counts.metro;
 
       // Update Day Overview Card in Sidebar
       const info = dayTitles[currentDay] || dayTitles['all'];
@@ -1383,6 +1637,16 @@
       const latLngBounds = [];
       simSpots = [];
 
+      if (itemsToShow.length === 0) {
+        spotListEl.innerHTML = `
+          <div style="padding: 40px 20px; text-align: center; color: var(--text-dim);">
+            <div style="font-size: 32px; margin-bottom: 8px;">🔍</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text-sub);">검색 결과가 없습니다</div>
+            <div style="font-size: 11.5px; margin-top: 4px;">다른 검색어나 카테고리를 선택해보세요</div>
+          </div>
+        `;
+      }
+
       itemsToShow.forEach(it => {
         // Build spot card
         const card = document.createElement('div');
@@ -1390,6 +1654,8 @@
         card.id = `card_${it.id}`;
 
         const dayColor = dayColors[it._origDay] || '#38bdf8';
+        card.style.setProperty('--card-accent', dayColor);
+
         const firstCat = (it.category && it.category.length > 0) ? it.category[0] : (it._cat === 'metro' ? '교통' : (it._cat === 'goods' ? '쇼핑' : (it._cat === 'food' ? '맛집' : '관광')));
 
         let memoBoxHtml = '';
@@ -1399,7 +1665,11 @@
 
         let photoHtml = '';
         if (it.photo_url) {
-          photoHtml = `<img class="spot-photo" src="${it.photo_url}" alt="${it.name_ko}" loading="lazy" onerror="this.style.display='none'">`;
+          photoHtml = `
+            <div class="spot-photo-wrap">
+              <img class="spot-photo" src="${it.photo_url}" alt="${it.name_ko}" loading="lazy" onerror="this.parentElement.style.display='none'">
+            </div>
+          `;
         }
 
         card.innerHTML = `
@@ -1418,6 +1688,11 @@
           </div>
           ${memoBoxHtml}
           ${photoHtml}
+          <div class="spot-actions">
+            <a href="https://www.google.com/maps/search/?api=1&query=${it.lat},${it.lng}" target="_blank" class="spot-act-link" onclick="event.stopPropagation()">
+              ↗ 구글맵
+            </a>
+          </div>
         `;
 
         card.onclick = () => {
@@ -1473,22 +1748,22 @@
         }
       });
 
-      // Draw Day Route Polylines
+      // Draw Day Route Polylines (Glow + Core Dashed Line)
       Object.entries(dayCoords).forEach(([d, pts]) => {
         if (pts.length > 1) {
           const color = dayColors[d] || '#38bdf8';
           const lineGlow = L.polyline(pts, {
             color: color,
-            weight: 8,
-            opacity: 0.35,
+            weight: 9,
+            opacity: 0.32,
             smoothFactor: 1
           }).addTo(map);
 
           const lineCore = L.polyline(pts, {
             color: color,
-            weight: 3,
+            weight: 3.5,
             opacity: 0.95,
-            dashArray: '8, 8',
+            dashArray: '7, 8',
             smoothFactor: 1
           }).addTo(map);
 
