@@ -1173,10 +1173,10 @@
     let markers = [];
     let polylines = [];
 
-    // ================= MAP INITIALIZATION (LOCKED TO 19x ZOOM) =================
+    // ================= MAP INITIALIZATION =================
     window.map = L.map('map', {
       center: [35.6812, 139.7671],
-      zoom: 19,
+      zoom: 18.25,
       minZoom: 10,
       maxZoom: 19,
       zoomControl: false,
@@ -1198,55 +1198,36 @@
       ro.observe(document.getElementById('map'));
     }
 
-    // Unbreakable Overview Base Underlay (Pre-caches Tokyo/Chiba at Zoom 14 & scales up so screen NEVER turns black)
-    const baseUnderlay = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-      maxNativeZoom: 14,
-      maxZoom: 19,
-      keepBuffer: 30,
-      zIndex: 1,
-      opacity: 0.95
-    }).addTo(map);
-
-    // 100% Watermark-Free High-Definition Map Layers (with keepBuffer & fast loading)
+    // 100% Watermark-Free High-Definition Map Layers
     const layers = {
       street: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
         maxZoom: 19,
-        keepBuffer: 12,
-        updateInterval: 80,
-        zIndex: 2
+        keepBuffer: 8
       }),
       sat: L.layerGroup([
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
           maxZoom: 19,
-          keepBuffer: 12,
-          updateInterval: 80,
-          zIndex: 2
+          keepBuffer: 8
         }),
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { 
           maxZoom: 19, 
           opacity: 0.85,
-          keepBuffer: 12,
-          zIndex: 3
+          keepBuffer: 8
         })
       ]),
       topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { 
         maxZoom: 19,
-        keepBuffer: 12,
-        updateInterval: 80,
-        zIndex: 2
+        keepBuffer: 8
       }),
       dark: L.layerGroup([
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { 
           maxZoom: 19,
-          keepBuffer: 12,
-          updateInterval: 80,
-          zIndex: 2
+          keepBuffer: 8
         }),
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { 
           maxZoom: 19, 
           opacity: 0.75,
-          keepBuffer: 12,
-          zIndex: 3
+          keepBuffer: 8
         })
       ])
     };
@@ -1260,13 +1241,10 @@
 
       const mapEl = document.getElementById('map');
       if (type === 'dark') {
-        baseUnderlay.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}');
         if (mapEl) mapEl.style.background = '#111827';
       } else if (type === 'sat') {
-        baseUnderlay.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
         if (mapEl) mapEl.style.background = '#15202b';
       } else {
-        baseUnderlay.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}');
         if (mapEl) mapEl.style.background = '#e8e5df';
       }
 
@@ -1344,8 +1322,29 @@
     let simSpots = [];
     let simPath = []; // High-density interpolated coordinate points
     let simStepDetails = []; // Detailed step tracking: spot, phase, fromSpot, toSpot, legIdx, legFrac
+    let simTargetZooms = []; // Target zoom per path point (14.5x for airport, 18.25x for city)
     let voiceEnabled = false;
     let lastSpokenSpotId = null;
+
+    // Haversine distance in km between two lat/lng coordinates
+    function getDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // Target Zoom per leg:
+    // Narita Airport Express (> 25km): 14.5x (지나치게 축소되지 않고 주변 지형과 도로를 보면서 시원하게 통과)
+    // All other city touring legs: 18.25x
+    function getTargetZoomForLeg(distKm) {
+      if (distKm > 25) return 14.5;
+      return 18.25;
+    }
 
     // Rich context-aware dialogue generator for all 79 Tokyo spots
     function getHachiReaction(spot) {
@@ -1443,6 +1442,7 @@
     function buildSimPath() {
       simPath = [];
       simStepDetails = [];
+      simTargetZooms = [];
       if (simSpots.length === 0) return;
 
       if (simSpots.length === 1) {
@@ -1455,6 +1455,7 @@
           legIdx: 0,
           legFrac: 1.0
         });
+        simTargetZooms.push(18.25);
         return;
       }
 
@@ -1463,6 +1464,9 @@
         const spB = simSpots[i + 1];
         const latA = spA.lat, lngA = spA.lng;
         const latB = spB.lat, lngB = spB.lng;
+
+        const distKm = getDistanceKm(latA, lngA, latB, lngB);
+        const targetZoom = getTargetZoomForLeg(distKm);
 
         const dist = Math.hypot(latB - latA, lngB - lngA);
         const steps = Math.max(60, Math.min(220, Math.round(dist * 1200)));
@@ -1473,6 +1477,7 @@
             latA + (latB - latA) * t,
             lngA + (lngB - lngA) * t
           ]);
+          simTargetZooms.push(targetZoom);
 
           // Precise phase segmentation:
           // 1. Depart phase: t < 0.20 (at/leaving spA)
@@ -1504,6 +1509,7 @@
 
       const last = simSpots[simSpots.length - 1];
       simPath.push([last.lat, last.lng]);
+      simTargetZooms.push(simTargetZooms.length > 0 ? simTargetZooms[simTargetZooms.length - 1] : 18.25);
       simStepDetails.push({
         spot: last,
         phase: 'final',
@@ -1574,7 +1580,8 @@
       lastSpokenSpotId = null;
       updateSimFrame(0);
       if (simPath.length > 0) {
-        map.setView(simPath[0], 19);
+        const initZ = (simTargetZooms && simTargetZooms.length > 0) ? simTargetZooms[0] : 18.25;
+        map.setView(simPath[0], initZ);
       }
     }
 
@@ -1635,14 +1642,24 @@
         hachiTrail.setLatLngs(trailPts);
       }
 
-      // Ultra-smooth non-destructive camera follow (Uses panBy to NEVER reset tile requests or flash black)
+      // Ultra-smooth camera follow with dynamic zoom
       const followCam = document.getElementById('hachiFollowCam');
       if (followCam && followCam.checked) {
-        const targetPt = map.latLngToContainerPoint(curPt);
-        const centerPt = map.getSize().divideBy(2);
-        const offset = targetPt.subtract(centerPt);
-        if (Math.abs(offset.x) > 0.5 || Math.abs(offset.y) > 0.5) {
-          map.panBy(offset, { animate: false });
+        const targetZ = (simTargetZooms && simTargetZooms.length > idx) ? simTargetZooms[idx] : 18.25;
+        const curZ = map.getZoom();
+        if (Math.abs(curZ - targetZ) > 0.05) {
+          const smoothZ = curZ + (targetZ - curZ) * 0.08;
+          map.setView(curPt, smoothZ, { animate: false });
+        } else {
+          if (curZ !== targetZ) {
+            map.setZoom(targetZ, { animate: false });
+          }
+          const targetPt = map.latLngToContainerPoint(curPt);
+          const centerPt = map.getSize().divideBy(2);
+          const offset = targetPt.subtract(centerPt);
+          if (Math.abs(offset.x) > 0.5 || Math.abs(offset.y) > 0.5) {
+            map.panBy(offset, { animate: false });
+          }
         }
       }
 
@@ -1669,11 +1686,13 @@
         const totalSpots = simSpots.length;
         const pct = Math.round(prog * 100);
 
+        const targetZ = (simTargetZooms && simTargetZooms.length > idx) ? simTargetZooms[idx] : 18.25;
+        const zoomModeText = targetZ <= 15.0 ? '14.5x 쾌속 조망' : '18.25x 도심 스트리트';
         if (statusEl) {
           if (stepInfo.phase === 'moving') {
-            statusEl.textContent = `[${spotIdx}/${totalSpots}] ${stepInfo.fromSpot.name_ko} ➔ ${stepInfo.toSpot.name_ko} 이동 중 (${pct}%) · 19x 고정 뷰`;
+            statusEl.textContent = `[${spotIdx}/${totalSpots}] ${stepInfo.fromSpot.name_ko} ➔ ${stepInfo.toSpot.name_ko} 이동 중 (${pct}%) · ${zoomModeText}`;
           } else {
-            statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} (${pct}%) · 19x 고정 뷰`;
+            statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} (${pct}%) · ${zoomModeText}`;
           }
         }
 
@@ -1841,7 +1860,7 @@
           document.querySelectorAll('.spot-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
           if (it.lat && it.lng) {
-            map.setView([it.lat, it.lng], 19);
+            map.flyTo([it.lat, it.lng], 18.75, { duration: 0.8 });
             if (it._marker) it._marker.openPopup();
           }
         };
@@ -1913,13 +1932,12 @@
         }
       });
 
-      // Center view on start spot at fixed zoom 19
-      if (latLngBounds.length > 0) {
-        map.setView(latLngBounds[0], 19);
-      }
-
       // Build & Init Hachiware simulation path for current view
       buildSimPath();
+      if (latLngBounds.length > 0) {
+        const initZ = (simTargetZooms && simTargetZooms.length > 0) ? simTargetZooms[0] : 18.25;
+        map.setView(latLngBounds[0], initZ);
+      }
       resetHachiSim();
       initHachiware();
     }
