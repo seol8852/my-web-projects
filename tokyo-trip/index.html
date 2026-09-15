@@ -1316,16 +1316,15 @@
       return R * c;
     }
 
-    // Dynamic Smart Zoom according to leg distance:
-    // User request: "공항에서 시내로 갈 때 처럼 먼 구간은 축소되고 짧은 구간은 엄청 확대되서 어딘지 볼 수 있게"
+    // Dynamic Smart Zoom scaled for Japan city scale (18~19 Close-Up Range):
+    // User request: "일본은 애초에 땅이 크지 않으니까 처음부터 확대레벨 18~19정도로 다녀도 될거 같아"
     function getTargetZoomForLeg(distKm) {
-      if (distKm > 25) return 10.5;  // Narita Airport -> Nippori express (~55-60km): wide regional view
-      if (distKm > 12) return 12.0;  // Long suburban leg (12-25km)
-      if (distKm > 5)  return 13.5;  // Bay transit / Tokyo cross-district (5-12km)
-      if (distKm > 2)  return 14.75; // Metro transit between districts (2-5km)
-      if (distKm > 0.8) return 15.75; // City avenue / neighborhood transit (800m-2km)
-      if (distKm > 0.3) return 16.5; // Close street walk (300m-800m)
-      return 17.0;                   // Ultra close-up street / alleyway / store view (< 300m)
+      if (distKm > 25) return 14.5;  // Long airport highway/skyliner express (~55km)
+      if (distKm > 10) return 16.5;  // Long suburban/bay transit (10-25km)
+      if (distKm > 3)  return 17.5;  // Inter-district metro (3-10km)
+      if (distKm > 1)  return 18.25; // District transit (1-3km)
+      if (distKm > 0.3) return 18.75; // Street / avenue walk (300m-1km)
+      return 19.0;                   // Ultra close-up store / alleyway (< 300m)
     }
 
     // Create Hachiware Leaflet Marker
@@ -1383,7 +1382,7 @@
       if (simSpots.length === 1) {
         simPath.push([simSpots[0].lat, simSpots[0].lng]);
         simSegments.push(simSpots[0]);
-        simTargetZooms.push(16.75);
+        simTargetZooms.push(18.75);
         return;
       }
 
@@ -1412,7 +1411,7 @@
       const last = simSpots[simSpots.length - 1];
       simPath.push([last.lat, last.lng]);
       simSegments.push(last);
-      const lastZoom = simTargetZooms.length > 0 ? simTargetZooms[simTargetZooms.length - 1] : 16.75;
+      const lastZoom = simTargetZooms.length > 0 ? simTargetZooms[simTargetZooms.length - 1] : 18.75;
       simTargetZooms.push(lastZoom);
     }
 
@@ -1475,8 +1474,8 @@
       simProgress = 0;
       updateSimFrame(0);
       if (simPath.length > 0) {
-        const initZoom = simTargetZooms[0] || 15.0;
-        map.flyTo(simPath[0], initZoom, { duration: 1.0 });
+        const initZoom = simTargetZooms[0] || 18.5;
+        map.flyTo(simPath[0], initZoom, { duration: 0.8 });
       }
     }
 
@@ -1540,7 +1539,7 @@
       // Dynamic Smart Camera Follow (Smooth Zoom & Position tracking)
       const followCam = document.getElementById('hachiFollowCam');
       if (followCam && followCam.checked) {
-        const targetZ = simTargetZooms[idx] || 16.5;
+        const targetZ = simTargetZooms[idx] || 18.5;
         const curZ = map.getZoom();
         // Silky smooth lerp for zoom: 0.08 transition factor prevents abrupt zoom shifts
         const smoothZ = curZ + (targetZ - curZ) * 0.08;
@@ -1569,8 +1568,8 @@
         const spotIdx = simSpots.indexOf(currentSpot) + 1;
         const totalSpots = simSpots.length;
         const pct = Math.round(prog * 100);
-        const targetZ = simTargetZooms[idx] || 16.5;
-        const zoomDesc = targetZ <= 11.0 ? '✈️ 광역 쾌속 뷰' : (targetZ >= 16.5 ? '🔍 초근접 스트리트 뷰' : '🚇 도심 이동 뷰');
+        const targetZ = simTargetZooms[idx] || 18.5;
+        const zoomDesc = targetZ >= 18.5 ? '🔍 초근접 18~19x 뷰' : (targetZ >= 17.0 ? '🏙️ 도심 17~18x 뷰' : '✈️ 쾌속 이동 뷰');
 
         if (statusEl) {
           statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} 이동 중 (${pct}%) · ${zoomDesc}`;
@@ -1815,9 +1814,13 @@
         }
       });
 
-      // Fit bounds
+      // Fit bounds for whole trip view, or zoom straight in to 18.5 for specific day
       if (latLngBounds.length > 0) {
-        map.fitBounds(latLngBounds, { padding: [70, 70], maxZoom: 14 });
+        if (currentDay === 'all') {
+          map.fitBounds(latLngBounds, { padding: [70, 70], maxZoom: 14 });
+        } else {
+          map.setView(latLngBounds[0], 18.5);
+        }
       }
 
       // Build & Init Hachiware simulation path for current view
