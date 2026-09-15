@@ -660,7 +660,7 @@
     .layer-selector {
       position: absolute;
       top: 20px;
-      left: 510px;
+      left: 20px;
       z-index: 1000;
       display: flex;
       background: rgba(12, 18, 32, 0.88);
@@ -687,8 +687,8 @@
     /* Sky Mode Switcher */
     .sky-selector {
       position: absolute;
-      top: 20px;
-      left: 810px;
+      top: 66px;
+      left: 20px;
       z-index: 1000;
       display: flex;
       background: rgba(12, 18, 32, 0.88);
@@ -799,7 +799,7 @@
     .bottom-timeline-bar {
       position: absolute;
       bottom: 24px;
-      left: 520px;
+      left: 40px;
       right: 40px;
       background: rgba(12, 18, 32, 0.88);
       backdrop-filter: blur(24px);
@@ -2151,16 +2151,16 @@
         sb.classList.add('collapsed');
         toggleBtn.textContent = '▶';
         toggleBtn.title = '메뉴바 펼치기 (열기)';
-        if (layerSel) layerSel.style.left = '60px';
-        if (skySel) skySel.style.left = '360px';
+        if (layerSel) layerSel.style.left = '50px';
+        if (skySel) skySel.style.left = '50px';
         if (timelineBar) timelineBar.style.left = '40px';
       } else {
         sb.classList.remove('collapsed');
         toggleBtn.textContent = '◀';
         toggleBtn.title = '메뉴바 접기 (닫기)';
-        if (layerSel) layerSel.style.left = '510px';
-        if (skySel) skySel.style.left = '810px';
-        if (timelineBar) timelineBar.style.left = '520px';
+        if (layerSel) layerSel.style.left = '20px';
+        if (skySel) skySel.style.left = '20px';
+        if (timelineBar) timelineBar.style.left = '40px';
       }
       setTimeout(() => {
         if (window.map) {
