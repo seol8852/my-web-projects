@@ -10,8 +10,9 @@
   <style>
     :root {
       --bg-base: #070a14;
-      --sidebar-bg: rgba(11, 16, 28, 0.90);
+      --sidebar-bg: rgba(11, 16, 28, 0.92);
       --panel-bg: rgba(16, 23, 40, 0.72);
+      --panel-hover: rgba(24, 34, 58, 0.88);
       --glass-border: rgba(255, 255, 255, 0.08);
       --accent-cyan: #38bdf8;
       --accent-blue: #3b82f6;
@@ -28,16 +29,18 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
     body { display: flex; height: 100vh; overflow: hidden; background: var(--bg-base); color: var(--text-main); }
 
-    /* Scrollbar */
+    /* Micro Scrollbar */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.6); }
 
     /* Sidebar */
     #sidebar {
-      width: 490px;
-      min-width: 490px;
+      width: 500px;
+      min-width: 500px;
       height: 100%;
+      min-height: 0;
       background: var(--sidebar-bg);
       backdrop-filter: blur(32px) saturate(180%);
       -webkit-backdrop-filter: blur(32px) saturate(180%);
@@ -51,7 +54,7 @@
     }
 
     #sidebar.collapsed {
-      margin-left: -490px;
+      margin-left: -500px;
     }
 
     .sidebar-toggle {
@@ -87,15 +90,16 @@
 
     /* Brand Header */
     .brand {
-      padding: 18px 22px 14px 22px;
-      background: linear-gradient(180deg, rgba(25, 36, 62, 0.7) 0%, rgba(12, 18, 32, 0.95) 100%);
+      padding: 16px 20px 12px 20px;
+      background: linear-gradient(180deg, rgba(25, 36, 62, 0.75) 0%, rgba(12, 18, 32, 0.95) 100%);
       border-bottom: 1px solid var(--glass-border);
+      flex-shrink: 0;
     }
     .brand-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .brand-badge {
       display: inline-flex;
@@ -103,7 +107,7 @@
       gap: 6px;
       background: rgba(236, 72, 153, 0.15);
       border: 1px solid rgba(236, 72, 153, 0.35);
-      padding: 4px 10px;
+      padding: 3px 9px;
       border-radius: 9999px;
       font-size: 11px;
       font-weight: 700;
@@ -113,12 +117,9 @@
     .brand-source {
       font-size: 11px;
       color: var(--text-sub);
-      display: flex;
-      align-items: center;
-      gap: 4px;
     }
     .brand h1 {
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 900;
       color: #fff;
       display: flex;
@@ -129,14 +130,9 @@
     .brand-meta {
       display: flex;
       gap: 14px;
-      margin-top: 10px;
-      font-size: 12px;
+      margin-top: 8px;
+      font-size: 11.5px;
       color: var(--text-sub);
-    }
-    .brand-meta-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
     }
     .brand-meta-item strong {
       color: var(--accent-cyan);
@@ -146,18 +142,18 @@
     /* Day Navigation Tabs */
     .day-tabs {
       display: flex;
-      padding: 12px 18px;
+      padding: 10px 16px;
       gap: 6px;
       background: rgba(15, 23, 42, 0.6);
       border-bottom: 1px solid var(--glass-border);
-      overflow-x: auto;
+      flex-shrink: 0;
     }
     .day-tab-btn {
       flex: 1;
-      padding: 9px 8px;
+      padding: 8px 6px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--glass-border);
-      border-radius: 10px;
+      border-radius: 9px;
       color: var(--text-sub);
       font-size: 12px;
       font-weight: 700;
@@ -177,21 +173,71 @@
       box-shadow: 0 4px 14px rgba(236, 72, 153, 0.4);
     }
 
+    /* Day Route Overview Card (Directly Under Day Tabs) */
+    .day-overview-card {
+      margin: 12px 16px 6px 16px;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
+      border: 1px solid rgba(236, 72, 153, 0.25);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      flex-shrink: 0;
+    }
+    .doc-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .doc-badge {
+      font-size: 11px;
+      font-weight: 800;
+      color: #f472b6;
+      letter-spacing: 0.04em;
+    }
+    .doc-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.12);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+    .doc-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.35;
+      margin-bottom: 4px;
+    }
+    .doc-route {
+      font-size: 11.5px;
+      color: #94a3b8;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
     /* Filter Bar */
     .filter-bar {
       display: flex;
-      padding: 10px 18px;
-      gap: 8px;
+      padding: 8px 16px;
+      gap: 6px;
       border-bottom: 1px solid var(--glass-border);
       overflow-x: auto;
       background: rgba(12, 18, 32, 0.4);
+      flex-shrink: 0;
     }
+    .filter-bar::-webkit-scrollbar { display: none; }
     .filter-pill {
-      padding: 5px 12px;
+      padding: 5px 11px;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--glass-border);
       color: var(--text-sub);
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 600;
       border-radius: 9999px;
       cursor: pointer;
@@ -206,114 +252,127 @@
       box-shadow: 0 2px 8px rgba(56, 189, 248, 0.3);
     }
 
-    /* Spot List Container */
+    /* Spot List Container with min-height: 0 to prevent cutoff */
     .spot-list {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
-      padding: 16px 18px;
+      padding: 12px 16px 24px 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
 
-    /* Spot Card */
+    /* Spot Card (Clean, Non-overlapping, USA Roadtrip Style) */
     .spot-card {
       background: var(--panel-bg);
       border: 1px solid var(--glass-border);
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 12px 14px;
       transition: all 0.25s var(--ease-spring);
       cursor: pointer;
       display: flex;
       flex-direction: column;
+      gap: 8px;
     }
     .spot-card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(56, 189, 248, 0.35);
-      background: rgba(24, 34, 58, 0.85);
-      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.15);
+      transform: translateX(3px);
+      border-color: rgba(56, 189, 248, 0.4);
+      background: var(--panel-hover);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     }
     .spot-card.selected {
       border-color: #f472b6;
-      box-shadow: 0 0 18px rgba(236, 72, 153, 0.4);
+      box-shadow: 0 0 18px rgba(236, 72, 153, 0.45);
+      background: rgba(30, 41, 65, 0.95);
     }
 
-    .spot-header {
+    .spot-card-top {
       display: flex;
-      padding: 12px 14px 8px 14px;
-      gap: 12px;
-      align-items: flex-start;
+      align-items: center;
+      gap: 10px;
     }
     .spot-num-badge {
-      width: 28px;
-      height: 28px;
-      min-width: 28px;
-      border-radius: 8px;
-      background: rgba(56, 189, 248, 0.15);
+      width: 26px;
+      height: 26px;
+      min-width: 26px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.12);
       border: 1px solid rgba(56, 189, 248, 0.3);
       color: var(--accent-cyan);
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
-    .spot-info {
+    .spot-names {
       flex: 1;
       min-width: 0;
     }
-    .spot-title-row {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .spot-name {
-      font-size: 14px;
+    .spot-name-ko {
+      font-size: 13.5px;
       font-weight: 800;
       color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       line-height: 1.3;
     }
     .spot-name-en {
-      font-size: 11.5px;
+      font-size: 11px;
       color: var(--text-sub);
-      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
     }
-    .spot-tags {
+    .spot-badges {
       display: flex;
-      gap: 6px;
-      margin-top: 5px;
-      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+      flex-shrink: 0;
     }
-    .spot-tag {
+    .spot-day-pill {
       font-size: 10px;
+      font-weight: 800;
       padding: 2px 7px;
-      border-radius: 5px;
+      border-radius: 6px;
+      border: 1px solid;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+    .spot-cat-pill {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 6px;
       background: rgba(255, 255, 255, 0.06);
       color: var(--text-sub);
       border: 1px solid var(--glass-border);
+      white-space: nowrap;
     }
-    .spot-body {
-      padding: 0 14px 12px 14px;
-    }
-    .spot-memo {
-      margin-top: 6px;
-      padding: 8px 12px;
+
+    /* Spot Route / Memo Box */
+    .spot-memo-box {
+      padding: 8px 11px;
       background: rgba(56, 189, 248, 0.08);
       border-left: 3px solid #38bdf8;
       border-radius: 0 8px 8px 0;
-      font-size: 12px;
+      font-size: 11.5px;
       color: #bae6fd;
       line-height: 1.45;
+      word-break: keep-all;
     }
+
     .spot-photo {
       width: 100%;
-      height: 140px;
+      height: 120px;
       object-fit: cover;
       display: block;
-      border-top: 1px solid var(--glass-border);
+      border-radius: 8px;
+      margin-top: 2px;
     }
 
     /* Map */
@@ -327,7 +386,7 @@
     .layer-selector {
       position: absolute;
       top: 20px;
-      left: 520px;
+      left: 530px;
       z-index: 1000;
       display: flex;
       background: rgba(12, 18, 32, 0.92);
@@ -365,39 +424,6 @@
       color: #fff;
       border-color: #38bdf8;
       box-shadow: 0 2px 10px rgba(56, 189, 248, 0.45);
-    }
-
-    /* Day Stats Overlay (Top Right) */
-    .map-day-hud {
-      position: absolute;
-      top: 20px;
-      right: 24px;
-      z-index: 1000;
-      background: rgba(12, 18, 32, 0.92);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--glass-border);
-      border-radius: 12px;
-      padding: 10px 18px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
-    }
-    .day-hud-title {
-      font-size: 13.5px;
-      font-weight: 800;
-      color: #f472b6;
-    }
-    .day-hud-sub {
-      font-size: 11px;
-      color: var(--text-sub);
-    }
-    .day-hud-stat {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 800;
-      color: #38bdf8;
-      font-size: 13px;
     }
 
     /* Hub Back Button */
@@ -503,19 +529,21 @@
   <div id="sidebar">
     <div class="sidebar-toggle" onclick="toggleSidebar()" title="사이드바 열기/닫기" id="sidebarToggleBtn">❮</div>
 
+    <!-- Brand Header -->
     <div class="brand">
       <div class="brand-top">
         <span class="brand-badge">🇯🇵 TOKYO MASTER TOUR</span>
-        <span class="brand-source">트리플 원본 연동 5일 여정</span>
+        <span class="brand-source">트리플 연동 공식 5일 코스</span>
       </div>
       <h1>🗼 설범준의 도쿄 시티 투어</h1>
       <div class="brand-meta">
-        <div class="brand-meta-item"><span>일정:</span> <strong>5 DAYS</strong></div>
-        <div class="brand-meta-item"><span>방문 스팟:</span> <strong>79 PLACES</strong></div>
-        <div class="brand-meta-item"><span>핵심 핫플:</span> <strong>56 SPOTS</strong></div>
+        <div class="brand-meta-item">일정: <strong>5 DAYS</strong></div>
+        <div class="brand-meta-item">방문지: <strong>79 SPOTS</strong></div>
+        <div class="brand-meta-item">핵심 핫플: <strong>56 PLACES</strong></div>
       </div>
     </div>
 
+    <!-- Day Navigation Tabs -->
     <div class="day-tabs">
       <button class="day-tab-btn active" onclick="filterDay('all', this)">전체</button>
       <button class="day-tab-btn" onclick="filterDay(1, this)">Day 1</button>
@@ -525,6 +553,17 @@
       <button class="day-tab-btn" onclick="filterDay(5, this)">Day 5</button>
     </div>
 
+    <!-- Day Route Overview Card (Directly visible under tabs) -->
+    <div class="day-overview-card" id="dayOverviewCard">
+      <div class="doc-top">
+        <span class="doc-badge" id="docBadge">🌟 도쿄 전체 여정 조망</span>
+        <span class="doc-count" id="docCount">79 SPOTS</span>
+      </div>
+      <div class="doc-title" id="docTitle">5일간 79개 스팟 & 서브컬처 성지순례</div>
+      <div class="doc-route" id="docRoute">오다이바 · 시부야 · 긴자 · 신주쿠 · 아키하바라 전 코스</div>
+    </div>
+
+    <!-- Category Filter Bar -->
     <div class="filter-bar">
       <button class="filter-pill active" onclick="filterCategory('all', this)">전체보기</button>
       <button class="filter-pill" onclick="filterCategory('goods', this)">🛍️ 굿즈/쇼핑</button>
@@ -533,28 +572,18 @@
       <button class="filter-pill" onclick="filterCategory('metro', this)">🚇 지하철/교통</button>
     </div>
 
+    <!-- Scrollable Spot Cards List -->
     <div class="spot-list" id="spotList"></div>
   </div>
 
   <div id="map"></div>
 
-  <!-- Map Tile Layer Switcher (USA Roadtrip Style) -->
+  <!-- Map Tile Layer Switcher (USA Roadtrip Style: Left Top next to sidebar) -->
   <div class="layer-selector" id="layerSelector">
     <button class="layer-btn active" onclick="setMapLayer('street', this)">🗺️ 도로 지도</button>
     <button class="layer-btn" onclick="setMapLayer('sat', this)">🛰️ 위성 영상</button>
     <button class="layer-btn" onclick="setMapLayer('topo', this)">⛰️ 지형도</button>
     <button class="layer-btn" onclick="setMapLayer('dark', this)">🌃 다크 네온</button>
-  </div>
-
-  <!-- Day HUD (Top Right) -->
-  <div class="map-day-hud" id="dayHud">
-    <div>
-      <div class="day-hud-title" id="hudDayTitle">🌟 도쿄 전체 여정 조망</div>
-      <div class="day-hud-sub" id="hudDaySub">총 5일간 79개 스팟 & 56개 핫플레이스</div>
-    </div>
-    <div>
-      <div class="day-hud-stat" id="hudSpotCount">79 SPOTS</div>
-    </div>
   </div>
 
   <!-- Back to Main Hub Button -->
@@ -574,12 +603,36 @@
     };
 
     const dayTitles = {
-      'all': { title: '🌟 도쿄 전체 여정 조망', sub: '5일간 79개 스팟 & 서브컬처 성지순례' },
-      1: { title: 'Day 1: 나리타 ➔ 오다이바 건담 ➔ 신주쿠 가부키초', sub: '스카이라이너, 유리카모메, 건담 베이스, 키디랜드' },
-      2: { title: 'Day 2: 하라주쿠 ➔ 시부야 ➔ 치이카와 베이커리', sub: '레드록 스테이크동, 닌텐도 도쿄, 스크램블 교차로' },
-      3: { title: 'Day 3: 시부야스카이 ➔ 긴자 우나기 GOAT ➔ 도쿄타워', sub: '시부야 스카이 전망대, 긴자 세이코 시계탑, 도쿄타워 야경' },
-      4: { title: 'Day 4: 우에노공원 ➔ 아키하바라 전자상가 & 굿즈', sub: '라디오회관, 만다라케, 애니메이트 아키하바라' },
-      5: { title: 'Day 5: 도쿄역 캐릭터스트리트 ➔ 나리타공항 귀국', sub: '치이카와 랜드, 지브리 샵, 스카이라이너 귀국' }
+      'all': { 
+        badge: '🌟 도쿄 전체 여정 조망',
+        title: '5일간 79개 스팟 & 서브컬처 성지순례', 
+        route: '오다이바 · 시부야 · 긴자 · 신주쿠 · 아키하바라 전 코스' 
+      },
+      1: { 
+        badge: 'DAY 1 여정',
+        title: '나리타 ➔ 오다이바 건담 ➔ 신주쿠 가부키초', 
+        route: '스카이라이너 · 유리카모메 · 건담 베이스 · 키디랜드' 
+      },
+      2: { 
+        badge: 'DAY 2 여정',
+        title: '하라주쿠 ➔ 시부야 ➔ 치이카와 베이커리', 
+        route: '레드록 스테이크동 · 닌텐도 도쿄 · 스크램블 교차로' 
+      },
+      3: { 
+        badge: 'DAY 3 여정',
+        title: '시부야스카이 ➔ 긴자 우나기 GOAT ➔ 도쿄타워', 
+        route: '시부야 스카이 전망대 · 긴자 세이코 시계탑 · 도쿄타워 야경' 
+      },
+      4: { 
+        badge: 'DAY 4 여정',
+        title: '우에노공원 ➔ 아키하바라 전자상가 & 굿즈 성지', 
+        route: '라디오회관 · 만다라케 · 애니메이트 아키하바라' 
+      },
+      5: { 
+        badge: 'DAY 5 여정',
+        title: '도쿄역 캐릭터스트리트 ➔ 나리타공항 귀국', 
+        route: '치이카와 랜드 · 지브리 샵 · 스카이라이너 나리타공항' 
+      }
     };
 
     let currentDay = 'all';
@@ -652,7 +705,7 @@
         sb.classList.remove('collapsed');
         toggleBtn.textContent = '❮';
         toggleBtn.title = '사이드바 접기 (닫기)';
-        if (layerSel) layerSel.style.left = '520px';
+        if (layerSel) layerSel.style.left = '530px';
       }
 
       setTimeout(() => {
@@ -712,11 +765,12 @@
         });
       });
 
-      // Update HUD
+      // Update Day Overview Card in Sidebar
       const info = dayTitles[currentDay] || dayTitles['all'];
-      document.getElementById('hudDayTitle').textContent = info.title;
-      document.getElementById('hudDaySub').textContent = info.sub;
-      document.getElementById('hudSpotCount').textContent = `${itemsToShow.length} SPOTS`;
+      document.getElementById('docBadge').textContent = info.badge;
+      document.getElementById('docTitle').textContent = info.title;
+      document.getElementById('docRoute').textContent = info.route;
+      document.getElementById('docCount').textContent = `${itemsToShow.length} SPOTS`;
 
       // Group for polylines by day
       const dayCoords = {};
@@ -730,9 +784,12 @@
 
         const dayColor = dayColors[it._origDay] || '#38bdf8';
 
-        let memoHtml = '';
+        // Badges
+        const firstCat = (it.category && it.category.length > 0) ? it.category[0] : (it._cat === 'metro' ? '교통' : (it._cat === 'goods' ? '쇼핑' : (it._cat === 'food' ? '맛집' : '관광')));
+
+        let memoBoxHtml = '';
         if (it.memo && it.memo.trim()) {
-          memoHtml = `<div class="spot-memo">💡 ${it.memo}</div>`;
+          memoBoxHtml = `<div class="spot-memo-box">💡 ${it.memo}</div>`;
         }
 
         let photoHtml = '';
@@ -740,27 +797,21 @@
           photoHtml = `<img class="spot-photo" src="${it.photo_url}" alt="${it.name_ko}" loading="lazy" onerror="this.style.display='none'">`;
         }
 
-        const catBadges = (it.category || []).map(c => `<span class="spot-tag">${c}</span>`).join('');
-
         card.innerHTML = `
-          <div class="spot-header">
-            <div class="spot-num-badge" style="border-color:${dayColor}; color:${dayColor}; background:${dayColor}22;">
+          <div class="spot-card-top">
+            <div class="spot-num-badge" style="border-color:${dayColor}; color:${dayColor}; background:${dayColor}18;">
               ${it._origIdx}
             </div>
-            <div class="spot-info">
-              <div class="spot-title-row">
-                <span class="spot-name">${it.name_ko}</span>
-                <span class="spot-name-en">${it.name_en || ''}</span>
-              </div>
-              <div class="spot-tags">
-                <span class="spot-tag" style="color:${dayColor}; border-color:${dayColor}55;">Day ${it._origDay}</span>
-                ${catBadges}
-              </div>
+            <div class="spot-names">
+              <div class="spot-name-ko">${it.name_ko}</div>
+              <div class="spot-name-en">${it.name_en || ''}</div>
+            </div>
+            <div class="spot-badges">
+              <span class="spot-day-pill" style="color:${dayColor}; border-color:${dayColor}55; background:${dayColor}12;">Day ${it._origDay}</span>
+              <span class="spot-cat-pill">${firstCat}</span>
             </div>
           </div>
-          <div class="spot-body">
-            ${memoHtml}
-          </div>
+          ${memoBoxHtml}
           ${photoHtml}
         `;
 
