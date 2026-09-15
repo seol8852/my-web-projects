@@ -1342,6 +1342,177 @@
     // 1. Narita Airport Express (> 25km): 14.5x (지나치게 축소되지 않고 주변 지형과 도로를 보면서 시원하게 통과)
     // 2. Wide-area district transit (>= 5km): 16x (구역 간 쾌속 이동)
     // 3. Local city touring legs (< 5km): 18.25x (도심 스트리트 상세 뷰)
+        // ================= TOKYO RAILWAY & SUBWAY STATIONS & WAYPOINTS =================
+    const TOKYO_STATIONS = {
+      narita_t1: [35.770178, 140.3843215],
+      narita_t2: [35.7648331, 140.3860192],
+      narita_yukawa: [35.8153, 140.2797],
+      imba_nihon_idai: [35.7909, 140.1989],
+      inzai_makinohara: [35.8037, 140.1558],
+      chiba_new_town: [35.8066, 140.1147],
+      shiroi: [35.7892, 140.0543],
+      shin_kamagaya: [35.7788, 139.9984],
+      higashi_matsudo: [35.7703, 139.9442],
+      keisei_takasago: [35.7508, 139.8669],
+      aoto: [35.7471, 139.8546],
+      senju_ohashi: [35.7429, 139.8000],
+      machiya: [35.7428, 139.7820],
+      nippori: [35.728158, 139.770641],
+      keisei_ueno: [35.711145, 139.773887],
+      ueno: [35.714167, 139.777409],
+      uguisudani: [35.7214, 139.7780],
+      okachimachi: [35.707519, 139.774856],
+      akihabara: [35.698383, 139.773072],
+      kanda: [35.6917, 139.7709],
+      tokyo: [35.681236, 139.767125],
+      yurakucho: [35.6750, 139.7634],
+      shinbashi: [35.666379, 139.758340],
+      hamamatsucho: [35.655381, 139.757129],
+      shibuya: [35.658034, 139.701636],
+      harajuku: [35.671599, 139.702914],
+      yoyogi: [35.6830, 139.7020],
+      shinjuku: [35.689607, 139.700571],
+      shiodome: [35.6635, 139.7601],
+      takeshiba: [35.6558, 139.7618],
+      hinode: [35.6508, 139.7569],
+      shibaura_futo: [35.6416, 139.7572],
+      rainbow_loop_w: [35.6385, 139.7605],
+      rainbow_bridge_mid: [35.6366, 139.7663],
+      rainbow_bridge_e: [35.6345, 139.7715],
+      odaiba_kaihinkoen: [35.6298, 139.7770],
+      daiba: [35.625946, 139.771496],
+      omotesando: [35.6652, 139.7123],
+      gaienmae: [35.6702, 139.7183],
+      aoyama_itchome: [35.6728, 139.7240],
+      akasaka_mitsuke: [35.6767, 139.7371],
+      tameike_sanno: [35.6738, 139.7421],
+      toranomon: [35.6702, 139.7497],
+      ginza: [35.671570, 139.765050],
+      kyobashi: [35.6766, 139.7702],
+      nihombashi: [35.6821, 139.7735],
+      mitsukoshimae: [35.6858, 139.7743],
+      suehirocho: [35.702898, 139.771654],
+      ueno_hirokoji: [35.7075, 139.7735],
+      akebonobashi: [35.692376, 139.722630],
+      yotsuya_sanchome: [35.6880, 139.7200],
+      yotsuya: [35.6860, 139.7302],
+      nagatacho: [35.6780, 139.7390],
+      kasumigaseki: [35.6750, 139.7516],
+      shinjuku_sanchome: [35.6908, 139.7049],
+      hibiya: [35.6738, 139.7598],
+      toranomon_hills: [35.6685, 139.7485],
+      kamiyacho: [35.663118, 139.745183],
+      kitasando: [35.6795, 139.7052],
+      meiji_jingumae: [35.6690, 139.7028]
+    };
+
+    function getTransitLegRoute(spA, spB) {
+      const nA = spA.name_ko || '';
+      const nB = spB.name_ko || '';
+      const ptA = [spA.lat, spA.lng];
+      const ptB = [spB.lat, spB.lng];
+      const S = TOKYO_STATIONS;
+
+      // 1. Keisei Skyliner (Day 1 Narita -> Nippori)
+      if (nA.includes('나리타') && nB.includes('닛포리')) {
+        const waypoints = [ptA, S.narita_t1, S.narita_t2, S.narita_yukawa, S.imba_nihon_idai, S.inzai_makinohara, S.chiba_new_town, S.shiroi, S.shin_kamagaya, S.higashi_matsudo, S.keisei_takasago, S.aoto, S.senju_ohashi, S.machiya, S.nippori, ptB];
+        return { waypoints, type: 'skyliner', name: '스카이라이너', speech: '스카이라이너 타고 160km/h 쾌속 질주 중이다냥! ✈️' };
+      }
+
+      // 2. JR Yamanote Line (Day 1 Nippori -> Shinbashi)
+      if (nA.includes('닛포리') && nB.includes('신바시')) {
+        const waypoints = [ptA, S.nippori, S.uguisudani, S.ueno, S.okachimachi, S.akihabara, S.kanda, S.tokyo, S.yurakucho, S.shinbashi, ptB];
+        return { waypoints, type: 'yamanote', name: 'JR 야마노테선', speech: 'JR 야마노테선 타고 도심 철길을 달린다냥! 🚆' };
+      }
+
+      // 3. Yurikamome Line (Day 1 Shinbashi -> Daiba crossing Rainbow Bridge)
+      if (nA.includes('신바시') && nB.includes('다이바')) {
+        const waypoints = [ptA, S.shinbashi, S.shiodome, S.takeshiba, S.hinode, S.shibaura_futo, S.rainbow_loop_w, S.rainbow_bridge_mid, S.rainbow_bridge_e, S.odaiba_kaihinkoen, S.daiba, ptB];
+        return { waypoints, type: 'yurikamome', name: '유리카모메', speech: '유리카모메 타고 레인보우 브릿지 건너는 중이다냥! 🚝 바다 예쁘다냥!' };
+      }
+
+      // 4. Yurikamome Line return (Day 1 Daiba -> Shinbashi)
+      if (nA.includes('다이바') && nB.includes('신바시')) {
+        const waypoints = [ptA, S.daiba, S.odaiba_kaihinkoen, S.rainbow_bridge_e, S.rainbow_bridge_mid, S.rainbow_loop_w, S.shibaura_futo, S.hinode, S.takeshiba, S.shiodome, S.shinbashi, ptB];
+        return { waypoints, type: 'yurikamome', name: '유리카모메', speech: '유리카모메 타고 도쿄만 레인보우 브릿지 건너는 중이다냥! 🚝' };
+      }
+
+      // 5. Subway Shinbashi -> Akebonobashi (Day 1)
+      if (nA.includes('신바시') && (nB.includes('아케보노바시') || nB.includes('펄 호텔'))) {
+        const waypoints = [ptA, S.shinbashi, S.toranomon, S.kasumigaseki, S.nagatacho, S.yotsuya, S.yotsuya_sanchome, S.akebonobashi, ptB];
+        return { waypoints, type: 'metro', name: '도쿄 지하철', speech: '지하철 타고 아케보노바시 숙소로 이동 중이다냥! 🚇' };
+      }
+
+      // 6. Toei Shinjuku Line (Akebonobashi <-> Shinjuku)
+      if ((nA.includes('아케보노바시') || nA.includes('펄 호텔')) && nB.includes('신주쿠')) {
+        const waypoints = [ptA, S.akebonobashi, S.shinjuku_sanchome, S.shinjuku, ptB];
+        return { waypoints, type: 'metro', name: '도에이 신주쿠선', speech: '도에이 신주쿠선 지하철 타고 신주쿠로 이동 중이다냥! 🚇' };
+      }
+      if ((nA.includes('가부키초') || nA.includes('신주쿠')) && (nB.includes('아케보노바시') || nB.includes('펄 호텔'))) {
+        const waypoints = [ptA, S.shinjuku, S.shinjuku_sanchome, S.akebonobashi, ptB];
+        return { waypoints, type: 'metro', name: '도에이 신주쿠선', speech: '신주쿠선 지하철 타고 아케보노바시로 이동 중이다냥! 🚇' };
+      }
+
+      // 7. Metro to Harajuku / Shibuya (Day 2 & Day 3)
+      if ((nA.includes('아케보노바시') || nA.includes('펄 호텔')) && nB.includes('하라주쿠')) {
+        const waypoints = [ptA, S.akebonobashi, S.shinjuku_sanchome, S.kitasando, S.meiji_jingumae, S.harajuku, ptB];
+        return { waypoints, type: 'metro', name: '도쿄 메트로', speech: '도쿄 메트로 지하철 타고 하라주쿠로 이동 중이다냥! 🚇' };
+      }
+      if ((nA.includes('아케보노바시') || nA.includes('펄 호텔')) && nB.includes('시부야')) {
+        const waypoints = [ptA, S.akebonobashi, S.shinjuku_sanchome, S.kitasando, S.meiji_jingumae, S.shibuya, ptB];
+        return { waypoints, type: 'metro', name: '도쿄 메트로', speech: '지하철 타고 시부야 스카이로 이동 중이다냥! 🚇' };
+      }
+      if ((nA.includes('돈키호테') || nA.includes('시부야')) && nB.includes('신주쿠')) {
+        const waypoints = [ptA, S.shibuya, S.harajuku, S.yoyogi, S.shinjuku, ptB];
+        return { waypoints, type: 'yamanote', name: 'JR 야마노테선', speech: '야마노테선 타고 신주쿠로 이동 중이다냥! 🚆' };
+      }
+
+      // 8. Tokyo Metro Ginza Line (Day 3 Shibuya -> Hotel Comfact Ueno)
+      if (nA.includes('시부야') && (nB.includes('컴팩트') || nB.includes('우에노'))) {
+        const waypoints = [ptA, S.shibuya, S.omotesando, S.gaienmae, S.aoyama_itchome, S.akasaka_mitsuke, S.tameike_sanno, S.toranomon, S.shinbashi, S.ginza, S.kyobashi, S.nihombashi, S.mitsukoshimae, S.kanda, S.suehirocho, S.ueno_hirokoji, S.ueno, ptB];
+        return { waypoints, type: 'metro', name: '도쿄 메트로 긴자선', speech: '도쿄 메트로 긴자선 지하철 타고 우에노로 슝슝! 🚇' };
+      }
+
+      // 9. Yamanote Line (Day 3 Ueno -> Tokyo Station)
+      if (nA.includes('우에노') && nB.includes('도쿄')) {
+        const waypoints = [ptA, S.ueno, S.okachimachi, S.akihabara, S.kanda, S.tokyo, ptB];
+        return { waypoints, type: 'yamanote', name: 'JR 야마노테선', speech: 'JR 야마노테선 타고 도쿄역으로 이동 중이다냥! 🚆' };
+      }
+
+      // 10. Hibiya Line (Day 3 Ginza -> Kamiyacho / Tokyo Tower)
+      if ((nA.includes('긴자') || nA.includes('우나기')) && (nB.includes('가미야초') || nB.includes('도쿄 타워'))) {
+        const waypoints = [ptA, S.ginza, S.hibiya, S.kasumigaseki, S.toranomon_hills, S.kamiyacho, ptB];
+        return { waypoints, type: 'metro', name: '도쿄 메트로 히비야선', speech: '히비야선 지하철 타고 도쿄타워로 이동 중이다냥! 🗼' };
+      }
+
+      // 11. Yamanote Line (Day 3 Hamamatsucho -> Hotel Comfact Ueno)
+      if (nA.includes('하마마쓰초') && (nB.includes('컴팩트') || nB.includes('우에노'))) {
+        const waypoints = [ptA, S.hamamatsucho, S.shinbashi, S.yurakucho, S.tokyo, S.kanda, S.akihabara, S.okachimachi, S.ueno, ptB];
+        return { waypoints, type: 'yamanote', name: 'JR 야마노테선', speech: 'JR 야마노테선 타고 우에노 숙소로 복귀 중이다냥! 🚆' };
+      }
+
+      // 12. Yamanote Line (Day 4 & 5 Akihabara <-> Ueno / Okachimachi)
+      if (nA.includes('아키하바라') && (nB.includes('우에노') || (nB.includes('스카이라이너') && ptB[1] < 140.0))) {
+        const waypoints = [ptA, S.akihabara, S.okachimachi, S.ueno, ptB];
+        return { waypoints, type: 'yamanote', name: 'JR 야마노테선', speech: '야마노테선 타고 스카이라이너 타러 우에노로 이동 중이다냥! 🚆' };
+      }
+      if (nA.includes('우에노') && nB.includes('오카치마치')) {
+        const waypoints = [ptA, S.ueno, S.okachimachi, ptB];
+        return { waypoints, type: 'yamanote', name: 'JR 야마노테선', speech: '야마노테선 철길 따라 이동 중이다냥! 🚆' };
+      }
+
+      // 13. Keisei Skyliner (Day 5 Return to Narita Airport)
+      if ((nA.includes('스카이라이너') || nA.includes('우에노') || nA.includes('아키하바라')) && nB.includes('나리타') && ptB[1] > 140.0) {
+        const waypoints = [ptA, S.keisei_ueno, S.nippori, S.machiya, S.senju_ohashi, S.aoto, S.keisei_takasago, S.higashi_matsudo, S.shin_kamagaya, S.chiba_new_town, S.imba_nihon_idai, S.narita_yukawa, S.narita_t2, S.narita_t1, ptB];
+        return { waypoints, type: 'skyliner', name: '스카이라이너', speech: '스카이라이너 타고 나리타 공항으로 쾌속 질주다냥! ✈️' };
+      }
+
+      // Default: walking / local street
+      const dist = Math.hypot(ptB[0] - ptA[0], ptB[1] - ptA[1]) * 111;
+      const speech = dist < 0.6 ? `${nB} (으)로 골목길 걸어가는 중이다냥! 🐾` : `${nB} (으)로 이동 중이다냥! 🐾`;
+      return { waypoints: [ptA, ptB], type: 'walking', name: '도보', speech: speech };
+    }
+
     function getTargetZoomForLeg(distKm) {
       if (distKm > 25) return 14.5;
       if (distKm >= 5) return 16.0;
@@ -1455,7 +1626,10 @@
           fromSpot: simSpots[0],
           toSpot: simSpots[0],
           legIdx: 0,
-          legFrac: 1.0
+          legFrac: 1.0,
+          transitType: 'walking',
+          transitName: '도보',
+          transitSpeech: '도쿄 투어 시작이다냥! 🐾'
         });
         simTargetZooms.push(18.25);
         return;
@@ -1470,42 +1644,50 @@
         const distKm = getDistanceKm(latA, lngA, latB, lngB);
         const targetZoom = getTargetZoomForLeg(distKm);
 
-        const dist = Math.hypot(latB - latA, lngB - lngA);
-        const steps = Math.max(60, Math.min(220, Math.round(dist * 1200)));
+        // Fetch railway track waypoints or walking route
+        const transitInfo = getTransitLegRoute(spA, spB);
+        const wps = transitInfo.waypoints;
 
-        for (let s = 0; s < steps; s++) {
-          const t = s / steps;
-          simPath.push([
-            latA + (latB - latA) * t,
-            lngA + (lngB - lngA) * t
-          ]);
-          simTargetZooms.push(targetZoom);
+        for (let seg = 0; seg < wps.length - 1; seg++) {
+          const p1 = wps[seg];
+          const p2 = wps[seg + 1];
+          const segDist = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+          const steps = Math.max(12, Math.min(50, Math.round(segDist * 1000)));
 
-          // Precise phase segmentation:
-          // 1. Depart phase: t < 0.20 (at/leaving spA)
-          // 2. Moving phase: 0.20 <= t < 0.80 (heading towards spB)
-          // 3. Arrive phase: t >= 0.80 (arriving at spB)
-          let phase = 'moving';
-          let spot = spB;
-          if (t < 0.20) {
-            phase = (i === 0) ? 'start' : 'depart';
-            spot = spA;
-          } else if (t >= 0.80) {
-            phase = 'arrive';
-            spot = spB;
-          } else {
-            phase = 'moving';
-            spot = spB;
+          for (let s = 0; s < steps; s++) {
+            const t = s / steps;
+            const globalLegFrac = (seg + t) / (wps.length - 1);
+            simPath.push([
+              p1[0] + (p2[0] - p1[0]) * t,
+              p1[1] + (p2[1] - p1[1]) * t
+            ]);
+            simTargetZooms.push(targetZoom);
+
+            let phase = 'moving';
+            let spot = spB;
+            if (globalLegFrac < 0.15) {
+              phase = (i === 0 && seg === 0) ? 'start' : 'depart';
+              spot = spA;
+            } else if (globalLegFrac >= 0.85) {
+              phase = 'arrive';
+              spot = spB;
+            } else {
+              phase = 'moving';
+              spot = spB;
+            }
+
+            simStepDetails.push({
+              spot: spot,
+              phase: phase,
+              fromSpot: spA,
+              toSpot: spB,
+              legIdx: i,
+              legFrac: globalLegFrac,
+              transitType: transitInfo.type,
+              transitName: transitInfo.name,
+              transitSpeech: transitInfo.speech
+            });
           }
-
-          simStepDetails.push({
-            spot: spot,
-            phase: phase,
-            fromSpot: spA,
-            toSpot: spB,
-            legIdx: i,
-            legFrac: t
-          });
         }
       }
 
@@ -1518,7 +1700,10 @@
         fromSpot: last,
         toSpot: last,
         legIdx: simSpots.length - 1,
-        legFrac: 1.0
+        legFrac: 1.0,
+        transitType: 'walking',
+        transitName: '도보',
+        transitSpeech: '투어 완주다냥! 🎉'
       });
     }
 
@@ -1695,22 +1880,25 @@
         } else if (targetZ <= 16.5) {
           zoomModeText = '16x 광역 이동';
         }
+
+        const transitTag = (stepInfo.transitName && stepInfo.transitName !== '도보') ? ` · 🚆 ${stepInfo.transitName}` : '';
+
         if (statusEl) {
           if (stepInfo.phase === 'moving') {
-            statusEl.textContent = `[${spotIdx}/${totalSpots}] ${stepInfo.fromSpot.name_ko} ➔ ${stepInfo.toSpot.name_ko} 이동 중 (${pct}%) · ${zoomModeText}`;
+            statusEl.textContent = `[${spotIdx}/${totalSpots}] ${stepInfo.fromSpot.name_ko} ➔ ${stepInfo.toSpot.name_ko} 이동 중 (${pct}%)${transitTag} · ${zoomModeText}`;
           } else {
             statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} (${pct}%) · ${zoomModeText}`;
           }
         }
 
-        // Dynamic Speech Bubble: Always timely, never late, changes at every point!
+        // Dynamic Speech Bubble: Announces authentic subway/train lines and spot arrival reactions!
         let bubbleText = '';
         if (stepInfo.phase === 'start') {
           bubbleText = `🚩 ${stepInfo.fromSpot.name_ko} 에서 투어 출발이다냥! 🐾`;
         } else if (stepInfo.phase === 'depart') {
           bubbleText = `📍 ${stepInfo.fromSpot.name_ko} 출발!`;
         } else if (stepInfo.phase === 'moving') {
-          bubbleText = `🐾 ${stepInfo.toSpot.name_ko} (으)로 이동 중이다냥!`;
+          bubbleText = stepInfo.transitSpeech || `🐾 ${stepInfo.toSpot.name_ko} (으)로 이동 중이다냥!`;
         } else if (stepInfo.phase === 'arrive' || stepInfo.phase === 'final') {
           bubbleText = getHachiReaction(stepInfo.toSpot);
         }
@@ -1916,8 +2104,26 @@
         }
       });
 
-      // Draw Day Route Polylines (Glow + Core Dashed Line)
+      // Build rich railway-following route geometry for each day
+      const dayTransitRouteCoords = {};
       Object.entries(dayCoords).forEach(([d, pts]) => {
+        dayTransitRouteCoords[d] = [];
+        if (pts.length > 0) {
+          dayTransitRouteCoords[d].push(pts[0]);
+          for (let pIdx = 0; pIdx < pts.length - 1; pIdx++) {
+            const spA = itemsToShow.find(it => it._origDay == d && it.lat === pts[pIdx][0] && it.lng === pts[pIdx][1]) || { lat: pts[pIdx][0], lng: pts[pIdx][1], name_ko: '' };
+            const spB = itemsToShow.find(it => it._origDay == d && it.lat === pts[pIdx+1][0] && it.lng === pts[pIdx+1][1]) || { lat: pts[pIdx+1][0], lng: pts[pIdx+1][1], name_ko: '' };
+            const legRoute = getTransitLegRoute(spA, spB);
+            // Append intermediate waypoints
+            for (let w = 1; w < legRoute.waypoints.length; w++) {
+              dayTransitRouteCoords[d].push(legRoute.waypoints[w]);
+            }
+          }
+        }
+      });
+
+      // Draw Day Route Polylines (Glow + Core Dashed Line along authentic railway tracks)
+      Object.entries(dayTransitRouteCoords).forEach(([d, pts]) => {
         if (pts.length > 1) {
           const color = dayColors[d] || '#38bdf8';
           const lineGlow = L.polyline(pts, {
