@@ -574,7 +574,11 @@
       height: 100%;
       min-width: 0;
       position: relative;
-      background: #050813;
+      background: #e8e5df;
+      background-image: 
+        linear-gradient(rgba(205, 200, 190, 0.28) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(205, 200, 190, 0.28) 1px, transparent 1px);
+      background-size: 32px 32px;
     }
 
     /* ================= MAP LAYER SWITCHER ================= */
@@ -1194,30 +1198,55 @@
       ro.observe(document.getElementById('map'));
     }
 
-    // 100% Watermark-Free High-Definition Map Layers
+    // Unbreakable Overview Base Underlay (Pre-caches Tokyo/Chiba at Zoom 14 & scales up so screen NEVER turns black)
+    const baseUnderlay = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+      maxNativeZoom: 14,
+      maxZoom: 19,
+      keepBuffer: 30,
+      zIndex: 1,
+      opacity: 0.95
+    }).addTo(map);
+
+    // 100% Watermark-Free High-Definition Map Layers (with keepBuffer & fast loading)
     const layers = {
       street: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { 
-        maxZoom: 19 
+        maxZoom: 19,
+        keepBuffer: 12,
+        updateInterval: 80,
+        zIndex: 2
       }),
       sat: L.layerGroup([
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { 
-          maxZoom: 19 
+          maxZoom: 19,
+          keepBuffer: 12,
+          updateInterval: 80,
+          zIndex: 2
         }),
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { 
           maxZoom: 19, 
-          opacity: 0.85 
+          opacity: 0.85,
+          keepBuffer: 12,
+          zIndex: 3
         })
       ]),
       topo: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { 
-        maxZoom: 19 
+        maxZoom: 19,
+        keepBuffer: 12,
+        updateInterval: 80,
+        zIndex: 2
       }),
       dark: L.layerGroup([
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { 
-          maxZoom: 19 
+          maxZoom: 19,
+          keepBuffer: 12,
+          updateInterval: 80,
+          zIndex: 2
         }),
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { 
           maxZoom: 19, 
-          opacity: 0.75 
+          opacity: 0.75,
+          keepBuffer: 12,
+          zIndex: 3
         })
       ])
     };
@@ -1228,6 +1257,19 @@
       if (!layers[type]) return;
       map.removeLayer(currentLayer);
       currentLayer = layers[type].addTo(map);
+
+      const mapEl = document.getElementById('map');
+      if (type === 'dark') {
+        baseUnderlay.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}');
+        if (mapEl) mapEl.style.background = '#111827';
+      } else if (type === 'sat') {
+        baseUnderlay.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+        if (mapEl) mapEl.style.background = '#15202b';
+      } else {
+        baseUnderlay.setUrl('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}');
+        if (mapEl) mapEl.style.background = '#e8e5df';
+      }
+
       document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
     }
@@ -1593,10 +1635,15 @@
         hachiTrail.setLatLngs(trailPts);
       }
 
-      // Fixed Zoom 19 Camera Follow (Locked strictly to 19 throughout entire tour)
+      // Ultra-smooth non-destructive camera follow (Uses panBy to NEVER reset tile requests or flash black)
       const followCam = document.getElementById('hachiFollowCam');
       if (followCam && followCam.checked) {
-        map.setView(curPt, 19, { animate: false });
+        const targetPt = map.latLngToContainerPoint(curPt);
+        const centerPt = map.getSize().divideBy(2);
+        const offset = targetPt.subtract(centerPt);
+        if (Math.abs(offset.x) > 0.5 || Math.abs(offset.y) > 0.5) {
+          map.panBy(offset, { animate: false });
+        }
       }
 
       // Direction flip (Left/Right)
