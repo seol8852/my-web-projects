@@ -27,7 +27,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
-    body { display: flex; height: 100vh; overflow: hidden; background: var(--bg-base); color: var(--text-main); }
+    body { display: flex; width: 100vw; height: 100vh; overflow: hidden; background: var(--bg-base); color: var(--text-main); }
 
     /* Micro Scrollbar */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -51,6 +51,7 @@
       position: relative;
       transition: margin-left 0.35s var(--ease-spring);
       box-shadow: 20px 0 60px rgba(0, 0, 0, 0.85);
+      flex-shrink: 0;
     }
 
     #sidebar.collapsed {
@@ -415,11 +416,13 @@
       margin-top: 2px;
     }
 
-    /* Map */
+    /* Map Container */
     #map {
       flex: 1;
       height: 100%;
+      min-width: 0;
       position: relative;
+      background: #070a14;
     }
 
     /* Map Layer Switcher (USA Roadtrip Style: Left Top next to sidebar) */
@@ -481,7 +484,7 @@
       padding: 10px 18px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
       box-shadow: 0 14px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.15);
       transition: left 0.35s var(--ease-spring);
     }
@@ -544,7 +547,7 @@
       gap: 2px;
     }
     .hachi-spd-btn {
-      padding: 4px 8px;
+      padding: 4px 7px;
       background: transparent;
       border: none;
       color: var(--text-sub);
@@ -698,7 +701,7 @@
       transform-origin: center bottom;
     }
     .hachi-character-box.walking {
-      animation: hachiWaddle 0.32s infinite alternate ease-in-out;
+      animation: hachiWaddle 0.45s infinite alternate ease-in-out;
     }
     @keyframes hachiWaddle {
       0% { transform: translateY(0) rotate(-6deg); }
@@ -863,9 +866,11 @@
       </button>
       <button class="hachi-ctrl-btn" onclick="resetHachiSim()" title="처음 위치로">↺ 리셋</button>
       <div class="hachi-speed-group">
-        <button class="hachi-spd-btn active" onclick="setHachiSpeed(1, this)">1x</button>
-        <button class="hachi-spd-btn" onclick="setHachiSpeed(2, this)">2x</button>
-        <button class="hachi-spd-btn" onclick="setHachiSpeed(4, this)">4x</button>
+        <button class="hachi-spd-btn" onclick="setHachiSpeed(0.05, this)">0.05x</button>
+        <button class="hachi-spd-btn active" onclick="setHachiSpeed(0.1, this)">0.1x</button>
+        <button class="hachi-spd-btn" onclick="setHachiSpeed(0.2, this)">0.2x</button>
+        <button class="hachi-spd-btn" onclick="setHachiSpeed(0.5, this)">0.5x</button>
+        <button class="hachi-spd-btn" onclick="setHachiSpeed(1, this)">1x</button>
       </div>
     </div>
 
@@ -938,14 +943,25 @@
     let polylines = [];
 
     // ================= MAP INITIALIZATION =================
-    const map = L.map('map', {
+    window.map = L.map('map', {
       center: [35.6812, 139.7671],
       zoom: 12,
       zoomControl: false,
       attributionControl: false
     });
 
+    const map = window.map;
     L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    // Continuous ResizeObserver to eliminate any map cutoff during/after sidebar transitions
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        if (map) {
+          map.invalidateSize();
+        }
+      });
+      ro.observe(document.getElementById('map'));
+    }
 
     // 100% Watermark-Free High-Definition Map Layers
     const layers = {
@@ -985,7 +1001,7 @@
       if (btn) btn.classList.add('active');
     }
 
-    // ================= SIDEBAR TOGGLE =================
+    // ================= SIDEBAR TOGGLE (WITH SMOOTH RESIZE) =================
     let isSidebarCollapsed = false;
     function toggleSidebar() {
       isSidebarCollapsed = !isSidebarCollapsed;
@@ -1008,11 +1024,17 @@
         if (simBar) simBar.style.left = '530px';
       }
 
-      setTimeout(() => {
-        if (window.map) {
-          window.map.invalidateSize();
+      // Continuously invalidate Leaflet map throughout the 350ms transition
+      const start = performance.now();
+      function stepResize() {
+        if (map) map.invalidateSize();
+        if (performance.now() - start < 400) {
+          requestAnimationFrame(stepResize);
+        } else {
+          if (map) map.invalidateSize();
         }
-      }, 360);
+      }
+      requestAnimationFrame(stepResize);
     }
 
     // ================= CATEGORY FILTER =================
@@ -1041,13 +1063,13 @@
       return 'tour';
     }
 
-    // ================= HACHIWARE SIMULATOR STATE =================
+    // ================= HACHIWARE SIMULATOR STATE (0.1x LEISURELY SPEED) =================
     let isSimPlaying = false;
     let simTimer = null;
     let simProgress = 0; // 0.0 to 1.0
-    let simSpeed = 1.0;
+    let simSpeed = 0.1; // Default to 0.1x leisurely speed
     let simSpots = [];
-    let simPath = []; // Interpolated high-density coordinate points
+    let simPath = []; // High-density interpolated coordinate points
     let simSegments = []; // Maps path index back to original spot
     let voiceEnabled = false;
     let lastSpokenSpotId = null;
@@ -1071,7 +1093,7 @@
     });
 
     let hachiMarker = null;
-    let hachiTrail = null; // Glowing path traced by Hachiware
+    let hachiTrail = null;
 
     // TTS Voice Guide
     function toggleHachiVoice() {
@@ -1079,7 +1101,7 @@
       const btn = document.getElementById('hachiVoiceBtn');
       if (voiceEnabled) {
         btn.classList.add('active');
-        speakText("하치와레 음성 가이드가 켜졌습니다! 함께 출발해요!");
+        speakText("하치와레 음성 가이드가 켜졌습니다! 함께 천천히 둘러봐요!");
       } else {
         btn.classList.remove('active');
         if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -1091,12 +1113,12 @@
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'ko-KR';
-      utter.rate = 1.05;
-      utter.pitch = 1.25; // Cute higher pitch for Hachiware
+      utter.rate = 1.0;
+      utter.pitch = 1.25;
       window.speechSynthesis.speak(utter);
     }
 
-    // Build interpolated path for simulation
+    // Build smooth high-density path for 0.1x simulation
     function buildSimPath() {
       simPath = [];
       simSegments = [];
@@ -1114,9 +1136,9 @@
         const latA = spA.lat, lngA = spA.lng;
         const latB = spB.lat, lngB = spB.lng;
 
-        // Calculate approximate distance for smooth speed
+        // More interpolation steps for silky-smooth 0.1x animation
         const dist = Math.hypot(latB - latA, lngB - lngA);
-        const steps = Math.max(30, Math.min(120, Math.round(dist * 600)));
+        const steps = Math.max(60, Math.min(200, Math.round(dist * 1200)));
 
         for (let s = 0; s < steps; s++) {
           const t = s / steps;
@@ -1127,7 +1149,6 @@
           simSegments.push(t < 0.5 ? spA : spB);
         }
       }
-      // Add final point
       const last = simSpots[simSpots.length - 1];
       simPath.push([last.lat, last.lng]);
       simSegments.push(last);
@@ -1210,8 +1231,8 @@
     function runSimLoop() {
       if (!isSimPlaying) return;
 
-      // Increment progress based on speed
       const totalSteps = simPath.length;
+      // Precision smooth step increment calibrated for 0.1x leisurely speed
       const stepInc = (1 / totalSteps) * simSpeed * 1.5;
       simProgress += stepInc;
 
@@ -1254,13 +1275,13 @@
         hachiTrail.setLatLngs(trailPts);
       }
 
-      // Camera follow
+      // Follow cam
       const followCam = document.getElementById('hachiFollowCam');
       if (followCam && followCam.checked) {
         map.panTo(curPt, { animate: false });
       }
 
-      // Direction flip
+      // Direction flip (Left/Right)
       const charBox = document.getElementById('hachiCharBox');
       if (charBox && ptB[1] !== ptA[1]) {
         if (ptB[1] < ptA[1]) {
@@ -1284,7 +1305,7 @@
         const pct = Math.round(prog * 100);
 
         if (statusEl) {
-          statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} 통과 중 (${pct}%)`;
+          statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} 이동 중 (${pct}%)`;
         }
 
         if (bubble) {
@@ -1299,7 +1320,7 @@
           } else if (currentSpot.name_ko.includes('공항')) {
             bubble.textContent = '나리타 공항 도착! 여행 출발이다냥! ✈️';
           } else {
-            bubble.textContent = `${currentSpot.name_ko} 구경 중이다냥! 🐾`;
+            bubble.textContent = `${currentSpot.name_ko} 향하는 중이다냥! 🐾`;
           }
         }
 
@@ -1313,7 +1334,7 @@
           }
         }
 
-        // Voice speech on spot change
+        // Voice guide
         if (lastSpokenSpotId !== currentSpot.id) {
           lastSpokenSpotId = currentSpot.id;
           if (isSimPlaying) {
