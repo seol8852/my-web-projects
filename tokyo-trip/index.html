@@ -1174,7 +1174,9 @@
       center: [35.6812, 139.7671],
       zoom: 12,
       zoomControl: false,
-      attributionControl: false
+      attributionControl: false,
+      zoomSnap: 0.25,
+      zoomDelta: 0.25
     });
 
     const map = window.map;
@@ -1298,8 +1300,33 @@
     let simSpots = [];
     let simPath = []; // High-density interpolated coordinate points
     let simSegments = []; // Maps path index back to original spot
+    let simTargetZooms = []; // Target zoom for each interpolated step
     let voiceEnabled = false;
     let lastSpokenSpotId = null;
+
+    // Haversine distance in km between two lat/lng coordinates
+    function getDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // Dynamic Smart Zoom according to leg distance:
+    // User request: "공항에서 시내로 갈 때 처럼 먼 구간은 축소되고 짧은 구간은 엄청 확대되서 어딘지 볼 수 있게"
+    function getTargetZoomForLeg(distKm) {
+      if (distKm > 25) return 10.5;  // Narita Airport -> Nippori express (~55-60km): wide regional view
+      if (distKm > 12) return 12.0;  // Long suburban leg (12-25km)
+      if (distKm > 5)  return 13.5;  // Bay transit / Tokyo cross-district (5-12km)
+      if (distKm > 2)  return 14.75; // Metro transit between districts (2-5km)
+      if (distKm > 0.8) return 15.75; // City avenue / neighborhood transit (800m-2km)
+      if (distKm > 0.3) return 16.5; // Close street walk (300m-800m)
+      return 17.0;                   // Ultra close-up street / alleyway / store view (< 300m)
+    }
 
     // Create Hachiware Leaflet Marker
     const hachiHtml = `
@@ -1346,15 +1373,17 @@
       window.speechSynthesis.speak(utter);
     }
 
-    // Build smooth high-density path for 0.1x simulation
+    // Build smooth high-density path & calculate dynamic smart zoom per leg
     function buildSimPath() {
       simPath = [];
       simSegments = [];
+      simTargetZooms = [];
       if (simSpots.length === 0) return;
 
       if (simSpots.length === 1) {
         simPath.push([simSpots[0].lat, simSpots[0].lng]);
         simSegments.push(simSpots[0]);
+        simTargetZooms.push(16.75);
         return;
       }
 
@@ -1364,9 +1393,11 @@
         const latA = spA.lat, lngA = spA.lng;
         const latB = spB.lat, lngB = spB.lng;
 
-        // More interpolation steps for silky-smooth 0.1x animation
-        const dist = Math.hypot(latB - latA, lngB - lngA);
-        const steps = Math.max(60, Math.min(200, Math.round(dist * 1200)));
+        const distKm = getDistanceKm(latA, lngA, latB, lngB);
+        const targetZoom = getTargetZoomForLeg(distKm);
+
+        // High-density steps for smooth 0.1x animation
+        const steps = Math.max(60, Math.min(240, Math.round(distKm * 2.5) + 60));
 
         for (let s = 0; s < steps; s++) {
           const t = s / steps;
@@ -1375,11 +1406,14 @@
             lngA + (lngB - lngA) * t
           ]);
           simSegments.push(t < 0.5 ? spA : spB);
+          simTargetZooms.push(targetZoom);
         }
       }
       const last = simSpots[simSpots.length - 1];
       simPath.push([last.lat, last.lng]);
       simSegments.push(last);
+      const lastZoom = simTargetZooms.length > 0 ? simTargetZooms[simTargetZooms.length - 1] : 16.75;
+      simTargetZooms.push(lastZoom);
     }
 
     function initHachiware() {
@@ -1441,7 +1475,8 @@
       simProgress = 0;
       updateSimFrame(0);
       if (simPath.length > 0) {
-        map.flyTo(simPath[0], 14, { duration: 1.0 });
+        const initZoom = simTargetZooms[0] || 15.0;
+        map.flyTo(simPath[0], initZoom, { duration: 1.0 });
       }
     }
 
@@ -1502,10 +1537,14 @@
         hachiTrail.setLatLngs(trailPts);
       }
 
-      // Follow cam
+      // Dynamic Smart Camera Follow (Smooth Zoom & Position tracking)
       const followCam = document.getElementById('hachiFollowCam');
       if (followCam && followCam.checked) {
-        map.panTo(curPt, { animate: false });
+        const targetZ = simTargetZooms[idx] || 16.5;
+        const curZ = map.getZoom();
+        // Silky smooth lerp for zoom: 0.08 transition factor prevents abrupt zoom shifts
+        const smoothZ = curZ + (targetZ - curZ) * 0.08;
+        map.setView(curPt, smoothZ, { animate: false });
       }
 
       // Direction flip (Left/Right)
@@ -1530,9 +1569,11 @@
         const spotIdx = simSpots.indexOf(currentSpot) + 1;
         const totalSpots = simSpots.length;
         const pct = Math.round(prog * 100);
+        const targetZ = simTargetZooms[idx] || 16.5;
+        const zoomDesc = targetZ <= 11.0 ? '✈️ 광역 쾌속 뷰' : (targetZ >= 16.5 ? '🔍 초근접 스트리트 뷰' : '🚇 도심 이동 뷰');
 
         if (statusEl) {
-          statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} 이동 중 (${pct}%)`;
+          statusEl.textContent = `[${spotIdx}/${totalSpots}] ${currentSpot.name_ko} 이동 중 (${pct}%) · ${zoomDesc}`;
         }
 
         if (bubble) {
@@ -1702,7 +1743,7 @@
           document.querySelectorAll('.spot-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
           if (it.lat && it.lng) {
-            map.flyTo([it.lat, it.lng], 16, { duration: 1.2 });
+            map.flyTo([it.lat, it.lng], 16.75, { duration: 1.2 });
             if (it._marker) it._marker.openPopup();
           }
         };
