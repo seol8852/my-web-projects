@@ -427,17 +427,20 @@
           </div>
           <div class="controls">
             <div>
-              <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">증례 선택 또는 직접 파일 업로드</div>
-              <div class="btn-group" style="margin-bottom: 10px;">
-                <button class="btn-chip active" id="btn-case-1" onclick="loadCase(1)">증례 1: 거대 반상위축 (PA)</button>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 12px; color: var(--text-sub);">증례 선택 또는 커스텀 이미지 분석</span>
+                <span style="font-size: 11px; color: #64748b;">(이미지 드래그&드롭 지원)</span>
+              </div>
+              <div class="btn-group">
+                <button class="btn-chip active" id="btn-case-1" onclick="loadCase(1)">증례 1: 거대 반상위축</button>
                 <button class="btn-chip" id="btn-case-2" onclick="loadCase(2)">증례 2: 황반 주변 다발성</button>
                 <button class="btn-chip" id="btn-case-3" onclick="loadCase(3)">증례 3: 초기 미세 위축</button>
+                <label for="userImgInput" class="btn-chip" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08); color: var(--accent-cyan);">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>사진 업로드</span>
+                </label>
+                <input type="file" id="userImgInput" accept="image/*" style="display:none;" onchange="handleUserUpload(this)">
               </div>
-              <!-- 눈에 확 띄는 큰 업로드 전용 버튼 -->
-              <label for="userImgInput" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; padding: 12px 18px; border-radius: 10px; font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(37,99,235,0.4); transition: all 0.2s;">
-                📂 [내 안저 사진 업로드하여 테스트하기]
-              </label>
-              <input type="file" id="userImgInput" accept="image/*" style="display:none;" onchange="handleUserUpload(this)">
             </div>
             <div>
               <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">색상 표현 방식 (논문 핵심 비교군)</div>
@@ -821,22 +824,25 @@ python predict.py --image_path ./data/images/sample_uwf_001.png --weights_path .
       renderDemo();
     }
 
-    function handleUserUpload(input) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const img = new Image();
-          img.onload = function() {
-            customImgElement = img;
-            document.querySelectorAll('#tab-demo .btn-chip').forEach(b => b.classList.remove('active'));
-            document.getElementById('sample-badge').textContent = '사용자 업로드 안저 사진';
-            renderDemo();
-          }
-          img.src = e.target.result;
-        }
-        reader.readAsDataURL(input.files[0]);
+    // Drag and drop listeners on inputCanvas
+    const inputWrapper = document.querySelector('.canvas-wrapper');
+    inputWrapper.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      inputWrapper.style.borderColor = 'var(--accent-cyan)';
+      inputWrapper.style.boxShadow = '0 0 15px rgba(56, 189, 248, 0.3)';
+    });
+    inputWrapper.addEventListener('dragleave', () => {
+      inputWrapper.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+      inputWrapper.style.boxShadow = 'none';
+    });
+    inputWrapper.addEventListener('drop', (e) => {
+      e.preventDefault();
+      inputWrapper.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+      inputWrapper.style.boxShadow = 'none';
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleUserUpload({ files: e.dataTransfer.files });
       }
-    }
+    });
 
     function setColorMode(mode) {
       currentColorMode = mode;
