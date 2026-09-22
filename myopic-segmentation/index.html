@@ -427,15 +427,17 @@
           </div>
           <div class="controls">
             <div>
-              <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">증례 선택 및 사용자 사진 업로드</div>
-              <div class="btn-group">
+              <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">증례 선택 또는 직접 파일 업로드</div>
+              <div class="btn-group" style="margin-bottom: 10px;">
                 <button class="btn-chip active" id="btn-case-1" onclick="loadCase(1)">증례 1: 거대 반상위축 (PA)</button>
                 <button class="btn-chip" id="btn-case-2" onclick="loadCase(2)">증례 2: 황반 주변 다발성</button>
                 <button class="btn-chip" id="btn-case-3" onclick="loadCase(3)">증례 3: 초기 미세 위축</button>
-                <label class="btn-chip" style="cursor: pointer; background: rgba(56, 189, 248, 0.15); border-color: var(--accent-cyan);">
-                  📁 내 사진 올리기 <input type="file" id="userImgInput" accept="image/*" style="display:none;" onchange="handleUserUpload(this)">
-                </label>
               </div>
+              <!-- 눈에 확 띄는 큰 업로드 전용 버튼 -->
+              <label for="userImgInput" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; padding: 12px 18px; border-radius: 10px; font-weight: 800; font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(37,99,235,0.4); transition: all 0.2s;">
+                📂 [내 안저 사진 업로드하여 테스트하기]
+              </label>
+              <input type="file" id="userImgInput" accept="image/*" style="display:none;" onchange="handleUserUpload(this)">
             </div>
             <div>
               <div style="font-size: 12px; color: var(--text-sub); margin-bottom: 8px;">색상 표현 방식 (논문 핵심 비교군)</div>
