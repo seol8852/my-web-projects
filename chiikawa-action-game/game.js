@@ -1798,7 +1798,7 @@ class Game {
 
       if (Math.random() < 0.6) {
         const dist = Math.random() * 800;
-        particles.push(
+        this.particles.push(
           new Particle(lx + Math.cos(laserAngle) * dist, ly + Math.sin(laserAngle) * dist, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 8, '#ffd166', 0.25, 'star')
         );
       }
