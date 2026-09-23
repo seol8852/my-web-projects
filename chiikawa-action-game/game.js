@@ -78,107 +78,122 @@ class SoundController {
   }
 
   playShoot(charType = 'chiikawa', isAwakened = false) {
-    if (!this.sfxEnabled || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    try {
+      if (!this.sfxEnabled || !this.ctx) return;
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
 
-    osc.type = isAwakened ? 'sawtooth' : 'sine';
-    const startFreq = charType === 'usagi' ? 880 : (charType === 'hachiware' ? 740 : 660);
-    osc.frequency.setValueAtTime(startFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(180, now + 0.09);
+      osc.type = isAwakened ? 'sawtooth' : 'sine';
+      const startFreq = charType === 'usagi' ? 880 : (charType === 'hachiware' ? 740 : 660);
+      osc.frequency.setValueAtTime(startFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(180, now + 0.09);
 
-    gain.gain.setValueAtTime(0.18, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.09);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.09);
+    } catch (e) {}
   }
 
   playHit() {
-    if (!this.sfxEnabled || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    try {
+      if (!this.sfxEnabled || !this.ctx) return;
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
 
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(260, now);
-    osc.frequency.exponentialRampToValueAtTime(90, now + 0.06);
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.exponentialRampToValueAtTime(90, now + 0.06);
 
-    gain.gain.setValueAtTime(0.14, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.06);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.06);
+    } catch (e) {}
   }
 
   playDash() {
-    if (!this.sfxEnabled || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    try {
+      if (!this.sfxEnabled || !this.ctx) return;
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(400, now);
-    osc.frequency.exponentialRampToValueAtTime(950, now + 0.16);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, now);
+      osc.frequency.exponentialRampToValueAtTime(950, now + 0.16);
 
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.16);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.16);
+    } catch (e) {}
   }
 
   playExplosion() {
-    if (!this.sfxEnabled || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const bufferSize = this.ctx.sampleRate * 0.35;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-    }
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    try {
+      if (!this.sfxEnabled || !this.ctx) return;
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const now = this.ctx.currentTime;
+      const bufferSize = this.ctx.sampleRate * 0.35;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(500, now);
-    filter.frequency.exponentialRampToValueAtTime(70, now + 0.35);
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(500, now);
+      filter.frequency.exponentialRampToValueAtTime(70, now + 0.35);
 
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.45, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.45, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
 
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-    noise.start(now);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      noise.start(now);
+    } catch (e) {}
   }
 
   playLaser() {
-    if (!this.sfxEnabled || !this.ctx) return;
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    try {
+      if (!this.sfxEnabled || !this.ctx) return;
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
 
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(523.25, now);
-    osc.frequency.linearRampToValueAtTime(1046.5, now + 0.22);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.linearRampToValueAtTime(1046.5, now + 0.22);
 
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.22);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch (e) {}
   }
 
   playPickup() {
@@ -1632,7 +1647,7 @@ class Game {
   addExp(amount) {
     this.currentExp += amount;
     this.score += amount * 10;
-    while (this.currentExp >= this.maxExp) {
+    if (this.currentExp >= this.maxExp && !this.isLevelingUp) {
       this.currentExp -= this.maxExp;
       this.level++;
       this.maxExp = Math.round(this.maxExp * 1.35);
@@ -1746,13 +1761,19 @@ class Game {
   loop(timestamp) {
     if (!this.isRunning || this.isPaused || this.isLevelingUp) return;
 
-    const dt = Math.min(0.05, (timestamp - this.lastTime) / 1000);
-    this.lastTime = timestamp;
+    try {
+      const dt = Math.min(0.05, Math.max(0.001, (timestamp - this.lastTime) / 1000 || 0.016));
+      this.lastTime = timestamp;
 
-    this.update(dt);
-    this.draw();
+      this.update(dt);
+      this.draw();
+    } catch (err) {
+      console.error("Game loop non-fatal error caught:", err);
+    }
 
-    requestAnimationFrame((t) => this.loop(t));
+    if (this.isRunning && !this.isPaused && !this.isLevelingUp) {
+      requestAnimationFrame((t) => this.loop(t));
+    }
   }
 
   update(dt) {
@@ -2046,28 +2067,35 @@ class Game {
   }
 
   drawMegaLaser() {
-    const lx = this.player.x;
-    const ly = this.player.y;
-    const angle = this.player.aimAngle;
-    const len = 1400;
+    try {
+      if (!this.player) return;
+      const lx = this.player.x || 0;
+      const ly = this.player.y || 0;
+      const angle = this.player.aimAngle || 0;
+      const len = 1400;
 
-    this.ctx.save();
-    this.ctx.translate(lx, ly);
-    this.ctx.rotate(angle);
+      this.ctx.save();
+      this.ctx.translate(lx, ly);
+      this.ctx.rotate(angle);
 
-    const grad = this.ctx.createLinearGradient(0, -25, 0, 25);
-    grad.addColorStop(0, 'rgba(255, 64, 129, 0.8)');
-    grad.addColorStop(0.3, 'rgba(255, 209, 102, 0.9)');
-    grad.addColorStop(0.5, 'rgba(255, 255, 255, 1.0)');
-    grad.addColorStop(0.7, 'rgba(6, 214, 160, 0.9)');
-    grad.addColorStop(1, 'rgba(17, 138, 178, 0.8)');
+      const grad = this.ctx.createLinearGradient(0, -25, 0, 25);
+      grad.addColorStop(0, 'rgba(255, 64, 129, 0.85)');
+      grad.addColorStop(0.25, 'rgba(255, 209, 102, 0.9)');
+      grad.addColorStop(0.5, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.75, 'rgba(6, 214, 160, 0.9)');
+      grad.addColorStop(1, 'rgba(17, 138, 178, 0.85)');
 
-    this.ctx.fillStyle = grad;
-    this.ctx.shadowColor = '#ffffff';
-    this.ctx.shadowBlur = 24;
-    this.ctx.fillRect(0, -22, len, 44);
+      this.ctx.fillStyle = grad;
+      this.ctx.shadowColor = '#ffffff';
+      this.ctx.shadowBlur = 20;
+      this.ctx.fillRect(0, -20, len, 40);
 
-    this.ctx.restore();
+      // Core white laser beam
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.fillRect(0, -6, len, 12);
+
+      this.ctx.restore();
+    } catch (e) {}
   }
 }
 
