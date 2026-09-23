@@ -12,6 +12,59 @@ class SoundController {
     this.bgmPlaying = false;
     this.bgmTimer = null;
     this.step = 0;
+    this.currentTrackIdx = 0;
+
+    // Iconic Official Chiikawa BGM Tracks
+    this.tracks = [
+      {
+        id: 'pajamas',
+        name: '👚 파자마 파티즈의 노래 (Pajamas Party)',
+        tempo: 152,
+        // 파~ 파~ 파자마~ 파자마 파티즈~ 우와우와 멜로디
+        melody: [
+          392.00, 392.00, 329.63, 349.23, 392.00, 440.00, 392.00, 329.63, // 파 파 파자마~
+          523.25, 493.88, 440.00, 392.00, 329.63, 293.66, 261.63, 293.66, // 파자마 파티즈~
+          392.00, 329.63, 392.00, 329.63, 440.00, 392.00, 349.23, 329.63, // 우~ 와~ 우~ 와~
+          523.25, 523.25, 587.33, 659.25, 587.33, 523.25, 440.00, 523.25, // 앗 파자마 마자마~
+          659.25, 659.25, 587.33, 523.25, 440.00, 392.00, 440.00, 523.25, // 댄스 타임!
+          523.25, 493.88, 440.00, 392.00, 329.63, 293.66, 261.63, 329.63
+        ],
+        bass: [
+          130.81, 130.81, 164.81, 174.61, 196.00, 220.00, 196.00, 164.81,
+          261.63, 246.94, 220.00, 196.00, 164.81, 146.83, 130.81, 146.83,
+          196.00, 164.81, 196.00, 164.81, 220.00, 196.00, 174.61, 164.81,
+          261.63, 261.63, 293.66, 329.63, 293.66, 261.63, 220.00, 261.63,
+          329.63, 329.63, 293.66, 261.63, 220.00, 196.00, 220.00, 261.63,
+          261.63, 246.94, 220.00, 196.00, 164.81, 146.83, 130.81, 164.81
+        ],
+        leadWave: 'square',
+        bassWave: 'sawtooth'
+      },
+      {
+        id: 'hitorigotsu',
+        name: '🎸 하치와레의 혼잣말 (ひとりごつ)',
+        tempo: 124,
+        // 나마가와~ 나마가와~ 히토리곳츠~ 통기타 멜로디
+        melody: [
+          329.63, 369.99, 415.30, 440.00, 493.88, 440.00, 415.30, 369.99, // なまかわ~ なまがわ~
+          329.63, 415.30, 493.88, 554.37, 493.88, 440.00, 415.30, 369.99, // ひとりごつ~
+          554.37, 493.88, 440.00, 415.30, 369.99, 329.63, 369.99, 415.30, // 외톨이들의 노래~
+          440.00, 493.88, 554.37, 659.25, 554.37, 493.88, 440.00, 329.63, // 랄랄라~
+          329.63, 369.99, 415.30, 440.00, 493.88, 554.37, 493.88, 440.00, // 기타 반주
+          415.30, 369.99, 329.63, 277.18, 329.63, 369.99, 415.30, 329.63
+        ],
+        bass: [
+          164.81, 164.81, 207.65, 220.00, 246.94, 220.00, 207.65, 184.99,
+          164.81, 207.65, 246.94, 277.18, 246.94, 220.00, 207.65, 184.99,
+          277.18, 246.94, 220.00, 207.65, 184.99, 164.81, 184.99, 207.65,
+          220.00, 246.94, 277.18, 329.63, 277.18, 246.94, 220.00, 164.81,
+          164.81, 184.99, 207.65, 220.00, 246.94, 277.18, 246.94, 220.00,
+          207.65, 184.99, 164.81, 138.59, 164.81, 184.99, 207.65, 164.81
+        ],
+        leadWave: 'triangle',
+        bassWave: 'triangle'
+      }
+    ];
   }
 
   init() {
@@ -116,8 +169,8 @@ class SoundController {
     const gain = this.ctx.createGain();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(523.25, now); // C5
-    osc.frequency.linearRampToValueAtTime(1046.5, now + 0.22); // C6
+    osc.frequency.setValueAtTime(523.25, now);
+    osc.frequency.linearRampToValueAtTime(1046.5, now + 0.22);
 
     gain.gain.setValueAtTime(0.2, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
@@ -207,6 +260,20 @@ class SoundController {
     osc.stop(now + 0.05);
   }
 
+  getCurrentTrack() {
+    return this.tracks[this.currentTrackIdx];
+  }
+
+  switchNextTrack() {
+    this.currentTrackIdx = (this.currentTrackIdx + 1) % this.tracks.length;
+    this.step = 0;
+    if (this.bgmPlaying) {
+      if (this.bgmTimer) clearTimeout(this.bgmTimer);
+      this.scheduleBGM();
+    }
+    return this.getCurrentTrack();
+  }
+
   startBGM() {
     if (!this.bgmEnabled || !this.ctx || this.bgmPlaying) return;
     this.bgmPlaying = true;
@@ -224,39 +291,40 @@ class SoundController {
 
   scheduleBGM() {
     if (!this.bgmPlaying || !this.bgmEnabled) return;
-    const bassScale = [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 392.00];
-    const melodyScale = [523.25, 659.25, 783.99, 1046.5, 880.00, 783.99, 659.25, 587.33];
-
+    const track = this.getCurrentTrack();
     const now = this.ctx.currentTime;
-    const freqBass = bassScale[this.step % bassScale.length];
-    const freqMelody = melodyScale[(this.step * 2) % melodyScale.length];
 
+    const freqBass = track.bass[this.step % track.bass.length];
+    const freqMelody = track.melody[(this.step * 2) % track.melody.length];
+
+    // Bassline
     const oscB = this.ctx.createOscillator();
     const gainB = this.ctx.createGain();
-    oscB.type = 'triangle';
+    oscB.type = track.bassWave || 'triangle';
     oscB.frequency.setValueAtTime(freqBass / 2, now);
-    gainB.gain.setValueAtTime(0.06, now);
+    gainB.gain.setValueAtTime(0.07, now);
     gainB.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
     oscB.connect(gainB);
     gainB.connect(this.ctx.destination);
     oscB.start(now);
     oscB.stop(now + 0.16);
 
+    // Lead Melody
     if (this.step % 2 === 0) {
       const oscM = this.ctx.createOscillator();
       const gainM = this.ctx.createGain();
-      oscM.type = 'sine';
+      oscM.type = track.leadWave || 'sine';
       oscM.frequency.setValueAtTime(freqMelody, now);
-      gainM.gain.setValueAtTime(0.04, now);
-      gainM.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+      gainM.gain.setValueAtTime(0.06, now);
+      gainM.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
       oscM.connect(gainM);
       gainM.connect(this.ctx.destination);
       oscM.start(now);
-      oscM.stop(now + 0.14);
+      oscM.stop(now + 0.18);
     }
 
     this.step++;
-    const interval = 140;
+    const interval = (60 / track.tempo) * 1000 * 0.5;
     this.bgmTimer = setTimeout(() => this.scheduleBGM(), interval);
   }
 }
@@ -1406,11 +1474,35 @@ class Game {
     });
 
     const btnBgm = document.getElementById('btn-bgm');
+    const updateBgmBtnText = () => {
+      if (!Sound.bgmEnabled) {
+        btnBgm.textContent = '🔇 BGM OFF';
+      } else {
+        const trk = Sound.getCurrentTrack();
+        btnBgm.textContent = trk.id === 'pajamas' ? '👚 파자마 파티' : '🎸 혼잣말 (ひとりごつ)';
+      }
+    };
+    updateBgmBtnText();
+
     btnBgm.addEventListener('click', () => {
-      Sound.bgmEnabled = !Sound.bgmEnabled;
-      btnBgm.textContent = Sound.bgmEnabled ? '🎵 BGM ON' : '🔇 BGM OFF';
-      if (Sound.bgmEnabled) Sound.startBGM();
-      else Sound.stopBGM();
+      if (!Sound.bgmEnabled) {
+        Sound.bgmEnabled = true;
+        Sound.startBGM();
+        updateBgmBtnText();
+        this.damageTexts.push(new DamageText(this.canvas.width / 2, 200, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
+      } else {
+        if (Sound.currentTrackIdx === 0) {
+          Sound.switchNextTrack();
+          updateBgmBtnText();
+          this.damageTexts.push(new DamageText(this.canvas.width / 2, 200, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
+        } else {
+          Sound.bgmEnabled = false;
+          Sound.stopBGM();
+          Sound.currentTrackIdx = 0;
+          updateBgmBtnText();
+          this.damageTexts.push(new DamageText(this.canvas.width / 2, 200, '🔇 BGM 꺼짐', '#94a3b8', true));
+        }
+      }
     });
   }
 
