@@ -902,7 +902,8 @@ class Player {
     if (charType === 'usagi') {
       return [
         "우라라라라-!!", "야하-!!", "뿌루루루루-!", "하아?!", "이하-!!",
-        "바하-!!", "우라라라 얍-!!", "야하! 당근 파워!", "푸루루루루-!", "돌진이다 우라-!!"
+        "바하-!!", "우라라라-!!", "야-하!", "푸루루루루-!", "우라!",
+        "후-웅!", "우뺘-!!", "뿌루루루!!", "이햐-!!"
       ];
     } else if (charType === 'hachiware') {
       return [
@@ -1106,8 +1107,8 @@ class Player {
       new AcornBomb(this.x, this.y, targetX, targetY, this.grenadeDamage * this.damageMultiplier, this.grenadeRadius)
     );
     const qQuotes = this.charType === 'usagi'
-      ? ["우라라라 폭탄-!!", "야하-!!"]
-      : ["도토리 폭탄 받아라-!!", "펑-!! 얍!"];
+      ? ["우라라라-!!", "야하-!!", "뿌루루루루-!", "바하-!!"]
+      : (this.charType === 'hachiware' ? ["도토리 폭탄 투척!", "펑-!! 조심해!"] : ["도토리 폭탄 받아라-!!", "펑-!! 얍!"]);
     this.say(qQuotes[Math.floor(Math.random() * qQuotes.length)], true);
   }
 
@@ -1119,8 +1120,8 @@ class Player {
 
     particles.push(new Particle(this.x, this.y, 0, 0, 30, '#ff79b0', 0.5, 'ring'));
     const awakenQuotes = this.charType === 'usagi'
-      ? ["우라라라라라-!! 야하-!!", "광기의 질주다-!!"]
-      : ["난또까... 어떻게든 될 거야-!!", "용기 100% 각성-!!"];
+      ? ["우라라라라라-!! 야하-!!", "뿌루루루루루-!!", "이햐아아아-!!"]
+      : (this.charType === 'hachiware' ? ["난또까나레-!! 힘내자!", "용기 100% 각성-!!"] : ["난또까... 어떻게든 될 거야-!!", "용기 100% 각성-!!"]);
     this.say(awakenQuotes[Math.floor(Math.random() * awakenQuotes.length)], true);
     Sound.playAwaken();
   }
@@ -1130,7 +1131,9 @@ class Player {
     this.timerR = this.cdR;
     this.isFiringLaser = true;
     this.laserTimer = this.laserDuration;
-    const laserQuotes = ["별똥별 레인보우 빔 발사아아!!", "와아아아아아-!!", "별님 힘을 줘-!!"];
+    const laserQuotes = this.charType === 'usagi'
+      ? ["우라라라라라라라-!!!!", "뿌루루루루루루-!!!!", "야하아아아-!!!!"]
+      : (this.charType === 'hachiware' ? ["별똥별 레인보우 빔 발사-!!", "어떻게든 될 거야아아-!!"] : ["별똥별 레인보우 빔 발사아아!!", "와아아아아아-!!", "별님 힘을 줘-!!"]);
     this.say(laserQuotes[Math.floor(Math.random() * laserQuotes.length)], true);
     Sound.playLaser();
   }
@@ -1526,7 +1529,10 @@ class Game {
   triggerLevelUp() {
     this.isLevelingUp = true;
     Sound.playLevelUp();
-    this.player.say(Math.random() < 0.5 ? "레벨업이다! 와아-!" : "난또까나레-!!", true);
+    const lvlQuote = this.player.charType === 'usagi'
+      ? (Math.random() < 0.5 ? "야하-!!" : "뿌루루루-!")
+      : (this.player.charType === 'hachiware' ? (Math.random() < 0.5 ? "와아-! 레벨업이다!" : "난또까나레-!!") : (Math.random() < 0.5 ? "레벨업이다! 와아-!" : "난또까... 열심히 할게!"));
+    this.player.say(lvlQuote, true);
 
     const pool = [
       { id: 'dmg', name: '사스마타 연마', icon: '⚔️', effect: '공격력 +30%', tier: '공격', apply: () => (this.player.damageMultiplier += 0.3) },
@@ -1743,7 +1749,10 @@ class Game {
           this.screenShake = 6;
           Sound.playHit();
           this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${p.damage}`, '#ef4444', true));
-          this.player.say(Math.random() < 0.5 ? "후에에엥-!!" : "아포...", true);
+          const hitQuote = this.player.charType === 'usagi'
+            ? (Math.random() < 0.5 ? "하아?!" : "우뺘-!!")
+            : (this.player.charType === 'hachiware' ? (Math.random() < 0.5 ? "으앗...!" : "괜찮아...!") : (Math.random() < 0.5 ? "후에에엥-!!" : "아포..."));
+          this.player.say(hitQuote, true);
 
           this.projectiles.splice(i, 1);
           if (this.player.hp <= 0) {
@@ -1796,7 +1805,10 @@ class Game {
         this.screenShake = 6;
         Sound.playHit();
         this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${enemy.damage}`, '#ef4444', true));
-        this.player.say("후에에에-!! 몬스터다!", true);
+        const contactQuote = this.player.charType === 'usagi'
+          ? (Math.random() < 0.5 ? "하아?!" : "우라라-!")
+          : (this.player.charType === 'hachiware' ? "으앗! 몬스터가...!" : "후에에에-!! 몬스터다!");
+        this.player.say(contactQuote, true);
 
         if (this.player.hp <= 0) {
           this.gameOver();
