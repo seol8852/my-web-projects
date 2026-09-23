@@ -1,6 +1,6 @@
 /* ==========================================================================
    🌸 치이카와 스트라이커: 토벌 대작전 (Chiikawa Striker)
-   Main Game Engine & Logic
+   10-Wave Campaign & Endless Nightmare Edition
    ========================================================================== */
 
 // --- Audio Manager (Web Audio API Synthesizer) ---
@@ -135,9 +135,9 @@ class SoundController {
     const gain = this.ctx.createGain();
 
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(659.25, now); // E5
-    osc.frequency.setValueAtTime(880, now + 0.05); // A5
-    osc.frequency.setValueAtTime(1174.66, now + 0.1); // D6
+    osc.frequency.setValueAtTime(659.25, now);
+    osc.frequency.setValueAtTime(880, now + 0.05);
+    osc.frequency.setValueAtTime(1174.66, now + 0.1);
 
     gain.gain.setValueAtTime(0.12, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
@@ -150,7 +150,7 @@ class SoundController {
 
   playLevelUp() {
     if (!this.sfxEnabled || !this.ctx) return;
-    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, idx) => {
       const now = this.ctx.currentTime + idx * 0.07;
       const osc = this.ctx.createOscillator();
@@ -224,7 +224,6 @@ class SoundController {
 
   scheduleBGM() {
     if (!this.bgmPlaying || !this.bgmEnabled) return;
-    // Cute, upbeat Chiikawa adventure scale (C major arpeggios)
     const bassScale = [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 392.00];
     const melodyScale = [523.25, 659.25, 783.99, 1046.5, 880.00, 783.99, 659.25, 587.33];
 
@@ -232,7 +231,6 @@ class SoundController {
     const freqBass = bassScale[this.step % bassScale.length];
     const freqMelody = melodyScale[(this.step * 2) % melodyScale.length];
 
-    // Bass note
     const oscB = this.ctx.createOscillator();
     const gainB = this.ctx.createGain();
     oscB.type = 'triangle';
@@ -244,7 +242,6 @@ class SoundController {
     oscB.start(now);
     oscB.stop(now + 0.16);
 
-    // Cute bell melody
     if (this.step % 2 === 0) {
       const oscM = this.ctx.createOscillator();
       const gainM = this.ctx.createGain();
@@ -259,7 +256,7 @@ class SoundController {
     }
 
     this.step++;
-    const interval = 140; // ~107 BPM bouncy groove
+    const interval = 140;
     this.bgmTimer = setTimeout(() => this.scheduleBGM(), interval);
   }
 }
@@ -278,7 +275,7 @@ class Particle {
     this.color = color;
     this.life = life;
     this.maxLife = life;
-    this.type = type; // 'star', 'sparkle', 'smoke', 'ring', 'heart'
+    this.type = type;
     this.rotation = Math.random() * Math.PI * 2;
     this.rotSpeed = (Math.random() - 0.5) * 8;
   }
@@ -312,21 +309,11 @@ class Particle {
       ctx.fillStyle = this.color;
       ctx.shadowColor = this.color;
       ctx.shadowBlur = 8;
-      // 5-point star
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
         ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * this.radius, -Math.sin((18 + i * 72) * Math.PI / 180) * this.radius);
         ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (this.radius * 0.45), -Math.sin((54 + i * 72) * Math.PI / 180) * (this.radius * 0.45));
       }
-      ctx.closePath();
-      ctx.fill();
-    } else if (this.type === 'heart') {
-      ctx.fillStyle = this.color;
-      ctx.beginPath();
-      const r = this.radius * 0.8;
-      ctx.arc(-r/2, -r/2, r/2, Math.PI, 0, false);
-      ctx.arc(r/2, -r/2, r/2, Math.PI, 0, false);
-      ctx.lineTo(0, r);
       ctx.closePath();
       ctx.fill();
     } else if (this.type === 'ring') {
@@ -410,7 +397,6 @@ class Projectile {
     ctx.rotate(this.rot);
 
     if (this.fromPlayer) {
-      // Sparkling Star Projectile
       ctx.fillStyle = this.color;
       ctx.shadowColor = this.color;
       ctx.shadowBlur = 10;
@@ -422,7 +408,6 @@ class Projectile {
       ctx.closePath();
       ctx.fill();
     } else {
-      // Monster Stinger / Dark Orb
       ctx.fillStyle = this.color;
       ctx.shadowColor = this.color;
       ctx.shadowBlur = 8;
@@ -467,7 +452,6 @@ class AcornBomb {
 
   draw(ctx) {
     ctx.save();
-    // Shadow
     const shadowX = this.startX + (this.targetX - this.startX) * this.progress;
     const shadowY = this.startY + (this.targetY - this.startY) * this.progress;
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -475,23 +459,19 @@ class AcornBomb {
     ctx.ellipse(shadowX, shadowY, 10, 5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Giant Acorn / Pudding Bomb
     ctx.translate(this.x, this.y);
     ctx.rotate(this.progress * 12);
 
-    // Acorn Cap
     ctx.fillStyle = '#8d5b4c';
     ctx.beginPath();
     ctx.arc(0, -5, 12, Math.PI, 0);
     ctx.fill();
 
-    // Acorn Body
     ctx.fillStyle = '#d49b6a';
     ctx.beginPath();
     ctx.ellipse(0, 4, 11, 14, 0, 0, Math.PI);
     ctx.fill();
 
-    // Sparkles
     ctx.fillStyle = '#ffea00';
     ctx.beginPath();
     ctx.arc(0, -10, 3, 0, Math.PI * 2);
@@ -529,12 +509,10 @@ class ExpGem {
     const bob = Math.sin(this.floatTimer) * 3;
     ctx.translate(this.x, this.y + bob);
 
-    // Colorful Star Candy (Konpeito / 별사탕)
     ctx.fillStyle = '#ffd166';
     ctx.shadowColor = '#ffb703';
     ctx.shadowBlur = 10;
 
-    // 6-pointed star candy
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
       const angle = (i * 60) * Math.PI / 180;
@@ -548,53 +526,95 @@ class ExpGem {
   }
 }
 
-// --- Enemy Classes (Chiikawa World Monsters) ---
+// --- Enemy Classes (10 Waves & Bosses) ---
 class Enemy {
   constructor(x, y, type = 'bug', wave = 1) {
     this.x = x;
     this.y = y;
     this.type = type;
     this.hitTimer = 0;
+    this.wave = wave;
 
     if (type === 'bug') {
       this.radius = 18;
-      this.hp = 30 + wave * 8;
+      this.hp = 28 + wave * 7;
       this.maxHp = this.hp;
-      this.speed = 2.3 + Math.random() * 0.5;
+      this.speed = 2.4 + Math.random() * 0.5;
       this.damage = 10;
       this.color = '#a855f7';
       this.xp = 15;
       this.name = '날벌레 몬스터';
     } else if (type === 'goblin') {
       this.radius = 24;
-      this.hp = 75 + wave * 18;
+      this.hp = 70 + wave * 16;
       this.maxHp = this.hp;
       this.speed = 1.8;
-      this.damage = 16;
-      this.shootCooldown = 2.4;
+      this.damage = 15;
+      this.shootCooldown = 2.3;
       this.timer = Math.random() * 2;
       this.color = '#10b981';
       this.xp = 35;
       this.name = '숲속 고블린';
     } else if (type === 'chimera') {
       this.radius = 32;
-      this.hp = 230 + wave * 60;
+      this.hp = 220 + wave * 50;
       this.maxHp = this.hp;
-      this.speed = 1.2;
-      this.damage = 28;
+      this.speed = 1.25;
+      this.damage = 26;
       this.color = '#f97316';
-      this.xp = 80;
+      this.xp = 75;
       this.name = '장갑 키메라';
-    } else if (type === 'boss') {
-      this.radius = 56;
-      this.hp = 2200 + wave * 500;
+    } else if (type === 'dark_swarm') {
+      this.radius = 16;
+      this.hp = 35 + wave * 8;
       this.maxHp = this.hp;
-      this.speed = 1.3;
-      this.damage = 38;
+      this.speed = 3.2;
+      this.damage = 12;
+      this.color = '#475569';
+      this.xp = 20;
+      this.name = '어둠의 검은 벌레';
+    } else if (type === 'lightning_beetle') {
+      this.radius = 20;
+      this.hp = 90 + wave * 22;
+      this.maxHp = this.hp;
+      this.speed = 3.5;
+      this.damage = 20;
+      this.color = '#eab308';
+      this.xp = 50;
+      this.name = '번개 풍뎅이';
+    } else if (type === 'iron_chimera') {
+      this.radius = 38;
+      this.hp = 450 + wave * 80;
+      this.maxHp = this.hp;
+      this.speed = 1.1;
+      this.damage = 32;
+      this.color = '#6366f1';
+      this.xp = 120;
+      this.name = '강철 중장갑 키메라';
+    } else if (type === 'midboss') {
+      // Wave 5 Mid Boss
+      this.radius = 48;
+      this.hp = 1800 + wave * 300;
+      this.maxHp = this.hp;
+      this.speed = 1.4;
+      this.damage = 30;
+      this.color = '#ea580c';
+      this.xp = 350;
+      this.name = '폭주하는 가시 키메라 (중간 보스)';
+      this.shootCooldown = 2.0;
+      this.timer = 0;
+      this.specialTimer = 0;
+    } else if (type === 'boss') {
+      // Wave 10 Final Boss (거대 아노코)
+      this.radius = 60;
+      this.hp = 3800 + wave * 600;
+      this.maxHp = this.hp;
+      this.speed = 1.35;
+      this.damage = 42;
       this.color = '#e11d48';
-      this.xp = 500;
-      this.name = '거대 아노코 (그 녀석)';
-      this.shootCooldown = 1.9;
+      this.xp = 800;
+      this.name = '진(眞) 거대 아노코 (그 녀석)';
+      this.shootCooldown = 1.7;
       this.timer = 0;
       this.specialTimer = 0;
     }
@@ -608,7 +628,7 @@ class Enemy {
     const dist = Math.hypot(dx, dy) || 1;
 
     // Movement & Attack AI
-    if (this.type === 'goblin' && dist < 320) {
+    if (this.type === 'goblin' && dist < 340) {
       this.timer += dt;
       if (this.timer >= this.shootCooldown) {
         this.timer = 0;
@@ -618,6 +638,24 @@ class Enemy {
           new Projectile(this.x, this.y, Math.cos(angle) * pSpeed, Math.sin(angle) * pSpeed, 12, 1, false, '#10b981', 6)
         );
       }
+    } else if (this.type === 'midboss') {
+      this.x += (dx / dist) * this.speed * dt * 60;
+      this.y += (dy / dist) * this.speed * dt * 60;
+
+      this.timer += dt;
+      this.specialTimer += dt;
+
+      // Midboss 6-way spikes
+      if (this.timer >= this.shootCooldown) {
+        this.timer = 0;
+        const count = 6;
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 / count) * i;
+          projectiles.push(
+            new Projectile(this.x, this.y, Math.cos(angle) * 4.5, Math.sin(angle) * 4.5, 14, 1, false, '#ea580c', 7)
+          );
+        }
+      }
     } else if (this.type === 'boss') {
       this.x += (dx / dist) * this.speed * dt * 60;
       this.y += (dy / dist) * this.speed * dt * 60;
@@ -625,26 +663,26 @@ class Enemy {
       this.timer += dt;
       this.specialTimer += dt;
 
-      // Boss Pattern 1: Radial 10-star burst
+      // Final Boss Pattern 1: 12-way rotating star burst
       if (this.timer >= this.shootCooldown) {
         this.timer = 0;
-        const count = 10;
+        const count = 12;
         for (let i = 0; i < count; i++) {
-          const angle = (Math.PI * 2 / count) * i + Math.sin(Date.now() / 300);
-          const pSpeed = 4.2;
+          const angle = (Math.PI * 2 / count) * i + Math.sin(Date.now() / 250);
+          const pSpeed = 4.6;
           projectiles.push(
-            new Projectile(this.x, this.y, Math.cos(angle) * pSpeed, Math.sin(angle) * pSpeed, 14, 1, false, '#f43f5e', 7)
+            new Projectile(this.x, this.y, Math.cos(angle) * pSpeed, Math.sin(angle) * pSpeed, 15, 1, false, '#f43f5e', 8)
           );
         }
       }
 
-      // Boss Pattern 2: Triple focused star barrage
-      if (this.specialTimer >= 4.5) {
+      // Final Boss Pattern 2: 5-way focused shotgun blast
+      if (this.specialTimer >= 3.8) {
         this.specialTimer = 0;
-        for (let offset of [-0.25, 0, 0.25]) {
+        for (let offset of [-0.35, -0.18, 0, 0.18, 0.35]) {
           const baseAngle = Math.atan2(dy, dx) + offset;
           projectiles.push(
-            new Projectile(this.x, this.y, Math.cos(baseAngle) * 7.5, Math.sin(baseAngle) * 7.5, 20, 1, false, '#fbbf24', 9)
+            new Projectile(this.x, this.y, Math.cos(baseAngle) * 8.0, Math.sin(baseAngle) * 8.0, 22, 1, false, '#fbbf24', 10)
           );
         }
       }
@@ -663,40 +701,26 @@ class Enemy {
     ctx.shadowColor = this.color;
     ctx.shadowBlur = 10;
 
-    if (this.type === 'bug') {
-      // Cute Flying Bug
+    if (this.type === 'bug' || this.type === 'dark_swarm') {
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.fill();
-      // Wings
       ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-      const wingFlap = Math.sin(Date.now() / 40) * 12;
+      const wingFlap = Math.sin(Date.now() / 35) * 12;
       ctx.beginPath();
       ctx.ellipse(-12, -10 + wingFlap, 12, 6, -0.4, 0, Math.PI * 2);
       ctx.ellipse(12, -10 + wingFlap, 12, 6, 0.4, 0, Math.PI * 2);
       ctx.fill();
-      // Cute bug antenna
-      ctx.strokeStyle = '#4c1d95';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(-6, -15);
-      ctx.lineTo(-12, -24);
-      ctx.moveTo(6, -15);
-      ctx.lineTo(12, -24);
-      ctx.stroke();
     } else if (this.type === 'goblin') {
-      // 3-horned cute goblin
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.fill();
-      // Horns
       ctx.fillStyle = '#065f46';
       ctx.beginPath();
       ctx.moveTo(-10, -18); ctx.lineTo(-15, -30); ctx.lineTo(-5, -20);
       ctx.moveTo(10, -18); ctx.lineTo(15, -30); ctx.lineTo(5, -20);
       ctx.fill();
-    } else if (this.type === 'chimera') {
-      // Armored beast
+    } else if (this.type === 'chimera' || this.type === 'iron_chimera') {
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         const a = (Math.PI / 3) * i;
@@ -707,47 +731,62 @@ class Enemy {
       }
       ctx.closePath();
       ctx.fill();
-      // Eyes
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
       ctx.arc(-10, -6, 5, 0, Math.PI * 2);
       ctx.arc(10, -6, 5, 0, Math.PI * 2);
       ctx.fill();
+    } else if (this.type === 'lightning_beetle') {
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      // Lightning horns
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-8, -14); ctx.lineTo(-14, -28); ctx.lineTo(-8, -26); ctx.lineTo(-12, -36);
+      ctx.moveTo(8, -14); ctx.lineTo(14, -28); ctx.lineTo(8, -26); ctx.lineTo(12, -36);
+      ctx.stroke();
+    } else if (this.type === 'midboss') {
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#7c2d12';
+      ctx.beginPath();
+      ctx.moveTo(-24, -24); ctx.lineTo(-40, -56); ctx.lineTo(-12, -35);
+      ctx.moveTo(24, -24); ctx.lineTo(40, -56); ctx.lineTo(12, -35);
+      ctx.fill();
     } else if (this.type === 'boss') {
-      // Giant Anoko with Red Eyes
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Giant ears/horns
       ctx.fillStyle = '#9f1239';
       ctx.beginPath();
-      ctx.moveTo(-35, -35); ctx.lineTo(-50, -80); ctx.lineTo(-18, -48);
-      ctx.moveTo(35, -35); ctx.lineTo(50, -80); ctx.lineTo(18, -48);
+      ctx.moveTo(-35, -35); ctx.lineTo(-52, -84); ctx.lineTo(-18, -48);
+      ctx.moveTo(35, -35); ctx.lineTo(52, -84); ctx.lineTo(18, -48);
       ctx.fill();
 
-      // Glowing red monster eyes
       ctx.fillStyle = '#facc15';
       ctx.beginPath();
-      ctx.arc(-20, -10, 9, 0, Math.PI * 2);
-      ctx.arc(20, -10, 9, 0, Math.PI * 2);
+      ctx.arc(-20, -10, 10, 0, Math.PI * 2);
+      ctx.arc(20, -10, 10, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#dc2626';
       ctx.beginPath();
-      ctx.arc(-20, -10, 4, 0, Math.PI * 2);
-      ctx.arc(20, -10, 4, 0, Math.PI * 2);
+      ctx.arc(-20, -10, 5, 0, Math.PI * 2);
+      ctx.arc(20, -10, 5, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Health bar above enemy
-    if (this.hp < this.maxHp || this.type === 'boss') {
-      const barW = this.radius * 2 + 10;
-      const barH = 5;
+    if (this.hp < this.maxHp || this.type === 'boss' || this.type === 'midboss') {
+      const barW = this.radius * 2 + 12;
+      const barH = 6;
       const hpRatio = Math.max(0, this.hp / this.maxHp);
       ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(-barW / 2, -this.radius - 14, barW, barH);
-      ctx.fillStyle = this.type === 'boss' ? '#e11d48' : '#22c55e';
-      ctx.fillRect(-barW / 2, -this.radius - 14, barW * hpRatio, barH);
+      ctx.fillRect(-barW / 2, -this.radius - 16, barW, barH);
+      ctx.fillStyle = (this.type === 'boss' || this.type === 'midboss') ? '#e11d48' : '#22c55e';
+      ctx.fillRect(-barW / 2, -this.radius - 16, barW * hpRatio, barH);
     }
 
     ctx.restore();
@@ -774,7 +813,7 @@ function drawBubbleRect(ctx, x, y, width, height, radius) {
   }
 }
 
-// --- Player Class (Chiikawa / Hachiware / Usagi) ---
+// --- Player Class ---
 class Player {
   constructor(x, y, charType = 'chiikawa', spriteImg) {
     this.x = x;
@@ -783,7 +822,6 @@ class Player {
     this.sprite = spriteImg;
     this.radius = 26;
 
-    // Base Attributes by Character
     if (charType === 'usagi') {
       this.maxHp = 95;
       this.hp = 95;
@@ -801,7 +839,6 @@ class Player {
       this.bulletColor = '#38bdf8';
       this.nameTag = '🐱 하치와레';
     } else {
-      // Chiikawa
       this.maxHp = 110;
       this.hp = 110;
       this.speed = 5.2;
@@ -817,7 +854,6 @@ class Player {
     this.pierce = 1;
     this.lifesteal = 0;
 
-    // Movement & Facing
     this.vx = 0;
     this.vy = 0;
     this.facingLeft = false;
@@ -827,7 +863,6 @@ class Player {
     this.isMoving = false;
     this.stepDustTimer = 0;
 
-    // Dash (Space)
     this.dashCooldown = 2.2;
     this.dashTimer = 0;
     this.isDashing = false;
@@ -837,30 +872,25 @@ class Player {
     this.dashVy = 0;
     this.afterimages = [];
 
-    // Skill Q (Acorn Bomb)
     this.cdQ = 5.5;
     this.timerQ = 0;
     this.grenadeRadius = 160;
     this.grenadeDamage = 180;
 
-    // Skill E (Courage Awakening)
     this.cdE = 13.0;
     this.timerE = 0;
     this.isAwakened = false;
     this.awakenDuration = 6.0;
     this.awakenTimer = 0;
 
-    // Skill R (Rainbow Mega Beam)
     this.cdR = 20.0;
     this.timerR = 0;
     this.isFiringLaser = false;
     this.laserDuration = 2.0;
     this.laserTimer = 0;
 
-    // Invulnerability
     this.invulnerableTimer = 0;
 
-    // 50+ Chiikawa Official Dialogues
     this.dialogues = this.getCharDialogues(charType);
     this.currentDialogue = this.dialogues[0];
     this.dialogueTimer = 1.0;
@@ -871,43 +901,20 @@ class Player {
   getCharDialogues(charType) {
     if (charType === 'usagi') {
       return [
-        "우라라라라-!!",
-        "야하-!!",
-        "뿌루루루루-!",
-        "하아?!",
-        "이하-!!",
-        "바하-!!",
-        "우라라라 얍-!!",
-        "야하! 당근 파워!",
-        "푸루루루루-!",
-        "돌진이다 우라-!!"
+        "우라라라라-!!", "야하-!!", "뿌루루루루-!", "하아?!", "이하-!!",
+        "바하-!!", "우라라라 얍-!!", "야하! 당근 파워!", "푸루루루루-!", "돌진이다 우라-!!"
       ];
     } else if (charType === 'hachiware') {
       return [
-        "난또까나레-!!",
-        "어떻게든 될 거야!",
-        "치이카와! 내가 엄호할게!",
-        "사진 찰칵! 기록해둬야지!",
-        "사스마타를 꽉 쥐어!",
-        "와아-! 토벌 성공하자!",
-        "도토리 많이 모아서 맛있는 거 먹자!",
-        "조심해! 몬스터가 온다!",
-        "스승님의 가르침을 떠올려!"
+        "난또까나레-!!", "어떻게든 될 거야!", "치이카와! 내가 엄호할게!", "사진 찰칵! 기록해둬야지!",
+        "사스마타를 꽉 쥐어!", "와아-! 토벌 성공하자!", "도토리 많이 모아서 맛있는 거 먹자!",
+        "조심해! 몬스터가 온다!", "스승님의 가르침을 떠올려!"
       ];
     } else {
       return [
-        "와... 와아...!",
-        "후에에...!",
-        "이... 야앗-!!",
-        "열심히 할게!",
-        "하치와레... 도와줘어!",
-        "우사기이이-!!",
-        "도토리 줍자!",
-        "푸딩 먹고 싶다...",
-        "조심해야 해...",
-        "용기를 내는 거야!",
-        "난또까... 난또까나레!",
-        "사스마타 얍!"
+        "와... 와아...!", "후에에...!", "이... 야앗-!!", "열심히 할게!",
+        "하치와레... 도와줘어!", "우사기이이-!!", "도토리 줍자!", "푸딩 먹고 싶다...",
+        "조심해야 해...", "용기를 내는 거야!", "난또까... 난또까나레!", "사스마타 얍!"
       ];
     }
   }
@@ -1005,7 +1012,6 @@ class Player {
       }
     }
 
-    // Speech timer
     this.dialogueTimer -= dt;
     if (this.dialogueTimer <= 0) {
       this.dialogueTimer = 2.2 + Math.random() * 1.0;
@@ -1020,13 +1026,11 @@ class Player {
     this.x = Math.max(this.radius, Math.min(canvasW - this.radius, this.x));
     this.y = Math.max(this.radius, Math.min(canvasH - this.radius, this.y));
 
-    // Update afterimages
     for (let i = this.afterimages.length - 1; i >= 0; i--) {
       this.afterimages[i].alpha -= dt * 2.5;
       if (this.afterimages[i].alpha <= 0) this.afterimages.splice(i, 1);
     }
 
-    // Sparkle trail
     if (Math.random() < 0.3) {
       particles.push(
         new Particle(this.x + (Math.random() - 0.5) * 20, this.y + (Math.random() - 0.5) * 20, 0, -0.4, 4, this.bulletColor, 0.4, 'sparkle')
@@ -1132,7 +1136,6 @@ class Player {
   }
 
   draw(ctx) {
-    // Afterimages
     for (const ghost of this.afterimages) {
       ctx.save();
       ctx.globalAlpha = ghost.alpha;
@@ -1152,13 +1155,11 @@ class Player {
       ctx.globalAlpha = 0.5;
     }
 
-    // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
     ctx.ellipse(0, 24 - bobOffset, 20, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Awakening Aura
     if (this.isAwakened) {
       ctx.save();
       ctx.strokeStyle = '#ff4081';
@@ -1171,14 +1172,11 @@ class Player {
       ctx.restore();
     }
 
-    // Sasumata Weapon
     ctx.save();
     const armAngle = this.aimAngle;
     ctx.rotate(armAngle);
-    // Sasumata Pole
     ctx.fillStyle = '#94a3b8';
     ctx.fillRect(6, -2, 22, 4);
-    // Sasumata Fork
     ctx.fillStyle = this.bulletColor;
     ctx.beginPath();
     ctx.arc(28, 0, 7, -Math.PI / 2, Math.PI / 2, true);
@@ -1187,7 +1185,6 @@ class Player {
     ctx.stroke();
     ctx.restore();
 
-    // Hero Avatar Sprite
     ctx.save();
     if (this.facingLeft) ctx.scale(-1, 1);
     const runTilt = this.isMoving ? Math.sin(this.walkTimer) * 0.08 : 0;
@@ -1195,7 +1192,6 @@ class Player {
 
     ctx.drawImage(this.sprite, -28, -28, 56, 56);
 
-    // Glowing frame
     ctx.strokeStyle = this.isAwakened ? '#ff4081' : 'rgba(255, 182, 193, 0.8)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -1203,7 +1199,6 @@ class Player {
     ctx.stroke();
     ctx.restore();
 
-    // Aim Laser Sight
     ctx.save();
     ctx.strokeStyle = 'rgba(255, 107, 139, 0.35)';
     ctx.lineWidth = 1.5;
@@ -1214,7 +1209,6 @@ class Player {
     ctx.stroke();
     ctx.restore();
 
-    // Speech Bubble
     if (this.dialogueLife > 0 && this.currentDialogue) {
       ctx.save();
       const bubbleY = -46 - Math.abs(bobOffset);
@@ -1236,13 +1230,11 @@ class Player {
       drawBubbleRect(ctx, -bw / 2, -bh, bw, bh, 10);
       ctx.fill();
 
-      // Tail
       ctx.beginPath();
       ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(0, 6);
       ctx.closePath();
       ctx.fill();
 
-      // Text
       ctx.shadowColor = 'transparent';
       ctx.fillStyle = '#d81b60';
       ctx.textAlign = 'center';
@@ -1256,7 +1248,7 @@ class Player {
   }
 }
 
-// --- Main Game Orchestrator ---
+// --- Main Game Orchestrator with 10 Waves & Endless Mode ---
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
@@ -1282,14 +1274,16 @@ class Game {
     this.score = 0;
     this.kills = 0;
     this.wave = 1;
+    this.maxCampaignWave = 10;
     this.waveTimer = 0;
+    this.waveDuration = 32; // 32s per wave
     this.gameTime = 0;
     this.spawnTimer = 0;
     this.bossSpawned = false;
 
     this.level = 1;
     this.currentExp = 0;
-    this.maxExp = 50;
+    this.maxExp = 45;
 
     this.player = null;
     this.enemies = [];
@@ -1312,7 +1306,6 @@ class Game {
   }
 
   bindEvents() {
-    // Character selection cards
     document.querySelectorAll('.char-card').forEach(card => {
       card.addEventListener('click', () => {
         document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
@@ -1369,7 +1362,6 @@ class Game {
       if (e.button === 0) this.mouse.isDown = false;
     });
 
-    // UI Buttons
     document.getElementById('btn-start').addEventListener('click', () => {
       Sound.init();
       Sound.startBGM();
@@ -1422,7 +1414,6 @@ class Game {
     const sprite = this.sprites[this.selectedChar] || this.sprites.chiikawa;
     this.player = new Player(this.canvas.width / 2, this.canvas.height / 2, this.selectedChar, sprite);
 
-    // Update Avatar HUD
     const avatarImg = document.getElementById('avatar-img');
     avatarImg.src = `assets/${this.selectedChar}.png`;
     document.getElementById('hud-name-tag').textContent = this.player.nameTag;
@@ -1431,9 +1422,27 @@ class Game {
     this.isPaused = false;
     this.isLevelingUp = false;
 
+    this.announceWave(1);
     this.updateHUD();
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
+  }
+
+  announceWave(w) {
+    const waveNames = {
+      1: "🌸 WAVE 1: 숲속 정찰 (날벌레 몬스터)",
+      2: "🍄 WAVE 2: 버섯 숲의 습격 (숲속 고블린)",
+      3: "⚔️ WAVE 3: 키메라의 포효 (장갑 키메라)",
+      4: "🦇 WAVE 4: 어둠의 벌레 떼 (고속 침투)",
+      5: "⚠️ WAVE 5: [중간 보스] 폭주하는 가시 키메라!",
+      6: "🌪️ WAVE 6: 고블린 정예병 & 날벌레 합동 공습",
+      7: "🛡️ WAVE 7: 강철 중장갑 키메라 군단",
+      8: "⚡ WAVE 8: 광기의 번개 풍뎅이 떼",
+      9: "💀 WAVE 9: 엘리트 몬스터 총공격!!",
+      10: "👑 WAVE 10: [최종 보스] 진(眞) 거대 아노코 강림!"
+    };
+    const title = waveNames[w] || `🔥 WAVE ${w}: 무한 나이트메어 모드 🔥`;
+    this.damageTexts.push(new DamageText(this.canvas.width / 2, 160, title, '#ff4081', true));
   }
 
   togglePause() {
@@ -1462,21 +1471,44 @@ class Game {
 
     const roll = Math.random();
     let type = 'bug';
-    if (this.wave >= 2 && roll < 0.35) {
-      type = 'goblin';
-    } else if (this.wave >= 3 && roll > 0.85) {
-      type = 'chimera';
+
+    if (this.wave === 1) {
+      type = 'bug';
+    } else if (this.wave === 2) {
+      type = roll < 0.45 ? 'goblin' : 'bug';
+    } else if (this.wave === 3) {
+      type = roll < 0.35 ? 'chimera' : (roll < 0.7 ? 'goblin' : 'bug');
+    } else if (this.wave === 4) {
+      type = roll < 0.6 ? 'dark_swarm' : 'goblin';
+    } else if (this.wave === 5) {
+      type = roll < 0.4 ? 'bug' : 'goblin';
+    } else if (this.wave === 6) {
+      type = roll < 0.4 ? 'goblin' : 'bug';
+    } else if (this.wave === 7) {
+      type = roll < 0.45 ? 'iron_chimera' : 'chimera';
+    } else if (this.wave === 8) {
+      type = roll < 0.55 ? 'lightning_beetle' : 'dark_swarm';
+    } else if (this.wave === 9) {
+      type = roll < 0.3 ? 'iron_chimera' : (roll < 0.6 ? 'lightning_beetle' : 'goblin');
+    } else if (this.wave >= 10) {
+      type = roll < 0.25 ? 'iron_chimera' : (roll < 0.5 ? 'lightning_beetle' : (roll < 0.75 ? 'goblin' : 'dark_swarm'));
     }
 
     this.enemies.push(new Enemy(x, y, type, this.wave));
   }
 
-  spawnBoss() {
+  spawnMidBoss() {
+    this.bossSpawned = true;
+    const x = this.canvas.width / 2;
+    const y = -100;
+    this.enemies.push(new Enemy(x, y, 'midboss', this.wave));
+  }
+
+  spawnFinalBoss() {
     this.bossSpawned = true;
     const x = this.canvas.width / 2;
     const y = -100;
     this.enemies.push(new Enemy(x, y, 'boss', this.wave));
-    this.damageTexts.push(new DamageText(this.canvas.width / 2, 200, '⚠️ 경고: 거대 아노코 (그 녀석) 출현! ⚠️', '#e11d48', true));
   }
 
   addExp(amount) {
@@ -1570,7 +1602,8 @@ class Game {
     document.getElementById('hud-exp-bar').style.width = `${expPct}%`;
     document.getElementById('hud-exp-text').textContent = `${Math.round(expPct)}%`;
 
-    document.getElementById('hud-wave').textContent = `WAVE ${this.wave}`;
+    const waveLabel = this.wave > 10 ? `WAVE ${this.wave} (ENDLESS)` : `WAVE ${this.wave} / 10`;
+    document.getElementById('hud-wave').textContent = waveLabel;
     document.getElementById('hud-timer').textContent = this.formatTime(this.gameTime);
     document.getElementById('hud-score').textContent = this.score;
     document.getElementById('hud-kills').textContent = this.kills;
@@ -1603,19 +1636,22 @@ class Game {
     this.gameTime += dt;
     this.waveTimer += dt;
 
-    // Wave Progression (every 40s)
-    if (this.waveTimer >= 40 && this.wave < 5) {
+    // Wave Progression (every 32s)
+    if (this.waveTimer >= this.waveDuration) {
       this.wave++;
       this.waveTimer = 0;
-      this.damageTexts.push(new DamageText(this.canvas.width / 2, 160, `🌸 WAVE ${this.wave} 토벌 개시! 🌸`, '#ff4081', true));
-      if (this.wave === 5 && !this.bossSpawned) {
-        this.spawnBoss();
+      this.announceWave(this.wave);
+
+      if (this.wave === 5) {
+        this.spawnMidBoss();
+      } else if (this.wave === 10) {
+        this.spawnFinalBoss();
       }
     }
 
-    // Spawn regular enemies
+    // Regular enemy spawn interval
     this.spawnTimer += dt;
-    const spawnInterval = Math.max(0.4, 1.7 - this.wave * 0.25);
+    const spawnInterval = Math.max(0.32, 1.6 - this.wave * 0.12);
     if (this.spawnTimer >= spawnInterval) {
       this.spawnTimer = 0;
       this.spawnEnemy();
@@ -1626,7 +1662,6 @@ class Game {
       this.player.shoot(this.mouse.x, this.mouse.y, this.projectiles, this.particles);
     }
 
-    // Player update
     this.player.update(dt, this.keys, this.mouse.x, this.mouse.y, this.particles, this.grenades, this.canvas.width, this.canvas.height);
 
     // Laser damage (Skill R)
@@ -1687,7 +1722,6 @@ class Game {
             Sound.playHit();
             this.damageTexts.push(new DamageText(enemy.x, enemy.y, p.damage, p.color, p.damage > 35));
 
-            // Sparks
             for (let k = 0; k < 3; k++) {
               this.particles.push(
                 new Particle(p.x, p.y, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5, 5, p.color, 0.25, 'sparkle')
@@ -1702,7 +1736,6 @@ class Game {
           }
         }
       } else {
-        // Enemy bullet hitting player
         const dist = Math.hypot(p.x - this.player.x, p.y - this.player.y);
         if (dist < p.size + this.player.radius && this.player.invulnerableTimer <= 0) {
           this.player.hp -= p.damage;
@@ -1729,7 +1762,6 @@ class Game {
         Sound.playExplosion();
         this.screenShake = 9;
 
-        // Big Explosion Ring & Stars
         this.particles.push(new Particle(g.targetX, g.targetY, 0, 0, g.radius, '#ffd166', 0.45, 'ring'));
         for (let k = 0; k < 22; k++) {
           const angle = Math.random() * Math.PI * 2;
@@ -1739,7 +1771,6 @@ class Game {
           );
         }
 
-        // Damage enemies in radius
         this.enemies.forEach((enemy) => {
           const dist = Math.hypot(enemy.x - g.targetX, enemy.y - g.targetY);
           if (dist < g.radius + enemy.radius) {
@@ -1758,7 +1789,6 @@ class Game {
       const enemy = this.enemies[i];
       enemy.update(dt, this.player, this.projectiles);
 
-      // Contact damage to player
       const dist = Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y);
       if (dist < enemy.radius + this.player.radius && this.player.invulnerableTimer <= 0) {
         this.player.hp -= enemy.damage;
@@ -1774,19 +1804,16 @@ class Game {
         }
       }
 
-      // Check Enemy Death
       if (enemy.hp <= 0) {
         this.kills++;
         this.score += enemy.xp * 10;
         this.expGems.push(new ExpGem(enemy.x, enemy.y, enemy.xp));
 
-        // Lifesteal perk check
         if (this.player.lifesteal > 0 && Math.random() < this.player.lifesteal) {
           this.player.hp = Math.min(this.player.maxHp, this.player.hp + 10);
           this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, '+10 HP', '#10b981', true));
         }
 
-        // Death stars
         for (let k = 0; k < 6; k++) {
           this.particles.push(
             new Particle(enemy.x, enemy.y, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 6, enemy.color, 0.35, 'star')
@@ -1817,7 +1844,6 @@ class Game {
       }
     }
 
-    // Update Particles & Damage Texts
     for (let i = this.particles.length - 1; i >= 0; i--) {
       this.particles[i].update(dt);
       if (this.particles[i].life <= 0) this.particles.splice(i, 1);
@@ -1839,49 +1865,34 @@ class Game {
     this.ctx.save();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Screen Shake Offset
     if (this.screenShake > 0) {
       const sx = (Math.random() - 0.5) * this.screenShake * 2;
       const sy = (Math.random() - 0.5) * this.screenShake * 2;
       this.ctx.translate(sx, sy);
     }
 
-    // Cute Grass Field / Star Grid Background
     this.drawBackground();
 
-    // Exp Gems
     this.expGems.forEach((gem) => gem.draw(this.ctx));
-
-    // Enemies
     this.enemies.forEach((enemy) => enemy.draw(this.ctx));
-
-    // Grenades
     this.grenades.forEach((g) => g.draw(this.ctx));
-
-    // Projectiles
     this.projectiles.forEach((p) => p.draw(this.ctx));
 
-    // Mega Rainbow Laser (Skill R)
     if (this.player.isFiringLaser) {
       this.drawMegaLaser();
     }
 
-    // Player
     if (this.player) {
       this.player.draw(this.ctx);
     }
 
-    // Particles
     this.particles.forEach((pt) => pt.draw(this.ctx));
-
-    // Damage Floating Texts
     this.damageTexts.forEach((dt) => dt.draw(this.ctx));
 
     this.ctx.restore();
   }
 
   drawBackground() {
-    // Subtle grid with flowers/stars
     const tileSize = 80;
     this.ctx.save();
     this.ctx.strokeStyle = 'rgba(255, 209, 220, 0.08)';
@@ -1913,7 +1924,6 @@ class Game {
     this.ctx.translate(lx, ly);
     this.ctx.rotate(angle);
 
-    // Rainbow Gradient Beam
     const grad = this.ctx.createLinearGradient(0, -25, 0, 25);
     grad.addColorStop(0, 'rgba(255, 64, 129, 0.8)');
     grad.addColorStop(0.3, 'rgba(255, 209, 102, 0.9)');
@@ -1930,7 +1940,6 @@ class Game {
   }
 }
 
-// Start Game Instance
 window.addEventListener('DOMContentLoaded', () => {
   window.GameInstance = new Game();
 });
