@@ -907,15 +907,34 @@ class Player {
       ];
     } else if (charType === 'hachiware') {
       return [
-        "난또까나레-!!", "어떻게든 될 거야!", "치이카와! 내가 엄호할게!", "사진 찰칵! 기록해둬야지!",
-        "사스마타를 꽉 쥐어!", "와아-! 토벌 성공하자!", "도토리 많이 모아서 맛있는 거 먹자!",
-        "조심해! 몬스터가 온다!", "스승님의 가르침을 떠올려!"
+        "난또까나레-!!",
+        "어떻게든 될 거야!",
+        "어떻게든... 됐네!",
+        "치이카와, 괜찮아?",
+        "사진 찍어둘까?",
+        "사스마타, 꽉 쥐어야 해!",
+        "에이, 에이, 오-!",
+        "이것도 추억이 될 거야!",
+        "조심해, 몬스터가 와!",
+        "스승님처럼 멋지게 베자!",
+        "와아-! 엄청 크다!",
+        "기뻐서 눈물이 나..."
       ];
     } else {
+      // Chiikawa (Only speaks Chiikawa vocalizations / no human sentences!)
       return [
-        "와... 와아...!", "후에에...!", "이... 야앗-!!", "열심히 할게!",
-        "하치와레... 도와줘어!", "우사기이이-!!", "도토리 줍자!", "푸딩 먹고 싶다...",
-        "조심해야 해...", "용기를 내는 거야!", "난또까... 난또까나레!", "사스마타 얍!"
+        "와... 와아...!",
+        "후에에...!",
+        "이... 야앗-!!",
+        "차앗-!!",
+        "햐아앗!",
+        "우... 우으...",
+        "훗... 후웅!",
+        "와앗!",
+        "후에에엥-!!",
+        "후아아...!",
+        "이... 얍-!!",
+        "으... 응!"
       ];
     }
   }
@@ -1108,7 +1127,9 @@ class Player {
     );
     const qQuotes = this.charType === 'usagi'
       ? ["우라라라-!!", "야하-!!", "뿌루루루루-!", "바하-!!"]
-      : (this.charType === 'hachiware' ? ["도토리 폭탄 투척!", "펑-!! 조심해!"] : ["도토리 폭탄 받아라-!!", "펑-!! 얍!"]);
+      : (this.charType === 'hachiware' 
+          ? ["난또까나레-!! 도토리 폭탄이다!", "이걸로 한 방에!", "치이카와, 피해!"] 
+          : ["이... 야앗-!!", "차앗-!!", "와아앗!"]);
     this.say(qQuotes[Math.floor(Math.random() * qQuotes.length)], true);
   }
 
@@ -1121,7 +1142,9 @@ class Player {
     particles.push(new Particle(this.x, this.y, 0, 0, 30, '#ff79b0', 0.5, 'ring'));
     const awakenQuotes = this.charType === 'usagi'
       ? ["우라라라라라-!! 야하-!!", "뿌루루루루루-!!", "이햐아아아-!!"]
-      : (this.charType === 'hachiware' ? ["난또까나레-!! 힘내자!", "용기 100% 각성-!!"] : ["난또까... 어떻게든 될 거야-!!", "용기 100% 각성-!!"]);
+      : (this.charType === 'hachiware' 
+          ? ["난또까나레-!! 에이 에이 오-!!", "어떻게든 해보는 거야!", "용기를 내자!"] 
+          : ["이... 야아아앗-!!", "훗... 후웅-!!", "와아아아-!!"]);
     this.say(awakenQuotes[Math.floor(Math.random() * awakenQuotes.length)], true);
     Sound.playAwaken();
   }
@@ -1531,7 +1554,9 @@ class Game {
     Sound.playLevelUp();
     const lvlQuote = this.player.charType === 'usagi'
       ? (Math.random() < 0.5 ? "야하-!!" : "뿌루루루-!")
-      : (this.player.charType === 'hachiware' ? (Math.random() < 0.5 ? "와아-! 레벨업이다!" : "난또까나레-!!") : (Math.random() < 0.5 ? "레벨업이다! 와아-!" : "난또까... 열심히 할게!"));
+      : (this.player.charType === 'hachiware' 
+          ? (Math.random() < 0.5 ? "와아-! 강해졌어!" : "난또까나레-! 기뻐서 눈물이 나!") 
+          : (Math.random() < 0.5 ? "와... 와아...!" : "훗... 후웅!"));
     this.player.say(lvlQuote, true);
 
     const pool = [
@@ -1751,7 +1776,9 @@ class Game {
           this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${p.damage}`, '#ef4444', true));
           const hitQuote = this.player.charType === 'usagi'
             ? (Math.random() < 0.5 ? "하아?!" : "우뺘-!!")
-            : (this.player.charType === 'hachiware' ? (Math.random() < 0.5 ? "으앗...!" : "괜찮아...!") : (Math.random() < 0.5 ? "후에에엥-!!" : "아포..."));
+            : (this.player.charType === 'hachiware' 
+                ? (Math.random() < 0.5 ? "으앗...!" : "아야야... 치이카와 조심해!") 
+                : (Math.random() < 0.5 ? "후에에엥-!!" : "햐앙...!"));
           this.player.say(hitQuote, true);
 
           this.projectiles.splice(i, 1);
@@ -1806,8 +1833,8 @@ class Game {
         Sound.playHit();
         this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${enemy.damage}`, '#ef4444', true));
         const contactQuote = this.player.charType === 'usagi'
-          ? (Math.random() < 0.5 ? "하아?!" : "우라라-!")
-          : (this.player.charType === 'hachiware' ? "으앗! 몬스터가...!" : "후에에에-!! 몬스터다!");
+          ? (Math.random() < 0.5 ? "하아?!" : "우뺘-!!")
+          : (this.player.charType === 'hachiware' ? "으앗! 치이카와, 뒤로 물러서!" : "후에에에-!!");
         this.player.say(contactQuote, true);
 
         if (this.player.hp <= 0) {
