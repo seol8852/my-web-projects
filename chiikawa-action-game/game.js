@@ -831,35 +831,53 @@ class Enemy {
       ctx.moveTo(8, -14); ctx.lineTo(14, -28); ctx.lineTo(8, -26); ctx.lineTo(12, -36);
       ctx.stroke();
     } else if (this.type === 'midboss') {
-      ctx.beginPath();
-      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#7c2d12';
-      ctx.beginPath();
-      ctx.moveTo(-24, -24); ctx.lineTo(-40, -56); ctx.lineTo(-12, -35);
-      ctx.moveTo(24, -24); ctx.lineTo(40, -56); ctx.lineTo(12, -35);
-      ctx.fill();
+      // Real Mid-boss Sprite Rendering
+      const sprite = window.GameInstance?.sprites?.midboss;
+      if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius + 4, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(sprite, -this.radius - 8, -this.radius - 8, (this.radius + 8) * 2, (this.radius + 8) * 2);
+        ctx.restore();
+
+        // Glowing border
+        ctx.strokeStyle = '#ea580c';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius + 4, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else if (this.type === 'boss') {
-      ctx.beginPath();
-      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-      ctx.fill();
+      // Real Anoko (그 녀석) Boss Sprite Rendering
+      const sprite = window.GameInstance?.sprites?.anoko;
+      if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+        ctx.save();
+        // Pulsing Boss Aura
+        const auraPulse = Math.sin(Date.now() / 120) * 6;
+        ctx.strokeStyle = '#e11d48';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = '#ff0055';
+        ctx.shadowBlur = 25;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius + 8 + auraPulse, 0, Math.PI * 2);
+        ctx.stroke();
 
-      ctx.fillStyle = '#9f1239';
-      ctx.beginPath();
-      ctx.moveTo(-35, -35); ctx.lineTo(-52, -84); ctx.lineTo(-18, -48);
-      ctx.moveTo(35, -35); ctx.lineTo(52, -84); ctx.lineTo(18, -48);
-      ctx.fill();
-
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath();
-      ctx.arc(-20, -10, 10, 0, Math.PI * 2);
-      ctx.arc(20, -10, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#dc2626';
-      ctx.beginPath();
-      ctx.arc(-20, -10, 5, 0, Math.PI * 2);
-      ctx.arc(20, -10, 5, 0, Math.PI * 2);
-      ctx.fill();
+        // Circular clipped Anoko Artwork
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(sprite, -this.radius - 12, -this.radius - 12, (this.radius + 12) * 2, (this.radius + 12) * 2);
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
     }
 
     if (this.hp < this.maxHp || this.type === 'boss' || this.type === 'midboss') {
@@ -1367,11 +1385,15 @@ class Game {
     this.sprites = {
       chiikawa: new Image(),
       hachiware: new Image(),
-      usagi: new Image()
+      usagi: new Image(),
+      anoko: new Image(),
+      midboss: new Image()
     };
     this.sprites.chiikawa.src = 'assets/chiikawa.png';
     this.sprites.hachiware.src = 'assets/hachiware.png';
     this.sprites.usagi.src = 'assets/usagi.png';
+    this.sprites.anoko.src = 'assets/anoko.png';
+    this.sprites.midboss.src = 'assets/midboss.png';
 
     this.keys = {};
     this.mouse = { x: 0, y: 0, isDown: false };
