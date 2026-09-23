@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>🌸 치이카와 스트라이커: 토벌 대작전 (Chiikawa Striker)</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="game-container">
+    <!-- Main Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Top HUD -->
+    <div id="hud">
+      <!-- Player Profile -->
+      <div class="hud-profile">
+        <div class="avatar-frame">
+          <img id="avatar-img" src="assets/chiikawa.png" alt="Chiikawa Avatar">
+          <div class="level-badge" id="hud-level">Lv.1</div>
+        </div>
+        <div class="bars-container">
+          <div class="bar-label">
+            <span class="name-tag" id="hud-name-tag">🌸 용감한 치이카와</span>
+            <span class="hp-text" id="hud-hp-text">100 / 100</span>
+          </div>
+          <div class="bar-outer hp-bar">
+            <div class="bar-inner" id="hud-hp-bar" style="width: 100%;"></div>
+          </div>
+
+          <div class="bar-label">
+            <span class="exp-label">⭐ EXP (별사탕 게이지)</span>
+            <span class="exp-text" id="hud-exp-text">0%</span>
+          </div>
+          <div class="bar-outer exp-bar">
+            <div class="bar-inner" id="hud-exp-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Wave & Timer -->
+      <div class="hud-center">
+        <div class="wave-display" id="hud-wave">WAVE 1</div>
+        <div class="timer-display" id="hud-timer">00:00</div>
+        <div class="score-display">도토리 점수 <span id="hud-score">0</span></div>
+      </div>
+
+      <!-- Right Kill & Audio toggle -->
+      <div class="hud-right">
+        <div class="stat-pill">
+          <span class="pill-icon">⚔️</span>
+          <span id="hud-kills">0</span> 마리 토벌
+        </div>
+        <div class="audio-controls">
+          <button id="btn-sound" class="hud-btn" title="사운드 토글">🔊 SFX ON</button>
+          <button id="btn-bgm" class="hud-btn" title="BGM 토글">🎵 BGM ON</button>
+          <button id="btn-pause" class="hud-btn" title="일시정지 (P)">⏸️</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Skill Bar -->
+    <div id="skill-bar">
+      <!-- Normal Attack -->
+      <div class="skill-slot active">
+        <div class="key-bind">L-CLICK</div>
+        <div class="skill-icon">⭐</div>
+        <div class="skill-name">사스마타 샷</div>
+        <div class="cd-overlay" id="cd-lclick"></div>
+      </div>
+
+      <!-- Dash / Space -->
+      <div class="skill-slot">
+        <div class="key-bind">SPACE</div>
+        <div class="skill-icon">✨</div>
+        <div class="skill-name">와아앗! 회피</div>
+        <div class="cd-overlay" id="cd-space"></div>
+      </div>
+
+      <!-- Skill Q -->
+      <div class="skill-slot">
+        <div class="key-bind">Q</div>
+        <div class="skill-icon">🌰</div>
+        <div class="skill-name">도토리 폭탄</div>
+        <div class="cd-overlay" id="cd-q"></div>
+      </div>
+
+      <!-- Skill E -->
+      <div class="skill-slot">
+        <div class="key-bind">E</div>
+        <div class="skill-icon">💖</div>
+        <div class="skill-name">용기 100% 각성</div>
+        <div class="cd-overlay" id="cd-e"></div>
+      </div>
+
+      <!-- Ultimate R -->
+      <div class="skill-slot ult">
+        <div class="key-bind">R</div>
+        <div class="skill-icon">🌈</div>
+        <div class="skill-name">레인보우 빔</div>
+        <div class="cd-overlay" id="cd-r"></div>
+      </div>
+    </div>
+
+    <!-- Controls Guide Floating Panel -->
+    <div id="controls-hint">
+      <span><b>[WASD]</b> 이동</span> • 
+      <span><b>[마우스]</b> 조준 & 사격</span> • 
+      <span><b>[Space]</b> 무적 회피</span> • 
+      <span><b>[Q/E/R]</b> 스킬</span> • 
+      <span><b>[P]</b> 일시정지</span>
+    </div>
+
+    <!-- Start Overlay Screen -->
+    <div id="start-screen" class="overlay-screen active">
+      <div class="screen-box">
+        <div class="hero-poster">
+          <img src="assets/trio_banner.jpg" alt="Chiikawa Trio" class="poster-img" onerror="this.src='assets/chiikawa.png'">
+        </div>
+        <h1 class="game-title">🌸 치이카와 스트라이커: 토벌 대작전 🌸</h1>
+        <p class="subtitle">"와... 와아앗-!! 사스마타를 쥐고 몬스터들을 토벌하자!"</p>
+        
+        <!-- Character Selection -->
+        <div class="char-select-container">
+          <div class="char-card active" data-char="chiikawa">
+            <img src="assets/chiikawa.png" alt="Chiikawa">
+            <div class="char-name">치이카와</div>
+            <div class="char-desc">밸런스형 • 사스마타 탄환<br><i>"후에에... 열심히 할게!"</i></div>
+          </div>
+          <div class="char-card" data-char="hachiware">
+            <img src="assets/hachiware.png" alt="Hachiware">
+            <div class="char-name">하치와레</div>
+            <div class="char-desc">고속 연사 • 푸른 별빛<br><i>"난또까나레-! 어떻게든 될 거야!"</i></div>
+          </div>
+          <div class="char-card" data-char="usagi">
+            <img src="assets/usagi.png" alt="Usagi">
+            <div class="char-name">우사기</div>
+            <div class="char-desc">강력 화력 • 당근 폭풍<br><i>"우라라라라-!! 야하-!!"</i></div>
+          </div>
+        </div>
+
+        <div class="keys-summary">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 / 회피</div>
+          <div><kbd>마우스 좌클릭</kbd> 조준 사스마타 사격</div>
+          <div><kbd>Space</kbd> 와아앗! 대시 (무적 회피)</div>
+          <div><kbd>Q</kbd> 대형 도토리 폭탄 투척</div>
+          <div><kbd>E</kbd> 용기 100% 각성 (연사 폭증)</div>
+          <div><kbd>R</kbd> 초거대 레인보우 별똥별 빔</div>
+        </div>
+        <button id="btn-start" class="glow-btn">🌸 토벌 대작전 시작! (START) 🌸</button>
+      </div>
+    </div>
+
+    <!-- Level Up Modal -->
+    <div id="levelup-modal" class="overlay-screen">
+      <div class="screen-box levelup-box">
+        <h2 class="levelup-title">⭐ 토벌 능력 강화 (LEVEL UP!) ⭐</h2>
+        <p class="levelup-desc">치이카와의 새로운 힘을 선택하세요! (1, 2, 3 키로 빠른 선택 가능)</p>
+        <div id="cards-container" class="cards-container">
+          <!-- Dynamic upgrade cards -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="overlay-screen">
+      <div class="screen-box gameover-box">
+        <h1 class="gameover-title">😭 토벌 실패... 😭</h1>
+        <p id="gameover-reason">후에에에... 몬스터가 너무 강했어...</p>
+        <div class="final-stats">
+          <div>생존 시간: <span id="stat-time">00:00</span></div>
+          <div>달성 웨이브: <span id="stat-wave">1</span></div>
+          <div>토벌한 몬스터: <span id="stat-kills">0</span> 마리</div>
+          <div>획득 도토리 점수: <span id="stat-score">0</span> 점</div>
+        </div>
+        <button id="btn-restart" class="glow-btn">다시 용기내기 (RETRY)</button>
+      </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory-screen" class="overlay-screen">
+      <div class="screen-box victory-box">
+        <h1 class="victory-title">🎉 전설의 1급 토벌 챔피언! 🎉</h1>
+        <p>거대 아노코와 모든 몬스터를 토벌하여 마을의 평화를 지켜냈습니다!</p>
+        <div class="final-stats">
+          <div>생존 시간: <span id="vstat-time">00:00</span></div>
+          <div>토벌한 몬스터: <span id="vstat-kills">0</span> 마리</div>
+          <div>최종 도토리 점수: <span id="vstat-score">0</span> 점</div>
+        </div>
+        <button id="btn-victory-restart" class="glow-btn">축하 파티 & 다시하기</button>
+      </div>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="overlay-screen">
+      <div class="screen-box pause-box">
+        <h2>🌸 토벌 작전 잠시 휴식 🌸</h2>
+        <p>푸딩 하나 먹으면서 잠시 쉬어가는 중...</p>
+        <button id="btn-resume" class="glow-btn">계속 토벌하기 (Resume)</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
