@@ -2123,151 +2123,6 @@ input:checked + .slider:before {
 }
 
 /* ==========================================================================
-   📱 모바일 반응형 뷰 최적화 (Mobile Responsive Viewports)
-   ========================================================================== */
-@media (max-width: 768px) {
-  #hud {
-    padding: 6px 8px;
-    gap: 6px;
-  }
-
-  .hud-profile {
-    gap: 8px;
-  }
-
-  .avatar-frame {
-    width: 44px;
-    height: 44px;
-  }
-
-  .level-badge {
-    font-size: 9px;
-    padding: 1px 4px;
-  }
-
-  .bars-container {
-    width: 120px;
-  }
-
-  .name-tag {
-    font-size: 11px;
-  }
-
-  .hp-text, .exp-text {
-    font-size: 9px;
-  }
-
-  .bar-outer {
-    height: 10px;
-  }
-
-  .hud-center {
-    display: flex;
-  }
-
-  .chapter-badge {
-    font-size: 10px;
-    padding: 2px 6px;
-  }
-
-  .wave-display {
-    font-size: 12px;
-  }
-
-  .timer-display {
-    font-size: 14px;
-  }
-
-  .score-display {
-    font-size: 10px;
-  }
-
-  .minimap-frame {
-    width: 90px;
-    height: 90px;
-  }
-
-  #minimapCanvas {
-    width: 90px;
-    height: 90px;
-  }
-
-  .stat-pill {
-    font-size: 10px;
-    padding: 2px 6px;
-  }
-
-  .audio-controls {
-    display: none;
-  }
-
-  #skill-bar {
-    display: none;
-  }
-
-  #controls-hint {
-    display: none;
-  }
-
-  .screen-box {
-    padding: 16px;
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-
-  .game-title {
-    font-size: 20px;
-  }
-
-  .char-select-container {
-    grid-template-columns: repeat(2, 1fr);
-    max-height: 240px;
-  }
-
-  .char-card {
-    padding: 8px;
-  }
-
-  .char-card img {
-    width: 44px;
-    height: 44px;
-  }
-
-  .char-name {
-    font-size: 12px;
-  }
-
-  .char-role {
-    font-size: 10px;
-  }
-
-  .char-desc {
-    font-size: 9px;
-  }
-
-  .keys-summary {
-    display: none;
-  }
-
-  .cutin-container {
-    gap: 12px;
-  }
-
-  .cutin-char-wrapper {
-    width: 80px;
-    height: 80px;
-  }
-
-  .cutin-skill-name {
-    font-size: 22px;
-  }
-
-  .cutin-quote {
-    font-size: 12px;
-  }
-}
-
-/* ==========================================================================
    🏆 5단계: 게임 모드 선택 & 일일 토벌 퀘스트/업적 시스템 (Modes & Quests)
    ========================================================================== */
 .mode-select-container {
@@ -2593,6 +2448,332 @@ input:checked + .slider:before {
   background: #e2e8f0;
   color: #64748b;
   cursor: default;
+}
+
+/* ==========================================================================
+   📱 6단계: 완벽한 모바일 반응형 뷰포트 최적화 (Mobile Responsive Master)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* In-Game HUD Scaling */
+  #hud {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .hud-profile {
+    gap: 8px;
+  }
+
+  .avatar-frame {
+    width: 44px;
+    height: 44px;
+  }
+
+  .level-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+
+  .bars-container {
+    width: 120px;
+  }
+
+  .name-tag {
+    font-size: 11px;
+  }
+
+  .hp-text, .exp-text {
+    font-size: 9px;
+  }
+
+  .bar-outer {
+    height: 10px;
+  }
+
+  .hud-center {
+    display: flex;
+  }
+
+  .chapter-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .wave-display {
+    font-size: 12px;
+  }
+
+  .timer-display {
+    font-size: 14px;
+  }
+
+  .score-display {
+    font-size: 10px;
+  }
+
+  .minimap-frame {
+    width: 90px;
+    height: 90px;
+  }
+
+  #minimapCanvas {
+    width: 90px;
+    height: 90px;
+  }
+
+  .stat-pill {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .audio-controls {
+    display: none;
+  }
+
+  #skill-bar {
+    display: none;
+  }
+
+  #controls-hint {
+    display: none;
+  }
+
+  .keys-summary {
+    display: none;
+  }
+
+  /* Overlay Screens & Dialog Boxes */
+  .overlay-screen {
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  .screen-box, .quest-box, .exam-box, .settings-box, .ramen-box, .gacha-box, .victory-box, .gameover-box {
+    padding: 18px 14px;
+    width: 95%;
+    max-width: 95vw;
+    max-height: 92vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 22px;
+    box-sizing: border-box;
+  }
+
+  .hero-poster {
+    height: 105px;
+    margin-bottom: 10px;
+    border-radius: 14px;
+  }
+
+  .game-title {
+    font-size: 19px;
+    line-height: 1.25;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    font-size: 11px;
+    margin-bottom: 12px;
+    line-height: 1.35;
+  }
+
+  /* Character Selection Grid (Fixed Overflow) */
+  .char-select-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .char-card {
+    padding: 8px 6px;
+    border-radius: 14px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .char-card img {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 4px;
+  }
+
+  .char-name {
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .char-role {
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 2px 6px;
+    margin-top: 2px;
+  }
+
+  .char-desc {
+    font-size: 8.5px;
+    line-height: 1.35;
+    margin-top: 4px;
+    text-align: left;
+    width: 100%;
+  }
+
+  /* Mode Selection Full-width Cards */
+  .mode-select-container {
+    margin: 14px 0 10px 0;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mode-title {
+    font-size: 13px;
+    font-weight: 900;
+    margin-bottom: 6px;
+  }
+
+  .mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mode-btn {
+    padding: 10px 12px;
+    border-radius: 12px;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mode-emoji {
+    font-size: 22px;
+  }
+
+  .mode-name {
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .mode-desc {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  /* Meta Banners (Exam & Quests) Stacking */
+  .meta-banners-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .meta-exam-banner, .meta-quest-banner {
+    padding: 10px 12px;
+    border-radius: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .exam-icon, .quest-icon {
+    font-size: 22px;
+  }
+
+  .exam-title, .quest-title {
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .exam-subtitle, .quest-subtitle {
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .exam-open-btn, .quest-open-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+    border-radius: 8px;
+  }
+
+  /* Difficulty Selector */
+  .diff-select-container {
+    margin: 10px 0;
+    text-align: left;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .diff-title {
+    font-size: 13px;
+    font-weight: 900;
+    margin-bottom: 6px;
+  }
+
+  .diff-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .diff-btn {
+    padding: 8px 4px;
+    border-radius: 12px;
+    box-sizing: border-box;
+  }
+
+  .diff-emoji {
+    font-size: 16px;
+  }
+
+  .diff-name {
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .diff-desc {
+    font-size: 8px;
+    line-height: 1.2;
+  }
+
+  /* Start Button */
+  #btn-start {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 16px;
+    margin-top: 14px;
+    border-radius: 16px;
+    box-sizing: border-box;
+  }
+
+  /* Anime Cut-in scaling */
+  .cutin-container {
+    gap: 10px;
+  }
+
+  .cutin-char-wrapper {
+    width: 70px;
+    height: 70px;
+  }
+
+  .cutin-skill-name {
+    font-size: 20px;
+  }
+
+  .cutin-quote {
+    font-size: 11px;
+  }
 }
 
 
