@@ -281,27 +281,12 @@ class SoundController {
     this.sfxVolume = 0.9;
     this.bgmVolume = 0.8;
 
-    // Real Audio Element support with seamless fallback
-    this.audioElement = new Audio();
-    this.audioElement.loop = true;
-    this.useAudioElement = false;
-    this.customAudioMap = {};
-
-    this.audioElement.addEventListener('error', () => {
-      this.useAudioElement = false;
-      if (this.bgmPlaying && !this.bgmTimer) {
-        this.step = 0;
-        this.scheduleBGMStep();
-      }
-    });
-
-    // Iconic Official Chiikawa BGM Tracks
+    // Iconic Official Chiikawa BGM Tracks (Procedural Chiptune Synthesizer)
     this.tracks = [
       {
         id: 'pajamas',
         name: '👚 파자마 파티즈의 노래 (Pajama Parties)',
         shortName: '👚 파자마',
-        file: 'assets/audio/pajamas.mp3',
         tempo: 154,
         melody: [
           392.00, 392.00, 329.63, 349.23, 392.00, 440.00, 392.00, 329.63,
@@ -330,7 +315,6 @@ class SoundController {
         id: 'hitorigotsu',
         name: '🎸 하치와레의 혼잣말 (ひとりごつ)',
         shortName: '🎸 혼잣말',
-        file: 'assets/audio/hitorigoto.mp3',
         tempo: 126,
         melody: [
           329.63, 369.99, 415.30, 440.00, 493.88, 440.00, 415.30, 369.99,
@@ -359,7 +343,6 @@ class SoundController {
         id: 'happy_ending',
         name: '🌸 치이카와 엔딩 해피 테마',
         shortName: '🌸 해피송',
-        file: 'assets/audio/ending.mp3',
         tempo: 140,
         melody: [
           523.25, 587.33, 659.25, 523.25, 659.25, 783.99, 659.25, 587.33,
@@ -731,51 +714,12 @@ class SoundController {
     if (!this.bgmEnabled || this.bgmPlaying) return;
     this.init();
     this.bgmPlaying = true;
-    this.playCurrentTrack();
-  }
-
-  playCurrentTrack() {
-    if (!this.bgmEnabled || !this.bgmPlaying) return;
-    const track = this.getCurrentTrack();
-    const audioSrc = this.customAudioMap[track.id] || track.file;
-
-    if (this.bgmTimer) {
-      clearTimeout(this.bgmTimer);
-      this.bgmTimer = null;
-    }
-
-    if (audioSrc) {
-      if (!this.audioElement) {
-        this.audioElement = new Audio();
-        this.audioElement.loop = true;
-      }
-      this.audioElement.src = audioSrc;
-      this.audioElement.volume = this.bgmVolume;
-      const playPromise = this.audioElement.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          this.useAudioElement = true;
-        }).catch(() => {
-          // If file not found (404) or blocked, fall back to procedural synth seamlessly
-          this.useAudioElement = false;
-          this.step = 0;
-          this.scheduleBGMStep();
-        });
-      } else {
-        this.useAudioElement = true;
-      }
-    } else {
-      this.useAudioElement = false;
-      this.step = 0;
-      this.scheduleBGMStep();
-    }
+    this.step = 0;
+    this.scheduleBGMStep();
   }
 
   stopBGM() {
     this.bgmPlaying = false;
-    if (this.audioElement) {
-      this.audioElement.pause();
-    }
     if (this.bgmTimer) {
       clearTimeout(this.bgmTimer);
       this.bgmTimer = null;
@@ -784,32 +728,16 @@ class SoundController {
 
   setBgmVolume(vol) {
     this.bgmVolume = vol;
-    if (this.audioElement) {
-      this.audioElement.volume = Math.max(0, Math.min(1, vol));
-    }
   }
 
   setTrack(index) {
     this.currentTrackIdx = Math.max(0, Math.min(this.tracks.length - 1, index));
     this.step = 0;
-    if (this.audioElement) {
-      this.audioElement.pause();
-    }
-    if (this.bgmTimer) {
-      clearTimeout(this.bgmTimer);
-      this.bgmTimer = null;
-    }
     if (this.bgmPlaying) {
-      this.playCurrentTrack();
+      if (this.bgmTimer) clearTimeout(this.bgmTimer);
+      this.scheduleBGMStep();
     }
     return this.getCurrentTrack();
-  }
-
-  setCustomAudio(trackId, fileBlobUrl) {
-    this.customAudioMap[trackId] = fileBlobUrl;
-    if (this.getCurrentTrack().id === trackId && this.bgmPlaying) {
-      this.playCurrentTrack();
-    }
   }
 
   getCurrentTrack() {
@@ -819,15 +747,9 @@ class SoundController {
   switchNextTrack() {
     this.currentTrackIdx = (this.currentTrackIdx + 1) % this.tracks.length;
     this.step = 0;
-    if (this.audioElement) {
-      this.audioElement.pause();
-    }
-    if (this.bgmTimer) {
-      clearTimeout(this.bgmTimer);
-      this.bgmTimer = null;
-    }
     if (this.bgmPlaying) {
-      this.playCurrentTrack();
+      if (this.bgmTimer) clearTimeout(this.bgmTimer);
+      this.scheduleBGMStep();
     }
     return this.getCurrentTrack();
   }
@@ -4067,23 +3989,6 @@ class Game {
         const next = Sound.setTrack(parseInt(e.target.value, 10) || 0);
         const btnTrack = document.getElementById('btn-track');
         if (btnTrack) btnTrack.textContent = `💿 ${next.shortName}`;
-      });
-    }
-
-    const inputCustomBgm = document.getElementById('input-custom-bgm');
-    const customBgmStatus = document.getElementById('custom-bgm-status');
-    if (inputCustomBgm) {
-      inputCustomBgm.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const url = URL.createObjectURL(file);
-          const curTrack = Sound.getCurrentTrack();
-          Sound.setCustomAudio(curTrack.id, url);
-          if (customBgmStatus) {
-            customBgmStatus.textContent = `✅ "${file.name}" 음원이 [${curTrack.shortName}]에 등록되어 재생 중!`;
-            customBgmStatus.style.color = '#10b981';
-          }
-        }
       });
     }
 
