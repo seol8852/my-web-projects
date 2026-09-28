@@ -54,8 +54,14 @@
         <div class="score-display">도토리 점수 <span id="hud-score">0</span></div>
       </div>
 
-      <!-- Right Kill & Buffs & Audio toggle -->
+      <!-- Right Kill & Buffs & Minimap & Audio toggle -->
       <div class="hud-right">
+        <!-- Minimap Radar -->
+        <div class="minimap-frame">
+          <canvas id="minimapCanvas" width="130" height="130"></canvas>
+          <div class="minimap-title">🗺️ 토벌 맵</div>
+        </div>
+
         <div class="stat-pill">
           <span class="pill-icon">⚔️</span>
           <span id="hud-kills">0</span> 마리 토벌

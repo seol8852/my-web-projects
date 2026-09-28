@@ -1,6 +1,6 @@
 /* ==========================================================================
    🌸 치이카와 스트라이커: 토벌 대작전 (Chiikawa Striker)
-   20-Wave 4-Chapter Epic Campaign & Unique Character Playstyles Edition
+   Expansive Open World Map (3600x3600), Camera Follow & Minimap System
    ========================================================================== */
 
 // --- Audio Manager (Web Audio API Synthesizer) ---
@@ -75,7 +75,7 @@ class SoundController {
     }
   }
 
-  playShoot(charType = 'chiikawa', isSpecial = false) {
+  playShoot(charType = 'chiikawa') {
     try {
       if (!this.sfxEnabled || !this.ctx) return;
       if (this.ctx.state === 'suspended') this.ctx.resume();
@@ -84,21 +84,18 @@ class SoundController {
       const gain = this.ctx.createGain();
 
       if (charType === 'usagi') {
-        // Shotgun boom pop
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(520, now);
         osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
         gain.gain.setValueAtTime(0.25, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
       } else if (charType === 'hachiware') {
-        // Sharp sword slash whistle
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(880, now);
         osc.frequency.exponentialRampToValueAtTime(260, now + 0.08);
         gain.gain.setValueAtTime(0.18, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
       } else {
-        // Twinkling homing star chime
         osc.type = 'sine';
         osc.frequency.setValueAtTime(660, now);
         osc.frequency.exponentialRampToValueAtTime(320, now + 0.1);
@@ -278,6 +275,48 @@ class SoundController {
       osc.start(now);
       osc.stop(now + 0.18);
     });
+  }
+
+  playLaser() {
+    try {
+      if (!this.sfxEnabled || !this.ctx) return;
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.linearRampToValueAtTime(1046.5, now + 0.22);
+
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch (e) {}
+  }
+
+  playPickup() {
+    if (!this.sfxEnabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(659.25, now);
+    osc.frequency.setValueAtTime(880, now + 0.05);
+    osc.frequency.setValueAtTime(1174.66, now + 0.1);
+
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.18);
   }
 
   playLevelUp() {
@@ -535,9 +574,9 @@ class FieldItem {
   constructor(x, y, itemType = 'pudding') {
     this.x = x;
     this.y = y;
-    this.itemType = itemType; // 'pudding', 'onigiri', 'shield', 'magnet'
+    this.itemType = itemType;
     this.radius = 18;
-    this.life = 25.0;
+    this.life = 35.0;
     this.bobTimer = Math.random() * Math.PI * 2;
   }
 
@@ -548,9 +587,9 @@ class FieldItem {
     const dx = playerX - this.x;
     const dy = playerY - this.y;
     const dist = Math.hypot(dx, dy);
-    if (dist < 130) {
-      this.x += (dx / dist) * 4.8 * dt * 60;
-      this.y += (dy / dist) * 4.8 * dt * 60;
+    if (dist < 150) {
+      this.x += (dx / dist) * 5.2 * dt * 60;
+      this.y += (dy / dist) * 5.2 * dt * 60;
     }
   }
 
@@ -559,7 +598,6 @@ class FieldItem {
     ctx.save();
     ctx.translate(this.x, this.y + bob);
 
-    // Glowing aura
     let auraColor = 'rgba(255, 230, 109, 0.45)';
     let emoji = '🍮';
     if (this.itemType === 'onigiri') {
@@ -600,9 +638,9 @@ class Projectile {
     this.color = color;
     this.size = size;
     this.homing = homing;
-    this.shape = shape; // 'star', 'crescent', 'carrot', 'orb'
+    this.shape = shape;
     this.distance = 0;
-    this.maxDistance = 1500;
+    this.maxDistance = 1800;
     this.hitEnemies = new Set();
     this.life = 5.0;
     this.rotation = Math.atan2(vy, vx);
@@ -610,9 +648,8 @@ class Projectile {
 
   update(dt, target = null, enemies = []) {
     if (this.homing && enemies.length > 0) {
-      // Find nearest enemy
       let nearest = null;
-      let minD = 500;
+      let minD = 550;
       for (const e of enemies) {
         if (this.hitEnemies.has(e)) continue;
         const d = Math.hypot(e.x - this.x, e.y - this.y);
@@ -650,14 +687,12 @@ class Projectile {
     ctx.shadowBlur = 10;
 
     if (this.shape === 'crescent') {
-      // Hachiware's blue sword slash
       ctx.strokeStyle = this.color;
       ctx.lineWidth = 4;
       ctx.beginPath();
       ctx.arc(0, 0, this.size * 1.5, -Math.PI / 2.5, Math.PI / 2.5);
       ctx.stroke();
     } else if (this.shape === 'carrot') {
-      // Usagi's golden carrot bullet
       ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
       ctx.ellipse(0, 0, this.size * 1.4, this.size * 0.7, 0, 0, Math.PI * 2);
@@ -665,7 +700,6 @@ class Projectile {
       ctx.fillStyle = '#22c55e';
       ctx.fillRect(-this.size * 1.3, -2, 4, 4);
     } else if (this.shape === 'star') {
-      // Chiikawa's star
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
         ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * this.size, -Math.sin((18 + i * 72) * Math.PI / 180) * this.size);
@@ -703,7 +737,6 @@ class Boomerang {
     this.rotation += dt * 18;
 
     if (this.life < this.maxLife * 0.5 && player) {
-      // Return to player
       const dx = player.x - this.x;
       const dy = player.y - this.y;
       const dist = Math.hypot(dx, dy) || 1;
@@ -723,7 +756,6 @@ class Boomerang {
     ctx.shadowColor = '#f97316';
     ctx.shadowBlur = 12;
 
-    // Curved carrot shape
     ctx.beginPath();
     ctx.arc(0, 0, 18, 0, Math.PI);
     ctx.lineTo(-4, 0);
@@ -738,7 +770,7 @@ class CarrotMeteor {
     this.targetX = targetX;
     this.targetY = targetY;
     this.x = targetX - 250;
-    this.y = -200;
+    this.y = targetY - 450;
     this.damage = damage;
     this.radius = radius;
     this.progress = 0;
@@ -753,19 +785,17 @@ class CarrotMeteor {
       this.landed = true;
     }
     this.x = (this.targetX - 250) + 250 * this.progress;
-    this.y = -200 + (this.targetY + 200) * this.progress;
+    this.y = (this.targetY - 450) + 450 * this.progress;
   }
 
   draw(ctx) {
     ctx.save();
-    // Landing target indicator
     ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(this.targetX, this.targetY, this.radius * (1 - this.progress * 0.5), 0, Math.PI * 2);
     ctx.stroke();
 
-    // Giant flaming carrot
     ctx.translate(this.x, this.y);
     ctx.rotate(Math.PI / 4);
     ctx.fillStyle = '#ea580c';
@@ -831,7 +861,7 @@ class ExpGem {
     this.y = y;
     this.value = value;
     this.radius = 7;
-    this.life = 40;
+    this.life = 45;
     this.color = value >= 80 ? '#f59e0b' : (value >= 40 ? '#8b5cf6' : '#10b981');
     this.bob = Math.random() * Math.PI * 2;
   }
@@ -844,8 +874,8 @@ class ExpGem {
     const dy = playerY - this.y;
     const dist = Math.hypot(dx, dy);
 
-    if (dist < 160) {
-      const spd = 7.5;
+    if (dist < 180) {
+      const spd = 8.5;
       this.x += (dx / dist) * spd * dt * 60;
       this.y += (dy / dist) * spd * dt * 60;
     }
@@ -872,7 +902,7 @@ class ExpGem {
   }
 }
 
-// --- Enemy Classes (20 Waves & 4 Chapter Bosses) ---
+// --- Enemy Classes ---
 class Enemy {
   constructor(x, y, type = 'bug', wave = 1, diffConfig = { hpMult: 1.0, dmgMult: 1.0, spdMult: 1.0 }) {
     this.x = x;
@@ -948,7 +978,7 @@ class Enemy {
       this.xp = 130;
       this.name = '강철 중장갑 키메라';
     } else if (type === 'midboss') {
-      this.radius = 52;
+      this.radius = 54;
       this.hp = (2600 + wave * 450) * diffConfig.hpMult;
       this.maxHp = this.hp;
       this.speed = 1.45 * diffConfig.spdMult;
@@ -960,7 +990,7 @@ class Enemy {
       else if (wave === 10) this.name = '돌연변이 쌍두 키메라 [제2장 보스]';
       else this.name = '거대 바위 철갑 키메라 [제3장 보스]';
     } else if (type === 'boss') {
-      this.radius = 66;
+      this.radius = 68;
       this.hp = (6500 + wave * 700) * diffConfig.hpMult;
       this.maxHp = this.hp;
       this.speed = 1.5 * diffConfig.spdMult;
@@ -981,9 +1011,8 @@ class Enemy {
     const dy = player.y - this.y;
     const dist = Math.hypot(dx, dy) || 1;
 
-    // Movement & Attack AI
     if (this.type === 'goblin') {
-      if (dist > 280) {
+      if (dist > 300) {
         this.x += (dx / dist) * curSpeed * dt * 60;
         this.y += (dy / dist) * curSpeed * dt * 60;
       } else if (dist < 180) {
@@ -1032,7 +1061,7 @@ class Enemy {
       this.stompTimer += dt;
       if (this.stompTimer >= 4.2) {
         this.stompTimer = 0;
-        shockwaves.push(new Shockwave(this.x, this.y, 200, Math.round(this.damage * 0.85), '#6366f1'));
+        shockwaves.push(new Shockwave(this.x, this.y, 220, Math.round(this.damage * 0.85), '#6366f1'));
       }
     } else if (this.type === 'midboss') {
       this.x += (dx / dist) * curSpeed * dt * 60;
@@ -1054,7 +1083,7 @@ class Enemy {
 
       if (this.specialTimer >= 5.0) {
         this.specialTimer = 0;
-        shockwaves.push(new Shockwave(this.x, this.y, 240, 25, '#ea580c'));
+        shockwaves.push(new Shockwave(this.x, this.y, 250, 25, '#ea580c'));
       }
     } else if (this.type === 'boss') {
       const hpRatio = this.hp / this.maxHp;
@@ -1092,7 +1121,7 @@ class Enemy {
           );
         }
         if (this.phase === 2) {
-          shockwaves.push(new Shockwave(this.x, this.y, 300, 32, '#e11d48'));
+          shockwaves.push(new Shockwave(this.x, this.y, 320, 32, '#e11d48'));
         }
       }
     } else {
@@ -1156,13 +1185,11 @@ class Enemy {
       ctx.fill();
     }
 
-    // Blind effect icon
     if (this.blindTimer > 0) {
       ctx.font = '16px sans-serif';
       ctx.fillText('💫', -8, -this.radius - 24);
     }
 
-    // Health Bar
     if (this.hp < this.maxHp || this.type === 'boss' || this.type === 'midboss') {
       const barW = this.radius * 2 + 16;
       const barH = (this.type === 'boss' || this.type === 'midboss') ? 8 : 6;
@@ -1197,7 +1224,7 @@ function drawBubbleRect(ctx, x, y, width, height, radius) {
   }
 }
 
-// --- Player Class with Unique Styles & Skills ---
+// --- Player Class with Open World Coordinates ---
 class Player {
   constructor(x, y, charType = 'chiikawa', spriteImg) {
     this.x = x;
@@ -1206,12 +1233,11 @@ class Player {
     this.sprite = spriteImg;
     this.radius = 26;
 
-    // Distinct character properties
     if (charType === 'usagi') {
       this.maxHp = 95;
       this.hp = 95;
       this.speed = 5.8;
-      this.baseDamage = 22; // Multi-pellet shotgun
+      this.baseDamage = 22;
       this.attackCooldown = 0.22;
       this.bulletColor = '#f59e0b';
       this.nameTag = '🐰 우사기';
@@ -1228,7 +1254,6 @@ class Player {
       this.nameTag = '🐱 하치와레';
       this.positiveTimer = 0;
     } else {
-      // Chiikawa
       this.maxHp = 110;
       this.hp = 110;
       this.speed = 5.2;
@@ -1245,7 +1270,6 @@ class Player {
     this.pierce = charType === 'hachiware' ? 2 : 1;
     this.lifesteal = 0;
 
-    // Buffs
     this.hasShield = false;
     this.doubleDamageTimer = 0;
 
@@ -1258,7 +1282,6 @@ class Player {
     this.isMoving = false;
     this.stepDustTimer = 0;
 
-    // Dash
     this.dashCooldown = 2.0;
     this.dashTimer = 0;
     this.isDashing = false;
@@ -1268,7 +1291,6 @@ class Player {
     this.dashVy = 0;
     this.afterimages = [];
 
-    // Skill Cooldowns
     this.cdQ = 5.5;
     this.timerQ = 0;
     this.cdE = 12.0;
@@ -1276,12 +1298,11 @@ class Player {
     this.cdR = 20.0;
     this.timerR = 0;
 
-    // Unique active skill states
-    this.isTornadoSpinning = false; // Usagi E
+    this.isTornadoSpinning = false;
     this.tornadoTimer = 0;
-    this.isTearShieldActive = false; // Chiikawa E
+    this.isTearShieldActive = false;
     this.tearShieldTimer = 0;
-    this.isFiringLaser = false; // Chiikawa R
+    this.isFiringLaser = false;
     this.laserTimer = 0;
     this.laserDuration = 2.0;
 
@@ -1313,7 +1334,7 @@ class Player {
     }
   }
 
-  update(dt, keys, mouseX, mouseY, particles, grenades, boomerangs, meteors, canvasWidth, canvasHeight, enemies, damageTexts) {
+  update(dt, keys, worldMouseX, worldMouseY, particles, grenades, boomerangs, meteors, worldWidth, worldHeight, enemies, damageTexts) {
     if (this.dashTimer > 0) this.dashTimer -= dt;
     if (this.timerQ > 0) this.timerQ -= dt;
     if (this.timerE > 0) this.timerE -= dt;
@@ -1327,14 +1348,12 @@ class Player {
     if (this.dialogueLife > 0) this.dialogueLife -= dt;
     if (this.dialoguePopAnim < 1.0) this.dialoguePopAnim = Math.min(1.0, this.dialoguePopAnim + dt * 6);
 
-    // Chiikawa Tear Shield Orbit update
     if (this.isTearShieldActive) {
       this.tearShieldTimer -= dt;
       this.tearOrbitAngle += dt * 5;
       if (this.tearShieldTimer <= 0) {
         this.isTearShieldActive = false;
       }
-      // Shield contact damage to close enemies
       enemies.forEach(e => {
         const d = Math.hypot(e.x - this.x, e.y - this.y);
         if (d < 70 + e.radius) {
@@ -1345,7 +1364,6 @@ class Player {
       });
     }
 
-    // Usagi Madness decay
     if (this.charType === 'usagi' && this.madnessTimer > 0) {
       this.madnessTimer -= dt;
       if (this.madnessTimer <= 0) {
@@ -1354,7 +1372,6 @@ class Player {
       }
     }
 
-    // Usagi Tornado Spin Skill
     if (this.isTornadoSpinning) {
       this.tornadoTimer -= dt;
       this.invulnerableTimer = 0.2;
@@ -1378,12 +1395,10 @@ class Player {
       }
     }
 
-    // Hachiware Positive Vibe decay
     if (this.positiveTimer > 0) {
       this.positiveTimer -= dt;
     }
 
-    // Chiikawa Laser
     if (this.isFiringLaser) {
       this.laserTimer -= dt;
       if (this.laserTimer <= 0) {
@@ -1391,10 +1406,9 @@ class Player {
       }
     }
 
-    this.aimAngle = Math.atan2(mouseY - this.y, mouseX - this.x);
-    this.facingLeft = mouseX < this.x;
+    this.aimAngle = Math.atan2(worldMouseY - this.y, worldMouseX - this.x);
+    this.facingLeft = worldMouseX < this.x;
 
-    // Movement & Dash
     if (this.isDashing) {
       this.dashDurationTimer -= dt;
       this.x += this.dashVx * dt * 60;
@@ -1452,8 +1466,9 @@ class Player {
       this.y += this.vy * dt * 60;
     }
 
-    this.x = Math.max(this.radius + 10, Math.min(canvasWidth - this.radius - 10, this.x));
-    this.y = Math.max(this.radius + 10, Math.min(canvasHeight - this.radius - 10, this.y));
+    // Clamping to Large Open World Bounds
+    this.x = Math.max(this.radius + 30, Math.min(worldWidth - this.radius - 30, this.x));
+    this.y = Math.max(this.radius + 30, Math.min(worldHeight - this.radius - 30, this.y));
 
     for (let i = this.afterimages.length - 1; i >= 0; i--) {
       this.afterimages[i].life -= dt;
@@ -1510,7 +1525,6 @@ class Player {
     if (this.charType === 'chiikawa' && this.hp <= this.maxHp * 0.35) dmg *= 1.5;
 
     if (this.charType === 'usagi') {
-      // Dual Carrot Shotgun: 5~7 spread pellets
       const pellets = this.shotgunPellets + this.bulletCount - 1;
       const spread = 0.45;
       for (let i = 0; i < pellets; i++) {
@@ -1535,7 +1549,6 @@ class Player {
       this.madnessStacks = Math.min(5, this.madnessStacks + 1);
       this.madnessTimer = 2.5;
     } else if (this.charType === 'hachiware') {
-      // 3-way Piercing Blue Crescent Waves
       const count = 3 + this.bulletCount - 1;
       const spread = 0.22;
       for (let i = 0; i < count; i++) {
@@ -1558,7 +1571,6 @@ class Player {
         );
       }
     } else {
-      // Chiikawa 2-way Homing Star Burst
       const count = (this.isTearShieldActive ? 4 : 2) + this.bulletCount - 1;
       for (let i = 0; i < count; i++) {
         const off = (i - (count - 1) / 2) * 0.28;
@@ -1581,7 +1593,7 @@ class Player {
       }
     }
 
-    Sound.playShoot(this.charType, false);
+    Sound.playShoot(this.charType);
   }
 
   throwSkillQ(targetX, targetY, grenades, boomerangs, enemies, damageTexts) {
@@ -1589,7 +1601,6 @@ class Player {
     this.timerQ = this.cdQ;
 
     if (this.charType === 'usagi') {
-      // Triple Carrot Boomerangs
       for (let offset of [-0.3, 0, 0.3]) {
         const angle = Math.atan2(targetY - this.y, targetX - this.x) + offset;
         const tx = this.x + Math.cos(angle) * 450;
@@ -1598,7 +1609,6 @@ class Player {
       }
       this.say("우라라라-!! 당근 부메랑!", true);
     } else if (this.charType === 'hachiware') {
-      // Camera Flash Blind
       Sound.playCameraFlash();
       const flashAngle = Math.atan2(targetY - this.y, targetX - this.x);
       enemies.forEach(e => {
@@ -1618,7 +1628,6 @@ class Player {
       });
       this.say("카메라 플래시! 찰칵!", true);
     } else {
-      // Chiikawa Acorn Bomb
       grenades.push(new Grenade(this.x, this.y, targetX, targetY, 220 * this.damageMultiplier, 170));
       this.say("에잇... 특대 도토리 폭탄!", true);
     }
@@ -1629,19 +1638,16 @@ class Player {
     this.timerE = this.cdE;
 
     if (this.charType === 'usagi') {
-      // Spinning Usagi Tornado
       this.isTornadoSpinning = true;
       this.tornadoTimer = 3.2;
       this.say("우라라라라-!! 팽이 돌진-!!", true);
     } else if (this.charType === 'hachiware') {
-      // Guitar Serenade Heal & Knockback
       Sound.playGuitarChime();
       this.hp = Math.min(this.maxHp, this.hp + 30);
       damageTexts.push(new DamageText(this.x, this.y - 25, '🎵 ひとりごつ 연주! +30 HP', '#38bdf8', true));
       shockwaves.push(new Shockwave(this.x, this.y, 220, 45, '#38bdf8'));
       this.say("난또까나레-!! 기타 연주 시작!", true);
     } else {
-      // Chiikawa Orbiting Tear Shields
       this.isTearShieldActive = true;
       this.tearShieldTimer = 7.0;
       for (let i = 0; i < 20; i++) {
@@ -1657,17 +1663,14 @@ class Player {
     this.timerR = this.cdR;
 
     if (this.charType === 'usagi') {
-      // Giant Carrot Meteor
       Sound.playMeteor();
       meteors.push(new CarrotMeteor(this.x + Math.cos(this.aimAngle) * 200, this.y + Math.sin(this.aimAngle) * 200, 700 * this.damageMultiplier, 280));
       this.say("야하-!! 초대형 당근 메테오-!!", true);
     } else if (this.charType === 'hachiware') {
-      // Nantokanare Mega Slash
       Sound.playDash();
       shockwaves.push(new Shockwave(this.x, this.y, 380, 150 * this.damageMultiplier, '#38bdf8'));
       this.say("난또까나레-!! 메가 스타 슬래시!", true);
     } else {
-      // Chiikawa Rainbow Star Laser
       this.isFiringLaser = true;
       this.laserTimer = this.laserDuration;
       Sound.playLaser();
@@ -1691,7 +1694,6 @@ class Player {
     ctx.save();
     ctx.translate(this.x, this.y);
 
-    // Orbiting Tear Shields (Chiikawa E)
     if (this.isTearShieldActive) {
       for (let i = 0; i < 4; i++) {
         const a = this.tearOrbitAngle + (Math.PI * 2 / 4) * i;
@@ -1708,7 +1710,6 @@ class Player {
       }
     }
 
-    // Shield Bubble (Item)
     if (this.hasShield) {
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 3;
@@ -1719,7 +1720,6 @@ class Player {
       ctx.stroke();
     }
 
-    // Double Damage Flame (Item)
     if (this.doubleDamageTimer > 0) {
       ctx.strokeStyle = '#ef4444';
       ctx.lineWidth = 3;
@@ -1761,13 +1761,11 @@ class Player {
     ctx.rotate(weaponAngle);
 
     if (this.charType === 'usagi') {
-      // Golden Carrot Batons
       ctx.fillStyle = '#f59e0b';
       ctx.fillRect(0, -4, 22, 8);
       ctx.fillStyle = '#22c55e';
       ctx.fillRect(-4, -5, 6, 10);
     } else if (this.charType === 'hachiware') {
-      // Blue Sasumata Sword
       ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -1778,7 +1776,6 @@ class Player {
       ctx.arc(24, 0, 8, -Math.PI / 2, Math.PI / 2);
       ctx.stroke();
     } else {
-      // Pink Star Sasumata
       ctx.strokeStyle = '#94a3b8';
       ctx.lineWidth = 3;
       ctx.beginPath();
@@ -1793,7 +1790,6 @@ class Player {
 
     ctx.restore();
 
-    // Dialogue Speech Bubble
     if (this.dialogueLife > 0 && this.currentDialogue) {
       ctx.save();
       ctx.translate(this.x, this.y - this.radius - 18);
@@ -1830,11 +1826,20 @@ class Player {
   }
 }
 
-// --- Main Game Orchestrator ---
+// --- Main Game Orchestrator with Large World & Minimap ---
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
     this.ctx = this.canvas.getContext('2d');
+
+    this.minimapCanvas = document.getElementById('minimapCanvas');
+    this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
+
+    // Vast Open World Map Dimensions (3600 x 3600)
+    this.worldWidth = 3600;
+    this.worldHeight = 3600;
+
+    this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
     this.selectedChar = 'chiikawa';
     this.difficulty = 'hard';
@@ -1872,6 +1877,10 @@ class Game {
     this.sprites.bg_ruins.src = 'assets/tower_bg.jpg';
     this.sprites.bg_sanctuary.src = 'assets/trio_banner.jpg';
 
+    // Static Map Environment Decorations (Flowers, trees, mushroom spots)
+    this.decorations = [];
+    this.generateDecorations();
+
     this.keys = {};
     this.mouse = { x: 0, y: 0, isDown: false };
     this.lastTime = 0;
@@ -1889,7 +1898,6 @@ class Game {
     this.spawnTimer = 0;
     this.bossSpawned = false;
 
-    // Combo system
     this.comboCount = 0;
     this.comboTimer = 0;
 
@@ -1915,6 +1923,19 @@ class Game {
     this.updateSkillBarUI(this.selectedChar);
     this.resize();
     window.addEventListener('resize', () => this.resize());
+  }
+
+  generateDecorations() {
+    this.decorations = [];
+    const emojis = ['🌸', '🍄', '🌼', '🌿', '🌰', '🌲', '🪨', '⛺'];
+    for (let i = 0; i < 160; i++) {
+      this.decorations.push({
+        x: 100 + Math.random() * (this.worldWidth - 200),
+        y: 100 + Math.random() * (this.worldHeight - 200),
+        emoji: emojis[Math.floor(Math.random() * emojis.length)],
+        size: 20 + Math.floor(Math.random() * 16)
+      });
+    }
   }
 
   resize() {
@@ -1998,11 +2019,14 @@ class Game {
       }
 
       if (this.isRunning && !this.isPaused && !this.isLevelingUp && this.player) {
+        const worldMouseX = this.mouse.x + this.camera.x;
+        const worldMouseY = this.mouse.y + this.camera.y;
+
         if (e.code === 'Space') {
           e.preventDefault();
           this.player.dash(this.keys);
         } else if (e.code === 'KeyQ') {
-          this.player.throwSkillQ(this.mouse.x, this.mouse.y, this.grenades, this.boomerangs, this.enemies, this.damageTexts);
+          this.player.throwSkillQ(worldMouseX, worldMouseY, this.grenades, this.boomerangs, this.enemies, this.damageTexts);
         } else if (e.code === 'KeyE') {
           this.player.activateSkillE(this.particles, this.damageTexts, this.shockwaves);
         } else if (e.code === 'KeyR') {
@@ -2070,29 +2094,29 @@ class Game {
         Sound.bgmEnabled = true;
         Sound.startBGM();
         updateBgmBtnText();
-        this.damageTexts.push(new DamageText(this.canvas.width / 2, 200, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
+        this.damageTexts.push(new DamageText(this.player?.x || 1800, (this.player?.y || 1800) - 40, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
       } else {
         if (Sound.currentTrackIdx === 0) {
           Sound.switchNextTrack();
           updateBgmBtnText();
-          this.damageTexts.push(new DamageText(this.canvas.width / 2, 200, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
+          this.damageTexts.push(new DamageText(this.player?.x || 1800, (this.player?.y || 1800) - 40, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
         } else {
           Sound.bgmEnabled = false;
           Sound.stopBGM();
           Sound.currentTrackIdx = 0;
           updateBgmBtnText();
-          this.damageTexts.push(new DamageText(this.canvas.width / 2, 200, '🔇 BGM 꺼짐', '#94a3b8', true));
+          this.damageTexts.push(new DamageText(this.player?.x || 1800, (this.player?.y || 1800) - 40, '🔇 BGM 꺼짐', '#94a3b8', true));
         }
       }
     });
   }
 
   getChapterInfo(wave) {
-    if (wave <= 5) return { num: 1, name: '🌸 제1장: 평화로운 숲속', bgKey: 'bg_forest' };
-    if (wave <= 10) return { num: 2, name: '🍄 제2장: 으스스한 버섯 동굴', bgKey: 'bg_cave' };
-    if (wave <= 15) return { num: 3, name: '🏰 제3장: 버려진 유적 & 환상의 관', bgKey: 'bg_ruins' };
-    if (wave <= 20) return { num: 4, name: '👑 제4장: 최심부 아노코의 성역', bgKey: 'bg_sanctuary' };
-    return { num: 5, name: '🔥 무한 나이트메어 모드', bgKey: 'bg_sanctuary' };
+    if (wave <= 5) return { num: 1, name: '🌸 제1장: 광활한 치이카와 숲속', bgKey: 'bg_forest' };
+    if (wave <= 10) return { num: 2, name: '🍄 제2장: 거대 버섯 동굴 유적', bgKey: 'bg_cave' };
+    if (wave <= 15) return { num: 3, name: '🏰 제3장: 환상의 관 대미궁', bgKey: 'bg_ruins' };
+    if (wave <= 20) return { num: 4, name: '👑 제4장: 최심부 아노코의 대성역', bgKey: 'bg_sanctuary' };
+    return { num: 5, name: '🔥 무한 나이트메어 오픈월드', bgKey: 'bg_sanctuary' };
   }
 
   start() {
@@ -2124,8 +2148,15 @@ class Game {
     this.damageTexts = [];
     this.screenShake = 0;
 
+    // Start in the center of the vast world (1800, 1800)
+    const startX = this.worldWidth / 2;
+    const startY = this.worldHeight / 2;
     const sprite = this.sprites[this.selectedChar] || this.sprites.chiikawa;
-    this.player = new Player(this.canvas.width / 2, this.canvas.height / 2, this.selectedChar, sprite);
+    this.player = new Player(startX, startY, this.selectedChar, sprite);
+
+    // Initial camera placement
+    this.camera.x = startX - this.canvas.width / 2;
+    this.camera.y = startY - this.canvas.height / 2;
 
     const avatarImg = document.getElementById('avatar-img');
     avatarImg.src = `assets/${this.selectedChar}.png`;
@@ -2145,7 +2176,7 @@ class Game {
 
   announceWave(w) {
     const waveNames = {
-      1: "🌸 WAVE 1: 숲속 정찰 (날벌레 몬스터)",
+      1: "🌸 WAVE 1: 광활한 숲속 정찰 (날벌레 몬스터)",
       2: "🍄 WAVE 2: 버섯 숲의 습격 (숲속 고블린의 기습)",
       3: "⚡ WAVE 3: 번개 풍뎅이 & 날벌레 편대 출현!",
       4: "⚔️ WAVE 4: 장갑 키메라의 포효",
@@ -2168,11 +2199,11 @@ class Game {
     };
 
     const title = waveNames[w] || `🔥 WAVE ${w}: 무한 나이트메어 모드 🔥`;
-    this.damageTexts.push(new DamageText(this.canvas.width / 2, 160, title, '#ff4081', true));
+    this.damageTexts.push(new DamageText(this.player?.x || 1800, (this.player?.y || 1800) - 80, title, '#ff4081', true));
 
     if (w === 5 || w === 10 || w === 15 || w === 20) {
       Sound.playBossWarning();
-      this.screenShake = 12;
+      this.screenShake = 14;
     }
   }
 
@@ -2190,15 +2221,13 @@ class Game {
   }
 
   spawnEnemy() {
-    const margin = 80;
-    let x, y;
-    if (Math.random() < 0.5) {
-      x = Math.random() < 0.5 ? -margin : this.canvas.width + margin;
-      y = Math.random() * this.canvas.height;
-    } else {
-      x = Math.random() * this.canvas.width;
-      y = Math.random() < 0.5 ? -margin : this.canvas.height + margin;
-    }
+    if (!this.player) return;
+
+    // Spawn around player in a ring outside screen (750 ~ 1100 px distance)
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 750 + Math.random() * 350;
+    const x = Math.max(60, Math.min(this.worldWidth - 60, this.player.x + Math.cos(angle) * dist));
+    const y = Math.max(60, Math.min(this.worldHeight - 60, this.player.y + Math.sin(angle) * dist));
 
     const roll = Math.random();
     let type = 'bug';
@@ -2230,15 +2259,15 @@ class Game {
 
   spawnMidBoss(wave) {
     this.bossSpawned = true;
-    const x = this.canvas.width / 2;
-    const y = -100;
+    const x = this.player ? this.player.x : this.worldWidth / 2;
+    const y = Math.max(100, (this.player ? this.player.y : this.worldHeight / 2) - 650);
     this.enemies.push(new Enemy(x, y, 'midboss', wave, this.getDiffConfig()));
   }
 
   spawnFinalBoss(wave) {
     this.bossSpawned = true;
-    const x = this.canvas.width / 2;
-    const y = -100;
+    const x = this.player ? this.player.x : this.worldWidth / 2;
+    const y = Math.max(100, (this.player ? this.player.y : this.worldHeight / 2) - 650);
     this.enemies.push(new Enemy(x, y, 'boss', wave, this.getDiffConfig()));
   }
 
@@ -2357,7 +2386,6 @@ class Game {
     document.getElementById('hud-score').textContent = Math.round(this.score);
     document.getElementById('hud-kills').textContent = this.kills;
 
-    // Combo UI
     const comboBadge = document.getElementById('hud-combo');
     if (comboBadge) {
       if (this.comboCount >= 3) {
@@ -2368,7 +2396,6 @@ class Game {
       }
     }
 
-    // Active Buffs UI
     const buffContainer = document.getElementById('hud-buffs');
     if (buffContainer) {
       let html = '';
@@ -2425,24 +2452,36 @@ class Game {
       this.spawnEnemy();
     }
 
+    // World coordinates conversion for mouse
+    const worldMouseX = this.mouse.x + this.camera.x;
+    const worldMouseY = this.mouse.y + this.camera.y;
+
     if (this.mouse.isDown) {
-      this.player.shoot(this.mouse.x, this.mouse.y, this.projectiles, this.particles);
+      this.player.shoot(worldMouseX, worldMouseY, this.projectiles, this.particles);
     }
 
     this.player.update(
       dt,
       this.keys,
-      this.mouse.x,
-      this.mouse.y,
+      worldMouseX,
+      worldMouseY,
       this.particles,
       this.grenades,
       this.boomerangs,
       this.meteors,
-      this.canvas.width,
-      this.canvas.height,
+      this.worldWidth,
+      this.worldHeight,
       this.enemies,
       this.damageTexts
     );
+
+    // Smooth Camera Follow
+    const targetCamX = this.player.x - this.canvas.width / 2;
+    const targetCamY = this.player.y - this.canvas.height / 2;
+    this.camera.x += (targetCamX - this.camera.x) * 0.12;
+    this.camera.y += (targetCamY - this.camera.y) * 0.12;
+    this.camera.x = Math.max(0, Math.min(this.worldWidth - this.canvas.width, this.camera.x));
+    this.camera.y = Math.max(0, Math.min(this.worldHeight - this.canvas.height, this.camera.y));
 
     // Laser damage (Chiikawa R)
     if (this.player.isFiringLaser) {
@@ -2450,8 +2489,8 @@ class Game {
       const laserAngle = this.player.aimAngle;
       const lx = this.player.x;
       const ly = this.player.y;
-      const laserLength = 1400;
-      const laserWidth = 44;
+      const laserLength = 1600;
+      const laserWidth = 46;
 
       if (Math.random() < 0.6) {
         const dist = Math.random() * 800;
@@ -2478,7 +2517,7 @@ class Game {
       });
     }
 
-    // Update Boomerangs (Usagi Q)
+    // Update Boomerangs
     for (let i = this.boomerangs.length - 1; i >= 0; i--) {
       const b = this.boomerangs[i];
       b.update(dt, this.player);
@@ -2499,7 +2538,7 @@ class Game {
       }
     }
 
-    // Update Meteors (Usagi R)
+    // Update Meteors
     for (let i = this.meteors.length - 1; i >= 0; i--) {
       const m = this.meteors[i];
       m.update(dt);
@@ -2571,7 +2610,7 @@ class Game {
       const p = this.projectiles[i];
       p.update(dt, this.player, this.enemies);
 
-      if (p.distance >= p.maxDistance || p.x < -100 || p.x > this.canvas.width + 100 || p.y < -100 || p.y > this.canvas.height + 100 || p.life <= 0) {
+      if (p.distance >= p.maxDistance || p.x < -100 || p.x > this.worldWidth + 100 || p.y < -100 || p.y > this.worldHeight + 100 || p.life <= 0) {
         this.projectiles.splice(i, 1);
         continue;
       }
@@ -2689,7 +2728,6 @@ class Game {
         this.comboCount++;
         this.comboTimer = 2.5;
 
-        // Hachiware positive trigger
         if (this.player.charType === 'hachiware' && Math.random() < 0.15) {
           this.player.positiveTimer = 3.0;
           this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '✨ 난또까나레 발동!', '#38bdf8', true));
@@ -2697,7 +2735,6 @@ class Game {
 
         this.expGems.push(new ExpGem(enemy.x, enemy.y, enemy.xp));
 
-        // Random Field Item Drops
         const isBoss = enemy.type === 'boss' || enemy.type === 'midboss';
         if (isBoss) {
           this.fieldItems.push(new FieldItem(enemy.x, enemy.y, 'pudding'));
@@ -2772,7 +2809,27 @@ class Game {
       this.ctx.translate(sx, sy);
     }
 
+    // Camera transform for World Rendering
+    this.ctx.save();
+    this.ctx.translate(-this.camera.x, -this.camera.y);
+
     this.drawBackground();
+
+    // World Map Decorations
+    this.ctx.font = '22px sans-serif';
+    this.ctx.textAlign = 'center';
+    this.ctx.textBaseline = 'middle';
+    this.decorations.forEach(dec => {
+      // Only draw if inside/near camera viewport
+      if (
+        dec.x > this.camera.x - 50 &&
+        dec.x < this.camera.x + this.canvas.width + 50 &&
+        dec.y > this.camera.y - 50 &&
+        dec.y < this.camera.y + this.canvas.height + 50
+      ) {
+        this.ctx.fillText(dec.emoji, dec.x, dec.y);
+      }
+    });
 
     this.expGems.forEach((gem) => gem.draw(this.ctx));
     this.fieldItems.forEach((item) => item.draw(this.ctx));
@@ -2791,35 +2848,62 @@ class Game {
       this.player.draw(this.ctx);
     }
 
-    this.drawRadarPointers();
-
     this.particles.forEach((pt) => pt.draw(this.ctx));
     this.damageTexts.forEach((dt) => dt.draw(this.ctx));
+
+    // World Boundary Barrier Glow
+    this.drawWorldBoundaries();
+
+    this.ctx.restore(); // Restore world camera
+
+    // Screen Space Rendering (Radar, UI)
+    this.drawRadarPointers();
+    this.drawMinimap();
 
     this.ctx.restore();
   }
 
+  drawWorldBoundaries() {
+    this.ctx.save();
+    this.ctx.strokeStyle = '#ff4081';
+    this.ctx.lineWidth = 6;
+    this.ctx.shadowColor = '#ff4081';
+    this.ctx.shadowBlur = 18;
+    this.ctx.strokeRect(20, 20, this.worldWidth - 40, this.worldHeight - 40);
+
+    // Boundary corner flags
+    this.ctx.fillStyle = '#ffccd5';
+    this.ctx.font = 'bold 16px "Jua", sans-serif';
+    this.ctx.fillText('🌸 [마을 결계 끝자락]', 100, 50);
+    this.ctx.fillText('🌸 [마을 결계 끝자락]', this.worldWidth - 160, 50);
+    this.ctx.fillText('🌸 [마을 결계 끝자락]', 100, this.worldHeight - 40);
+    this.ctx.fillText('🌸 [마을 결계 끝자락]', this.worldWidth - 160, this.worldHeight - 40);
+    this.ctx.restore();
+  }
+
   drawRadarPointers() {
-    // Show arrow pointing to off-screen bosses or elite monsters
+    if (!this.player) return;
     this.enemies.forEach(e => {
       if (e.type === 'boss' || e.type === 'midboss' || e.type === 'iron_chimera') {
-        const isOffscreen = e.x < 0 || e.x > this.canvas.width || e.y < 0 || e.y > this.canvas.height;
-        if (isOffscreen && this.player) {
+        const sx = e.x - this.camera.x;
+        const sy = e.y - this.camera.y;
+        const isOffscreen = sx < 30 || sx > this.canvas.width - 30 || sy < 30 || sy > this.canvas.height - 30;
+        if (isOffscreen) {
           const angle = Math.atan2(e.y - this.player.y, e.x - this.player.x);
-          const rx = Math.max(40, Math.min(this.canvas.width - 40, this.player.x + Math.cos(angle) * 350));
-          const ry = Math.max(40, Math.min(this.canvas.height - 40, this.player.y + Math.sin(angle) * 350));
+          const rx = Math.max(50, Math.min(this.canvas.width - 50, this.canvas.width / 2 + Math.cos(angle) * (this.canvas.width * 0.42)));
+          const ry = Math.max(50, Math.min(this.canvas.height - 50, this.canvas.height / 2 + Math.sin(angle) * (this.canvas.height * 0.42)));
 
           this.ctx.save();
           this.ctx.translate(rx, ry);
           this.ctx.rotate(angle);
           this.ctx.fillStyle = e.type === 'boss' ? '#e11d48' : '#f97316';
           this.ctx.shadowColor = this.ctx.fillStyle;
-          this.ctx.shadowBlur = 10;
+          this.ctx.shadowBlur = 12;
           this.ctx.beginPath();
-          this.ctx.moveTo(14, 0);
-          this.ctx.lineTo(-8, -9);
+          this.ctx.moveTo(16, 0);
+          this.ctx.lineTo(-10, -10);
           this.ctx.lineTo(-4, 0);
-          this.ctx.lineTo(-8, 9);
+          this.ctx.lineTo(-10, 10);
           this.ctx.closePath();
           this.ctx.fill();
           this.ctx.restore();
@@ -2828,32 +2912,116 @@ class Game {
     });
   }
 
+  drawMinimap() {
+    if (!this.minimapCtx || !this.player) return;
+    const mCtx = this.minimapCtx;
+    const mW = this.minimapCanvas.width;
+    const mH = this.minimapCanvas.height;
+
+    mCtx.clearRect(0, 0, mW, mH);
+
+    // Background
+    mCtx.fillStyle = '#181528';
+    mCtx.fillRect(0, 0, mW, mH);
+
+    const scaleX = mW / this.worldWidth;
+    const scaleY = mH / this.worldHeight;
+
+    // Viewport camera rect
+    mCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    mCtx.lineWidth = 1;
+    mCtx.strokeRect(this.camera.x * scaleX, this.camera.y * scaleY, this.canvas.width * scaleX, this.canvas.height * scaleY);
+
+    // World border
+    mCtx.strokeStyle = '#ffccd5';
+    mCtx.lineWidth = 2;
+    mCtx.strokeRect(1, 1, mW - 2, mH - 2);
+
+    // Draw Items on minimap
+    mCtx.fillStyle = '#f59e0b';
+    this.fieldItems.forEach(item => {
+      mCtx.beginPath();
+      mCtx.arc(item.x * scaleX, item.y * scaleY, 2, 0, Math.PI * 2);
+      mCtx.fill();
+    });
+
+    // Draw Enemies on minimap
+    this.enemies.forEach(e => {
+      if (e.type === 'boss') {
+        mCtx.fillStyle = '#e11d48';
+        mCtx.beginPath();
+        mCtx.arc(e.x * scaleX, e.y * scaleY, 5, 0, Math.PI * 2);
+        mCtx.fill();
+      } else if (e.type === 'midboss' || e.type === 'iron_chimera') {
+        mCtx.fillStyle = '#f97316';
+        mCtx.beginPath();
+        mCtx.arc(e.x * scaleX, e.y * scaleY, 3.5, 0, Math.PI * 2);
+        mCtx.fill();
+      } else {
+        mCtx.fillStyle = '#a855f7';
+        mCtx.beginPath();
+        mCtx.arc(e.x * scaleX, e.y * scaleY, 1.5, 0, Math.PI * 2);
+        mCtx.fill();
+      }
+    });
+
+    // Draw Player dot
+    const px = this.player.x * scaleX;
+    const py = this.player.y * scaleY;
+    mCtx.fillStyle = this.selectedChar === 'usagi' ? '#eab308' : (this.selectedChar === 'hachiware' ? '#38bdf8' : '#ff4081');
+    mCtx.shadowColor = '#ffffff';
+    mCtx.shadowBlur = 4;
+    mCtx.beginPath();
+    mCtx.arc(px, py, 3.5, 0, Math.PI * 2);
+    mCtx.fill();
+  }
+
   drawBackground() {
     const chInfo = this.getChapterInfo(this.wave);
     const bgSprite = this.sprites[chInfo.bgKey];
 
+    // Draw repeating atmospheric tiles across the 3600x3600 world
     if (bgSprite && bgSprite.complete && bgSprite.naturalWidth > 0) {
       this.ctx.save();
-      this.ctx.globalAlpha = 0.28;
-      this.ctx.drawImage(bgSprite, 0, 0, this.canvas.width, this.canvas.height);
+      this.ctx.globalAlpha = 0.25;
+      const tileW = 900;
+      const tileH = 900;
+      for (let x = 0; x < this.worldWidth; x += tileW) {
+        for (let y = 0; y < this.worldHeight; y += tileH) {
+          if (
+            x + tileW > this.camera.x &&
+            x < this.camera.x + this.canvas.width &&
+            y + tileH > this.camera.y &&
+            y < this.camera.y + this.canvas.height
+          ) {
+            this.ctx.drawImage(bgSprite, x, y, tileW, tileH);
+          }
+        }
+      }
       this.ctx.restore();
     }
 
+    // Grid lines for movement reference
     const tileSize = 80;
     this.ctx.save();
     this.ctx.strokeStyle = 'rgba(255, 209, 220, 0.08)';
     this.ctx.lineWidth = 1;
 
-    for (let x = 0; x < this.canvas.width; x += tileSize) {
+    const startX = Math.floor(this.camera.x / tileSize) * tileSize;
+    const endX = this.camera.x + this.canvas.width;
+    const startY = Math.floor(this.camera.y / tileSize) * tileSize;
+    const endY = this.camera.y + this.canvas.height;
+
+    for (let x = startX; x < endX; x += tileSize) {
       this.ctx.beginPath();
-      this.ctx.moveTo(x, 0);
-      this.ctx.lineTo(x, this.canvas.height);
+      this.ctx.moveTo(x, this.camera.y);
+      this.ctx.lineTo(x, this.camera.y + this.canvas.height);
       this.ctx.stroke();
     }
-    for (let y = 0; y < this.canvas.height; y += tileSize) {
+    for (let y = startY; y < endY; y += tileSize) {
       this.ctx.beginPath();
-      this.ctx.moveTo(0, y);
-      this.ctx.lineTo(this.canvas.width, y);
+      this.ctx.moveTo(this.camera.x, y);
+      this.ctx.lineTo(this.camera.x + this.canvas.width, y);
       this.ctx.stroke();
     }
 
@@ -2866,7 +3034,7 @@ class Game {
       const lx = this.player.x || 0;
       const ly = this.player.y || 0;
       const angle = this.player.aimAngle || 0;
-      const len = 1400;
+      const len = 1600;
 
       this.ctx.save();
       this.ctx.translate(lx, ly);
