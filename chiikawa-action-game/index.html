@@ -160,10 +160,79 @@
       </div>
     </div>
 
+    <!-- 📱 Mobile Virtual Joystick & Touch Controls -->
+    <div id="touch-controls-container" class="touch-controls-container">
+      <!-- Left Joystick Zone -->
+      <div id="touch-joystick-zone" class="touch-joystick-zone">
+        <div id="joystick-base" class="joystick-base">
+          <div id="joystick-knob" class="joystick-knob">🌸</div>
+        </div>
+      </div>
+
+      <!-- Right Touch Action Cluster -->
+      <div id="touch-action-buttons" class="touch-action-buttons">
+        <!-- Attack Button -->
+        <button id="touch-btn-atk" class="touch-btn touch-btn-atk" title="기본 공격 (터치/홀드)">
+          <span class="t-icon" id="t-icon-atk">⭐</span>
+          <span class="t-label">공격</span>
+        </button>
+
+        <!-- Dash Button -->
+        <button id="touch-btn-dash" class="touch-btn touch-btn-dash" title="대시 회피">
+          <span class="t-icon">✨</span>
+          <span class="t-label">대시</span>
+          <div class="touch-cd-overlay" id="touch-cd-space"></div>
+        </button>
+
+        <!-- Q Skill -->
+        <button id="touch-btn-q" class="touch-btn touch-btn-skill" title="Q 스킬">
+          <span class="t-icon" id="t-icon-q">🌰</span>
+          <span class="t-label">Q</span>
+          <div class="touch-cd-overlay" id="touch-cd-q"></div>
+        </button>
+
+        <!-- E Skill / Interact -->
+        <button id="touch-btn-e" class="touch-btn touch-btn-skill" title="E 스킬 / 상호작용">
+          <span class="t-icon" id="t-icon-e">💖</span>
+          <span class="t-label" id="t-label-e">E</span>
+          <div class="touch-cd-overlay" id="touch-cd-e"></div>
+        </button>
+
+        <!-- R Ultimate Skill (Large Glowing) -->
+        <button id="touch-btn-r" class="touch-btn touch-btn-ult" title="R 궁극기">
+          <span class="t-icon" id="t-icon-r">🌈</span>
+          <span class="t-label">ULT (R)</span>
+          <div class="touch-cd-overlay" id="touch-cd-r"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- 🎬 Anime Style Skill Cut-in Banner Overlay -->
+    <div id="skill-cutin-overlay" class="skill-cutin-overlay">
+      <div class="cutin-speedlines"></div>
+      <div class="cutin-backdrop"></div>
+      <div class="cutin-container">
+        <div class="cutin-char-wrapper">
+          <img id="cutin-char-img" src="assets/chiikawa.png" alt="Cut-in Character" class="cutin-char-img">
+        </div>
+        <div class="cutin-text-group">
+          <div class="cutin-char-title" id="cutin-char-title">🌸 용감한 치이카와</div>
+          <div class="cutin-skill-name" id="cutin-skill-name">초거대 레인보우 빔-!!</div>
+          <div class="cutin-quote" id="cutin-quote">"별님... 우리에게 힘을 줘-!!"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🔥 Fever Time Overlay & Edge Glow -->
+    <div id="fever-overlay" class="fever-overlay">
+      <div class="fever-screen-border"></div>
+      <div class="fever-banner-badge" id="fever-banner-badge">🔥 FEVER TIME! (x2 COINS &amp; SPEED) 🔥</div>
+    </div>
+
     <!-- Controls Guide Floating Panel -->
     <div id="controls-hint">
-      <span><b>[WASD]</b> 이동</span> • 
-      <span><b>[마우스]</b> 조준 & 사격</span> • 
+      <span><b>[WASD / 터치]</b> 이동</span> • 
+      <span><b>[마우스 / 터치]</b> 조준 &amp; 사격</span> • 
       <span><b>[Space]</b> 무적 회피</span> • 
       <span><b>[Q/E/R]</b> 스킬</span> • 
       <span><b>[P]</b> 일시정지</span>
@@ -442,6 +511,13 @@
             <span class="setting-label">✨ 고화질 파티클 &amp; 사쿠라 꽃잎</span>
             <label class="switch">
               <input type="checkbox" id="toggle-particles" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">📱 모바일 가상 조이스틱 &amp; 터치 버튼</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-touch-controls" checked>
               <span class="slider round"></span>
             </label>
           </div>

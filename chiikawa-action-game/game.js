@@ -54,10 +54,11 @@ class StorageManager {
         sfxVol: 0.9,
         screenShake: true,
         damageText: true,
-        highParticles: true
+        highParticles: true,
+        touchControls: true
       };
     } catch (e) {
-      return { bgmVol: 0.8, sfxVol: 0.9, screenShake: true, damageText: true, highParticles: true };
+      return { bgmVol: 0.8, sfxVol: 0.9, screenShake: true, damageText: true, highParticles: true, touchControls: true };
     }
   }
 
@@ -2256,6 +2257,7 @@ class Player {
 
     this.vx = 0;
     this.vy = 0;
+    this.joystickVector = { x: 0, y: 0 };
     this.facingLeft = false;
     this.aimAngle = 0;
     this.bobTimer = 0;
@@ -2637,6 +2639,11 @@ class Player {
       if (keys['KeyA'] || keys['ArrowLeft']) moveX -= 1;
       if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
 
+      if (this.joystickVector && (this.joystickVector.x !== 0 || this.joystickVector.y !== 0)) {
+        moveX += this.joystickVector.x;
+        moveY += this.joystickVector.y;
+      }
+
       const mag = Math.hypot(moveX, moveY);
       this.isMoving = mag > 0;
 
@@ -2648,9 +2655,11 @@ class Player {
         if (this.charType === 'momonga' && this.isGliding) curSpeed = 12.0;
         if (this.charType === 'rakko' && this.isDriving) curSpeed = 13.5;
         if (this.isTornadoSpinning) curSpeed *= 1.6;
+        if (window.GameInstance && window.GameInstance.feverTimer > 0) curSpeed *= 1.22;
 
-        this.vx = (moveX / mag) * curSpeed;
-        this.vy = (moveY / mag) * curSpeed;
+        const moveScale = Math.min(1.0, mag);
+        this.vx = (moveX / mag) * curSpeed * moveScale;
+        this.vy = (moveY / mag) * curSpeed * moveScale;
         this.walkTimer += dt * 10;
         this.bobTimer += dt * 8;
 
@@ -2980,6 +2989,7 @@ class Player {
     this.timerR = this.cdR;
 
     if (this.charType === 'usagi') {
+      window.GameInstance?.triggerSkillCutIn('usagi', '초특대 당근 메테오 강림-!!', '우뺘아아아-!! 뿌루루루-!!');
       for (let i = 0; i < 4; i++) {
         const ox = (Math.random() - 0.5) * 220;
         const oy = (Math.random() - 0.5) * 220;
@@ -2987,6 +2997,7 @@ class Player {
       }
       this.say("초특대 당근 메테오-!!", true);
     } else if (this.charType === 'hachiware') {
+      window.GameInstance?.triggerSkillCutIn('hachiware', '일격필살 메가 슬래시-!!', '어떻게든 될 거야! 난또까나레-!!');
       Sound.playLaser();
       const enemies = window.GameInstance?.enemies || [];
       enemies.forEach(e => {
@@ -2997,6 +3008,7 @@ class Player {
       damageTexts.push(new DamageText(this.x, this.y - 40, '⚡ 메가 슬래시 참격!', '#38bdf8', true));
       this.say("난또까나레 메가 슬래시-!!", true);
     } else if (this.charType === 'kurimanju') {
+      window.GameInstance?.triggerSkillCutIn('kurimanju', '안주 대잔치 메테오 폭격-!!', '크으으-!! 한잔 마시고 전부 쓸어버린다!');
       for (let i = 0; i < 6; i++) {
         const ox = (Math.random() - 0.5) * 320;
         const oy = (Math.random() - 0.5) * 320;
@@ -3004,6 +3016,7 @@ class Player {
       }
       this.say("안주가 쏟아진다-!!", true);
     } else if (this.charType === 'momonga') {
+      window.GameInstance?.triggerSkillCutIn('momonga', '치명적 매혹 하트 슈퍼노바-!!', '나를 잔뜩 칭찬해줘-!! 하트 대폭발!');
       Sound.playLaser();
       const projectiles = window.GameInstance?.projectiles || [];
       for (let i = 0; i < 32; i++) {
@@ -3020,6 +3033,7 @@ class Player {
       damageTexts.push(new DamageText(this.x, this.y - 40, '👑 하트 슈퍼노바 폭발!', '#f472b6', true));
       this.say("내 귀여움을 받아라-!!", true);
     } else if (this.charType === 'rakko') {
+      window.GameInstance?.triggerSkillCutIn('rakko', '스승의 슈퍼 드라이브 로드킬-!!', '칼날을 쥐고 전속력으로 돌진한다!');
       this.isDriving = true;
       this.driveTimer = 4.5;
       this.invulnerableTimer = 4.8;
@@ -3028,6 +3042,7 @@ class Player {
       damageTexts.push(new DamageText(this.x, this.y - 40, '🚗 드라이브 돌진 개시!', '#f59e0b', true));
       this.say("드라이브 출발이다! 다 비켜라!", true);
     } else {
+      window.GameInstance?.triggerSkillCutIn('chiikawa', '초거대 별똥별 레인보우 빔-!!', '별님... 우리에게 용기와 힘을 줘-!!');
       this.isFiringLaser = true;
       this.laserTimer = this.laserDuration;
       Sound.playLaser();
@@ -3378,6 +3393,9 @@ class Game {
 
     this.comboCount = 0;
     this.comboTimer = 0;
+    this.feverTimer = 0;
+    this.touchAttacking = false;
+    this.cutinTimerId = null;
 
     this.isRunning = false;
     this.isPaused = false;
@@ -3654,6 +3672,31 @@ class Game {
         StorageManager.saveSettings(this.settings);
       });
     }
+
+    const toggleParticles = document.getElementById('toggle-particles');
+    if (toggleParticles) {
+      toggleParticles.checked = this.settings.highParticles !== false;
+      toggleParticles.addEventListener('change', (e) => {
+        this.settings.highParticles = e.target.checked;
+        StorageManager.saveSettings(this.settings);
+      });
+    }
+
+    const toggleTouch = document.getElementById('toggle-touch-controls');
+    if (toggleTouch) {
+      toggleTouch.checked = this.settings.touchControls !== false;
+      toggleTouch.addEventListener('change', (e) => {
+        this.settings.touchControls = e.target.checked;
+        StorageManager.saveSettings(this.settings);
+        const touchContainer = document.getElementById('touch-controls-container');
+        if (touchContainer) {
+          if (this.settings.touchControls) touchContainer.classList.add('active');
+          else touchContainer.classList.remove('active');
+        }
+      });
+    }
+
+    this.initTouchControls();
   }
 
   updateStartScreenExamInfo() {
@@ -3924,6 +3967,15 @@ class Game {
       eName.textContent = '용기 방패각성'; eIcon.textContent = '💖';
       rName.textContent = '레인보우 빔'; rIcon.textContent = '🌈';
     }
+
+    const tIconAtk = document.getElementById('t-icon-atk');
+    const tIconQ = document.getElementById('t-icon-q');
+    const tIconE = document.getElementById('t-icon-e');
+    const tIconR = document.getElementById('t-icon-r');
+    if (tIconAtk) tIconAtk.textContent = normalIcon.textContent;
+    if (tIconQ) tIconQ.textContent = qIcon.textContent;
+    if (tIconE) tIconE.textContent = eIcon.textContent;
+    if (tIconR) tIconR.textContent = rIcon.textContent;
   }
 
   getChapterInfo(wave) {
@@ -4017,6 +4069,21 @@ class Game {
     setCD('cd-q', this.player.timerQ, this.player.cdQ);
     setCD('cd-e', this.player.timerE, this.player.cdE);
     setCD('cd-r', this.player.timerR, this.player.cdR);
+
+    // Touch controls cooldown overlays
+    setCD('touch-cd-space', this.player.dashTimer, this.player.dashCooldown);
+    setCD('touch-cd-q', this.player.timerQ, this.player.cdQ);
+    setCD('touch-cd-e', this.player.timerE, this.player.cdE);
+    setCD('touch-cd-r', this.player.timerR, this.player.cdR);
+
+    const tLabelE = document.getElementById('t-label-e');
+    if (tLabelE) {
+      if (this.nearbyInteractable) {
+        tLabelE.textContent = this.nearbyInteractable.type === 'ramen' ? '주문' : '뽑기';
+      } else {
+        tLabelE.textContent = 'E';
+      }
+    }
 
     // Coins in HUD
     const hudCoins = document.getElementById('hud-coins');
@@ -4416,10 +4483,41 @@ class Game {
       }
     }
 
+    // Fever Mode Timer & Trail Particles
+    if (this.feverTimer > 0) {
+      this.feverTimer -= dt;
+      if (this.feverTimer <= 0) {
+        this.feverTimer = 0;
+        const feverEl = document.getElementById('fever-overlay');
+        if (feverEl) feverEl.classList.remove('active');
+      } else if (Math.random() < 0.45 && this.player) {
+        const feverColors = ['#ff4081', '#facc15', '#38bdf8', '#a855f7', '#10b981'];
+        const col = feverColors[Math.floor(Math.random() * feverColors.length)];
+        this.particles.push(new Particle(this.player.x + (Math.random() * 24 - 12), this.player.y + (Math.random() * 24 - 12), (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 7, col, 0.35, 'star'));
+      }
+    }
+
     // Player Shooting & Update
     const wm = this.screenToWorld(this.mouse.x, this.mouse.y);
-    if (this.mouse.isDown) {
-      this.player.shoot(wm.x, wm.y, this.projectiles, this.particles);
+    if (this.mouse.isDown || this.touchAttacking) {
+      let targetX = wm.x;
+      let targetY = wm.y;
+      if (this.touchAttacking && this.enemies.length > 0) {
+        let nearest = null;
+        let minD = 650;
+        for (let e of this.enemies) {
+          const d = Math.hypot(e.x - this.player.x, e.y - this.player.y);
+          if (d < minD) { minD = d; nearest = e; }
+        }
+        if (nearest) {
+          targetX = nearest.x;
+          targetY = nearest.y;
+        } else if (this.player.joystickVector && (this.player.joystickVector.x !== 0 || this.player.joystickVector.y !== 0)) {
+          targetX = this.player.x + this.player.joystickVector.x * 250;
+          targetY = this.player.y + this.player.joystickVector.y * 250;
+        }
+      }
+      this.player.shoot(targetX, targetY, this.projectiles, this.particles);
     }
 
     this.player.update(
@@ -5284,6 +5382,238 @@ class Game {
     const modal = document.getElementById('gacha-modal');
     if (modal) modal.classList.remove('active');
     this.lastTime = performance.now();
+  }
+
+  addCombo(amount = 1) {
+    this.comboCount += amount;
+    this.comboTimer = 3.5;
+    const comboBadge = document.getElementById('hud-combo');
+    const comboNum = document.getElementById('combo-num');
+    if (comboBadge && comboNum) {
+      comboNum.textContent = this.comboCount;
+      comboBadge.style.display = this.comboCount >= 3 ? 'block' : 'none';
+    }
+
+    if (this.comboCount === 15 || this.comboCount === 35 || this.comboCount === 60) {
+      this.triggerFever();
+    }
+  }
+
+  triggerFever(duration = 9.0) {
+    this.feverTimer = duration;
+    Sound.playRelicFanfare();
+    const feverEl = document.getElementById('fever-overlay');
+    if (feverEl) feverEl.classList.add('active');
+    this.damageTexts.push(new DamageText(this.player.x, this.player.y - 50, '🔥 FEVER TIME! 2배 코인 & 점수 폭증!', '#f59e0b', true));
+    this.screenShake = 8;
+  }
+
+  triggerSkillCutIn(charType = 'chiikawa', skillName = '초거대 레인보우 빔-!!', quote = '별님... 우리에게 힘을 줘-!!') {
+    const cutin = document.getElementById('skill-cutin-overlay');
+    const img = document.getElementById('cutin-char-img');
+    const title = document.getElementById('cutin-char-title');
+    const nameEl = document.getElementById('cutin-skill-name');
+    const quoteEl = document.getElementById('cutin-quote');
+
+    if (!cutin) return;
+    if (img) img.src = `assets/${charType}.png`;
+
+    const titles = {
+      chiikawa: '🌸 용감한 치이카와',
+      hachiware: '🐱 긍정의 검사 하치와레',
+      usagi: '🐰 질주하는 광기 우사기',
+      kurimanju: '🌰 고독한 미식가 쿠리만주',
+      momonga: '🐿️ 매혹의 요정 모몬가',
+      rakko: '🦦 최강의 랭커 라코 스승'
+    };
+
+    if (title) title.textContent = titles[charType] || '🌸 영웅 치이카와';
+    if (nameEl) nameEl.textContent = skillName;
+    if (quoteEl) quoteEl.textContent = `"${quote}"`;
+
+    cutin.classList.add('active');
+
+    if (this.cutinTimerId) clearTimeout(this.cutinTimerId);
+    this.cutinTimerId = setTimeout(() => {
+      cutin.classList.remove('active');
+    }, 1400);
+  }
+
+  initTouchControls() {
+    const touchContainer = document.getElementById('touch-controls-container');
+    const joystickZone = document.getElementById('touch-joystick-zone');
+    const joystickBase = document.getElementById('joystick-base');
+    const joystickKnob = document.getElementById('joystick-knob');
+
+    const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 800);
+    if (isTouchDevice && this.settings.touchControls !== false) {
+      if (touchContainer) touchContainer.classList.add('active');
+    }
+
+    window.addEventListener('touchstart', () => {
+      if (this.settings.touchControls !== false && touchContainer && !touchContainer.classList.contains('active')) {
+        touchContainer.classList.add('active');
+      }
+    }, { once: true, passive: true });
+
+    let joystickTouchId = null;
+    let baseCenterX = 0;
+    let baseCenterY = 0;
+    const maxRadius = 45;
+
+    const updateBaseCenter = () => {
+      if (joystickBase) {
+        const rect = joystickBase.getBoundingClientRect();
+        baseCenterX = rect.left + rect.width / 2;
+        baseCenterY = rect.top + rect.height / 2;
+      }
+    };
+
+    const handleJoystickMove = (clientX, clientY) => {
+      const dx = clientX - baseCenterX;
+      const dy = clientY - baseCenterY;
+      const dist = Math.hypot(dx, dy);
+      const angle = Math.atan2(dy, dx);
+      const clampedDist = Math.min(dist, maxRadius);
+      const kx = Math.cos(angle) * clampedDist;
+      const ky = Math.sin(angle) * clampedDist;
+
+      if (joystickKnob) {
+        joystickKnob.style.transform = `translate(${kx}px, ${ky}px)`;
+      }
+
+      if (this.player) {
+        const intensity = clampedDist / maxRadius;
+        this.player.joystickVector = {
+          x: Math.cos(angle) * intensity,
+          y: Math.sin(angle) * intensity
+        };
+      }
+    };
+
+    if (joystickZone) {
+      joystickZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        updateBaseCenter();
+        const touch = e.changedTouches[0];
+        joystickTouchId = touch.identifier;
+        handleJoystickMove(touch.clientX, touch.clientY);
+      }, { passive: false });
+
+      joystickZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const t = e.changedTouches[i];
+          if (t.identifier === joystickTouchId) {
+            handleJoystickMove(t.clientX, t.clientY);
+            break;
+          }
+        }
+      }, { passive: false });
+
+      const resetJoystick = (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          if (e.changedTouches[i].identifier === joystickTouchId) {
+            joystickTouchId = null;
+            if (joystickKnob) joystickKnob.style.transform = 'translate(0px, 0px)';
+            if (this.player) this.player.joystickVector = { x: 0, y: 0 };
+            break;
+          }
+        }
+      };
+
+      joystickZone.addEventListener('touchend', resetJoystick, { passive: false });
+      joystickZone.addEventListener('touchcancel', resetJoystick, { passive: false });
+    }
+
+    // Right Action Buttons
+    const btnAtk = document.getElementById('touch-btn-atk');
+    if (btnAtk) {
+      btnAtk.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        btnAtk.classList.add('pressed');
+        this.touchAttacking = true;
+      }, { passive: false });
+
+      const stopAtk = (e) => {
+        e.preventDefault();
+        btnAtk.classList.remove('pressed');
+        this.touchAttacking = false;
+      };
+      btnAtk.addEventListener('touchend', stopAtk, { passive: false });
+      btnAtk.addEventListener('touchcancel', stopAtk, { passive: false });
+    }
+
+    const btnDash = document.getElementById('touch-btn-dash');
+    if (btnDash) {
+      btnDash.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        btnDash.classList.add('pressed');
+        if (this.isRunning && !this.isPaused && !this.isLevelingUp && this.player) {
+          this.player.dash(this.keys);
+        }
+      }, { passive: false });
+      btnDash.addEventListener('touchend', () => btnDash.classList.remove('pressed'), { passive: false });
+    }
+
+    const btnQ = document.getElementById('touch-btn-q');
+    if (btnQ) {
+      btnQ.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        btnQ.classList.add('pressed');
+        if (this.isRunning && !this.isPaused && !this.isLevelingUp && this.player) {
+          let tx = this.player.x + (this.player.facingLeft ? -220 : 220);
+          let ty = this.player.y;
+          if (this.enemies.length > 0) {
+            let nearest = null; let minD = 500;
+            for (let en of this.enemies) {
+              const d = Math.hypot(en.x - this.player.x, en.y - this.player.y);
+              if (d < minD) { minD = d; nearest = en; }
+            }
+            if (nearest) { tx = nearest.x; ty = nearest.y; }
+          }
+          this.player.useQ(tx, ty, this.grenades, this.boomerangs);
+        }
+      }, { passive: false });
+      btnQ.addEventListener('touchend', () => btnQ.classList.remove('pressed'), { passive: false });
+    }
+
+    const btnE = document.getElementById('touch-btn-e');
+    if (btnE) {
+      btnE.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        btnE.classList.add('pressed');
+        if (this.nearbyInteractable) {
+          if (this.nearbyInteractable.type === 'ramen') this.openRamenModal();
+          else if (this.nearbyInteractable.type === 'gacha') this.openGachaModal();
+        } else if (this.isRunning && !this.isPaused && !this.isLevelingUp && this.player) {
+          this.player.useE(this.damageTexts);
+        }
+      }, { passive: false });
+      btnE.addEventListener('touchend', () => btnE.classList.remove('pressed'), { passive: false });
+    }
+
+    const btnR = document.getElementById('touch-btn-r');
+    if (btnR) {
+      btnR.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        btnR.classList.add('pressed');
+        if (this.isRunning && !this.isPaused && !this.isLevelingUp && this.player) {
+          let tx = this.player.x + (this.player.facingLeft ? -300 : 300);
+          let ty = this.player.y;
+          if (this.enemies.length > 0) {
+            let nearest = null; let minD = 600;
+            for (let en of this.enemies) {
+              const d = Math.hypot(en.x - this.player.x, en.y - this.player.y);
+              if (d < minD) { minD = d; nearest = en; }
+            }
+            if (nearest) { tx = nearest.x; ty = nearest.y; }
+          }
+          this.player.useR(tx, ty, this.meteors, this.damageTexts);
+        }
+      }, { passive: false });
+      btnR.addEventListener('touchend', () => btnR.classList.remove('pressed'), { passive: false });
+    }
   }
 
   loop(timestamp) {

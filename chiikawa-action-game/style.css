@@ -1751,5 +1751,522 @@ input:checked + .slider:before {
   color: #475569;
 }
 
+/* ==========================================================================
+   📱 4단계: 모바일 가상 조이스틱 & 터치 컨트롤 (Virtual Touch Controls)
+   ========================================================================== */
+.touch-controls-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 80;
+  display: none;
+}
+
+.touch-controls-container.active {
+  display: block;
+}
+
+/* Left Joystick Zone */
+.touch-joystick-zone {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  width: 140px;
+  height: 140px;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.joystick-base {
+  width: 130px;
+  height: 130px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, rgba(255, 182, 193, 0.35) 100%);
+  border: 3px solid rgba(255, 64, 129, 0.6);
+  border-radius: 50%;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(255, 64, 129, 0.25), inset 0 0 15px rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.joystick-knob {
+  width: 54px;
+  height: 54px;
+  background: linear-gradient(135deg, #ff6584, #ff4081);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  position: absolute;
+  top: calc(50% - 27px);
+  left: calc(50% - 27px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 12px rgba(255, 64, 129, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  transition: transform 0.05s ease-out;
+}
+
+/* Right Touch Action Cluster */
+.touch-action-buttons {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: grid;
+  grid-template-columns: repeat(3, 56px);
+  grid-template-rows: repeat(2, 56px);
+  gap: 12px;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.touch-btn {
+  background: rgba(255, 255, 255, 0.88);
+  border: 2.5px solid #ff4081;
+  border-radius: 50%;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s ease, background-color 0.1s ease;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 0;
+}
+
+.touch-btn:active, .touch-btn.pressed {
+  transform: scale(0.9);
+  background: #ffe4e6;
+  border-color: #e11d48;
+}
+
+.touch-btn .t-icon {
+  font-size: 20px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.touch-btn .t-label {
+  font-size: 9px;
+  font-weight: 900;
+  color: #64748b;
+  margin-top: 2px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Specific Touch Button Variants */
+.touch-btn-atk {
+  grid-column: 2;
+  grid-row: 2;
+  width: 62px;
+  height: 62px;
+  background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+  border: 3px solid #ff4081;
+  box-shadow: 0 4px 15px rgba(255, 64, 129, 0.4);
+}
+.touch-btn-atk .t-icon { font-size: 24px; }
+.touch-btn-atk .t-label { color: #e11d48; font-weight: 900; }
+
+.touch-btn-dash {
+  grid-column: 3;
+  grid-row: 2;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-color: #10b981;
+}
+.touch-btn-dash .t-label { color: #059669; }
+
+.touch-btn-skill {
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-color: #0284c7;
+}
+
+/* Touch Button Cooldown Overlay */
+.touch-cd-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: rgba(15, 23, 42, 0.65);
+  pointer-events: none;
+  transition: height 0.08s linear;
+}
+
+/* Large Pulsing Ultimate (R) Touch Button */
+.touch-btn-ult {
+  grid-column: 3;
+  grid-row: 1;
+  width: 64px;
+  height: 64px;
+  margin-top: -8px;
+  background: linear-gradient(135deg, #fef08a, #f43f5e);
+  border: 3px solid #facc15;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.6);
+  animation: ultTouchGlow 1.5s infinite alternate ease-in-out;
+}
+.touch-btn-ult .t-icon { font-size: 26px; }
+.touch-btn-ult .t-label { color: #ffffff; text-shadow: 0 1px 3px rgba(0,0,0,0.5); font-weight: 900; }
+
+@keyframes ultTouchGlow {
+  0% { transform: scale(1.0); box-shadow: 0 0 12px rgba(250, 204, 21, 0.5); }
+  100% { transform: scale(1.08); box-shadow: 0 0 22px rgba(244, 63, 94, 0.85); }
+}
+
+/* ==========================================================================
+   🎬 스킬 컷인 애니메이션 (Anime Action Cut-in Banner)
+   ========================================================================== */
+.skill-cutin-overlay {
+  position: absolute;
+  top: 32%;
+  left: 0;
+  width: 100%;
+  height: 140px;
+  pointer-events: none;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(-50%) scaleY(0.1);
+  transition: opacity 0.15s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.skill-cutin-overlay.active {
+  opacity: 1;
+  transform: translateY(-50%) scaleY(1);
+}
+
+.cutin-backdrop {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    rgba(255, 64, 129, 0) 0%, 
+    rgba(255, 64, 129, 0.92) 15%, 
+    rgba(124, 58, 237, 0.95) 50%, 
+    rgba(255, 64, 129, 0.92) 85%, 
+    rgba(255, 64, 129, 0) 100%
+  );
+  border-top: 3px solid #facc15;
+  border-bottom: 3px solid #facc15;
+  box-shadow: 0 0 35px rgba(250, 204, 21, 0.7);
+  transform: skewX(-14deg);
+}
+
+.cutin-speedlines {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.15) 0px,
+    rgba(255, 255, 255, 0.15) 6px,
+    transparent 6px,
+    transparent 18px
+  );
+  animation: speedlinesAnim 0.35s infinite linear;
+}
+
+@keyframes speedlinesAnim {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-36px); }
+}
+
+.cutin-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  max-width: 900px;
+  width: 90%;
+  z-index: 2;
+  padding: 0 20px;
+}
+
+.cutin-char-wrapper {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 4px solid #facc15;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  animation: cutinCharZoom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cutin-char-img {
+  width: 92%;
+  height: 92%;
+  object-fit: contain;
+}
+
+@keyframes cutinCharZoom {
+  0% { transform: scale(0.3) rotate(-20deg); opacity: 0; }
+  100% { transform: scale(1.0) rotate(0deg); opacity: 1; }
+}
+
+.cutin-text-group {
+  display: flex;
+  flex-direction: column;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  animation: cutinTextSlide 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes cutinTextSlide {
+  0% { transform: translateX(60px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.cutin-char-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fef08a;
+  letter-spacing: 1px;
+}
+
+.cutin-skill-name {
+  font-size: 34px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  text-shadow: 0 0 15px rgba(250, 204, 21, 0.9), 0 3px 6px rgba(0, 0, 0, 0.7);
+}
+
+.cutin-quote {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffccd5;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* ==========================================================================
+   🔥 피버 타임 (Fever Time) 전용 이펙트
+   ========================================================================== */
+.fever-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 75;
+  display: none;
+}
+
+.fever-overlay.active {
+  display: block;
+}
+
+.fever-screen-border {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 45px rgba(255, 64, 129, 0.6), inset 0 0 80px rgba(250, 204, 21, 0.4);
+  animation: feverPulse 0.8s infinite alternate ease-in-out;
+  border: 4px solid rgba(250, 204, 21, 0.7);
+}
+
+@keyframes feverPulse {
+  0% {
+    box-shadow: inset 0 0 35px rgba(255, 64, 129, 0.5), inset 0 0 60px rgba(250, 204, 21, 0.3);
+    border-color: rgba(250, 204, 21, 0.5);
+  }
+  100% {
+    box-shadow: inset 0 0 70px rgba(255, 64, 129, 0.85), inset 0 0 110px rgba(236, 72, 153, 0.6);
+    border-color: rgba(244, 63, 94, 0.9);
+  }
+}
+
+.fever-banner-badge {
+  position: absolute;
+  top: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 900;
+  padding: 6px 20px;
+  border-radius: 20px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.7);
+  animation: feverBadgeBounce 0.6s infinite alternate ease-in-out;
+  letter-spacing: 1px;
+}
+
+@keyframes feverBadgeBounce {
+  0% { transform: translateX(-50%) scale(0.95); }
+  100% { transform: translateX(-50%) scale(1.08); }
+}
+
+/* ==========================================================================
+   📱 모바일 반응형 뷰 최적화 (Mobile Responsive Viewports)
+   ========================================================================== */
+@media (max-width: 768px) {
+  #hud {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .hud-profile {
+    gap: 8px;
+  }
+
+  .avatar-frame {
+    width: 44px;
+    height: 44px;
+  }
+
+  .level-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+
+  .bars-container {
+    width: 120px;
+  }
+
+  .name-tag {
+    font-size: 11px;
+  }
+
+  .hp-text, .exp-text {
+    font-size: 9px;
+  }
+
+  .bar-outer {
+    height: 10px;
+  }
+
+  .hud-center {
+    display: flex;
+  }
+
+  .chapter-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .wave-display {
+    font-size: 12px;
+  }
+
+  .timer-display {
+    font-size: 14px;
+  }
+
+  .score-display {
+    font-size: 10px;
+  }
+
+  .minimap-frame {
+    width: 90px;
+    height: 90px;
+  }
+
+  #minimapCanvas {
+    width: 90px;
+    height: 90px;
+  }
+
+  .stat-pill {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .audio-controls {
+    display: none;
+  }
+
+  #skill-bar {
+    display: none;
+  }
+
+  #controls-hint {
+    display: none;
+  }
+
+  .screen-box {
+    padding: 16px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .game-title {
+    font-size: 20px;
+  }
+
+  .char-select-container {
+    grid-template-columns: repeat(2, 1fr);
+    max-height: 240px;
+  }
+
+  .char-card {
+    padding: 8px;
+  }
+
+  .char-card img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .char-name {
+    font-size: 12px;
+  }
+
+  .char-role {
+    font-size: 10px;
+  }
+
+  .char-desc {
+    font-size: 9px;
+  }
+
+  .keys-summary {
+    display: none;
+  }
+
+  .cutin-container {
+    gap: 12px;
+  }
+
+  .cutin-char-wrapper {
+    width: 80px;
+    height: 80px;
+  }
+
+  .cutin-skill-name {
+    font-size: 22px;
+  }
+
+  .cutin-quote {
+    font-size: 12px;
+  }
+}
+
+
 
 
