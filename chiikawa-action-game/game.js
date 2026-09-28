@@ -438,6 +438,18 @@ class SoundController {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(600, now);
         osc.frequency.linearRampToValueAtTime(750, now + 0.08);
+      } else if (charType === 'kurimanju') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(340, now);
+        osc.frequency.linearRampToValueAtTime(180, now + 0.14);
+      } else if (charType === 'momonga') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.linearRampToValueAtTime(1320, now + 0.08);
+      } else if (charType === 'rakko') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.linearRampToValueAtTime(580, now + 0.09);
       } else {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(520, now);
@@ -1296,6 +1308,25 @@ class Projectile {
       ctx.beginPath();
       ctx.arc(0, 0, this.size * 1.5, -Math.PI / 2.5, Math.PI / 2.5);
       ctx.stroke();
+    } else if (this.shape === 'blade') {
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size * 1.8, -Math.PI / 2.2, Math.PI / 2.2);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else if (this.shape === 'snack') {
+      ctx.font = `${Math.round(this.size * 2.2)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🌰', 0, 0);
+    } else if (this.shape === 'heart') {
+      ctx.font = `${Math.round(this.size * 2.4)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('💖', 0, 0);
     } else if (this.shape === 'carrot') {
       ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
@@ -1914,6 +1945,36 @@ class Player {
       this.bulletColor = '#38bdf8';
       this.nameTag = '🐱 하치와레';
       this.positiveTimer = 0;
+    } else if (charType === 'kurimanju') {
+      this.maxHp = 135;
+      this.hp = 135;
+      this.speed = 5.0;
+      this.baseDamage = 38;
+      this.attackCooldown = 0.22;
+      this.bulletColor = '#d97706';
+      this.nameTag = '🌰 쿠리만주';
+      this.intoxicationTimer = 0;
+    } else if (charType === 'momonga') {
+      this.maxHp = 90;
+      this.hp = 90;
+      this.speed = 6.2;
+      this.baseDamage = 26;
+      this.attackCooldown = 0.13;
+      this.bulletColor = '#f472b6';
+      this.nameTag = '🐿️ 모몬가';
+      this.isGliding = false;
+      this.glideTimer = 0;
+    } else if (charType === 'rakko') {
+      this.maxHp = 115;
+      this.hp = 115;
+      this.speed = 5.6;
+      this.baseDamage = 46;
+      this.attackCooldown = 0.15;
+      this.bulletColor = '#3b82f6';
+      this.nameTag = '🦦 라코 스승';
+      this.parryTimer = 0;
+      this.isDriving = false;
+      this.driveTimer = 0;
     } else {
       this.maxHp = 110;
       this.hp = 110;
@@ -1928,11 +1989,11 @@ class Player {
     this.damageMultiplier = 1.0;
     this.fireTimer = 0;
     this.bulletCount = 1;
-    this.pierce = charType === 'hachiware' ? 2 : 1;
+    this.pierce = (charType === 'hachiware' || charType === 'rakko') ? 2 : 1;
     this.lifesteal = 0;
 
     // Crit stats
-    this.critChance = 0.12;
+    this.critChance = charType === 'rakko' ? 0.25 : 0.12;
     this.critMultiplier = 1.8;
 
     this.hasShield = false;
@@ -2056,6 +2117,12 @@ class Player {
       return ["우라라라라-!!", "야하-!!", "뿌루루루루-!", "하아?!", "우뺘-!!", "후ゥゥゥ하-!!"];
     } else if (charType === 'hachiware') {
       return ["난또까나레-!!", "어떻게든 될 거야!", "치이카와, 조심해!", "카메라 찰칵!", "기타 연주 시작-!"];
+    } else if (charType === 'kurimanju') {
+      return ["하아ー...!", "크으으-! 이 맛이지!", "안주 한입 하겠나?", "끄으윽...!", "시원하구만!", "토벌 후 한잔!"];
+    } else if (charType === 'momonga') {
+      return ["나 귀엽지? 칭찬해!", "와ー아! 귀여워해줘!", "더 봐줘!", "후후훗, 내 매력에 빠졌군!", "빨리 칭찬해!"];
+    } else if (charType === 'rakko') {
+      return ["칼날에 망설임은 없다.", "토벌 랭킹 1위의 검을 보아라.", "완벽한 패링이다.", "드라이브 가볼까!", "훗, 좋은 승부였다."];
     } else {
       return ["와... 와아...!", "와아앗-!!", "후에에... 후에엥!", "햐앙...!", "야앗...!", "용기 100배...!"];
     }
@@ -2206,6 +2273,56 @@ class Player {
       }
     }
 
+    // 🌰 Kurimanju Intoxication Buff
+    if (this.charType === 'kurimanju' && this.intoxicationTimer > 0) {
+      this.intoxicationTimer -= dt;
+      if (Math.random() < 0.35) {
+        particles.push(new Particle(this.x + (Math.random() * 20 - 10), this.y + (Math.random() * 20 - 10), (Math.random() - 0.5) * 2, -1 - Math.random() * 2, 5, '#f59e0b', 0.4, 'sparkle'));
+      }
+    }
+
+    // 🐿️ Momonga Gliding
+    if (this.charType === 'momonga') {
+      if (this.glideTimer > 0) {
+        this.glideTimer -= dt;
+        this.isGliding = true;
+        this.invulnerableTimer = Math.max(this.invulnerableTimer, 0.2);
+        if (Math.random() < 0.4) {
+          particles.push(new Particle(this.x, this.y + 10, (Math.random() - 0.5) * 3, 1 + Math.random() * 2, 6, '#f472b6', 0.3, 'smoke'));
+        }
+      } else {
+        this.isGliding = false;
+      }
+    }
+
+    // 🦦 Rakko Parry & Drive States
+    if (this.charType === 'rakko') {
+      if (this.parryTimer > 0) {
+        this.parryTimer -= dt;
+      }
+      if (this.isDriving) {
+        this.driveTimer -= dt;
+        this.invulnerableTimer = Math.max(this.invulnerableTimer, 0.2);
+        if (Math.random() < 0.6) {
+          particles.push(new Particle(this.x + (this.facingLeft ? 25 : -25), this.y + 15, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 2, 8, '#64748b', 0.35, 'smoke'));
+        }
+        enemies.forEach(e => {
+          const d = Math.hypot(e.x - this.x, e.y - this.y);
+          if (d < 55 + e.radius) {
+            const driveDmg = 550 * dt * 60 * this.damageMultiplier;
+            e.hp -= driveDmg;
+            e.hitTimer = 0.15;
+            const kAngle = Math.atan2(e.y - this.y, e.x - this.x);
+            e.x += Math.cos(kAngle) * 8;
+            e.y += Math.sin(kAngle) * 8;
+          }
+        });
+        if (this.driveTimer <= 0) {
+          this.isDriving = false;
+        }
+      }
+    }
+
     if (this.isTornadoSpinning) {
       this.tornadoTimer -= dt;
       this.invulnerableTimer = 0.2;
@@ -2276,6 +2393,9 @@ class Player {
         let curSpeed = this.speed;
         if (this.charType === 'usagi') curSpeed += this.madnessStacks * 0.45;
         if (this.charType === 'chiikawa' && this.hp <= this.maxHp * 0.35) curSpeed *= 1.35;
+        if (this.charType === 'kurimanju' && this.intoxicationTimer > 0) curSpeed *= 1.25;
+        if (this.charType === 'momonga' && this.isGliding) curSpeed = 12.0;
+        if (this.charType === 'rakko' && this.isDriving) curSpeed = 13.5;
         if (this.isTornadoSpinning) curSpeed *= 1.6;
 
         this.vx = (moveX / mag) * curSpeed;
@@ -2315,6 +2435,16 @@ class Player {
     if (this.dashTimer > 0 || this.isDashing) return;
     this.dashTimer = this.dashCooldown;
     this.isDashing = true;
+    
+    if (this.charType === 'momonga') {
+      this.dashDuration = 0.42;
+      this.glideTimer = 0.45;
+    } else if (this.charType === 'rakko') {
+      this.dashDuration = 0.18;
+    } else {
+      this.dashDuration = 0.28;
+    }
+
     this.dashDurationTimer = this.dashDuration;
     this.invulnerableTimer = this.dashDuration + 0.15;
 
@@ -2326,7 +2456,10 @@ class Player {
     if (keys['KeyD'] || keys['ArrowRight']) moveX += 1;
 
     const mag = Math.hypot(moveX, moveY);
-    const dashSpeed = 14.0;
+    let dashSpeed = 14.0;
+    if (this.charType === 'momonga') dashSpeed = 16.5;
+    if (this.charType === 'rakko') dashSpeed = 22.0;
+
     if (mag > 0) {
       this.dashVx = (moveX / mag) * dashSpeed;
       this.dashVy = (moveY / mag) * dashSpeed;
@@ -2336,9 +2469,45 @@ class Player {
       this.dashVy = Math.sin(angle) * dashSpeed;
     }
 
-    Sound.playDash();
-    const dashQuote = this.charType === 'usagi' ? "뿌루루루루-!" : (this.charType === 'hachiware' ? "와아앗! 피했어!" : "와아앗...!");
-    this.say(dashQuote, true);
+    // Character specific dash perks
+    if (this.charType === 'kurimanju') {
+      const enemies = window.GameInstance?.enemies || [];
+      enemies.forEach(e => {
+        const d = Math.hypot(e.x - this.x, e.y - this.y);
+        if (d < 75 + e.radius) {
+          e.hp -= 90 * this.damageMultiplier;
+          e.hitTimer = 0.15;
+          const kAngle = Math.atan2(e.y - this.y, e.x - this.x);
+          e.x += Math.cos(kAngle) * 20;
+          e.y += Math.sin(kAngle) * 20;
+        }
+      });
+      Sound.playHit();
+      this.say("크으으-! 박치기!", true);
+    } else if (this.charType === 'momonga') {
+      Sound.playDash();
+      this.say("슈우웅-! 날아간다!", true);
+    } else if (this.charType === 'rakko') {
+      const enemies = window.GameInstance?.enemies || [];
+      enemies.forEach(e => {
+        const d = Math.hypot(e.x - this.x, e.y - this.y);
+        if (d < 80 + e.radius) {
+          e.hp -= 130 * this.damageMultiplier;
+          e.hitTimer = 0.15;
+        }
+      });
+      Sound.playDash();
+      this.say("순보-!", true);
+    } else if (this.charType === 'usagi') {
+      Sound.playDash();
+      this.say("뿌루루루루-!", true);
+    } else if (this.charType === 'hachiware') {
+      Sound.playDash();
+      this.say("와아앗! 피했어!", true);
+    } else {
+      Sound.playDash();
+      this.say("와아앗...!", true);
+    }
   }
 
   shoot(targetX, targetY, projectiles, particles) {
@@ -2347,6 +2516,8 @@ class Player {
       curCooldown *= Math.max(0.4, 1.0 - this.madnessStacks * 0.12);
     } else if (this.charType === 'hachiware' && this.positiveTimer > 0) {
       curCooldown *= 0.55;
+    } else if (this.charType === 'kurimanju' && this.intoxicationTimer > 0) {
+      curCooldown *= 0.65;
     }
 
     if (this.fireTimer > 0) return;
@@ -2355,6 +2526,7 @@ class Player {
     const angle = Math.atan2(targetY - this.y, targetX - this.x);
     let dmgMult = this.damageMultiplier;
     if (this.doubleDamageTimer > 0) dmgMult *= 2.0;
+    if (this.charType === 'kurimanju' && this.intoxicationTimer > 0) dmgMult *= 1.35;
 
     if (this.charType === 'usagi') {
       this.madnessStacks = Math.min(8, this.madnessStacks + 1);
@@ -2384,6 +2556,45 @@ class Player {
             this.x, this.y,
             Math.cos(angle + offset) * pSpeed, Math.sin(angle + offset) * pSpeed,
             this.baseDamage * dmgMult, this.pierce + 1, true, '#38bdf8', 11, false, 'crescent'
+          )
+        );
+      }
+    } else if (this.charType === 'kurimanju') {
+      const pSpeed = 13.5;
+      const count = Math.max(3, this.bulletCount + 2);
+      for (let i = 0; i < count; i++) {
+        const offset = (i - (count - 1) / 2) * 0.24;
+        projectiles.push(
+          new Projectile(
+            this.x, this.y,
+            Math.cos(angle + offset) * pSpeed, Math.sin(angle + offset) * pSpeed,
+            this.baseDamage * dmgMult, this.pierce, true, '#d97706', 10, false, 'snack'
+          )
+        );
+      }
+    } else if (this.charType === 'momonga') {
+      const pSpeed = 16.0;
+      const count = Math.max(3, this.bulletCount + 2);
+      for (let i = 0; i < count; i++) {
+        const offset = (i - (count - 1) / 2) * 0.16 + (Math.random() - 0.5) * 0.08;
+        projectiles.push(
+          new Projectile(
+            this.x, this.y,
+            Math.cos(angle + offset) * pSpeed, Math.sin(angle + offset) * pSpeed,
+            this.baseDamage * dmgMult, this.pierce, true, '#f472b6', 9, true, 'heart'
+          )
+        );
+      }
+    } else if (this.charType === 'rakko') {
+      const pSpeed = 16.5;
+      const count = Math.max(2, this.bulletCount + 1);
+      for (let i = 0; i < count; i++) {
+        const offset = (i - (count - 1) / 2) * 0.32;
+        projectiles.push(
+          new Projectile(
+            this.x, this.y,
+            Math.cos(angle + offset) * pSpeed, Math.sin(angle + offset) * pSpeed,
+            this.baseDamage * dmgMult * 1.25, this.pierce + 2, true, '#38bdf8', 12, false, 'blade'
           )
         );
       }
@@ -2431,6 +2642,31 @@ class Player {
       });
       window.GameInstance.screenShake = 8;
       this.say("카메라 플래시 찰칵!", true);
+    } else if (this.charType === 'kurimanju') {
+      grenades.push(new Grenade(this.x, this.y, targetX, targetY, 320 * this.damageMultiplier, 210));
+      this.say("알밤 폭탄 받아라!", true);
+    } else if (this.charType === 'momonga') {
+      for (let i = 0; i < 4; i++) {
+        const angle = (i * Math.PI / 2) + Math.atan2(targetY - this.y, targetX - this.x);
+        const tx = this.x + Math.cos(angle) * 300;
+        const ty = this.y + Math.sin(angle) * 300;
+        boomerangs.push(new Boomerang(this.x, this.y, tx, ty, 150 * this.damageMultiplier, this));
+      }
+      this.say("꼬리 회오리 폭풍!", true);
+    } else if (this.charType === 'rakko') {
+      const baseAngle = Math.atan2(targetY - this.y, targetX - this.x);
+      const projectiles = window.GameInstance?.projectiles || [];
+      for (let i = -1; i <= 1; i += 2) {
+        projectiles.push(
+          new Projectile(
+            this.x, this.y,
+            Math.cos(baseAngle + i * 0.28) * 18, Math.sin(baseAngle + i * 0.28) * 18,
+            380 * this.damageMultiplier, 5, true, '#38bdf8', 16, false, 'blade'
+          )
+        );
+      }
+      Sound.playCritHit();
+      this.say("비검! 십자 베기!", true);
     } else {
       grenades.push(new Grenade(this.x, this.y, targetX, targetY, 260 * this.damageMultiplier, 190));
       this.say("도토리 폭탄 받아랏!", true);
@@ -2450,6 +2686,35 @@ class Player {
       this.positiveTimer = 6.0;
       damageTexts.push(new DamageText(this.x, this.y - 25, '+35 HP 힐링!', '#10b981', true));
       this.say("기타 치면서 힘내자!", true);
+    } else if (this.charType === 'kurimanju') {
+      this.hp = Math.min(this.maxHp, this.hp + 25);
+      this.intoxicationTimer = 8.0;
+      Sound.playExplosion();
+      const enemies = window.GameInstance?.enemies || [];
+      enemies.forEach(e => {
+        e.stunTimer = 2.5;
+        e.hp -= 100 * this.damageMultiplier;
+        e.hitTimer = 0.15;
+      });
+      window.GameInstance.screenShake = 10;
+      damageTexts.push(new DamageText(this.x, this.y - 25, '🍺 음주 포효 (광역기절 & 공격+35%)!', '#f59e0b', true));
+      this.say("하아ー! 한잔 마셨다!", true);
+    } else if (this.charType === 'momonga') {
+      this.hp = Math.min(this.maxHp, this.hp + 30);
+      const enemies = window.GameInstance?.enemies || [];
+      enemies.forEach(e => {
+        const d = Math.hypot(e.x - this.x, e.y - this.y);
+        if (d < 380) {
+          e.stunTimer = 3.5;
+          e.hitTimer = 0.1;
+        }
+      });
+      damageTexts.push(new DamageText(this.x, this.y - 25, '💖 칭찬 매혹 (주변 3.5초 매혹 & 힐)!', '#f472b6', true));
+      this.say("나를 칭찬해줘-!!", true);
+    } else if (this.charType === 'rakko') {
+      this.parryTimer = 1.8;
+      damageTexts.push(new DamageText(this.x, this.y - 25, '🛡️ 완벽 패링 자세 (1.8초)!', '#38bdf8', true));
+      this.say("검사의 호흡... 언제든 와라!", true);
     } else {
       this.isTearShieldActive = true;
       this.tearShieldTimer = 6.0;
@@ -2480,6 +2745,37 @@ class Player {
       window.GameInstance.screenShake = 16;
       damageTexts.push(new DamageText(this.x, this.y - 40, '⚡ 메가 슬래시 참격!', '#38bdf8', true));
       this.say("난또까나레 메가 슬래시-!!", true);
+    } else if (this.charType === 'kurimanju') {
+      for (let i = 0; i < 6; i++) {
+        const ox = (Math.random() - 0.5) * 320;
+        const oy = (Math.random() - 0.5) * 320;
+        meteors.push(new CarrotMeteor(targetX + ox, targetY + oy, 480 * this.damageMultiplier, 200));
+      }
+      this.say("안주가 쏟아진다-!!", true);
+    } else if (this.charType === 'momonga') {
+      Sound.playLaser();
+      const projectiles = window.GameInstance?.projectiles || [];
+      for (let i = 0; i < 32; i++) {
+        const a = (i * Math.PI * 2 / 32);
+        projectiles.push(
+          new Projectile(
+            this.x, this.y,
+            Math.cos(a) * 15, Math.sin(a) * 15,
+            340 * this.damageMultiplier, 3, true, '#f472b6', 11, true, 'heart'
+          )
+        );
+      }
+      window.GameInstance.screenShake = 12;
+      damageTexts.push(new DamageText(this.x, this.y - 40, '👑 하트 슈퍼노바 폭발!', '#f472b6', true));
+      this.say("내 귀여움을 받아라-!!", true);
+    } else if (this.charType === 'rakko') {
+      this.isDriving = true;
+      this.driveTimer = 4.5;
+      this.invulnerableTimer = 4.8;
+      Sound.playLaser();
+      window.GameInstance.screenShake = 10;
+      damageTexts.push(new DamageText(this.x, this.y - 40, '🚗 드라이브 돌진 개시!', '#f59e0b', true));
+      this.say("드라이브 출발이다! 다 비켜라!", true);
     } else {
       this.isFiringLaser = true;
       this.laserTimer = this.laserDuration;
@@ -2520,14 +2816,40 @@ class Player {
       ctx.stroke();
     }
 
-    if (this.doubleDamageTimer > 0) {
-      ctx.strokeStyle = '#ef4444';
+    if (this.doubleDamageTimer > 0 || (this.charType === 'kurimanju' && this.intoxicationTimer > 0)) {
+      ctx.strokeStyle = this.charType === 'kurimanju' ? '#d97706' : '#ef4444';
       ctx.lineWidth = 2;
-      ctx.shadowColor = '#ef4444';
+      ctx.shadowColor = ctx.strokeStyle;
       ctx.shadowBlur = 10;
       ctx.beginPath();
       ctx.arc(0, bob, this.radius + 12, 0, Math.PI * 2);
       ctx.stroke();
+    }
+
+    // Rakko Parry Barrier
+    if (this.charType === 'rakko' && this.parryTimer > 0) {
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#60a5fa';
+      ctx.shadowBlur = 16;
+      ctx.beginPath();
+      ctx.arc(0, bob, this.radius + 14, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Rakko Car
+    if (this.charType === 'rakko' && this.isDriving) {
+      ctx.save();
+      ctx.fillStyle = '#ef4444';
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 14;
+      ctx.fillRect(-this.radius - 12, bob + 5, this.radius * 2 + 24, 22);
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.arc(-this.radius, bob + 26, 7, 0, Math.PI * 2);
+      ctx.arc(this.radius, bob + 26, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
 
     if (this.isTearShieldActive || this.hasOrbitStars) {
@@ -2681,6 +3003,9 @@ class Game {
       chiikawa: 'assets/chiikawa.png',
       hachiware: 'assets/hachiware.png',
       usagi: 'assets/usagi.png',
+      kurimanju: 'assets/kurimanju.png',
+      momonga: 'assets/momonga.png',
+      rakko: 'assets/rakko.png',
       bug: 'assets/monster_bug.png',
       goblin: 'assets/monster_goblin.png',
       chimera: 'assets/monster_chimera.png',
@@ -3155,6 +3480,21 @@ class Game {
       qName.textContent = '카메라 섬광'; qIcon.textContent = '📸';
       eName.textContent = '통기타 힐링'; eIcon.textContent = '🎸';
       rName.textContent = '메가 슬래시'; rIcon.textContent = '⚡';
+    } else if (this.selectedChar === 'kurimanju') {
+      normalName.textContent = '안주 3연탄'; normalIcon.textContent = '🍢';
+      qName.textContent = '알밤 폭탄'; qIcon.textContent = '🌰';
+      eName.textContent = '음주 포효'; eIcon.textContent = '🍺';
+      rName.textContent = '안주 대잔치'; rIcon.textContent = '🍲';
+    } else if (this.selectedChar === 'momonga') {
+      normalName.textContent = '하트 연사'; normalIcon.textContent = '💗';
+      qName.textContent = '꼬리 회오리'; qIcon.textContent = '🌀';
+      eName.textContent = '칭찬해줘!'; eIcon.textContent = '🥺';
+      rName.textContent = '하트 슈퍼노바'; rIcon.textContent = '👑';
+    } else if (this.selectedChar === 'rakko') {
+      normalName.textContent = '쌍검 발도참'; normalIcon.textContent = '🗡️';
+      qName.textContent = '십자 절단'; qIcon.textContent = '⚔️';
+      eName.textContent = '완벽 패링'; normalIcon.textContent = '🛡️';
+      rName.textContent = '드라이브 돌진'; rIcon.textContent = '🚗';
     } else {
       normalName.textContent = '유도 별빛샷'; normalIcon.textContent = '⭐';
       qName.textContent = '도토리 폭탄'; qIcon.textContent = '🌰';
@@ -3212,6 +3552,15 @@ class Game {
     }
     if (this.player.charType === 'usagi' && this.player.madnessStacks > 0) {
       buffContainer.innerHTML += `<div class="buff-pill" style="border-color:#f59e0b;color:#f59e0b;">🔥 광기 ${this.player.madnessStacks}단</div>`;
+    }
+    if (this.player.charType === 'kurimanju' && this.player.intoxicationTimer > 0) {
+      buffContainer.innerHTML += `<div class="buff-pill" style="border-color:#d97706;color:#d97706;">🍺 음주 버프 (${Math.ceil(this.player.intoxicationTimer)}s)</div>`;
+    }
+    if (this.player.charType === 'rakko' && this.player.parryTimer > 0) {
+      buffContainer.innerHTML += `<div class="buff-pill" style="border-color:#38bdf8;color:#38bdf8;">🛡️ 패링 반격 자세 (${Math.ceil(this.player.parryTimer)}s)</div>`;
+    }
+    if (this.player.charType === 'rakko' && this.player.isDriving) {
+      buffContainer.innerHTML += `<div class="buff-pill" style="border-color:#ef4444;color:#ef4444;">🚗 드라이브 무적 (${Math.ceil(this.player.driveTimer)}s)</div>`;
     }
 
     // Build Synergies Tray
@@ -3775,6 +4124,24 @@ class Game {
       } else {
         const dist = Math.hypot(p.x - this.player.x, p.y - this.player.y);
         if (dist < p.size + this.player.radius && this.player.invulnerableTimer <= 0) {
+          if (this.player.charType === 'rakko' && this.player.parryTimer > 0) {
+            this.player.parryTimer = 0;
+            this.player.invulnerableTimer = 0.8;
+            Sound.playCritHit();
+            this.screenShake = 10;
+            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, '⚡ 완벽 패링 반격 (520)!', '#38bdf8', true));
+            this.enemies.forEach(e => {
+              const cd = Math.hypot(e.x - this.player.x, e.y - this.player.y);
+              if (cd < 260) {
+                e.hp -= 520 * this.player.damageMultiplier;
+                e.hitTimer = 0.2;
+              }
+            });
+            this.player.say("완벽한 패링이다.", true);
+            this.projectiles.splice(i, 1);
+            continue;
+          }
+
           if (this.player.hasShield) {
             this.player.hasShield = false;
             this.damageTexts.push(new DamageText(this.player.x, this.player.y, `🛡️ 보호막 방어!`, '#38bdf8', true));
@@ -3787,7 +4154,7 @@ class Game {
           this.screenShake = 6;
           Sound.playHit();
           this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${p.damage}`, '#ef4444', true));
-          const hitQuote = this.player.charType === 'usagi' ? "우뺘-!!" : (this.player.charType === 'hachiware' ? "으앗... 조심해!" : "후에에엥-!!");
+          const hitQuote = this.player.charType === 'usagi' ? "우뺘-!!" : (this.player.charType === 'hachiware' ? "으앗... 조심해!" : (this.player.charType === 'kurimanju' ? "끄으윽...!" : (this.player.charType === 'momonga' ? "아얏! 아프잖아!" : "후에에엥-!!")));
           this.player.say(hitQuote, true);
 
           this.projectiles.splice(i, 1);
@@ -3841,7 +4208,21 @@ class Game {
 
       const dist = Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y);
       if (dist < enemy.radius + this.player.radius && this.player.invulnerableTimer <= 0) {
-        if (this.player.hasShield) {
+        if (this.player.charType === 'rakko' && this.player.parryTimer > 0) {
+          this.player.parryTimer = 0;
+          this.player.invulnerableTimer = 0.8;
+          Sound.playCritHit();
+          this.screenShake = 10;
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, '⚡ 완벽 패링 반격 (520)!', '#38bdf8', true));
+          this.enemies.forEach(e => {
+            const cd = Math.hypot(e.x - this.player.x, e.y - this.player.y);
+            if (cd < 260) {
+              e.hp -= 520 * this.player.damageMultiplier;
+              e.hitTimer = 0.2;
+            }
+          });
+          this.player.say("완벽한 패링이다.", true);
+        } else if (this.player.hasShield) {
           this.player.hasShield = false;
           this.damageTexts.push(new DamageText(this.player.x, this.player.y, `🛡️ 보호막 방어!`, '#38bdf8', true));
         } else {
@@ -3850,7 +4231,7 @@ class Game {
           this.screenShake = 6;
           Sound.playHit();
           this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${enemy.damage}`, '#ef4444', true));
-          const contactQuote = this.player.charType === 'usagi' ? "하아?!" : (this.player.charType === 'hachiware' ? "으앗! 치이카와, 뒤로 물러서!" : "후에에에-!!");
+          const contactQuote = this.player.charType === 'usagi' ? "하아?!" : (this.player.charType === 'hachiware' ? "으앗! 치이카와, 뒤로 물러서!" : (this.player.charType === 'kurimanju' ? "크으윽...!" : (this.player.charType === 'momonga' ? "으앙! 저리 가!" : "후에에에-!!")));
           this.player.say(contactQuote, true);
 
           if (this.player.hp <= 0) {
@@ -4160,7 +4541,7 @@ class Game {
     // Draw Player dot
     const px = this.player.x * scaleX;
     const py = this.player.y * scaleY;
-    mCtx.fillStyle = this.selectedChar === 'usagi' ? '#eab308' : (this.selectedChar === 'hachiware' ? '#38bdf8' : '#ff4081');
+    mCtx.fillStyle = this.player.bulletColor || '#ff4081';
     mCtx.shadowColor = '#ffffff';
     mCtx.shadowBlur = 4;
     mCtx.beginPath();
