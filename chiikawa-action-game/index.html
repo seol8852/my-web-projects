@@ -72,15 +72,37 @@
         <div class="audio-controls">
           <button id="btn-sound" class="hud-btn" title="사운드 토글">🔊 SFX ON</button>
           <button id="btn-bgm" class="hud-btn" title="BGM 토글">🎵 BGM ON</button>
+          <button id="btn-track" class="hud-btn track-btn" title="곡 변경">💿 파자마</button>
+          <button id="btn-settings" class="hud-btn" title="환경설정">⚙️</button>
           <button id="btn-pause" class="hud-btn" title="일시정지 (P)">⏸️</button>
         </div>
       </div>
     </div>
 
+    <!-- Mega Boss Health Bar (Top Center) -->
+    <div id="boss-hud" class="boss-hud-container" style="display: none;">
+      <div class="boss-hud-header">
+        <span class="boss-skull">💀</span>
+        <span class="boss-name" id="boss-name-text">진(眞) 거대 아노코</span>
+        <span class="boss-hp-val" id="boss-hp-val">100%</span>
+      </div>
+      <div class="boss-hp-track">
+        <div class="boss-hp-ghost" id="boss-hp-ghost"></div>
+        <div class="boss-hp-fill" id="boss-hp-fill"></div>
+      </div>
+    </div>
+
+    <!-- Cinematic Danger Warning Banner -->
+    <div id="danger-banner" class="danger-banner">
+      <div class="danger-stripe left">⚠️ WARNING ⚠️</div>
+      <div class="danger-title" id="danger-boss-title">⚠️ 거대 키메라 출현! ⚠️</div>
+      <div class="danger-stripe right">⚠️ WARNING ⚠️</div>
+    </div>
+
     <!-- Bottom Skill Bar -->
     <div id="skill-bar">
       <!-- Normal Attack -->
-      <div class="skill-slot active">
+      <div class="skill-slot active" id="slot-normal">
         <div class="key-bind">L-CLICK</div>
         <div class="skill-icon" id="skill-icon-normal">⭐</div>
         <div class="skill-name" id="skill-name-normal">유도 별빛 샷</div>
@@ -88,7 +110,7 @@
       </div>
 
       <!-- Dash / Space -->
-      <div class="skill-slot">
+      <div class="skill-slot" id="slot-space">
         <div class="key-bind">SPACE</div>
         <div class="skill-icon" id="skill-icon-space">✨</div>
         <div class="skill-name" id="skill-name-space">와아앗! 회피</div>
@@ -96,7 +118,7 @@
       </div>
 
       <!-- Skill Q -->
-      <div class="skill-slot">
+      <div class="skill-slot" id="slot-q">
         <div class="key-bind">Q</div>
         <div class="skill-icon" id="skill-icon-q">🌰</div>
         <div class="skill-name" id="skill-name-q">도토리 폭탄</div>
@@ -104,7 +126,7 @@
       </div>
 
       <!-- Skill E -->
-      <div class="skill-slot">
+      <div class="skill-slot" id="slot-e">
         <div class="key-bind">E</div>
         <div class="skill-icon" id="skill-icon-e">💖</div>
         <div class="skill-name" id="skill-name-e">용기 방패 각성</div>
@@ -112,7 +134,7 @@
       </div>
 
       <!-- Ultimate R -->
-      <div class="skill-slot ult">
+      <div class="skill-slot ult" id="slot-r">
         <div class="key-bind">R</div>
         <div class="skill-icon" id="skill-icon-r">🌈</div>
         <div class="skill-name" id="skill-name-r">레인보우 빔</div>
@@ -200,6 +222,16 @@
           </div>
         </div>
 
+        <!-- Record Summary Banner -->
+        <div class="record-badge" id="start-record-box">
+          <span class="record-icon">🏆</span>
+          <div class="record-text">
+            <span>최고 점수: <b id="rec-score">0</b>점</span> • 
+            <span>최대 토벌: <b id="rec-kills">0</b>마리</span> • 
+            <span>최고 기록: <b id="rec-wave">Wave 1</b></span>
+          </div>
+        </div>
+
         <div class="keys-summary">
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동 / 회피</div>
           <div><kbd>마우스 좌클릭</kbd> 조준 사스마타 사격</div>
@@ -220,6 +252,45 @@
         <div id="cards-container" class="cards-container">
           <!-- Dynamic upgrade cards -->
         </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="overlay-screen">
+      <div class="screen-box settings-box">
+        <h2 class="settings-title">⚙️ 환경 설정 (Settings)</h2>
+        <div class="settings-list">
+          <div class="setting-item">
+            <span class="setting-label">🎵 배경 음악 (BGM) 볼륨</span>
+            <input type="range" id="vol-bgm" min="0" max="100" value="80" class="setting-slider">
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">🔊 효과음 (SFX) 볼륨</span>
+            <input type="range" id="vol-sfx" min="0" max="100" value="90" class="setting-slider">
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">📳 화면 흔들림 효과 (Screen Shake)</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-shake" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">💥 데미지 숫자 표기</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-dmgtext" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+          <div class="setting-item">
+            <span class="setting-label">✨ 고화질 파티클 &amp; 사쿠라 꽃잎</span>
+            <label class="switch">
+              <input type="checkbox" id="toggle-particles" checked>
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+        <button id="btn-close-settings" class="glow-btn" style="margin-top: 20px;">설정 완료 (Close)</button>
       </div>
     </div>
 

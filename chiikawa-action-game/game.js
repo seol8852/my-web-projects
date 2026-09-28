@@ -1,9 +1,61 @@
 /* ==========================================================================
-   🌸 치이카와 스트라이커: 토벌 대작전 (Chiikawa Striker)
+   🌸 치이카와 스트라이커: 토벌 대작전 (Chiikawa Striker) - AAA Polish Edition
    5000x5000 Super Open-World with 4 Treasure Sanctuaries & Boss Lairs
    ========================================================================== */
 
-// --- Audio Manager (Web Audio API Synthesizer) ---
+// --- Settings & Save State Controller (LocalStorage) ---
+class StorageManager {
+  static KEY_RECORDS = 'chiikawa_striker_records_v2';
+  static KEY_SETTINGS = 'chiikawa_striker_settings_v2';
+
+  static getRecords() {
+    try {
+      const data = localStorage.getItem(this.KEY_RECORDS);
+      return data ? JSON.parse(data) : { bestScore: 0, maxKills: 0, bestWave: 1, clearedDiffs: [] };
+    } catch (e) {
+      return { bestScore: 0, maxKills: 0, bestWave: 1, clearedDiffs: [] };
+    }
+  }
+
+  static saveRecords(score, kills, wave, diff, isVictory = false) {
+    try {
+      const records = this.getRecords();
+      if (score > records.bestScore) records.bestScore = Math.round(score);
+      if (kills > records.maxKills) records.maxKills = kills;
+      if (wave > records.bestWave) records.bestWave = wave;
+      if (isVictory && !records.clearedDiffs.includes(diff)) {
+        records.clearedDiffs.push(diff);
+      }
+      localStorage.setItem(this.KEY_RECORDS, JSON.stringify(records));
+      return records;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static getSettings() {
+    try {
+      const data = localStorage.getItem(this.KEY_SETTINGS);
+      return data ? JSON.parse(data) : {
+        bgmVol: 0.8,
+        sfxVol: 0.9,
+        screenShake: true,
+        damageText: true,
+        highParticles: true
+      };
+    } catch (e) {
+      return { bgmVol: 0.8, sfxVol: 0.9, screenShake: true, damageText: true, highParticles: true };
+    }
+  }
+
+  static saveSettings(settings) {
+    try {
+      localStorage.setItem(this.KEY_SETTINGS, JSON.stringify(settings));
+    } catch (e) {}
+  }
+}
+
+// --- Audio Manager (Web Audio API Synthesizer with Polyphonic BGM & Cute Voices) ---
 class SoundController {
   constructor() {
     this.ctx = null;
@@ -13,13 +65,16 @@ class SoundController {
     this.bgmTimer = null;
     this.step = 0;
     this.currentTrackIdx = 0;
+    this.sfxVolume = 0.9;
+    this.bgmVolume = 0.8;
 
     // Iconic Official Chiikawa BGM Tracks
     this.tracks = [
       {
         id: 'pajamas',
-        name: '👚 파자마 파티즈의 노래 (Pajamas Party)',
-        tempo: 152,
+        name: '👚 파자마 파티즈의 노래',
+        shortName: '👚 파자마',
+        tempo: 154,
         melody: [
           392.00, 392.00, 329.63, 349.23, 392.00, 440.00, 392.00, 329.63,
           523.25, 493.88, 440.00, 392.00, 329.63, 293.66, 261.63, 293.66,
@@ -27,6 +82,10 @@ class SoundController {
           523.25, 523.25, 587.33, 659.25, 587.33, 523.25, 440.00, 523.25,
           659.25, 659.25, 587.33, 523.25, 440.00, 392.00, 440.00, 523.25,
           523.25, 493.88, 440.00, 392.00, 329.63, 293.66, 261.63, 329.63
+        ],
+        chords: [
+          261.63, 329.63, 392.00, 261.63, 293.66, 349.23, 440.00, 293.66,
+          329.63, 392.00, 493.88, 329.63, 261.63, 329.63, 392.00, 261.63
         ],
         bass: [
           130.81, 130.81, 164.81, 174.61, 196.00, 220.00, 196.00, 164.81,
@@ -42,7 +101,8 @@ class SoundController {
       {
         id: 'hitorigotsu',
         name: '🎸 하치와레의 혼잣말 (ひとりごつ)',
-        tempo: 124,
+        shortName: '🎸 혼잣말',
+        tempo: 126,
         melody: [
           329.63, 369.99, 415.30, 440.00, 493.88, 440.00, 415.30, 369.99,
           329.63, 415.30, 493.88, 554.37, 493.88, 440.00, 415.30, 369.99,
@@ -50,6 +110,10 @@ class SoundController {
           440.00, 493.88, 554.37, 659.25, 554.37, 493.88, 440.00, 329.63,
           329.63, 369.99, 415.30, 440.00, 493.88, 554.37, 493.88, 440.00,
           415.30, 369.99, 329.63, 277.18, 329.63, 369.99, 415.30, 329.63
+        ],
+        chords: [
+          220.00, 277.18, 329.63, 220.00, 246.94, 311.13, 369.99, 246.94,
+          277.18, 349.23, 415.30, 277.18, 220.00, 277.18, 329.63, 220.00
         ],
         bass: [
           164.81, 164.81, 207.65, 220.00, 246.94, 220.00, 207.65, 184.99,
@@ -60,6 +124,28 @@ class SoundController {
           207.65, 184.99, 164.81, 138.59, 164.81, 184.99, 207.65, 164.81
         ],
         leadWave: 'triangle',
+        bassWave: 'triangle'
+      },
+      {
+        id: 'happy_ending',
+        name: '🌸 치이카와 엔딩 해피 테마',
+        shortName: '🌸 해피송',
+        tempo: 140,
+        melody: [
+          523.25, 587.33, 659.25, 523.25, 659.25, 783.99, 659.25, 587.33,
+          523.25, 440.00, 392.00, 440.00, 523.25, 587.33, 523.25, 392.00,
+          523.25, 587.33, 659.25, 523.25, 659.25, 783.99, 880.00, 783.99,
+          659.25, 587.33, 523.25, 440.00, 392.00, 523.25, 587.33, 523.25
+        ],
+        chords: [
+          261.63, 329.63, 392.00, 261.63, 349.23, 440.00, 523.25, 349.23,
+          392.00, 493.88, 587.33, 392.00, 261.63, 329.63, 392.00, 261.63
+        ],
+        bass: [
+          130.81, 130.81, 164.81, 164.81, 174.61, 174.61, 196.00, 196.00,
+          130.81, 130.81, 164.81, 164.81, 174.61, 196.00, 130.81, 130.81
+        ],
+        leadWave: 'sine',
         bassWave: 'triangle'
       }
     ];
@@ -77,29 +163,31 @@ class SoundController {
 
   playShoot(charType = 'chiikawa') {
     try {
-      if (!this.sfxEnabled || !this.ctx) return;
+      if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
       if (this.ctx.state === 'suspended') this.ctx.resume();
       const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
+      const vol = this.sfxVolume;
+
       if (charType === 'usagi') {
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(520, now);
-        osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
-        gain.gain.setValueAtTime(0.25, now);
+        osc.frequency.setValueAtTime(560, now);
+        osc.frequency.exponentialRampToValueAtTime(70, now + 0.12);
+        gain.gain.setValueAtTime(0.24 * vol, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
       } else if (charType === 'hachiware') {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(880, now);
         osc.frequency.exponentialRampToValueAtTime(260, now + 0.08);
-        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.setValueAtTime(0.18 * vol, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
       } else {
         osc.type = 'sine';
         osc.frequency.setValueAtTime(660, now);
         osc.frequency.exponentialRampToValueAtTime(320, now + 0.1);
-        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.setValueAtTime(0.16 * vol, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
       }
 
@@ -112,17 +200,17 @@ class SoundController {
 
   playHit() {
     try {
-      if (!this.sfxEnabled || !this.ctx) return;
+      if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
       if (this.ctx.state === 'suspended') this.ctx.resume();
       const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
 
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.setValueAtTime(280, now);
       osc.frequency.exponentialRampToValueAtTime(90, now + 0.06);
 
-      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.setValueAtTime(0.16 * this.sfxVolume, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
       osc.connect(gain);
@@ -132,9 +220,27 @@ class SoundController {
     } catch (e) {}
   }
 
+  playCritHit() {
+    try {
+      if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(450, now);
+      osc.frequency.exponentialRampToValueAtTime(900, now + 0.1);
+      gain.gain.setValueAtTime(0.22 * this.sfxVolume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } catch (e) {}
+  }
+
   playDash() {
     try {
-      if (!this.sfxEnabled || !this.ctx) return;
+      if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
       if (this.ctx.state === 'suspended') this.ctx.resume();
       const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
@@ -144,7 +250,7 @@ class SoundController {
       osc.frequency.setValueAtTime(400, now);
       osc.frequency.exponentialRampToValueAtTime(950, now + 0.16);
 
-      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.setValueAtTime(0.2 * this.sfxVolume, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
 
       osc.connect(gain);
@@ -156,7 +262,7 @@ class SoundController {
 
   playExplosion() {
     try {
-      if (!this.sfxEnabled || !this.ctx) return;
+      if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
       if (this.ctx.state === 'suspended') this.ctx.resume();
       const now = this.ctx.currentTime;
       const bufferSize = this.ctx.sampleRate * 0.35;
@@ -174,7 +280,7 @@ class SoundController {
       filter.frequency.exponentialRampToValueAtTime(70, now + 0.35);
 
       const gain = this.ctx.createGain();
-      gain.gain.setValueAtTime(0.45, now);
+      gain.gain.setValueAtTime(0.45 * this.sfxVolume, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
 
       noise.connect(filter);
@@ -184,101 +290,38 @@ class SoundController {
     } catch (e) {}
   }
 
-  playCameraFlash() {
+  playVoiceChirp(charType = 'chiikawa') {
     try {
-      if (!this.sfxEnabled || !this.ctx) return;
-      if (this.ctx.state === 'suspended') this.ctx.resume();
+      if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
       const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(1400, now);
-      osc.frequency.exponentialRampToValueAtTime(300, now + 0.15);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.15);
-    } catch (e) {}
-  }
 
-  playGuitarChime() {
-    try {
-      if (!this.sfxEnabled || !this.ctx) return;
-      const notes = [329.63, 440.0, 554.37, 659.25];
-      notes.forEach((f, i) => {
-        const now = this.ctx.currentTime + i * 0.05;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
+      if (charType === 'usagi') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.linearRampToValueAtTime(1400, now + 0.08);
+      } else if (charType === 'hachiware') {
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(f, now);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.2);
-      });
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.linearRampToValueAtTime(750, now + 0.08);
+      } else {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.linearRampToValueAtTime(680, now + 0.08);
+      }
+
+      gain.gain.setValueAtTime(0.12 * this.sfxVolume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
     } catch (e) {}
-  }
-
-  playMeteor() {
-    try {
-      if (!this.sfxEnabled || !this.ctx) return;
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(150, now);
-      osc.frequency.exponentialRampToValueAtTime(40, now + 0.5);
-      gain.gain.setValueAtTime(0.5, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.5);
-    } catch (e) {}
-  }
-
-  playPudding() {
-    if (!this.sfxEnabled || !this.ctx) return;
-    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5];
-    notes.forEach((freq, idx) => {
-      const now = this.ctx.currentTime + idx * 0.04;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(0.18, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.15);
-    });
-  }
-
-  playPowerup() {
-    if (!this.sfxEnabled || !this.ctx) return;
-    const notes = [440, 554, 659, 880];
-    notes.forEach((f, i) => {
-      const now = this.ctx.currentTime + i * 0.05;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(f, now);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.18);
-    });
   }
 
   playRelicFanfare() {
-    if (!this.sfxEnabled || !this.ctx) return;
+    if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
     const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
     notes.forEach((freq, idx) => {
       const now = this.ctx.currentTime + idx * 0.08;
@@ -286,7 +329,7 @@ class SoundController {
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.setValueAtTime(0.3 * this.sfxVolume, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -297,7 +340,7 @@ class SoundController {
 
   playLaser() {
     try {
-      if (!this.sfxEnabled || !this.ctx) return;
+      if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
       if (this.ctx.state === 'suspended') this.ctx.resume();
       const now = this.ctx.currentTime;
       const osc = this.ctx.createOscillator();
@@ -307,7 +350,7 @@ class SoundController {
       osc.frequency.setValueAtTime(523.25, now);
       osc.frequency.linearRampToValueAtTime(1046.5, now + 0.22);
 
-      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.setValueAtTime(0.2 * this.sfxVolume, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
 
       osc.connect(gain);
@@ -318,27 +361,27 @@ class SoundController {
   }
 
   playPickup() {
-    if (!this.sfxEnabled || !this.ctx) return;
+    if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
 
     osc.type = 'sine';
     osc.frequency.setValueAtTime(659.25, now);
-    osc.frequency.setValueAtTime(880, now + 0.05);
-    osc.frequency.setValueAtTime(1174.66, now + 0.1);
+    osc.frequency.setValueAtTime(880, now + 0.04);
+    osc.frequency.setValueAtTime(1174.66, now + 0.08);
 
-    gain.gain.setValueAtTime(0.12, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    gain.gain.setValueAtTime(0.12 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
 
     osc.connect(gain);
     gain.connect(this.ctx.destination);
     osc.start(now);
-    osc.stop(now + 0.18);
+    osc.stop(now + 0.16);
   }
 
   playLevelUp() {
-    if (!this.sfxEnabled || !this.ctx) return;
+    if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((freq, idx) => {
       const now = this.ctx.currentTime + idx * 0.07;
@@ -346,7 +389,7 @@ class SoundController {
       const gain = this.ctx.createGain();
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, now);
-      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.setValueAtTime(0.25 * this.sfxVolume, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
       osc.connect(gain);
       gain.connect(this.ctx.destination);
@@ -356,20 +399,22 @@ class SoundController {
   }
 
   playBossWarning() {
-    if (!this.sfxEnabled || !this.ctx) return;
+    if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
     const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(180, now);
-    osc.frequency.setValueAtTime(240, now + 0.15);
-    osc.frequency.setValueAtTime(180, now + 0.3);
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.45);
+    for (let i = 0; i < 3; i++) {
+      const t = now + i * 0.18;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, t);
+      osc.frequency.linearRampToValueAtTime(120, t + 0.14);
+      gain.gain.setValueAtTime(0.35 * this.sfxVolume, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.14);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.14);
+    }
   }
 
   startBGM() {
@@ -395,6 +440,7 @@ class SoundController {
   switchNextTrack() {
     this.currentTrackIdx = (this.currentTrackIdx + 1) % this.tracks.length;
     this.step = 0;
+    return this.getCurrentTrack();
   }
 
   scheduleBGMStep() {
@@ -404,30 +450,63 @@ class SoundController {
 
     const melFreq = track.melody[this.step % track.melody.length];
     const bassFreq = track.bass[this.step % track.bass.length];
+    const chordFreq = track.chords ? track.chords[Math.floor(this.step / 2) % track.chords.length] : null;
 
     const now = this.ctx.currentTime;
+    const volMult = this.bgmVolume;
 
+    // Melody lead
     const oscLead = this.ctx.createOscillator();
     const gainLead = this.ctx.createGain();
     oscLead.type = track.leadWave;
     oscLead.frequency.setValueAtTime(melFreq, now);
-    gainLead.gain.setValueAtTime(0.07, now);
+    gainLead.gain.setValueAtTime(0.08 * volMult, now);
     gainLead.gain.exponentialRampToValueAtTime(0.001, now + stepDuration * 0.9);
     oscLead.connect(gainLead);
     gainLead.connect(this.ctx.destination);
     oscLead.start(now);
     oscLead.stop(now + stepDuration * 0.9);
 
+    // Bass line
     const oscBass = this.ctx.createOscillator();
     const gainBass = this.ctx.createGain();
     oscBass.type = track.bassWave;
     oscBass.frequency.setValueAtTime(bassFreq, now);
-    gainBass.gain.setValueAtTime(0.06, now);
+    gainBass.gain.setValueAtTime(0.06 * volMult, now);
     gainBass.gain.exponentialRampToValueAtTime(0.001, now + stepDuration * 0.85);
     oscBass.connect(gainBass);
     gainBass.connect(this.ctx.destination);
     oscBass.start(now);
     oscBass.stop(now + stepDuration * 0.85);
+
+    // Subtle Chords harmony
+    if (chordFreq && this.step % 2 === 0) {
+      const oscChord = this.ctx.createOscillator();
+      const gainChord = this.ctx.createGain();
+      oscChord.type = 'sine';
+      oscChord.frequency.setValueAtTime(chordFreq, now);
+      gainChord.gain.setValueAtTime(0.04 * volMult, now);
+      gainChord.gain.exponentialRampToValueAtTime(0.001, now + stepDuration * 1.8);
+      oscChord.connect(gainChord);
+      gainChord.connect(this.ctx.destination);
+      oscChord.start(now);
+      oscChord.stop(now + stepDuration * 1.8);
+    }
+
+    // Gentle rhythm noise percussion (Kick on beat, snare on offbeat)
+    if (this.step % 4 === 0) {
+      const kickOsc = this.ctx.createOscillator();
+      const kickGain = this.ctx.createGain();
+      kickOsc.type = 'sine';
+      kickOsc.frequency.setValueAtTime(110, now);
+      kickOsc.frequency.exponentialRampToValueAtTime(35, now + 0.08);
+      kickGain.gain.setValueAtTime(0.12 * volMult, now);
+      kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      kickOsc.connect(kickGain);
+      kickGain.connect(this.ctx.destination);
+      kickOsc.start(now);
+      kickOsc.stop(now + 0.08);
+    }
 
     this.step++;
     this.bgmTimer = setTimeout(() => this.scheduleBGMStep(), stepDuration * 1000);
@@ -443,7 +522,7 @@ class Sanctuary {
     this.name = name;
     this.x = x;
     this.y = y;
-    this.radius = 320;
+    this.radius = 360;
     this.bossType = bossType;
     this.relicType = relicType;
     this.relicName = relicName;
@@ -452,54 +531,95 @@ class Sanctuary {
     this.bossSpawned = false;
     this.bossDefeated = false;
     this.chestOpened = false;
-    this.chestRadius = 26;
+    this.chestRadius = 28;
   }
 
   draw(ctx, camera) {
-    // Draw glowing sacred circle on ground
     ctx.save();
     ctx.strokeStyle = this.chestOpened ? '#22c55e' : this.color;
     ctx.lineWidth = 4;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = 24;
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = this.chestOpened ? 'rgba(34, 197, 94, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+    ctx.fillStyle = this.chestOpened ? 'rgba(34, 197, 94, 0.07)' : 'rgba(255, 255, 255, 0.06)';
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
 
     // Landmark banner
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 15px "Jua", sans-serif';
+    ctx.font = 'bold 16px "Jua", sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`${this.icon} ${this.name}`, this.x, this.y - this.radius + 30);
+    ctx.fillText(`${this.icon} ${this.name}`, this.x, this.y - this.radius + 35);
 
     // Draw Treasure Chest in center
     ctx.translate(this.x, this.y);
     if (!this.chestOpened) {
-      // Bouncing Chest
-      const bob = Math.sin(Date.now() / 250) * 4;
-      ctx.font = '32px sans-serif';
+      const bob = Math.sin(Date.now() / 240) * 5;
+      ctx.font = '36px sans-serif';
       ctx.fillText(this.bossDefeated ? '🎁' : '🔒', 0, bob);
-      ctx.font = 'bold 11px "Jua", sans-serif';
+      ctx.font = 'bold 12px "Jua", sans-serif';
       ctx.fillStyle = this.bossDefeated ? '#facc15' : '#ef4444';
-      ctx.fillText(this.bossDefeated ? '보물 상자 열기 (접근)' : '수호 보스 격파 필요', 0, bob + 26);
+      ctx.fillText(this.bossDefeated ? '보물 상자 열기 (접근)' : '수호 보스 격파 필요', 0, bob + 28);
     } else {
-      ctx.font = '28px sans-serif';
+      ctx.font = '30px sans-serif';
       ctx.fillText('✨', 0, 0);
-      ctx.font = 'bold 11px "Jua", sans-serif';
+      ctx.font = 'bold 12px "Jua", sans-serif';
       ctx.fillStyle = '#22c55e';
-      ctx.fillText('토벌 완료 (CLEARED)', 0, 22);
+      ctx.fillText('토벌 완료 (CLEARED)', 0, 24);
     }
     ctx.restore();
   }
 }
 
-// --- Particle, DamageText, Shockwave, and Drop Items ---
+// --- Sakura & Environmental Atmosphere Particle ---
+class SakuraParticle {
+  constructor(worldWidth, worldHeight) {
+    this.worldWidth = worldWidth;
+    this.worldHeight = worldHeight;
+    this.reset();
+  }
+
+  reset() {
+    this.x = Math.random() * this.worldWidth;
+    this.y = Math.random() * this.worldHeight;
+    this.size = 4 + Math.random() * 6;
+    this.speedX = 0.6 + Math.random() * 1.2;
+    this.speedY = 0.8 + Math.random() * 1.0;
+    this.swayAngle = Math.random() * Math.PI * 2;
+    this.swaySpeed = 1.5 + Math.random() * 2.0;
+    this.alpha = 0.35 + Math.random() * 0.45;
+  }
+
+  update(dt) {
+    this.swayAngle += this.swaySpeed * dt;
+    this.x += (this.speedX + Math.sin(this.swayAngle) * 0.8) * dt * 60;
+    this.y += this.speedY * dt * 60;
+
+    if (this.x > this.worldWidth || this.y > this.worldHeight) {
+      this.x = Math.random() * this.worldWidth;
+      this.y = -20;
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = '#ffccd5';
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.swayAngle);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.size, this.size * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// --- Particle & Damage Text System ---
 class Particle {
   constructor(x, y, vx, vy, radius, color, life, type = 'star') {
     this.x = x;
@@ -530,7 +650,7 @@ class Particle {
       this.vx *= 0.93;
       this.vy *= 0.93;
     } else if (this.type === 'ring') {
-      this.radius += dt * 170;
+      this.radius += dt * 180;
     }
   }
 
@@ -577,7 +697,8 @@ class DamageText {
     this.isCrit = isCrit;
     this.life = 0.85;
     this.maxLife = 0.85;
-    this.vy = -1.5;
+    this.vy = isCrit ? -2.2 : -1.5;
+    this.scale = isCrit ? 1.4 : 1.0;
   }
 
   update(dt) {
@@ -590,7 +711,7 @@ class DamageText {
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = this.color;
-    ctx.font = this.isCrit ? '900 22px "Jua", "Noto Sans KR"' : 'bold 16px "Jua", "Noto Sans KR"';
+    ctx.font = this.isCrit ? '900 23px "Jua", "Noto Sans KR"' : 'bold 16px "Jua", "Noto Sans KR"';
     ctx.shadowColor = 'rgba(255,255,255,0.9)';
     ctx.shadowBlur = 6;
     ctx.textAlign = 'center';
@@ -668,9 +789,9 @@ class FieldItem {
     const dx = playerX - this.x;
     const dy = playerY - this.y;
     const dist = Math.hypot(dx, dy);
-    if (dist < 150) {
-      this.x += (dx / dist) * 5.2 * dt * 60;
-      this.y += (dy / dist) * 5.2 * dt * 60;
+    if (dist < 160) {
+      this.x += (dx / dist) * 5.5 * dt * 60;
+      this.y += (dy / dist) * 5.5 * dt * 60;
     }
   }
 
@@ -706,7 +827,7 @@ class FieldItem {
   }
 }
 
-// --- Projectiles & Specialized Attack Objects ---
+// --- Projectiles & Attacks ---
 class Projectile {
   constructor(x, y, vx, vy, damage, pierce = 1, fromPlayer = true, color = '#ff79b0', size = 8, homing = false, shape = 'star') {
     this.x = x;
@@ -983,7 +1104,7 @@ class ExpGem {
   }
 }
 
-// --- Enemy Classes (with Sanctuary Guardian Bosses) ---
+// --- Enemy Classes (with Sanctuary Guardian Bosses & High Polish) ---
 class Enemy {
   constructor(x, y, type = 'bug', wave = 1, diffConfig = { hpMult: 1.0, dmgMult: 1.0, spdMult: 1.0 }) {
     this.x = x;
@@ -1059,7 +1180,6 @@ class Enemy {
       this.xp = 130;
       this.name = '강철 중장갑 키메라';
     } else if (type.startsWith('sanctuary_boss')) {
-      // Sanctuary Guardian Mini-Bosses
       this.radius = 56;
       this.hp = 3400 * diffConfig.hpMult;
       this.maxHp = this.hp;
@@ -1068,10 +1188,10 @@ class Enemy {
       this.color = '#ec4899';
       this.xp = 600;
       this.shootCooldown = 1.6;
-      if (type === 'sanctuary_boss_nw') this.name = '🍄 독안개 가시 키메라 [성소 수호 보스]';
-      else if (type === 'sanctuary_boss_ne') this.name = '🍜 강철 갑옷 풍뎅이 [라멘 도장 보스]';
-      else if (type === 'sanctuary_boss_sw') this.name = '🏰 흑화 쌍두 키메라 [신전 수호 보스]';
-      else this.name = '⚡ 폭풍 번개 골렘 [제단 수호 보스]';
+      if (type === 'sanctuary_boss_nw') this.name = '🍄 독안개 가시 키메라';
+      else if (type === 'sanctuary_boss_ne') this.name = '🍜 강철 갑옷 풍뎅이';
+      else if (type === 'sanctuary_boss_sw') this.name = '🏰 흑화 쌍두 키메라';
+      else this.name = '⚡ 폭풍 번개 골렘';
     } else if (type === 'midboss') {
       this.radius = 54;
       this.hp = (2600 + wave * 450) * diffConfig.hpMult;
@@ -1081,9 +1201,9 @@ class Enemy {
       this.color = '#ea580c';
       this.xp = 450;
       this.shootCooldown = 1.8;
-      if (wave === 5) this.name = '폭주하는 가시 키메라 [제1장 보스]';
-      else if (wave === 10) this.name = '돌연변이 쌍두 키메라 [제2장 보스]';
-      else this.name = '거대 바위 철갑 키메라 [제3장 보스]';
+      if (wave === 5) this.name = '폭주하는 가시 키메라';
+      else if (wave === 10) this.name = '돌연변이 쌍두 키메라';
+      else this.name = '거대 바위 철갑 키메라';
     } else if (type === 'boss') {
       this.radius = 68;
       this.hp = (6500 + wave * 700) * diffConfig.hpMult;
@@ -1092,7 +1212,7 @@ class Enemy {
       this.damage = Math.round(48 * diffConfig.dmgMult);
       this.color = '#e11d48';
       this.xp = 1500;
-      this.name = '진(眞) 거대 아노코 [최종 결전 보스]';
+      this.name = '진(眞) 거대 아노코 [최종 결전]';
       this.shootCooldown = 1.5;
     }
   }
@@ -1159,7 +1279,6 @@ class Enemy {
         shockwaves.push(new Shockwave(this.x, this.y, 220, Math.round(this.damage * 0.85), '#6366f1'));
       }
     } else if (this.type.startsWith('sanctuary_boss')) {
-      // Sanctuary Boss Multi-Action
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
 
@@ -1452,6 +1571,7 @@ class Player {
       this.dialogueTimer = 3.5;
       this.dialogueLife = 2.2;
       this.dialoguePopAnim = 0.2;
+      Sound.playVoiceChirp(this.charType);
     }
   }
 
@@ -1650,74 +1770,50 @@ class Player {
     this.fireTimer = curCooldown;
 
     const angle = Math.atan2(targetY - this.y, targetX - this.x);
-    let dmg = this.baseDamage * this.damageMultiplier;
-    if (this.doubleDamageTimer > 0) dmg *= 2.0;
-    if (this.charType === 'chiikawa' && this.hp <= this.maxHp * 0.35) dmg *= 1.5;
+    let dmgMult = this.damageMultiplier;
+    if (this.doubleDamageTimer > 0) dmgMult *= 2.0;
 
     if (this.charType === 'usagi') {
-      const pellets = this.shotgunPellets + this.bulletCount - 1;
-      const spread = 0.45;
-      for (let i = 0; i < pellets; i++) {
-        const off = (i - (pellets - 1) / 2) * (spread / pellets) + (Math.random() - 0.5) * 0.08;
-        const spd = 10.5 + Math.random() * 3;
+      this.madnessStacks = Math.min(8, this.madnessStacks + 1);
+      this.madnessTimer = 2.5;
+
+      const numPellets = this.shotgunPellets + (this.bulletCount - 1);
+      const spreadAngle = 0.55;
+      for (let i = 0; i < numPellets; i++) {
+        const offset = (i - (numPellets - 1) / 2) * (spreadAngle / numPellets) + (Math.random() - 0.5) * 0.08;
+        const pSpeed = 12 + Math.random() * 3.5;
         projectiles.push(
           new Projectile(
-            this.x + Math.cos(angle + off) * 20,
-            this.y + Math.sin(angle + off) * 20,
-            Math.cos(angle + off) * spd,
-            Math.sin(angle + off) * spd,
-            dmg,
-            this.pierce,
-            true,
-            this.bulletColor,
-            8,
-            false,
-            'carrot'
+            this.x, this.y,
+            Math.cos(angle + offset) * pSpeed, Math.sin(angle + offset) * pSpeed,
+            this.baseDamage * dmgMult, this.pierce, true, '#f59e0b', 9, false, 'carrot'
           )
         );
       }
-      this.madnessStacks = Math.min(5, this.madnessStacks + 1);
-      this.madnessTimer = 2.5;
+      this.vx -= Math.cos(angle) * 1.8;
+      this.vy -= Math.sin(angle) * 1.8;
     } else if (this.charType === 'hachiware') {
-      const count = 3 + this.bulletCount - 1;
-      const spread = 0.22;
-      for (let i = 0; i < count; i++) {
-        const off = (i - (count - 1) / 2) * (spread / Math.max(1, count - 1));
-        const spd = 12.0;
+      const pSpeed = 15;
+      for (let i = 0; i < this.bulletCount; i++) {
+        const offset = (i - (this.bulletCount - 1) / 2) * 0.18;
         projectiles.push(
           new Projectile(
-            this.x + Math.cos(angle + off) * 25,
-            this.y + Math.sin(angle + off) * 25,
-            Math.cos(angle + off) * spd,
-            Math.sin(angle + off) * spd,
-            dmg,
-            this.pierce,
-            true,
-            this.bulletColor,
-            11,
-            false,
-            'crescent'
+            this.x, this.y,
+            Math.cos(angle + offset) * pSpeed, Math.sin(angle + offset) * pSpeed,
+            this.baseDamage * dmgMult, this.pierce + 1, true, '#38bdf8', 11, false, 'crescent'
           )
         );
       }
     } else {
-      const count = (this.isTearShieldActive ? 4 : 2) + this.bulletCount - 1;
+      const pSpeed = 13.5;
+      const count = Math.max(2, this.bulletCount + 1);
       for (let i = 0; i < count; i++) {
-        const off = (i - (count - 1) / 2) * 0.28;
-        const spd = 9.5;
+        const offset = (i - (count - 1) / 2) * 0.22;
         projectiles.push(
           new Projectile(
-            this.x + Math.cos(angle + off) * 25,
-            this.y + Math.sin(angle + off) * 25,
-            Math.cos(angle + off) * spd,
-            Math.sin(angle + off) * spd,
-            dmg,
-            this.pierce,
-            true,
-            this.bulletColor,
-            9,
-            true,
-            'star'
+            this.x, this.y,
+            Math.cos(angle + offset) * pSpeed, Math.sin(angle + offset) * pSpeed,
+            this.baseDamage * dmgMult, this.pierce, true, '#ff79b0', 9, true, 'star'
           )
         );
       }
@@ -1726,90 +1822,91 @@ class Player {
     Sound.playShoot(this.charType);
   }
 
-  throwSkillQ(targetX, targetY, grenades, boomerangs, enemies, damageTexts) {
+  useQ(targetX, targetY, grenades, boomerangs) {
     if (this.timerQ > 0) return;
     this.timerQ = this.cdQ;
 
     if (this.charType === 'usagi') {
-      for (let offset of [-0.3, 0, 0.3]) {
-        const angle = Math.atan2(targetY - this.y, targetX - this.x) + offset;
-        const tx = this.x + Math.cos(angle) * 450;
-        const ty = this.y + Math.sin(angle) * 450;
+      for (let i = 0; i < 3; i++) {
+        const spread = (i - 1) * 0.35;
+        const baseAngle = Math.atan2(targetY - this.y, targetX - this.x) + spread;
+        const tx = this.x + Math.cos(baseAngle) * 350;
+        const ty = this.y + Math.sin(baseAngle) * 350;
         boomerangs.push(new Boomerang(this.x, this.y, tx, ty, 180 * this.damageMultiplier, this));
       }
-      this.say("우라라라-!! 당근 부메랑!", true);
+      this.say("부메랑 우라-!!", true);
     } else if (this.charType === 'hachiware') {
-      Sound.playCameraFlash();
-      const flashAngle = Math.atan2(targetY - this.y, targetX - this.x);
+      Sound.playExplosion();
+      const enemies = window.GameInstance?.enemies || [];
       enemies.forEach(e => {
-        const edx = e.x - this.x;
-        const edy = e.y - this.y;
-        const dist = Math.hypot(edx, edy);
-        if (dist < 380) {
-          const eAngle = Math.atan2(edy, edx);
-          const diff = Math.abs(flashAngle - eAngle);
-          if (diff < 0.8 || diff > Math.PI * 2 - 0.8) {
-            e.blindTimer = 2.5;
-            e.hp -= 90 * this.damageMultiplier;
-            e.hitTimer = 0.2;
-            damageTexts.push(new DamageText(e.x, e.y, '📸 찰칵! 실명', '#38bdf8', true));
-          }
+        const d = Math.hypot(e.x - this.x, e.y - this.y);
+        if (d < 350) {
+          e.blindTimer = 2.8;
+          e.hp -= 120 * this.damageMultiplier;
+          e.hitTimer = 0.15;
         }
       });
-      this.say("카메라 플래시! 찰칵!", true);
+      window.GameInstance.screenShake = 8;
+      this.say("카메라 플래시 찰칵!", true);
     } else {
-      grenades.push(new Grenade(this.x, this.y, targetX, targetY, 220 * this.damageMultiplier, 170));
-      this.say("에잇... 특대 도토리 폭탄!", true);
+      grenades.push(new Grenade(this.x, this.y, targetX, targetY, 260 * this.damageMultiplier, 190));
+      this.say("도토리 폭탄 받아랏!", true);
     }
   }
 
-  activateSkillE(particles, damageTexts, shockwaves) {
+  useE(damageTexts) {
     if (this.timerE > 0) return;
     this.timerE = this.cdE;
 
     if (this.charType === 'usagi') {
       this.isTornadoSpinning = true;
-      this.tornadoTimer = 3.2;
-      this.say("우라라라라-!! 팽이 돌진-!!", true);
+      this.tornadoTimer = 3.5;
+      this.say("우라라라라 회전-!!", true);
     } else if (this.charType === 'hachiware') {
-      Sound.playGuitarChime();
-      this.hp = Math.min(this.maxHp, this.hp + 30);
-      damageTexts.push(new DamageText(this.x, this.y - 25, '🎵 ひとりごつ 연주! +30 HP', '#38bdf8', true));
-      shockwaves.push(new Shockwave(this.x, this.y, 220, 45, '#38bdf8'));
-      this.say("난또까나레-!! 기타 연주 시작!", true);
+      this.hp = Math.min(this.maxHp, this.hp + 35);
+      this.positiveTimer = 6.0;
+      damageTexts.push(new DamageText(this.x, this.y - 25, '+35 HP 힐링!', '#10b981', true));
+      this.say("기타 치면서 힘내자!", true);
     } else {
       this.isTearShieldActive = true;
-      this.tearShieldTimer = 7.0;
-      for (let i = 0; i < 20; i++) {
-        const angle = (Math.PI * 2 / 20) * i;
-        particles.push(new Particle(this.x, this.y, Math.cos(angle) * 5, Math.sin(angle) * 5, 10, '#ffd166', 0.5, 'star'));
-      }
-      this.say("용기 100배... 눈물 방패 각성!", true);
+      this.tearShieldTimer = 6.0;
+      this.hasShield = true;
+      damageTexts.push(new DamageText(this.x, this.y - 25, '🛡️ 눈물 방패 각성!', '#ff79b0', true));
+      this.say("용기 100% 각성-!!", true);
     }
   }
 
-  activateSkillR(particles, meteors, shockwaves) {
+  useR(targetX, targetY, meteors, damageTexts) {
     if (this.timerR > 0) return;
     this.timerR = this.cdR;
 
     if (this.charType === 'usagi') {
-      Sound.playMeteor();
-      meteors.push(new CarrotMeteor(this.x + Math.cos(this.aimAngle) * 200, this.y + Math.sin(this.aimAngle) * 200, 700 * this.damageMultiplier, 280));
-      this.say("야하-!! 초대형 당근 메테오-!!", true);
+      for (let i = 0; i < 4; i++) {
+        const ox = (Math.random() - 0.5) * 220;
+        const oy = (Math.random() - 0.5) * 220;
+        meteors.push(new CarrotMeteor(targetX + ox, targetY + oy, 550 * this.damageMultiplier, 220));
+      }
+      this.say("초특대 당근 메테오-!!", true);
     } else if (this.charType === 'hachiware') {
-      Sound.playDash();
-      shockwaves.push(new Shockwave(this.x, this.y, 380, 150 * this.damageMultiplier, '#38bdf8'));
-      this.say("난또까나레-!! 메가 스타 슬래시!", true);
+      Sound.playLaser();
+      const enemies = window.GameInstance?.enemies || [];
+      enemies.forEach(e => {
+        e.hp -= 480 * this.damageMultiplier;
+        e.hitTimer = 0.2;
+      });
+      window.GameInstance.screenShake = 16;
+      damageTexts.push(new DamageText(this.x, this.y - 40, '⚡ 메가 슬래시 참격!', '#38bdf8', true));
+      this.say("난또까나레 메가 슬래시-!!", true);
     } else {
       this.isFiringLaser = true;
       this.laserTimer = this.laserDuration;
       Sound.playLaser();
-      this.say("초거대 레인보우 빔... 발사아-!!", true);
+      this.say("와아앗-!! 레인보우 빔-!!", true);
     }
   }
 
   draw(ctx) {
-    this.afterimages.forEach((img) => {
+    this.afterimages.forEach(img => {
       const alpha = Math.max(0, img.life / img.maxLife) * 0.45;
       ctx.save();
       ctx.globalAlpha = alpha;
@@ -1824,223 +1921,115 @@ class Player {
     ctx.save();
     ctx.translate(this.x, this.y);
 
-    if (this.isTearShieldActive) {
-      for (let i = 0; i < 4; i++) {
-        const a = this.tearOrbitAngle + (Math.PI * 2 / 4) * i;
-        const ox = Math.cos(a) * 55;
-        const oy = Math.sin(a) * 55;
-        ctx.save();
-        ctx.fillStyle = '#ff79b0';
-        ctx.shadowColor = '#ff4081';
-        ctx.shadowBlur = 12;
-        ctx.beginPath();
-        ctx.arc(ox, oy, 8, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
+    const bob = Math.sin(this.bobTimer) * 3;
+    const walkTilt = Math.sin(this.walkTimer) * 0.08;
+
+    if (this.facingLeft) ctx.scale(-1, 1);
+    ctx.rotate(walkTilt);
 
     if (this.hasShield) {
       ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 3;
       ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 12;
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius + 12, 0, Math.PI * 2);
+      ctx.arc(0, bob, this.radius + 8, 0, Math.PI * 2);
       ctx.stroke();
     }
 
     if (this.doubleDamageTimer > 0) {
       ctx.strokeStyle = '#ef4444';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2;
       ctx.shadowColor = '#ef4444';
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
+      ctx.arc(0, bob, this.radius + 12, 0, Math.PI * 2);
       ctx.stroke();
     }
 
-    if (this.invulnerableTimer > 0 && Math.sin(Date.now() / 30) > 0) {
-      ctx.globalAlpha = 0.5;
+    if (this.isTearShieldActive) {
+      for (let i = 0; i < 3; i++) {
+        const oAngle = this.tearOrbitAngle + (i * Math.PI * 2 / 3);
+        const ox = Math.cos(oAngle) * 55;
+        const oy = Math.sin(oAngle) * 55;
+        ctx.font = '20px sans-serif';
+        ctx.fillText('⭐', ox, oy);
+      }
     }
-
-    if (this.facingLeft) {
-      ctx.scale(-1, 1);
-    }
-
-    const bob = Math.sin(this.bobTimer) * (this.isMoving ? 4 : 2);
-    ctx.translate(0, bob);
 
     if (this.sprite && this.sprite.complete && this.sprite.naturalWidth > 0) {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-      ctx.beginPath();
-      ctx.ellipse(0, this.radius - 2 - bob, this.radius * 0.85, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.drawImage(this.sprite, -this.radius - 4, -this.radius - 4, (this.radius + 4) * 2, (this.radius + 4) * 2);
+      ctx.drawImage(this.sprite, -this.radius, -this.radius + bob, this.radius * 2, this.radius * 2);
     } else {
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = this.bulletColor;
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.arc(0, bob, this.radius, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Draw Weapon
-    ctx.save();
-    const weaponAngle = this.facingLeft ? (Math.PI - this.aimAngle) : this.aimAngle;
-    ctx.translate(this.radius * 0.4, 4);
-    ctx.rotate(weaponAngle);
-
-    if (this.charType === 'usagi') {
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(0, -4, 22, 8);
-      ctx.fillStyle = '#22c55e';
-      ctx.fillRect(-4, -5, 6, 10);
-    } else if (this.charType === 'hachiware') {
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(0, 0); ctx.lineTo(24, 0);
-      ctx.stroke();
-      ctx.strokeStyle = '#38bdf8';
-      ctx.beginPath();
-      ctx.arc(24, 0, 8, -Math.PI / 2, Math.PI / 2);
-      ctx.stroke();
-    } else {
-      ctx.strokeStyle = '#94a3b8';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(0, 0); ctx.lineTo(24, 0);
-      ctx.stroke();
-      ctx.strokeStyle = '#ff79b0';
-      ctx.beginPath();
-      ctx.arc(24, 0, 7, -Math.PI / 2, Math.PI / 2);
-      ctx.stroke();
-    }
     ctx.restore();
 
-    ctx.restore();
-
-    if (this.dialogueLife > 0 && this.currentDialogue) {
+    // Dialogue Bubble above head
+    if (this.dialogueLife > 0) {
       ctx.save();
-      ctx.translate(this.x, this.y - this.radius - 18);
+      ctx.translate(this.x, this.y - this.radius - 22);
+      ctx.scale(this.dialoguePopAnim, this.dialoguePopAnim);
 
-      ctx.font = 'bold 13px "Jua", "Noto Sans KR", sans-serif';
-      const textMetrics = ctx.measureText(this.currentDialogue);
-      const bw = textMetrics.width + 20;
-      const bh = 28;
+      ctx.font = 'bold 12px "Jua", sans-serif';
+      const textWidth = ctx.measureText(this.currentDialogue).width;
+      const bW = textWidth + 20;
+      const bH = 26;
 
-      const popScale = Math.min(1.0, this.dialoguePopAnim);
-      ctx.scale(popScale, popScale);
+      ctx.fillStyle = '#ffffff';
+      ctx.strokeStyle = '#ffccd5';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = 'rgba(0,0,0,0.15)';
+      ctx.shadowBlur = 8;
 
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-      ctx.shadowBlur = 6;
-      ctx.shadowOffsetY = 2;
-
-      ctx.fillStyle = '#fffdf0';
-      drawBubbleRect(ctx, -bw / 2, -bh, bw, bh, 10);
+      drawBubbleRect(ctx, -bW / 2, -bH, bW, bH, 8);
       ctx.fill();
+      ctx.stroke();
 
-      ctx.beginPath();
-      ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.lineTo(0, 6);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.shadowColor = 'transparent';
-      ctx.fillStyle = '#d81b60';
+      ctx.fillStyle = '#333333';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(this.currentDialogue, 0, -bh / 2);
+      ctx.fillText(this.currentDialogue, 0, -bH / 2);
 
       ctx.restore();
     }
   }
 }
 
-// --- Main Game Orchestrator with 5000x5000 Open World & 4 Sanctuaries ---
+// --- Main Game Engine ---
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
     this.ctx = this.canvas.getContext('2d');
-
     this.minimapCanvas = document.getElementById('minimapCanvas');
     this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
 
-    // Super Vast Open World Map Dimensions (5000 x 5000)
     this.worldWidth = 5000;
     this.worldHeight = 5000;
 
     this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+    this.screenShake = 0;
 
-    this.selectedChar = 'chiikawa';
-    this.difficulty = 'hard';
-
-    this.sprites = {
-      chiikawa: new Image(),
-      hachiware: new Image(),
-      usagi: new Image(),
-      bug: new Image(),
-      goblin: new Image(),
-      chimera: new Image(),
-      dark_swarm: new Image(),
-      iron_chimera: new Image(),
-      midboss: new Image(),
-      boss: new Image(),
-      bg_forest: new Image(),
-      bg_cave: new Image(),
-      bg_ruins: new Image(),
-      bg_sanctuary: new Image()
-    };
-
-    this.sprites.chiikawa.src = 'assets/chiikawa.png';
-    this.sprites.hachiware.src = 'assets/hachiware.png';
-    this.sprites.usagi.src = 'assets/usagi.png';
-    this.sprites.bug.src = 'assets/monster_bug.png';
-    this.sprites.goblin.src = 'assets/monster_goblin.png';
-    this.sprites.chimera.src = 'assets/monster_chimera.png';
-    this.sprites.dark_swarm.src = 'assets/monster_dark_swarm.png';
-    this.sprites.iron_chimera.src = 'assets/monster_iron_chimera.png';
-    this.sprites.midboss.src = 'assets/midboss.png';
-    this.sprites.boss.src = 'assets/anoko.png';
-
-    this.sprites.bg_forest.src = 'assets/battle_bg.jpg';
-    this.sprites.bg_cave.src = 'assets/gym_bg.jpg';
-    this.sprites.bg_ruins.src = 'assets/tower_bg.jpg';
-    this.sprites.bg_sanctuary.src = 'assets/trio_banner.jpg';
-
-    // 4 Exploration Sanctuaries
     this.sanctuaries = [
       new Sanctuary('nw', '독버섯 숲의 비밀 성소', 1000, 1000, 'sanctuary_boss_nw', 'relic_pudding', '🍮 대왕 황금 푸딩 (최대체력+50 & 완치)', '🍄', '#a855f7'),
-      new Sanctuary('ne', '라멘 로(郎)의 비밀 수련장', 4000, 1000, 'sanctuary_boss_ne', 'relic_ramen', '🍜 특제 차슈 라멘 (영구 공격력+35%)', '🍜', '#ef4444'),
-      new Sanctuary('sw', '환상의 고대 지하 신전', 1000, 4000, 'sanctuary_boss_sw', 'relic_shield', '🛡️ 영구 별빛 보호막 (15초 자동 재생)', '🏰', '#38bdf8'),
-      new Sanctuary('se', '우사기 번개 폭풍 제단', 4000, 4000, 'sanctuary_boss_se', 'relic_boots', '⚡ 헤르메스 당근 신발 (이속+25% & 대시쿨-40%)', '⚡', '#facc15')
+      new Sanctuary('ne', '라멘 로 비밀 수련장', 4000, 1000, 'sanctuary_boss_ne', 'relic_ramen', '🍜 특제 차슈 라멘 (영구 공격력+35%)', '🍜', '#ef4444'),
+      new Sanctuary('sw', '고대 지하 신전의 성역', 1000, 4000, 'sanctuary_boss_sw', 'relic_shield', '🛡️ 영구 별빛 보호막 (15초마다 무한 자동재생)', '🏰', '#3b82f6'),
+      new Sanctuary('se', '우사기 번개 제단', 4000, 4000, 'sanctuary_boss_se', 'relic_boots', '🥾 헤르메스 당근 신발 (이속+25% & 대시쿨-40%)', '⚡', '#eab308')
     ];
+
+    this.sakuraParticles = [];
+    for (let i = 0; i < 45; i++) {
+      this.sakuraParticles.push(new SakuraParticle(this.worldWidth, this.worldHeight));
+    }
 
     this.decorations = [];
     this.generateDecorations();
 
-    this.keys = {};
-    this.mouse = { x: 0, y: 0, isDown: false };
-    this.lastTime = 0;
-    this.isRunning = false;
-    this.isPaused = false;
-    this.isLevelingUp = false;
-
-    this.score = 0;
-    this.kills = 0;
-    this.wave = 1;
-    this.maxCampaignWave = 20;
-    this.waveTimer = 0;
-    this.waveDuration = 34;
-    this.gameTime = 0;
-    this.spawnTimer = 0;
-    this.bossSpawned = false;
-
-    this.comboCount = 0;
-    this.comboTimer = 0;
-
-    this.level = 1;
-    this.currentExp = 0;
-    this.maxExp = 45;
+    this.sprites = {};
+    this.loadSprites();
 
     this.player = null;
     this.enemies = [];
@@ -2050,29 +2039,86 @@ class Game {
     this.meteors = [];
     this.expGems = [];
     this.fieldItems = [];
-    this.shockwaves = [];
     this.particles = [];
     this.damageTexts = [];
+    this.shockwaves = [];
 
-    this.screenShake = 0;
+    this.keys = {};
+    this.mouse = { x: 0, y: 0, isDown: false };
+    this.selectedChar = 'chiikawa';
+    this.difficulty = 'hard';
 
-    this.bindEvents();
-    this.updateSkillBarUI(this.selectedChar);
+    this.wave = 1;
+    this.waveTimer = 0;
+    this.waveDuration = 28;
+    this.maxCampaignWave = 20;
+    this.gameTime = 0;
+    this.score = 0;
+    this.kills = 0;
+    this.level = 1;
+    this.currentExp = 0;
+    this.maxExp = 100;
+
+    this.comboCount = 0;
+    this.comboTimer = 0;
+
+    this.isRunning = false;
+    this.isPaused = false;
+    this.isLevelingUp = false;
+    this.lastTime = 0;
+
+    this.settings = StorageManager.getSettings();
+    Sound.sfxVolume = this.settings.sfxVol;
+    Sound.bgmVolume = this.settings.bgmVol;
+
+    this.initEvents();
     this.resize();
-    window.addEventListener('resize', () => this.resize());
+    this.updateRecordDisplay();
+  }
+
+  loadSprites() {
+    const list = {
+      chiikawa: 'assets/chiikawa.png',
+      hachiware: 'assets/hachiware.png',
+      usagi: 'assets/usagi.png',
+      bug: 'assets/monster_bug.png',
+      goblin: 'assets/monster_goblin.png',
+      chimera: 'assets/monster_chimera.png',
+      dark_swarm: 'assets/monster_dark_swarm.png',
+      iron_chimera: 'assets/monster_iron_chimera.png',
+      midboss: 'assets/midboss.png',
+      anoko: 'assets/anoko.png',
+      battle_bg: 'assets/battle_bg.jpg',
+      ramen_bg: 'assets/ramen_bg.jpg',
+      tower_bg: 'assets/tower_bg.jpg'
+    };
+
+    for (let key in list) {
+      const img = new Image();
+      img.src = list[key];
+      this.sprites[key] = img;
+    }
   }
 
   generateDecorations() {
-    this.decorations = [];
-    const emojis = ['🌸', '🍄', '🌼', '🌿', '🌰', '🌲', '🪨', '⛺', '🏮', '✨'];
-    for (let i = 0; i < 240; i++) {
+    const emojis = ['🌸', '🍄', '🌲', '⛺', '🪨', '🍀', '🌼', '🪵', '🍂', '✨', '🍙', '🍮'];
+    for (let i = 0; i < 280; i++) {
       this.decorations.push({
         x: 100 + Math.random() * (this.worldWidth - 200),
         y: 100 + Math.random() * (this.worldHeight - 200),
-        emoji: emojis[Math.floor(Math.random() * emojis.length)],
-        size: 20 + Math.floor(Math.random() * 18)
+        emoji: emojis[Math.floor(Math.random() * emojis.length)]
       });
     }
+  }
+
+  updateRecordDisplay() {
+    const records = StorageManager.getRecords();
+    const scoreEl = document.getElementById('rec-score');
+    const killsEl = document.getElementById('rec-kills');
+    const waveEl = document.getElementById('rec-wave');
+    if (scoreEl) scoreEl.textContent = records.bestScore.toLocaleString();
+    if (killsEl) killsEl.textContent = records.maxKills.toLocaleString();
+    if (waveEl) waveEl.textContent = `Wave ${records.bestWave}`;
   }
 
   resize() {
@@ -2080,101 +2126,36 @@ class Game {
     this.canvas.height = window.innerHeight;
   }
 
-  getDiffConfig() {
-    if (this.difficulty === 'normal') {
-      return { hpMult: 1.0, dmgMult: 1.0, spdMult: 1.0, spawnMult: 1.0, scoreMult: 1.0 };
-    } else if (this.difficulty === 'nightmare') {
-      return { hpMult: 2.4, dmgMult: 1.8, spdMult: 1.35, spawnMult: 1.85, scoreMult: 2.5 };
-    }
-    return { hpMult: 1.6, dmgMult: 1.35, spdMult: 1.2, spawnMult: 1.4, scoreMult: 1.5 };
-  }
-
-  updateSkillBarUI(charType) {
-    const normalIcon = document.getElementById('skill-icon-normal');
-    const normalName = document.getElementById('skill-name-normal');
-    const qIcon = document.getElementById('skill-icon-q');
-    const qName = document.getElementById('skill-name-q');
-    const eIcon = document.getElementById('skill-icon-e');
-    const eName = document.getElementById('skill-name-e');
-    const rIcon = document.getElementById('skill-icon-r');
-    const rName = document.getElementById('skill-name-r');
-
-    if (charType === 'usagi') {
-      if (normalIcon) normalIcon.textContent = '🥕';
-      if (normalName) normalName.textContent = '쌍당근 산탄';
-      if (qIcon) qIcon.textContent = '🪃';
-      if (qName) qName.textContent = '당근 부메랑';
-      if (eIcon) eIcon.textContent = '🌪️';
-      if (eName) eName.textContent = '우라라라 팽이';
-      if (rIcon) rIcon.textContent = '☄️';
-      if (rName) rName.textContent = '당근 메테오';
-    } else if (charType === 'hachiware') {
-      if (normalIcon) normalIcon.textContent = '🗡️';
-      if (normalName) normalName.textContent = '푸른 초승달 검기';
-      if (qIcon) qIcon.textContent = '📸';
-      if (qName) qName.textContent = '카메라 섬광';
-      if (eIcon) eIcon.textContent = '🎸';
-      if (eName) eName.textContent = '기타 연주 힐';
-      if (rIcon) rIcon.textContent = '⚡';
-      if (rName) rName.textContent = '메가 슬래시';
-    } else {
-      if (normalIcon) normalIcon.textContent = '⭐';
-      if (normalName) normalName.textContent = '유도 별빛 샷';
-      if (qIcon) qIcon.textContent = '🌰';
-      if (qName) qName.textContent = '도토리 폭탄';
-      if (eIcon) eIcon.textContent = '💖';
-      if (eName) eName.textContent = '용기 방패 각성';
-      if (rIcon) rIcon.textContent = '🌈';
-      if (rName) rName.textContent = '레인보우 빔';
-    }
-  }
-
-  bindEvents() {
-    document.querySelectorAll('.char-card').forEach(card => {
-      card.addEventListener('click', () => {
-        document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        this.selectedChar = card.getAttribute('data-char');
-        this.updateSkillBarUI(this.selectedChar);
-      });
-    });
-
-    document.querySelectorAll('.diff-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        this.difficulty = btn.getAttribute('data-diff');
-      });
-    });
+  initEvents() {
+    window.addEventListener('resize', () => this.resize());
 
     window.addEventListener('keydown', (e) => {
       this.keys[e.code] = true;
-      Sound.init();
 
-      if (e.code === 'KeyP' || e.code === 'Escape') {
-        this.togglePause();
+      if (e.code === 'KeyP') this.togglePause();
+
+      if (this.isLevelingUp) {
+        if (e.code === 'Digit1') this.selectLevelUpCard(0);
+        if (e.code === 'Digit2') this.selectLevelUpCard(1);
+        if (e.code === 'Digit3') this.selectLevelUpCard(2);
       }
 
       if (this.isRunning && !this.isPaused && !this.isLevelingUp && this.player) {
-        const worldMouseX = this.mouse.x + this.camera.x;
-        const worldMouseY = this.mouse.y + this.camera.y;
-
         if (e.code === 'Space') {
           e.preventDefault();
           this.player.dash(this.keys);
-        } else if (e.code === 'KeyQ') {
-          this.player.throwSkillQ(worldMouseX, worldMouseY, this.grenades, this.boomerangs, this.enemies, this.damageTexts);
-        } else if (e.code === 'KeyE') {
-          this.player.activateSkillE(this.particles, this.damageTexts, this.shockwaves);
-        } else if (e.code === 'KeyR') {
-          this.player.activateSkillR(this.particles, this.meteors, this.shockwaves);
         }
-      }
-
-      if (this.isLevelingUp && ['Digit1', 'Digit2', 'Digit3'].includes(e.code)) {
-        const idx = parseInt(e.code.replace('Digit', '')) - 1;
-        const cards = document.querySelectorAll('.card-item');
-        if (cards[idx]) cards[idx].click();
+        if (e.code === 'KeyQ') {
+          const wm = this.screenToWorld(this.mouse.x, this.mouse.y);
+          this.player.useQ(wm.x, wm.y, this.grenades, this.boomerangs);
+        }
+        if (e.code === 'KeyE') {
+          this.player.useE(this.damageTexts);
+        }
+        if (e.code === 'KeyR') {
+          const wm = this.screenToWorld(this.mouse.x, this.mouse.y);
+          this.player.useR(wm.x, wm.y, this.meteors, this.damageTexts);
+        }
       }
     });
 
@@ -2189,89 +2170,167 @@ class Game {
 
     window.addEventListener('mousedown', (e) => {
       if (e.button === 0) {
-        Sound.init();
         this.mouse.isDown = true;
       }
     });
 
     window.addEventListener('mouseup', (e) => {
-      if (e.button === 0) this.mouse.isDown = false;
+      if (e.button === 0) {
+        this.mouse.isDown = false;
+      }
     });
 
-    document.getElementById('btn-start').addEventListener('click', () => {
-      Sound.init();
-      Sound.startBGM();
-      this.start();
+    // Character Selection
+    document.querySelectorAll('.char-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        this.selectedChar = card.dataset.char;
+      });
     });
 
-    document.getElementById('btn-restart').addEventListener('click', () => this.start());
-    document.getElementById('btn-victory-restart').addEventListener('click', () => this.start());
+    // Difficulty Selection
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.difficulty = btn.dataset.diff;
+      });
+    });
+
+    // Start Button
+    document.getElementById('btn-start').addEventListener('click', () => this.start());
+
+    // Restart & Resume Buttons
+    document.getElementById('btn-restart').addEventListener('click', () => this.restart());
+    document.getElementById('btn-victory-restart').addEventListener('click', () => this.restart());
     document.getElementById('btn-resume').addEventListener('click', () => this.togglePause());
-    document.getElementById('btn-pause').addEventListener('click', () => this.togglePause());
 
+    // Audio HUD Buttons
     const btnSound = document.getElementById('btn-sound');
     btnSound.addEventListener('click', () => {
       Sound.sfxEnabled = !Sound.sfxEnabled;
-      btnSound.textContent = Sound.sfxEnabled ? '🔊 SFX ON' : '🔈 SFX OFF';
+      btnSound.textContent = Sound.sfxEnabled ? '🔊 SFX ON' : '🔇 SFX OFF';
     });
 
     const btnBgm = document.getElementById('btn-bgm');
-    const updateBgmBtnText = () => {
-      if (!Sound.bgmEnabled) {
-        btnBgm.textContent = '🔇 BGM OFF';
-      } else {
-        const trk = Sound.getCurrentTrack();
-        btnBgm.textContent = trk.id === 'pajamas' ? '👚 파자마 파티' : '🎸 혼잣말 (ひとりごつ)';
-      }
-    };
-    updateBgmBtnText();
-
     btnBgm.addEventListener('click', () => {
-      if (!Sound.bgmEnabled) {
-        Sound.bgmEnabled = true;
+      Sound.bgmEnabled = !Sound.bgmEnabled;
+      if (Sound.bgmEnabled) {
         Sound.startBGM();
-        updateBgmBtnText();
-        this.damageTexts.push(new DamageText(this.player?.x || 2500, (this.player?.y || 2500) - 40, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
+        btnBgm.textContent = '🎵 BGM ON';
       } else {
-        if (Sound.currentTrackIdx === 0) {
-          Sound.switchNextTrack();
-          updateBgmBtnText();
-          this.damageTexts.push(new DamageText(this.player?.x || 2500, (this.player?.y || 2500) - 40, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
-        } else {
-          Sound.bgmEnabled = false;
-          Sound.stopBGM();
-          Sound.currentTrackIdx = 0;
-          updateBgmBtnText();
-          this.damageTexts.push(new DamageText(this.player?.x || 2500, (this.player?.y || 2500) - 40, '🔇 BGM 꺼짐', '#94a3b8', true));
-        }
+        Sound.stopBGM();
+        btnBgm.textContent = '🔇 BGM OFF';
       }
     });
+
+    const btnTrack = document.getElementById('btn-track');
+    if (btnTrack) {
+      btnTrack.addEventListener('click', () => {
+        const nextTrack = Sound.switchNextTrack();
+        btnTrack.textContent = `💿 ${nextTrack.shortName}`;
+      });
+    }
+
+    const btnPause = document.getElementById('btn-pause');
+    btnPause.addEventListener('click', () => this.togglePause());
+
+    // Settings Modal
+    const btnSettings = document.getElementById('btn-settings');
+    const settingsModal = document.getElementById('settings-modal');
+    const btnCloseSettings = document.getElementById('btn-close-settings');
+
+    if (btnSettings && settingsModal) {
+      btnSettings.addEventListener('click', () => {
+        settingsModal.classList.add('active');
+      });
+    }
+
+    if (btnCloseSettings && settingsModal) {
+      btnCloseSettings.addEventListener('click', () => {
+        settingsModal.classList.remove('active');
+      });
+    }
+
+    // Setting controls
+    const volBgm = document.getElementById('vol-bgm');
+    if (volBgm) {
+      volBgm.value = this.settings.bgmVol * 100;
+      volBgm.addEventListener('input', (e) => {
+        this.settings.bgmVol = e.target.value / 100;
+        Sound.bgmVolume = this.settings.bgmVol;
+        StorageManager.saveSettings(this.settings);
+      });
+    }
+
+    const volSfx = document.getElementById('vol-sfx');
+    if (volSfx) {
+      volSfx.value = this.settings.sfxVol * 100;
+      volSfx.addEventListener('input', (e) => {
+        this.settings.sfxVol = e.target.value / 100;
+        Sound.sfxVolume = this.settings.sfxVol;
+        StorageManager.saveSettings(this.settings);
+      });
+    }
+
+    const toggleShake = document.getElementById('toggle-shake');
+    if (toggleShake) {
+      toggleShake.checked = this.settings.screenShake;
+      toggleShake.addEventListener('change', (e) => {
+        this.settings.screenShake = e.target.checked;
+        StorageManager.saveSettings(this.settings);
+      });
+    }
+
+    const toggleDmg = document.getElementById('toggle-dmgtext');
+    if (toggleDmg) {
+      toggleDmg.checked = this.settings.damageText;
+      toggleDmg.addEventListener('change', (e) => {
+        this.settings.damageText = e.target.checked;
+        StorageManager.saveSettings(this.settings);
+      });
+    }
   }
 
-  getChapterInfo(wave) {
-    if (wave <= 5) return { num: 1, name: '🌸 제1장: 광활한 치이카와 숲속', bgKey: 'bg_forest' };
-    if (wave <= 10) return { num: 2, name: '🍄 제2장: 거대 버섯 동굴 유적', bgKey: 'bg_cave' };
-    if (wave <= 15) return { num: 3, name: '🏰 제3장: 환상의 관 대미궁', bgKey: 'bg_ruins' };
-    if (wave <= 20) return { num: 4, name: '👑 제4장: 최심부 아노코의 대성역', bgKey: 'bg_sanctuary' };
-    return { num: 5, name: '🔥 무한 나이트메어 오픈월드', bgKey: 'bg_sanctuary' };
+  screenToWorld(screenX, screenY) {
+    return {
+      x: screenX + this.camera.x,
+      y: screenY + this.camera.y
+    };
+  }
+
+  getDiffConfig() {
+    if (this.difficulty === 'nightmare') {
+      return { hpMult: 1.6, dmgMult: 1.5, spdMult: 1.25, scoreMult: 2.0 };
+    } else if (this.difficulty === 'normal') {
+      return { hpMult: 0.8, dmgMult: 0.75, spdMult: 0.9, scoreMult: 0.8 };
+    }
+    return { hpMult: 1.0, dmgMult: 1.0, spdMult: 1.0, scoreMult: 1.0 };
+  }
+
+  showDangerBanner(title = '거대 키메라 출현!') {
+    Sound.playBossWarning();
+    const banner = document.getElementById('danger-banner');
+    const titleEl = document.getElementById('danger-boss-title');
+    if (banner && titleEl) {
+      titleEl.textContent = `⚠️ ${title} ⚠️`;
+      banner.classList.add('active');
+      setTimeout(() => {
+        banner.classList.remove('active');
+      }, 2400);
+    }
   }
 
   start() {
-    document.querySelectorAll('.overlay-screen').forEach((el) => el.classList.remove('active'));
+    Sound.init();
+    Sound.startBGM();
 
-    this.score = 0;
-    this.kills = 0;
-    this.wave = 1;
-    this.waveTimer = 0;
-    this.gameTime = 0;
-    this.spawnTimer = 0;
-    this.bossSpawned = false;
-    this.comboCount = 0;
-    this.comboTimer = 0;
+    document.querySelectorAll('.overlay-screen').forEach(el => el.classList.remove('active'));
 
-    this.level = 1;
-    this.currentExp = 0;
-    this.maxExp = 45;
+    const startX = this.worldWidth / 2;
+    const startY = this.worldHeight / 2;
+    this.player = new Player(startX, startY, this.selectedChar, this.sprites[this.selectedChar]);
 
     this.enemies = [];
     this.projectiles = [];
@@ -2280,10 +2339,9 @@ class Game {
     this.meteors = [];
     this.expGems = [];
     this.fieldItems = [];
-    this.shockwaves = [];
     this.particles = [];
     this.damageTexts = [];
-    this.screenShake = 0;
+    this.shockwaves = [];
 
     // Reset Sanctuaries
     this.sanctuaries.forEach(s => {
@@ -2292,62 +2350,160 @@ class Game {
       s.chestOpened = false;
     });
 
-    // Start in the center of the vast world (2500, 2500)
-    const startX = this.worldWidth / 2;
-    const startY = this.worldHeight / 2;
-    const sprite = this.sprites[this.selectedChar] || this.sprites.chiikawa;
-    this.player = new Player(startX, startY, this.selectedChar, sprite);
+    this.wave = 1;
+    this.waveTimer = 0;
+    this.gameTime = 0;
+    this.score = 0;
+    this.kills = 0;
+    this.level = 1;
+    this.currentExp = 0;
+    this.maxExp = 100;
+    this.comboCount = 0;
+    this.comboTimer = 0;
 
     this.camera.x = startX - this.canvas.width / 2;
     this.camera.y = startY - this.canvas.height / 2;
 
-    const avatarImg = document.getElementById('avatar-img');
-    avatarImg.src = `assets/${this.selectedChar}.png`;
-    document.getElementById('hud-name-tag').textContent = this.player.nameTag;
-
-    this.updateSkillBarUI(this.selectedChar);
+    this.setupUIForChar();
+    this.updateHUD();
 
     this.isRunning = true;
     this.isPaused = false;
     this.isLevelingUp = false;
-
-    this.announceWave(1);
-    this.updateHUD();
     this.lastTime = performance.now();
+
     requestAnimationFrame((t) => this.loop(t));
   }
 
-  announceWave(w) {
-    const waveNames = {
-      1: "🌸 WAVE 1: 광활한 숲속 정찰 (날벌레 몬스터)",
-      2: "🍄 WAVE 2: 버섯 숲의 습격 (숲속 고블린의 기습)",
-      3: "⚡ WAVE 3: 번개 풍뎅이 & 날벌레 편대 출현!",
-      4: "⚔️ WAVE 4: 장갑 키메라의 포효",
-      5: "⚠️ WAVE 5: [제1장 보스] 폭주하는 가시 키메라!",
-      6: "🦇 WAVE 6: [제2장] 어둠의 검은 벌레 떼 고속 침투",
-      7: "🏹 WAVE 7: 동굴 고블린 저격수 & 독침 세례",
-      8: "🛡️ WAVE 8: 강철 중장갑 키메라의 지진 돌격",
-      9: "💀 WAVE 9: 암흑 혼합 군단 대공습!",
-      10: "⚠️ WAVE 10: [제2장 보스] 돌연변이 쌍두 키메라 강림!",
-      11: "🏰 WAVE 11: [제3장] 환상의 관 정예 고블린 특공대",
-      12: "⚡ WAVE 12: 광폭화 번개 풍뎅이 떼 초고속 차징!",
-      13: "🛡️ WAVE 13: 강철 키메라 군단의 지면 충격파",
-      14: "💀 WAVE 14: 환상의 관 최정예 몬스터 총공격!!",
-      15: "⚠️ WAVE 15: [제3장 보스] 거대 바위 철갑 키메라 격파전!",
-      16: "👑 WAVE 16: [제4장] 아노코의 친위대 집결",
-      17: "🌪️ WAVE 17: 암흑 벌레 폭풍 & 정예 고블린 부대",
-      18: "🛡️ WAVE 18: 3대 정예 키메라 협공 대격돌!",
-      19: "🔥 WAVE 19: 최후의 결전 전야 - 몬스터 대군세 총출동!!",
-      20: "👑 WAVE 20: [최종 결전] 진(眞) 거대 아노코 강림!!"
+  restart() {
+    this.start();
+  }
+
+  setupUIForChar() {
+    const avatarImg = document.getElementById('avatar-img');
+    const nameTag = document.getElementById('hud-name-tag');
+    avatarImg.src = `assets/${this.selectedChar}.png`;
+    nameTag.textContent = this.player.nameTag;
+
+    const normalName = document.getElementById('skill-name-normal');
+    const normalIcon = document.getElementById('skill-icon-normal');
+    const qName = document.getElementById('skill-name-q');
+    const qIcon = document.getElementById('skill-icon-q');
+    const eName = document.getElementById('skill-name-e');
+    const eIcon = document.getElementById('skill-icon-e');
+    const rName = document.getElementById('skill-name-r');
+    const rIcon = document.getElementById('skill-icon-r');
+
+    if (this.selectedChar === 'usagi') {
+      normalName.textContent = '쌍당근 산탄'; normalIcon.textContent = '🥕';
+      qName.textContent = '당근 부메랑'; qIcon.textContent = '🪃';
+      eName.textContent = '팽이 무적돌진'; eIcon.textContent = '🌪️';
+      rName.textContent = '당근 메테오'; rIcon.textContent = '☄️';
+    } else if (this.selectedChar === 'hachiware') {
+      normalName.textContent = '3연속 검기'; normalIcon.textContent = '⚔️';
+      qName.textContent = '카메라 섬광'; qIcon.textContent = '📸';
+      eName.textContent = '통기타 힐링'; eIcon.textContent = '🎸';
+      rName.textContent = '메가 슬래시'; rIcon.textContent = '⚡';
+    } else {
+      normalName.textContent = '유도 별빛샷'; normalIcon.textContent = '⭐';
+      qName.textContent = '도토리 폭탄'; qIcon.textContent = '🌰';
+      eName.textContent = '용기 방패각성'; eIcon.textContent = '💖';
+      rName.textContent = '레인보우 빔'; rIcon.textContent = '🌈';
+    }
+  }
+
+  getChapterInfo(wave) {
+    if (wave <= 5) return { name: '🌸 제1장: 평화로운 숲속', bgKey: 'battle_bg' };
+    if (wave <= 10) return { name: '🍜 제2장: 라멘 로 결전장', bgKey: 'ramen_bg' };
+    if (wave <= 15) return { name: '🏰 제3장: 고대 지하 신전', bgKey: 'tower_bg' };
+    return { name: '⚡ 최종장: 진(眞) 아노코 토벌전', bgKey: 'battle_bg' };
+  }
+
+  updateHUD() {
+    if (!this.player) return;
+
+    // HP Bar
+    const hpRatio = Math.max(0, Math.min(1, this.player.hp / this.player.maxHp));
+    document.getElementById('hud-hp-bar').style.width = `${hpRatio * 100}%`;
+    document.getElementById('hud-hp-text').textContent = `${Math.ceil(this.player.hp)} / ${this.player.maxHp}`;
+
+    // EXP Bar
+    const expRatio = Math.max(0, Math.min(1, this.currentExp / this.maxExp));
+    document.getElementById('hud-exp-bar').style.width = `${expRatio * 100}%`;
+    document.getElementById('hud-exp-text').textContent = `${Math.round(expRatio * 100)}%`;
+    document.getElementById('hud-level').textContent = `Lv.${this.level}`;
+
+    // Wave & Timer & Chapter
+    const chInfo = this.getChapterInfo(this.wave);
+    document.getElementById('hud-chapter').textContent = chInfo.name;
+    document.getElementById('hud-wave').textContent = `WAVE ${this.wave} / ${this.maxCampaignWave}`;
+    document.getElementById('hud-timer').textContent = this.formatTime(this.gameTime);
+    document.getElementById('hud-score').textContent = Math.round(this.score).toLocaleString();
+    document.getElementById('hud-kills').textContent = this.kills;
+
+    // Combo display
+    const comboEl = document.getElementById('hud-combo');
+    if (this.comboCount >= 3) {
+      comboEl.style.display = 'block';
+      document.getElementById('combo-num').textContent = this.comboCount;
+    } else {
+      comboEl.style.display = 'none';
+    }
+
+    // Buff Icons
+    const buffContainer = document.getElementById('hud-buffs');
+    buffContainer.innerHTML = '';
+    if (this.player.hasShield) {
+      buffContainer.innerHTML += `<div class="buff-pill">🛡️ 실드</div>`;
+    }
+    if (this.player.doubleDamageTimer > 0) {
+      buffContainer.innerHTML += `<div class="buff-pill" style="border-color:#ef4444;color:#ef4444;">⚔️ 2배 극딜 (${Math.ceil(this.player.doubleDamageTimer)}s)</div>`;
+    }
+    if (this.player.charType === 'usagi' && this.player.madnessStacks > 0) {
+      buffContainer.innerHTML += `<div class="buff-pill" style="border-color:#f59e0b;color:#f59e0b;">🔥 광기 ${this.player.madnessStacks}단</div>`;
+    }
+
+    // Cooldown overlays
+    const setCD = (id, cur, max) => {
+      const el = document.getElementById(id);
+      if (el) el.style.height = max > 0 && cur > 0 ? `${(cur / max) * 100}%` : '0%';
     };
 
-    const title = waveNames[w] || `🔥 WAVE ${w}: 무한 나이트메어 모드 🔥`;
-    this.damageTexts.push(new DamageText(this.player?.x || 2500, (this.player?.y || 2500) - 80, title, '#ff4081', true));
+    setCD('cd-space', this.player.dashTimer, this.player.dashCooldown);
+    setCD('cd-q', this.player.timerQ, this.player.cdQ);
+    setCD('cd-e', this.player.timerE, this.player.cdE);
+    setCD('cd-r', this.player.timerR, this.player.cdR);
 
-    if (w === 5 || w === 10 || w === 15 || w === 20) {
-      Sound.playBossWarning();
-      this.screenShake = 14;
+    // Active boss health bar HUD
+    this.updateBossHUD();
+  }
+
+  updateBossHUD() {
+    const bossHud = document.getElementById('boss-hud');
+    const bossNameEl = document.getElementById('boss-name-text');
+    const bossHpValEl = document.getElementById('boss-hp-val');
+    const bossFillEl = document.getElementById('boss-hp-fill');
+    const bossGhostEl = document.getElementById('boss-hp-ghost');
+
+    let activeBoss = this.enemies.find(e => e.type === 'boss' || e.type.includes('boss') || e.type.startsWith('sanctuary_boss'));
+
+    if (activeBoss && activeBoss.hp > 0 && this.isRunning) {
+      bossHud.style.display = 'block';
+      bossNameEl.textContent = activeBoss.name;
+      const ratio = Math.max(0, Math.min(1, activeBoss.hp / activeBoss.maxHp));
+      const pct = Math.round(ratio * 100);
+      bossHpValEl.textContent = `${pct}%`;
+      bossFillEl.style.width = `${pct}%`;
+      if (bossGhostEl) bossGhostEl.style.width = `${pct}%`;
+    } else {
+      bossHud.style.display = 'none';
     }
+  }
+
+  formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   }
 
   togglePause() {
@@ -2400,17 +2556,17 @@ class Game {
   }
 
   spawnMidBoss(wave) {
-    this.bossSpawned = true;
     const x = this.player ? this.player.x : this.worldWidth / 2;
     const y = Math.max(100, (this.player ? this.player.y : this.worldHeight / 2) - 650);
     this.enemies.push(new Enemy(x, y, 'midboss', wave, this.getDiffConfig()));
+    this.showDangerBanner(`제${Math.ceil(wave / 5)}장 보스 등장!`);
   }
 
   spawnFinalBoss(wave) {
-    this.bossSpawned = true;
     const x = this.player ? this.player.x : this.worldWidth / 2;
     const y = Math.max(100, (this.player ? this.player.y : this.worldHeight / 2) - 650);
     this.enemies.push(new Enemy(x, y, 'boss', wave, this.getDiffConfig()));
+    this.showDangerBanner('진(眞) 거대 아노코 출현!');
   }
 
   addExp(amount) {
@@ -2456,12 +2612,12 @@ class Game {
     ];
 
     const shuffled = [...pool].sort(() => 0.5 - Math.random());
-    const selectedCards = shuffled.slice(0, 3);
+    this.currentUpgradeCards = shuffled.slice(0, 3);
 
     const container = document.getElementById('cards-container');
     container.innerHTML = '';
 
-    selectedCards.forEach((card, idx) => {
+    this.currentUpgradeCards.forEach((card, idx) => {
       const cardEl = document.createElement('div');
       cardEl.className = 'card-item';
       cardEl.innerHTML = `
@@ -2471,98 +2627,49 @@ class Game {
         <div class="card-effect">${card.effect}</div>
         <div class="card-tier">${card.tier}</div>
       `;
-      cardEl.addEventListener('click', () => {
-        card.apply();
-        this.isLevelingUp = false;
-        document.getElementById('levelup-modal').classList.remove('active');
-        this.updateHUD();
-        this.lastTime = performance.now();
-        requestAnimationFrame((t) => this.loop(t));
-      });
+      cardEl.addEventListener('click', () => this.selectLevelUpCard(idx));
       container.appendChild(cardEl);
     });
 
     document.getElementById('levelup-modal').classList.add('active');
   }
 
+  selectLevelUpCard(idx) {
+    if (!this.isLevelingUp || !this.currentUpgradeCards || !this.currentUpgradeCards[idx]) return;
+    this.currentUpgradeCards[idx].apply();
+    this.isLevelingUp = false;
+    document.getElementById('levelup-modal').classList.remove('active');
+    this.updateHUD();
+    this.lastTime = performance.now();
+    requestAnimationFrame((t) => this.loop(t));
+  }
+
   gameOver() {
     this.isRunning = false;
+    StorageManager.saveRecords(this.score, this.kills, this.wave, this.difficulty, false);
+    this.updateRecordDisplay();
+
     document.getElementById('stat-time').textContent = this.formatTime(this.gameTime);
     document.getElementById('stat-wave').textContent = `${this.wave} / ${this.maxCampaignWave}`;
     document.getElementById('stat-kills').textContent = this.kills;
-    document.getElementById('stat-score').textContent = Math.round(this.score);
+    document.getElementById('stat-score').textContent = Math.round(this.score).toLocaleString();
     document.getElementById('gameover-screen').classList.add('active');
   }
 
   victory() {
     this.isRunning = false;
+    Sound.playRelicFanfare();
+    StorageManager.saveRecords(this.score, this.kills, this.wave, this.difficulty, true);
+    this.updateRecordDisplay();
+
     document.getElementById('vstat-time').textContent = this.formatTime(this.gameTime);
     document.getElementById('vstat-kills').textContent = this.kills;
-    document.getElementById('vstat-score').textContent = Math.round(this.score);
+    document.getElementById('vstat-score').textContent = Math.round(this.score).toLocaleString();
     document.getElementById('victory-screen').classList.add('active');
-  }
-
-  formatTime(secs) {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  }
-
-  updateHUD() {
-    document.getElementById('hud-level').textContent = `Lv.${this.level}`;
-    document.getElementById('hud-hp-text').textContent = `${Math.ceil(this.player.hp)} / ${this.player.maxHp}`;
-    const hpPct = Math.max(0, (this.player.hp / this.player.maxHp) * 100);
-    document.getElementById('hud-hp-bar').style.width = `${hpPct}%`;
-
-    const expPct = Math.min(100, (this.currentExp / this.maxExp) * 100);
-    document.getElementById('hud-exp-bar').style.width = `${expPct}%`;
-    document.getElementById('hud-exp-text').textContent = `${Math.round(expPct)}%`;
-
-    const chInfo = this.getChapterInfo(this.wave);
-    const chBadge = document.getElementById('hud-chapter');
-    if (chBadge) chBadge.textContent = chInfo.name;
-
-    const waveLabel = this.wave > 20 ? `WAVE ${this.wave} (ENDLESS)` : `WAVE ${this.wave} / 20`;
-    document.getElementById('hud-wave').textContent = waveLabel;
-    document.getElementById('hud-timer').textContent = this.formatTime(this.gameTime);
-    document.getElementById('hud-score').textContent = Math.round(this.score);
-    document.getElementById('hud-kills').textContent = this.kills;
-
-    const comboBadge = document.getElementById('hud-combo');
-    if (comboBadge) {
-      if (this.comboCount >= 3) {
-        comboBadge.style.display = 'block';
-        document.getElementById('combo-num').textContent = this.comboCount;
-      } else {
-        comboBadge.style.display = 'none';
-      }
-    }
-
-    const buffContainer = document.getElementById('hud-buffs');
-    if (buffContainer) {
-      let html = '';
-      if (this.player.hasShield) html += '<span class="buff-pill">🛡️ 실드</span>';
-      if (this.player.doubleDamageTimer > 0) html += `<span class="buff-pill">🍙 2배 데미지 (${Math.ceil(this.player.doubleDamageTimer)}s)</span>`;
-      if (this.player.hasAutoShieldRegen) html += '<span class="buff-pill">✨ 영구보호막</span>';
-      if (this.player.relicsCount > 0) html += `<span class="buff-pill">🏆 성소유물 ${this.player.relicsCount}/4</span>`;
-      buffContainer.innerHTML = html;
-    }
-
-    const setCd = (id, cur, max) => {
-      const pct = max > 0 ? Math.min(100, (cur / max) * 100) : 0;
-      const el = document.getElementById(id);
-      if (el) el.style.height = `${pct}%`;
-    };
-
-    setCd('cd-space', this.player.dashTimer, this.player.dashCooldown);
-    setCd('cd-q', this.player.timerQ, this.player.cdQ);
-    setCd('cd-e', this.player.timerE, this.player.cdE);
-    setCd('cd-r', this.player.timerR, this.player.cdR);
   }
 
   update(dt) {
     this.gameTime += dt;
-    this.waveTimer += dt;
 
     if (this.comboTimer > 0) {
       this.comboTimer -= dt;
@@ -2571,103 +2678,7 @@ class Game {
       }
     }
 
-    // Wave Progression
-    if (this.waveTimer >= this.waveDuration) {
-      this.wave++;
-      this.waveTimer = 0;
-      this.announceWave(this.wave);
-
-      if (this.wave === 5 || this.wave === 10 || this.wave === 15) {
-        this.spawnMidBoss(this.wave);
-      } else if (this.wave === 20) {
-        this.spawnFinalBoss(this.wave);
-      }
-    }
-
-    // Dynamic Spawning around player
-    this.spawnTimer += dt;
-    const diff = this.getDiffConfig();
-    const baseInterval = Math.max(0.22, 1.4 - this.wave * 0.05);
-    const spawnInterval = baseInterval / diff.spawnMult;
-
-    if (this.spawnTimer >= spawnInterval) {
-      this.spawnTimer = 0;
-      this.spawnEnemy();
-    }
-
-    // Sanctuary Proximity & Boss Encounter Logic
-    if (this.player) {
-      this.sanctuaries.forEach(s => {
-        const dist = Math.hypot(this.player.x - s.x, this.player.y - s.y);
-
-        // Enter sanctuary warning & spawn guardian boss
-        if (dist < s.radius && !s.bossSpawned && !s.bossDefeated) {
-          s.bossSpawned = true;
-          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 70, `⚠️ ${s.name} 진입! 수호 보스 출현!`, s.color, true));
-          Sound.playBossWarning();
-          this.screenShake = 12;
-          this.enemies.push(new Enemy(s.x, s.y - 80, s.bossType, this.wave, this.getDiffConfig()));
-        }
-
-        // Open Chest after Boss defeated
-        if (s.bossDefeated && !s.chestOpened && dist < s.chestRadius + this.player.radius) {
-          s.chestOpened = true;
-          this.player.relicsCount++;
-          Sound.playRelicFanfare();
-          this.screenShake = 15;
-
-          // Apply Relic Buffs
-          if (s.relicType === 'relic_pudding') {
-            this.player.maxHp += 50;
-            this.player.hp = this.player.maxHp;
-            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '🏆 대왕 황금 푸딩 획득! 최대체력+50 & 완치!', '#ffd166', true));
-          } else if (s.relicType === 'relic_ramen') {
-            this.player.damageMultiplier += 0.35;
-            this.player.doubleDamageTimer = 15.0;
-            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '🏆 특제 차슈 라멘 획득! 영구공격력+35% & 15초 폭증!', '#ef4444', true));
-          } else if (s.relicType === 'relic_shield') {
-            this.player.hasAutoShieldRegen = true;
-            this.player.hasShield = true;
-            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '🏆 영구 별빛 보호막 획득! (15초 자동 재생)', '#38bdf8', true));
-          } else if (s.relicType === 'relic_boots') {
-            this.player.speed *= 1.25;
-            this.player.dashCooldown *= 0.6;
-            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '🏆 헤르메스 당근 신발 획득! 이속+25% & 대시쿨-40%!', '#facc15', true));
-          }
-
-          // Sparkling particles
-          for (let k = 0; k < 35; k++) {
-            const angle = Math.random() * Math.PI * 2;
-            const spd = 2 + Math.random() * 8;
-            this.particles.push(new Particle(s.x, s.y, Math.cos(angle) * spd, Math.sin(angle) * spd, 12, s.color, 0.7, 'star'));
-          }
-        }
-      });
-    }
-
-    const worldMouseX = this.mouse.x + this.camera.x;
-    const worldMouseY = this.mouse.y + this.camera.y;
-
-    if (this.mouse.isDown) {
-      this.player.shoot(worldMouseX, worldMouseY, this.projectiles, this.particles);
-    }
-
-    this.player.update(
-      dt,
-      this.keys,
-      worldMouseX,
-      worldMouseY,
-      this.particles,
-      this.grenades,
-      this.boomerangs,
-      this.meteors,
-      this.worldWidth,
-      this.worldHeight,
-      this.enemies,
-      this.damageTexts
-    );
-
-    // Smooth Camera Follow
+    // Camera follow player smoothly
     const targetCamX = this.player.x - this.canvas.width / 2;
     const targetCamY = this.player.y - this.canvas.height / 2;
     this.camera.x += (targetCamX - this.camera.x) * 0.12;
@@ -2675,55 +2686,91 @@ class Game {
     this.camera.x = Math.max(0, Math.min(this.worldWidth - this.canvas.width, this.camera.x));
     this.camera.y = Math.max(0, Math.min(this.worldHeight - this.canvas.height, this.camera.y));
 
-    // Laser damage
-    if (this.player.isFiringLaser) {
-      this.screenShake = Math.max(this.screenShake, 5);
-      const laserAngle = this.player.aimAngle;
-      const lx = this.player.x;
-      const ly = this.player.y;
-      const laserLength = 1600;
-      const laserWidth = 46;
+    // Update Sakura Particles
+    this.sakuraParticles.forEach(p => p.update(dt));
 
-      if (Math.random() < 0.6) {
-        const dist = Math.random() * 800;
-        this.particles.push(
-          new Particle(lx + Math.cos(laserAngle) * dist, ly + Math.sin(laserAngle) * dist, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 8, '#ffd166', 0.25, 'star')
-        );
+    // Wave Progression
+    this.waveTimer += dt;
+    if (this.waveTimer >= this.waveDuration && this.wave < this.maxCampaignWave) {
+      this.waveTimer = 0;
+      this.wave++;
+      this.damageTexts.push(new DamageText(this.player.x, this.player.y - 45, `🌸 WAVE ${this.wave} 시작! 🌸`, '#f59e0b', true));
+
+      if (this.wave === 5 || this.wave === 10 || this.wave === 15) {
+        this.spawnMidBoss(this.wave);
+      } else if (this.wave === this.maxCampaignWave) {
+        this.spawnFinalBoss(this.wave);
+      }
+    }
+
+    // Monster Spawning
+    const maxMobs = 24 + this.wave * 3;
+    if (this.enemies.length < maxMobs && Math.random() < 0.08 + this.wave * 0.005) {
+      this.spawnEnemy();
+    }
+
+    // Sanctuary Zone Check (Boss summon & chest open)
+    this.sanctuaries.forEach(s => {
+      const dist = Math.hypot(this.player.x - s.x, this.player.y - s.y);
+
+      // Trigger guardian mini-boss if player gets close to sanctuary
+      if (dist < s.radius && !s.bossSpawned && !s.bossDefeated) {
+        s.bossSpawned = true;
+        this.enemies.push(new Enemy(s.x, s.y - 60, s.bossType, this.wave, this.getDiffConfig()));
+        this.showDangerBanner(`${s.name} 수호 보스 출현!`);
       }
 
-      this.enemies.forEach((enemy) => {
-        const edx = enemy.x - lx;
-        const edy = enemy.y - ly;
-        const projLen = edx * Math.cos(laserAngle) + edy * Math.sin(laserAngle);
-        if (projLen > 0 && projLen < laserLength) {
-          const perpDist = Math.abs(-edx * Math.sin(laserAngle) + edy * Math.cos(laserAngle));
-          if (perpDist < laserWidth + enemy.radius) {
-            const dmg = 9 * dt * 60 * (this.player.doubleDamageTimer > 0 ? 2 : 1);
-            enemy.hp -= dmg;
-            enemy.hitTimer = 0.08;
-            if (Math.random() < 0.2) {
-              this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(dmg), '#ff79b0'));
-            }
-          }
+      // Check treasure chest interaction
+      if (dist < s.chestRadius + this.player.radius && s.bossDefeated && !s.chestOpened) {
+        s.chestOpened = true;
+        this.player.relicsCount++;
+        Sound.playRelicFanfare();
+        this.damageTexts.push(new DamageText(this.player.x, this.player.y - 50, `🏆 ${s.relicName} 획득!`, '#facc15', true));
+
+        // Apply Relic Buff
+        if (s.relicType === 'relic_pudding') {
+          this.player.maxHp += 50;
+          this.player.hp = this.player.maxHp;
+        } else if (s.relicType === 'relic_ramen') {
+          this.player.damageMultiplier += 0.35;
+          this.player.doubleDamageTimer = 15.0;
+        } else if (s.relicType === 'relic_shield') {
+          this.player.hasAutoShieldRegen = true;
+          this.player.hasShield = true;
+        } else if (s.relicType === 'relic_boots') {
+          this.player.speed *= 1.25;
+          this.player.dashCooldown *= 0.6;
         }
-      });
+      }
+    });
+
+    // Player Shooting & Update
+    const wm = this.screenToWorld(this.mouse.x, this.mouse.y);
+    if (this.mouse.isDown) {
+      this.player.shoot(wm.x, wm.y, this.projectiles, this.particles);
     }
+
+    this.player.update(
+      dt, this.keys, wm.x, wm.y, this.particles, this.grenades, this.boomerangs, this.meteors,
+      this.worldWidth, this.worldHeight, this.enemies, this.damageTexts
+    );
 
     // Update Boomerangs
     for (let i = this.boomerangs.length - 1; i >= 0; i--) {
       const b = this.boomerangs[i];
       b.update(dt, this.player);
 
-      this.enemies.forEach(enemy => {
-        const dist = Math.hypot(b.x - enemy.x, b.y - enemy.y);
-        if (dist < b.radius + enemy.radius && !b.hitEnemies.has(enemy)) {
-          b.hitEnemies.add(enemy);
-          enemy.hp -= b.damage;
-          enemy.hitTimer = 0.15;
-          Sound.playHit();
-          this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(b.damage), '#f97316', true));
+      for (let j = this.enemies.length - 1; j >= 0; j--) {
+        const e = this.enemies[j];
+        if (b.hitEnemies.has(e)) continue;
+        const dist = Math.hypot(b.x - e.x, b.y - e.y);
+        if (dist < b.radius + e.radius) {
+          b.hitEnemies.add(e);
+          e.hp -= b.damage;
+          e.hitTimer = 0.12;
+          this.damageTexts.push(new DamageText(e.x, e.y, Math.round(b.damage), '#f97316', true));
         }
-      });
+      }
 
       if (b.life <= 0) {
         this.boomerangs.splice(i, 1);
@@ -2736,34 +2783,18 @@ class Game {
       m.update(dt);
       if (m.landed) {
         Sound.playExplosion();
-        this.screenShake = 18;
-        this.particles.push(new Particle(m.targetX, m.targetY, 0, 0, m.radius, '#ff4500', 0.6, 'ring'));
-        for (let k = 0; k < 30; k++) {
-          const angle = Math.random() * Math.PI * 2;
-          const spd = 3 + Math.random() * 8;
-          this.particles.push(
-            new Particle(m.targetX, m.targetY, Math.cos(angle) * spd, Math.sin(angle) * spd, 10 + Math.random() * 8, '#f59e0b', 0.6, 'star')
-          );
-        }
+        this.screenShake = 14;
+        this.particles.push(new Particle(m.targetX, m.targetY, 0, 0, m.radius, '#ea580c', 0.5, 'ring'));
 
-        this.enemies.forEach(enemy => {
-          const dist = Math.hypot(enemy.x - m.targetX, enemy.y - m.targetY);
-          if (dist < m.radius + enemy.radius) {
-            enemy.hp -= m.damage;
-            enemy.hitTimer = 0.2;
-            this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(m.damage), '#ef4444', true));
+        this.enemies.forEach(e => {
+          const d = Math.hypot(e.x - m.targetX, e.y - m.targetY);
+          if (d < m.radius + e.radius) {
+            e.hp -= m.damage;
+            e.hitTimer = 0.15;
+            this.damageTexts.push(new DamageText(e.x, e.y, Math.round(m.damage), '#ff4500', true));
           }
         });
         this.meteors.splice(i, 1);
-      }
-    }
-
-    // Update Shockwaves
-    for (let i = this.shockwaves.length - 1; i >= 0; i--) {
-      const sw = this.shockwaves[i];
-      sw.update(dt, this.player, this.damageTexts);
-      if (sw.life <= 0) {
-        this.shockwaves.splice(i, 1);
       }
     }
 
@@ -2774,26 +2805,33 @@ class Game {
 
       const dist = Math.hypot(item.x - this.player.x, item.y - this.player.y);
       if (dist < item.radius + this.player.radius) {
+        Sound.playPickup();
         if (item.itemType === 'pudding') {
-          this.player.hp = Math.min(this.player.maxHp, this.player.hp + 30);
-          Sound.playPudding();
-          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, `🍮 푸딩 냠냠! +30 HP`, '#ffd166', true));
+          this.player.hp = Math.min(this.player.maxHp, this.player.hp + 40);
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, '+40 HP', '#10b981', true));
         } else if (item.itemType === 'onigiri') {
-          this.player.doubleDamageTimer = 8.0;
-          Sound.playPowerup();
-          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, `🍙 주먹밥 파워! 공격력 2배!`, '#ef4444', true));
+          this.player.doubleDamageTimer = 10.0;
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, '⚔️ 2배 공격력!', '#ef4444', true));
         } else if (item.itemType === 'shield') {
           this.player.hasShield = true;
-          Sound.playPowerup();
-          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, `🛡️ 보호막 획득!`, '#38bdf8', true));
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, '🛡️ 보호막 충전!', '#38bdf8', true));
         } else if (item.itemType === 'magnet') {
-          Sound.playPickup();
           this.expGems.forEach(g => { g.x = this.player.x; g.y = this.player.y; });
-          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, `🧲 별사탕 자석 발동!`, '#a855f7', true));
+          this.fieldItems.forEach(it => { it.x = this.player.x; it.y = this.player.y; });
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, '🧲 별사탕 자석 흡수!', '#a855f7', true));
         }
         this.fieldItems.splice(i, 1);
       } else if (item.life <= 0) {
         this.fieldItems.splice(i, 1);
+      }
+    }
+
+    // Update Shockwaves
+    for (let i = this.shockwaves.length - 1; i >= 0; i--) {
+      const sw = this.shockwaves[i];
+      sw.update(dt, this.player, this.damageTexts);
+      if (sw.life <= 0) {
+        this.shockwaves.splice(i, 1);
       }
     }
 
@@ -2818,8 +2856,17 @@ class Game {
             enemy.hp -= p.damage;
             enemy.hitTimer = 0.12;
 
-            Sound.playHit();
-            this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(p.damage), p.color, p.damage > 40));
+            const isCrit = p.damage > 45 || Math.random() < 0.2;
+            if (isCrit) {
+              Sound.playCritHit();
+              this.screenShake = 3;
+            } else {
+              Sound.playHit();
+            }
+
+            if (this.settings.damageText) {
+              this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(p.damage), isCrit ? '#f59e0b' : p.color, isCrit));
+            }
 
             for (let k = 0; k < 3; k++) {
               this.particles.push(
@@ -3004,7 +3051,7 @@ class Game {
     this.ctx.save();
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (this.screenShake > 0) {
+    if (this.screenShake > 0 && this.settings.screenShake) {
       const sx = (Math.random() - 0.5) * this.screenShake * 2;
       const sy = (Math.random() - 0.5) * this.screenShake * 2;
       this.ctx.translate(sx, sy);
@@ -3053,6 +3100,18 @@ class Game {
 
     this.particles.forEach((pt) => pt.draw(this.ctx));
     this.damageTexts.forEach((dt) => dt.draw(this.ctx));
+
+    // Sakura atmosphere petals
+    if (this.settings.highParticles) {
+      this.sakuraParticles.forEach(sp => {
+        if (
+          sp.x > this.camera.x - 50 && sp.x < this.camera.x + this.canvas.width + 50 &&
+          sp.y > this.camera.y - 50 && sp.y < this.camera.y + this.canvas.height + 50
+        ) {
+          sp.draw(this.ctx);
+        }
+      });
+    }
 
     // World Boundary Barrier Glow
     this.drawWorldBoundaries();
@@ -3202,7 +3261,7 @@ class Game {
 
     if (bgSprite && bgSprite.complete && bgSprite.naturalWidth > 0) {
       this.ctx.save();
-      this.ctx.globalAlpha = 0.25;
+      this.ctx.globalAlpha = 0.28;
       const tileW = 1000;
       const tileH = 1000;
       for (let x = 0; x < this.worldWidth; x += tileW) {
