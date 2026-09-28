@@ -3697,6 +3697,11 @@ class Game {
     this.hitStopTimer = 0;
     this.lastTime = 0;
 
+    // Real-time FPS monitoring (supports 60Hz, 120Hz, 144Hz, 240Hz+)
+    this.fps = 60;
+    this.fpsTimer = 0;
+    this.frameCount = 0;
+
     this.settings = StorageManager.getSettings();
     Sound.sfxVolume = this.settings.sfxVol;
     Sound.bgmVolume = this.settings.bgmVol;
@@ -6168,8 +6173,20 @@ class Game {
     if (!this.isRunning || this.isPaused || this.isLevelingUp || this.isShopping) return;
 
     try {
-      const dt = Math.min(0.05, Math.max(0.001, (timestamp - this.lastTime) / 1000 || 0.016));
+      const rawDt = (timestamp - this.lastTime) / 1000 || 0.007;
+      const dt = Math.min(0.05, Math.max(0.001, rawDt));
       this.lastTime = timestamp;
+
+      // Calculate real-time FPS
+      this.frameCount++;
+      this.fpsTimer += dt;
+      if (this.fpsTimer >= 0.25) {
+        this.fps = Math.round(this.frameCount / this.fpsTimer);
+        this.frameCount = 0;
+        this.fpsTimer = 0;
+        const fpsEl = document.getElementById('hud-fps');
+        if (fpsEl) fpsEl.textContent = this.fps;
+      }
 
       this.update(dt);
       this.draw();

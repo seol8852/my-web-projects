@@ -1124,6 +1124,14 @@ input:checked + .slider:before {
   box-shadow: 0 4px 12px rgba(234, 179, 8, 0.3) !important;
 }
 
+.fps-pill-hud {
+  background: rgba(236, 253, 245, 0.95) !important;
+  color: #047857 !important;
+  border: 2px solid #10b981 !important;
+  font-weight: 900;
+  font-size: 11px;
+}
+
 .meta-exam-banner {
   margin: 12px 0 6px 0;
   background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
