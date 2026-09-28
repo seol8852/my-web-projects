@@ -39,6 +39,11 @@
             <div class="bar-inner" id="hud-exp-bar" style="width: 0%;"></div>
           </div>
         </div>
+
+        <!-- Combo Badge -->
+        <div class="combo-badge" id="hud-combo" style="display: none;">
+          <span id="combo-num">0</span> COMBO!
+        </div>
       </div>
 
       <!-- Center Wave & Timer -->
@@ -49,11 +54,14 @@
         <div class="score-display">도토리 점수 <span id="hud-score">0</span></div>
       </div>
 
-      <!-- Right Kill & Audio toggle -->
+      <!-- Right Kill & Buffs & Audio toggle -->
       <div class="hud-right">
         <div class="stat-pill">
           <span class="pill-icon">⚔️</span>
           <span id="hud-kills">0</span> 마리 토벌
+        </div>
+        <div class="buff-container" id="hud-buffs">
+          <!-- Active Buff Icons (Shield, Double Dmg, Fever) -->
         </div>
         <div class="audio-controls">
           <button id="btn-sound" class="hud-btn" title="사운드 토글">🔊 SFX ON</button>
@@ -68,40 +76,40 @@
       <!-- Normal Attack -->
       <div class="skill-slot active">
         <div class="key-bind">L-CLICK</div>
-        <div class="skill-icon">⭐</div>
-        <div class="skill-name">사스마타 샷</div>
+        <div class="skill-icon" id="skill-icon-normal">⭐</div>
+        <div class="skill-name" id="skill-name-normal">유도 별빛 샷</div>
         <div class="cd-overlay" id="cd-lclick"></div>
       </div>
 
       <!-- Dash / Space -->
       <div class="skill-slot">
         <div class="key-bind">SPACE</div>
-        <div class="skill-icon">✨</div>
-        <div class="skill-name">와아앗! 회피</div>
+        <div class="skill-icon" id="skill-icon-space">✨</div>
+        <div class="skill-name" id="skill-name-space">와아앗! 회피</div>
         <div class="cd-overlay" id="cd-space"></div>
       </div>
 
       <!-- Skill Q -->
       <div class="skill-slot">
         <div class="key-bind">Q</div>
-        <div class="skill-icon">🌰</div>
-        <div class="skill-name">도토리 폭탄</div>
+        <div class="skill-icon" id="skill-icon-q">🌰</div>
+        <div class="skill-name" id="skill-name-q">도토리 폭탄</div>
         <div class="cd-overlay" id="cd-q"></div>
       </div>
 
       <!-- Skill E -->
       <div class="skill-slot">
         <div class="key-bind">E</div>
-        <div class="skill-icon">💖</div>
-        <div class="skill-name">용기 100% 각성</div>
+        <div class="skill-icon" id="skill-icon-e">💖</div>
+        <div class="skill-name" id="skill-name-e">용기 방패 각성</div>
         <div class="cd-overlay" id="cd-e"></div>
       </div>
 
       <!-- Ultimate R -->
       <div class="skill-slot ult">
         <div class="key-bind">R</div>
-        <div class="skill-icon">🌈</div>
-        <div class="skill-name">레인보우 빔</div>
+        <div class="skill-icon" id="skill-icon-r">🌈</div>
+        <div class="skill-name" id="skill-name-r">레인보우 빔</div>
         <div class="cd-overlay" id="cd-r"></div>
       </div>
     </div>
@@ -128,18 +136,33 @@
         <div class="char-select-container">
           <div class="char-card active" data-char="chiikawa">
             <img src="assets/chiikawa.png" alt="Chiikawa">
-            <div class="char-name">치이카와</div>
-            <div class="char-desc">밸런스형 • 사스마타 탄환<br><i>"와... 와아...! 후에에...!"</i></div>
+            <div class="char-name">🌸 치이카와</div>
+            <div class="char-role">유도 별빛 & 방패 각성</div>
+            <div class="char-desc">
+              • <b>기본</b>: 2갈래 유도(Homing) 별빛 샷<br>
+              • <b>패시브</b>: 위기 시 눈물의 기적 버프<br>
+              • <b>스킬</b>: 도토리 폭탄 / 회전 방패 / 레인보우 빔
+            </div>
           </div>
           <div class="char-card" data-char="hachiware">
             <img src="assets/hachiware.png" alt="Hachiware">
-            <div class="char-name">하치와레</div>
-            <div class="char-desc">고속 연사 • 푸른 별빛<br><i>"난또까나레-! 어떻게든 될 거야!"</i></div>
+            <div class="char-name">🐱 하치와레</div>
+            <div class="char-role">관통 검기 & 기타 힐</div>
+            <div class="char-desc">
+              • <b>기본</b>: 3연속 푸른 초승달 관통 검기<br>
+              • <b>패시브</b>: 긍정의 힘 (처치 시 공속+점수 2배)<br>
+              • <b>스킬</b>: 카메라 섬광 / 통기타 힐 / 메가 슬래시
+            </div>
           </div>
           <div class="char-card" data-char="usagi">
             <img src="assets/usagi.png" alt="Usagi">
-            <div class="char-name">우사기</div>
-            <div class="char-desc">강력 화력 • 당근 폭풍<br><i>"우라라라라-!! 야하-!!"</i></div>
+            <div class="char-name">🐰 우사기</div>
+            <div class="char-role">쌍당근 산탄 & 무적 회전</div>
+            <div class="char-desc">
+              • <b>기본</b>: 5~7발 황금 당근 산탄(Shotgun)<br>
+              • <b>패시브</b>: 광기 스택 (공격 시 공속+이속 폭증)<br>
+              • <b>스킬</b>: 당근 부메랑 / 팽이 무적 돌진 / 당근 메테오
+            </div>
           </div>
         </div>
 
