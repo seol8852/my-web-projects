@@ -43,7 +43,8 @@
 
       <!-- Center Wave & Timer -->
       <div class="hud-center">
-        <div class="wave-display" id="hud-wave">WAVE 1</div>
+        <div class="chapter-badge" id="hud-chapter">🌸 제1장: 평화로운 숲속</div>
+        <div class="wave-display" id="hud-wave">WAVE 1 / 20</div>
         <div class="timer-display" id="hud-timer">00:00</div>
         <div class="score-display">도토리 점수 <span id="hud-score">0</span></div>
       </div>
@@ -139,6 +140,34 @@
             <img src="assets/usagi.png" alt="Usagi">
             <div class="char-name">우사기</div>
             <div class="char-desc">강력 화력 • 당근 폭풍<br><i>"우라라라라-!! 야하-!!"</i></div>
+          </div>
+        </div>
+
+        <!-- Difficulty Selection -->
+        <div class="difficulty-select-container">
+          <div class="diff-title">⚔️ 난이도 선택</div>
+          <div class="diff-buttons">
+            <button class="diff-btn" data-diff="normal">
+              <span class="diff-emoji">🌸</span>
+              <div class="diff-info">
+                <span class="diff-name">보통 (Normal)</span>
+                <span class="diff-desc">표준 난이도 • 가볍게 즐기기</span>
+              </div>
+            </button>
+            <button class="diff-btn active" data-diff="hard">
+              <span class="diff-emoji">⚔️</span>
+              <div class="diff-info">
+                <span class="diff-name">어려움 (Hard - 추천)</span>
+                <span class="diff-desc">탄막 강화 • 스릴 넘치는 토벌</span>
+              </div>
+            </button>
+            <button class="diff-btn" data-diff="nightmare">
+              <span class="diff-emoji">💀</span>
+              <div class="diff-info">
+                <span class="diff-name">지옥 (Nightmare)</span>
+                <span class="diff-desc">극강의 몬스터 군단 • 한계 돌파</span>
+              </div>
+            </button>
           </div>
         </div>
 
