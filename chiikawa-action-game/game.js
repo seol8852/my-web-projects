@@ -3676,7 +3676,7 @@ class Game {
 
     this.wave = 1;
     this.waveTimer = 0;
-    this.waveDuration = 28;
+    this.waveDuration = 42;
     this.maxCampaignWave = 20;
     this.gameTime = 0;
     this.score = 0;
@@ -4336,7 +4336,7 @@ class Game {
       }, 1500);
     } else {
       this.maxCampaignWave = 20;
-      this.waveDuration = 28;
+      this.waveDuration = 42;
     }
 
     this.camera.x = startX - this.canvas.width / 2;
