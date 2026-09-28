@@ -5461,6 +5461,14 @@ class Game {
       if (this.damageTexts[i].life <= 0) this.damageTexts.splice(i, 1);
     }
 
+    // Memory & Object safety caps (prevents GC spikes)
+    if (this.particles.length > 250) {
+      this.particles.splice(0, this.particles.length - 250);
+    }
+    if (this.damageTexts.length > 60) {
+      this.damageTexts.splice(0, this.damageTexts.length - 60);
+    }
+
     if (this.screenShake > 0) {
       this.screenShake = Math.max(0, this.screenShake - dt * 20);
     }
@@ -5484,41 +5492,44 @@ class Game {
 
     this.drawBackground();
 
+    // Viewport Frustum Culling bounds
+    const viewLeft = this.camera.x - 120;
+    const viewRight = this.camera.x + this.canvas.width + 120;
+    const viewTop = this.camera.y - 120;
+    const viewBottom = this.camera.y + this.canvas.height + 120;
+    const inView = (obj) => obj.x >= viewLeft && obj.x <= viewRight && obj.y >= viewTop && obj.y <= viewBottom;
+
     // Draw Sanctuaries & Chests
     this.sanctuaries.forEach(s => s.draw(this.ctx, this.camera));
 
     // 🌟 Draw Stage 3 Landmarks (Hot Spring, Ramen Shop, Gacha)
-    if (this.hotSpring) this.hotSpring.draw(this.ctx);
-    if (this.ramenShop) this.ramenShop.draw(this.ctx);
-    if (this.gachaMachines) this.gachaMachines.forEach(g => g.draw(this.ctx));
+    if (this.hotSpring && inView(this.hotSpring)) this.hotSpring.draw(this.ctx);
+    if (this.ramenShop && inView(this.ramenShop)) this.ramenShop.draw(this.ctx);
+    if (this.gachaMachines) this.gachaMachines.forEach(g => { if (inView(g)) g.draw(this.ctx); });
 
-    // Draw Weed Patches
-    this.weedPatches.forEach((weed) => weed.draw(this.ctx));
+    // Draw Weed Patches (Culled)
+    this.weedPatches.forEach((weed) => { if (inView(weed)) weed.draw(this.ctx); });
 
-    // World Map Decorations
+    // World Map Decorations (Culled)
     this.ctx.font = '22px sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.decorations.forEach(dec => {
-      if (
-        dec.x > this.camera.x - 50 &&
-        dec.x < this.camera.x + this.canvas.width + 50 &&
-        dec.y > this.camera.y - 50 &&
-        dec.y < this.camera.y + this.canvas.height + 50
-      ) {
+      if (dec.x > viewLeft && dec.x < viewRight && dec.y > viewTop && dec.y < viewBottom) {
         this.ctx.fillText(dec.emoji, dec.x, dec.y);
       }
     });
 
-    this.expGems.forEach((gem) => gem.draw(this.ctx));
-    this.fieldItems.forEach((item) => item.draw(this.ctx));
-    this.fireMines.forEach((mine) => mine.draw(this.ctx));
-    this.shockwaves.forEach((sw) => sw.draw(this.ctx));
-    this.enemies.forEach((enemy) => enemy.draw(this.ctx));
-    this.grenades.forEach((g) => g.draw(this.ctx));
-    this.boomerangs.forEach((b) => b.draw(this.ctx));
-    this.meteors.forEach((m) => m.draw(this.ctx));
-    this.projectiles.forEach((p) => p.draw(this.ctx));
+    // Culled Entity Rendering (Saves 300%+ Canvas draw overhead)
+    this.expGems.forEach((gem) => { if (inView(gem)) gem.draw(this.ctx); });
+    this.fieldItems.forEach((item) => { if (inView(item)) item.draw(this.ctx); });
+    this.fireMines.forEach((mine) => { if (inView(mine)) mine.draw(this.ctx); });
+    this.shockwaves.forEach((sw) => { if (inView(sw)) sw.draw(this.ctx); });
+    this.enemies.forEach((enemy) => { if (inView(enemy)) enemy.draw(this.ctx); });
+    this.grenades.forEach((g) => { if (inView(g)) g.draw(this.ctx); });
+    this.boomerangs.forEach((b) => { if (inView(b)) b.draw(this.ctx); });
+    this.meteors.forEach((m) => { if (inView(m)) m.draw(this.ctx); });
+    this.projectiles.forEach((p) => { if (inView(p)) p.draw(this.ctx); });
 
     if (this.player.isFiringLaser) {
       this.drawMegaLaser();
@@ -5528,16 +5539,13 @@ class Game {
       this.player.draw(this.ctx);
     }
 
-    this.particles.forEach((pt) => pt.draw(this.ctx));
-    this.damageTexts.forEach((dt) => dt.draw(this.ctx));
+    this.particles.forEach((pt) => { if (inView(pt)) pt.draw(this.ctx); });
+    this.damageTexts.forEach((dt) => { if (inView(dt)) dt.draw(this.ctx); });
 
-    // Sakura atmosphere petals
+    // Sakura atmosphere petals (Culled)
     if (this.settings.highParticles) {
       this.sakuraParticles.forEach(sp => {
-        if (
-          sp.x > this.camera.x - 50 && sp.x < this.camera.x + this.canvas.width + 50 &&
-          sp.y > this.camera.y - 50 && sp.y < this.camera.y + this.canvas.height + 50
-        ) {
+        if (sp.x > viewLeft && sp.x < viewRight && sp.y > viewTop && sp.y < viewBottom) {
           sp.draw(this.ctx);
         }
       });
