@@ -7,6 +7,19 @@
 class StorageManager {
   static KEY_RECORDS = 'chiikawa_striker_records_v2';
   static KEY_SETTINGS = 'chiikawa_striker_settings_v2';
+  static KEY_COINS = 'chiikawa_striker_coins_v2';
+  static KEY_TALENTS = 'chiikawa_striker_talents_v2';
+
+  static TALENT_DEFS = [
+    { id: 'attack', name: '사스마타 예리화', icon: '🗡️', maxLevel: 5, costs: [40, 90, 180, 320, 500], desc: (lvl) => `기본 공격력 +${lvl * 6}% 증가` + (lvl < 5 ? ` (다음: +${(lvl+1)*6}%)` : ' (MAX)') },
+    { id: 'health', name: '체력 단련', icon: '💖', maxLevel: 5, costs: [35, 80, 160, 280, 450], desc: (lvl) => `최대 체력 +${lvl * 16} 증가` + (lvl < 5 ? ` (다음: +${(lvl+1)*16})` : ' (MAX)') },
+    { id: 'speed', name: '재빠른 발걸음', icon: '👟', maxLevel: 5, costs: [30, 70, 140, 240, 400], desc: (lvl) => `이동 속도 +${lvl * 4}% 증가` + (lvl < 5 ? ` (다음: +${(lvl+1)*4}%)` : ' (MAX)') },
+    { id: 'magnet', name: '별사탕 자석', icon: '🧲', maxLevel: 5, costs: [25, 60, 120, 220, 360], desc: (lvl) => `아이템/EXP 자석 반경 +${lvl * 25}%` + (lvl < 5 ? ` (다음: +${(lvl+1)*25}%)` : ' (MAX)') },
+    { id: 'crit', name: '급소 포착', icon: '🎯', maxLevel: 5, costs: [50, 110, 220, 380, 600], desc: (lvl) => `치명타율 +${lvl * 4}%, 치명배율 +${(lvl*0.15).toFixed(2)}x` + (lvl < 5 ? ' (다음 단계 상승)' : ' (MAX)') },
+    { id: 'cooldown', name: '기합 충전', icon: '⏳', maxLevel: 5, costs: [45, 100, 200, 350, 550], desc: (lvl) => `모든 스킬 쿨타임 -${lvl * 4}% 단축` + (lvl < 5 ? ` (다음: -${(lvl+1)*4}%)` : ' (MAX)') },
+    { id: 'greed', name: '노동 보수 인상', icon: '🪙', maxLevel: 5, costs: [40, 90, 180, 300, 500], desc: (lvl) => `토벌 코인 획득량 +${lvl * 12}%` + (lvl < 5 ? ` (다음: +${(lvl+1)*12}%)` : ' (MAX)') },
+    { id: 'revive', name: '기적의 도시락', icon: '👼', maxLevel: 5, costs: [80, 180, 350, 600, 1000], desc: (lvl) => lvl === 0 ? '사망 시 1회 20% 체력으로 무료 부활' : `사망 시 1회 ${lvl * 20}% 체력으로 부활` + (lvl < 5 ? ` (다음: ${(lvl+1)*20}%)` : ' (MAX)') }
+  ];
 
   static getRecords() {
     try {
@@ -52,6 +65,108 @@ class StorageManager {
     try {
       localStorage.setItem(this.KEY_SETTINGS, JSON.stringify(settings));
     } catch (e) {}
+  }
+
+  static getCoins() {
+    try {
+      const v = localStorage.getItem(this.KEY_COINS);
+      return v ? parseInt(v, 10) || 0 : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  static addCoins(amount) {
+    try {
+      const cur = this.getCoins();
+      const updated = cur + Math.max(0, Math.round(amount));
+      localStorage.setItem(this.KEY_COINS, updated.toString());
+      return updated;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  static spendCoins(amount) {
+    try {
+      const cur = this.getCoins();
+      if (cur >= amount) {
+        localStorage.setItem(this.KEY_COINS, (cur - amount).toString());
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  static getTalents() {
+    try {
+      const data = localStorage.getItem(this.KEY_TALENTS);
+      const defaults = { attack: 0, health: 0, speed: 0, magnet: 0, crit: 0, cooldown: 0, greed: 0, revive: 0 };
+      if (!data) return defaults;
+      return { ...defaults, ...JSON.parse(data) };
+    } catch (e) {
+      return { attack: 0, health: 0, speed: 0, magnet: 0, crit: 0, cooldown: 0, greed: 0, revive: 0 };
+    }
+  }
+
+  static saveTalents(talents) {
+    try {
+      localStorage.setItem(this.KEY_TALENTS, JSON.stringify(talents));
+    } catch (e) {}
+  }
+
+  static upgradeTalent(talentId) {
+    const talents = this.getTalents();
+    const def = this.TALENT_DEFS.find(t => t.id === talentId);
+    if (!def) return { success: false, reason: 'invalid_talent' };
+
+    const currentLvl = talents[talentId] || 0;
+    if (currentLvl >= def.maxLevel) return { success: false, reason: 'max_level' };
+
+    const cost = def.costs[currentLvl];
+    if (this.spendCoins(cost)) {
+      talents[talentId] = currentLvl + 1;
+      this.saveTalents(talents);
+      return { success: true, newLevel: talents[talentId], cost };
+    } else {
+      return { success: false, reason: 'not_enough_coins' };
+    }
+  }
+
+  static resetTalents() {
+    const talents = this.getTalents();
+    let totalRefund = 0;
+    this.TALENT_DEFS.forEach(def => {
+      const lvl = talents[def.id] || 0;
+      for (let i = 0; i < lvl; i++) {
+        totalRefund += def.costs[i] || 0;
+      }
+    });
+
+    const resetObj = { attack: 0, health: 0, speed: 0, magnet: 0, crit: 0, cooldown: 0, greed: 0, revive: 0 };
+    this.saveTalents(resetObj);
+    this.addCoins(totalRefund);
+    return { refunded: totalRefund, newTotalCoins: this.getCoins() };
+  }
+
+  static getWeedingGrade() {
+    const talents = this.getTalents();
+    let totalPoints = 0;
+    Object.values(talents).forEach(v => { totalPoints += (v || 0); });
+
+    if (totalPoints >= 20) {
+      return { rank: 1, name: '👑 제초 1급 (전설의 마스터 제초사)', points: totalPoints, targetPoints: 20, nextPoints: 0, isMax: true, bonus: '기본 체력 +50 & 게임 시작 시 100 코인 지급' };
+    } else if (totalPoints >= 15) {
+      return { rank: 2, name: '📜 제초 2급 (수석 제초원)', points: totalPoints, targetPoints: 20, nextPoints: 20 - totalPoints, isMax: false, bonus: '모든 스킬 쿨타임 -8% 추가 단축' };
+    } else if (totalPoints >= 10) {
+      return { rank: 3, name: '📜 제초 3급 (전문 제초원)', points: totalPoints, targetPoints: 15, nextPoints: 15 - totalPoints, isMax: false, bonus: '모든 공격력 +10% 추가 증가' };
+    } else if (totalPoints >= 5) {
+      return { rank: 4, name: '📜 제초 4급 (숙련 제초원)', points: totalPoints, targetPoints: 10, nextPoints: 10 - totalPoints, isMax: false, bonus: '모든 경험치 획득량 +12% 증가' };
+    } else {
+      return { rank: 5, name: '📜 제초 5급 (수습 제초원)', points: totalPoints, targetPoints: 5, nextPoints: 5 - totalPoints, isMax: false, bonus: '기초 스탯 단련 중' };
+    }
   }
 }
 
@@ -416,6 +531,56 @@ class SoundController {
     });
   }
 
+  playWeedPop() {
+    if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(320, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.09);
+    gain.gain.setValueAtTime(0.22 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.09);
+  }
+
+  playCoin() {
+    if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(987.77, now);
+    osc.frequency.setValueAtTime(1318.51, now + 0.06);
+    gain.gain.setValueAtTime(0.18 * this.sfxVolume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.18);
+  }
+
+  playUpgrade() {
+    if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
+    const notes = [440, 554.37, 659.25, 880];
+    notes.forEach((freq, idx) => {
+      const t = this.ctx.currentTime + idx * 0.06;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.22 * this.sfxVolume, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.2);
+    });
+  }
+
   playBossWarning() {
     if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
     const now = this.ctx.currentTime;
@@ -588,6 +753,102 @@ class Sanctuary {
       ctx.fillStyle = '#22c55e';
       ctx.fillText('토벌 완료 (CLEARED)', 0, 24);
     }
+    ctx.restore();
+  }
+}
+
+// --- Interactive Field Weed Patch (제초 검정 필드 잡초) ---
+class WeedPatch {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 26;
+    this.isHarvested = false;
+    this.respawnTimer = 0;
+    this.bob = Math.random() * Math.PI * 2;
+    this.weedType = Math.random() < 0.35 ? '🌾' : (Math.random() < 0.7 ? '🌱' : '🌿');
+  }
+
+  update(dt, player, game) {
+    this.bob += dt * 3.5;
+    if (this.isHarvested) {
+      this.respawnTimer -= dt;
+      if (this.respawnTimer <= 0) {
+        this.isHarvested = false;
+        for (let i = 0; i < 4; i++) {
+          game.particles.push(new Particle(this.x, this.y, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, 5, '#86efac', 0.4, 'sparkle'));
+        }
+      }
+      return;
+    }
+
+    const dist = Math.hypot(player.x - this.x, player.y - this.y);
+    if (dist < this.radius + player.radius) {
+      this.harvest(game, player);
+    }
+  }
+
+  harvest(game, player) {
+    if (this.isHarvested) return;
+    this.isHarvested = true;
+    this.respawnTimer = 35 + Math.random() * 25;
+
+    Sound.playWeedPop();
+    const baseCoins = 6 + Math.floor(Math.random() * 8);
+    const earned = game.addSessionCoins(baseCoins);
+
+    // Drop EXP Gem
+    game.expGems.push(new ExpGem(this.x, this.y, 25));
+
+    // Floating UI text
+    game.damageTexts.push(new DamageText(this.x, this.y - 25, `🌱 제초 성공! (+${earned} 🪙)`, '#10b981', true));
+
+    // Leaf / green particles
+    for (let i = 0; i < 9; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const spd = 2 + Math.random() * 4;
+      game.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 6, '#22c55e', 0.45, 'sparkle'));
+    }
+
+    if (Math.random() < 0.28) {
+      const quote = player.charType === 'usagi' ? "우뺘-! 풀 뽑았다!" : (player.charType === 'hachiware' ? "잡초 뽑기 알바 완료!" : "와아... 깨끗해졌다!");
+      player.say(quote, false);
+    }
+  }
+
+  draw(ctx) {
+    if (this.isHarvested) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(101, 163, 13, 0.18)';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
+
+    const yOff = Math.sin(this.bob) * 3;
+    ctx.save();
+    ctx.translate(this.x, this.y + yOff);
+
+    // Cute green grass aura
+    ctx.fillStyle = 'rgba(134, 239, 172, 0.28)';
+    ctx.shadowColor = '#86efac';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius + 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '26px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.weedType, 0, 0);
+
+    ctx.font = 'bold 11px "Jua", sans-serif';
+    ctx.fillStyle = '#15803d';
+    ctx.shadowBlur = 0;
+    ctx.fillText('🌱 제초 구역', 0, 20);
+
     ctx.restore();
   }
 }
@@ -805,16 +1066,18 @@ class FieldItem {
     this.bobTimer = Math.random() * Math.PI * 2;
   }
 
-  update(dt, playerX, playerY) {
+  update(dt, playerX, playerY, magnetMult = 1.0) {
     this.life -= dt;
     this.bobTimer += dt * 4;
 
     const dx = playerX - this.x;
     const dy = playerY - this.y;
     const dist = Math.hypot(dx, dy);
-    if (dist < 160) {
-      this.x += (dx / dist) * 5.5 * dt * 60;
-      this.y += (dy / dist) * 5.5 * dt * 60;
+    const pullRadius = 160 * magnetMult;
+    if (dist < pullRadius) {
+      const spd = 5.5 * Math.max(1, magnetMult * 0.7);
+      this.x += (dx / dist) * spd * dt * 60;
+      this.y += (dy / dist) * spd * dt * 60;
     }
   }
 
@@ -1207,16 +1470,17 @@ class ExpGem {
     this.bob = Math.random() * Math.PI * 2;
   }
 
-  update(dt, playerX, playerY) {
+  update(dt, playerX, playerY, magnetMult = 1.0) {
     this.life -= dt;
     this.bob += dt * 4;
 
     const dx = playerX - this.x;
     const dy = playerY - this.y;
     const dist = Math.hypot(dx, dy);
+    const pullRadius = 180 * magnetMult;
 
-    if (dist < 180) {
-      const spd = 8.5;
+    if (dist < pullRadius) {
+      const spd = 8.5 * Math.max(1, magnetMult * 0.7);
       this.x += (dx / dist) * spd * dt * 60;
       this.y += (dy / dist) * spd * dt * 60;
     }
@@ -1679,6 +1943,7 @@ class Player {
     this.autoShieldTimer = 15.0;
     this.relicsCount = 0;
     this.hasRevive = false;
+    this.reviveHpPercent = 0.50;
 
     // Elemental build triggers
     this.hasChainLightning = false;
@@ -1730,6 +1995,44 @@ class Player {
     this.timerE = 0;
     this.cdR = 20.0;
     this.timerR = 0;
+
+    // Load Meta-Progression Talents & Weeding License
+    const talents = StorageManager.getTalents();
+    const grade = StorageManager.getWeedingGrade();
+
+    // 1. Attack bonus
+    this.damageMultiplier *= (1 + (talents.attack || 0) * 0.06);
+    if (grade.rank <= 3) this.damageMultiplier *= 1.10; // 3급 이상 특전: 공격력 +10%
+
+    // 2. Health bonus
+    this.maxHp += (talents.health || 0) * 16 + (grade.rank <= 1 ? 50 : 0);
+    this.hp = this.maxHp;
+
+    // 3. Speed bonus
+    this.speed *= (1 + (talents.speed || 0) * 0.04);
+
+    // 4. Magnet radius multiplier
+    this.magnetMultiplier = 1 + (talents.magnet || 0) * 0.25;
+
+    // 5. Crit bonus
+    this.critChance += (talents.crit || 0) * 0.04;
+    this.critMultiplier += (talents.crit || 0) * 0.15;
+
+    // 6. Cooldown reduction
+    const cdFactor = (1 - (talents.cooldown || 0) * 0.04) * (grade.rank <= 2 ? 0.92 : 1.0);
+    this.dashCooldown *= cdFactor;
+    this.cdQ *= cdFactor;
+    this.cdE *= cdFactor;
+    this.cdR *= cdFactor;
+
+    // 7. Coin Greed bonus
+    this.coinGreedBonus = 1 + (talents.greed || 0) * 0.12;
+
+    // 8. Revive Talent
+    if ((talents.revive || 0) > 0) {
+      this.hasRevive = true;
+      this.reviveHpPercent = (talents.revive || 1) * 0.20;
+    }
 
     this.isTornadoSpinning = false;
     this.tornadoTimer = 0;
@@ -2370,6 +2673,7 @@ class Game {
     this.initEvents();
     this.resize();
     this.updateRecordDisplay();
+    this.updateStartScreenExamInfo();
   }
 
   loadSprites() {
@@ -2497,6 +2801,21 @@ class Game {
     // Start Button
     document.getElementById('btn-start').addEventListener('click', () => this.start());
 
+    // Weeding License Exam Modal Buttons
+    const btnOpenExam = document.getElementById('btn-open-exam');
+    const btnOpenExamAction = document.getElementById('btn-open-exam-action');
+    const btnCloseExam = document.getElementById('btn-close-exam');
+    const btnResetTalents = document.getElementById('btn-reset-talents');
+    const btnGameoverExam = document.getElementById('btn-gameover-exam');
+    const btnVictoryExam = document.getElementById('btn-victory-exam');
+
+    if (btnOpenExam) btnOpenExam.addEventListener('click', (e) => { if (e.target !== btnOpenExamAction) this.openExamModal(); });
+    if (btnOpenExamAction) btnOpenExamAction.addEventListener('click', (e) => { e.stopPropagation(); this.openExamModal(); });
+    if (btnCloseExam) btnCloseExam.addEventListener('click', () => this.closeExamModal());
+    if (btnResetTalents) btnResetTalents.addEventListener('click', () => this.resetExamTalents());
+    if (btnGameoverExam) btnGameoverExam.addEventListener('click', () => this.openExamModal());
+    if (btnVictoryExam) btnVictoryExam.addEventListener('click', () => this.openExamModal());
+
     // Restart & Resume Buttons
     document.getElementById('btn-restart').addEventListener('click', () => this.restart());
     document.getElementById('btn-victory-restart').addEventListener('click', () => this.restart());
@@ -2589,6 +2908,126 @@ class Game {
     }
   }
 
+  updateStartScreenExamInfo() {
+    const coins = StorageManager.getCoins();
+    const grade = StorageManager.getWeedingGrade();
+
+    const startCoinsVal = document.getElementById('start-coins-val');
+    const startGradeBadge = document.getElementById('start-exam-grade-badge');
+
+    if (startCoinsVal) startCoinsVal.textContent = coins.toLocaleString();
+    if (startGradeBadge) {
+      startGradeBadge.textContent = `${grade.name} • 투자 ${grade.points}P (${grade.bonus})`;
+    }
+  }
+
+  openExamModal() {
+    this.renderExamModal();
+    const modal = document.getElementById('exam-modal');
+    if (modal) modal.classList.add('active');
+  }
+
+  closeExamModal() {
+    const modal = document.getElementById('exam-modal');
+    if (modal) modal.classList.remove('active');
+    this.updateStartScreenExamInfo();
+  }
+
+  renderExamModal() {
+    const coins = StorageManager.getCoins();
+    const talents = StorageManager.getTalents();
+    const grade = StorageManager.getWeedingGrade();
+
+    const badgeTag = document.getElementById('exam-badge-tag');
+    const modalCoins = document.getElementById('exam-modal-coins');
+    const progressText = document.getElementById('grade-progress-text');
+    const bonusText = document.getElementById('grade-bonus-text');
+    const progressFill = document.getElementById('grade-progress-fill');
+
+    if (badgeTag) badgeTag.textContent = grade.name;
+    if (modalCoins) modalCoins.textContent = coins.toLocaleString();
+
+    if (progressText) {
+      progressText.textContent = grade.isMax
+        ? `🎉 최고 등급 달성! (총 ${grade.points} 포인트 완료)`
+        : `다음 승급까지 ${grade.nextPoints} 포인트 필요 (현재 ${grade.points} / ${grade.targetPoints}P)`;
+    }
+
+    if (bonusText) bonusText.textContent = `특전: ${grade.bonus}`;
+    if (progressFill) {
+      const pct = grade.isMax ? 100 : Math.min(100, Math.round((grade.points / grade.targetPoints) * 100));
+      progressFill.style.width = `${pct}%`;
+    }
+
+    const grid = document.getElementById('talents-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    StorageManager.TALENT_DEFS.forEach(def => {
+      const currentLvl = talents[def.id] || 0;
+      const isMax = currentLvl >= def.maxLevel;
+      const nextCost = isMax ? 0 : def.costs[currentLvl];
+      const canAfford = coins >= nextCost && !isMax;
+
+      const card = document.createElement('div');
+      card.className = `talent-card ${isMax ? 'maxed' : ''}`;
+
+      let pipsHtml = '';
+      for (let i = 0; i < def.maxLevel; i++) {
+        pipsHtml += `<div class="talent-pip ${i < currentLvl ? 'active' : ''}"></div>`;
+      }
+
+      card.innerHTML = `
+        <div>
+          <div class="talent-head">
+            <span class="talent-icon">${def.icon}</span>
+            <span class="talent-name">${def.name}</span>
+          </div>
+          <div class="talent-pips">${pipsHtml}</div>
+          <div class="talent-desc">${def.desc(currentLvl)}</div>
+        </div>
+        <button class="talent-btn ${isMax ? 'max-btn' : ''}" ${(!canAfford && !isMax) ? 'disabled' : ''}>
+          ${isMax ? '⭐ MAX 달성' : `🪙 ${nextCost} 코인 강화`}
+        </button>
+      `;
+
+      const btn = card.querySelector('.talent-btn');
+      if (!isMax) {
+        btn.addEventListener('click', () => this.buyExamTalent(def.id));
+      }
+
+      grid.appendChild(card);
+    });
+  }
+
+  buyExamTalent(talentId) {
+    const res = StorageManager.upgradeTalent(talentId);
+    if (res.success) {
+      Sound.playUpgrade();
+      this.renderExamModal();
+      this.updateStartScreenExamInfo();
+    } else {
+      Sound.playHit();
+    }
+  }
+
+  resetExamTalents() {
+    const res = StorageManager.resetTalents();
+    Sound.playCoin();
+    this.renderExamModal();
+    this.updateStartScreenExamInfo();
+    alert(`🔄 모든 특성이 초기화되었으며, 투자한 코인 ${res.refunded.toLocaleString()}개가 100% 환급되었습니다!`);
+  }
+
+  addSessionCoins(amount) {
+    const mult = this.player ? (this.player.coinGreedBonus || 1.0) : 1.0;
+    const finalCoins = Math.max(1, Math.round(amount * mult));
+    this.sessionCoins += finalCoins;
+    const hudCoins = document.getElementById('hud-coins');
+    if (hudCoins) hudCoins.textContent = this.sessionCoins.toLocaleString();
+    return finalCoins;
+  }
+
   screenToWorld(screenX, screenY) {
     return {
       x: screenX + this.camera.x,
@@ -2639,6 +3078,21 @@ class Game {
     this.particles = [];
     this.damageTexts = [];
     this.shockwaves = [];
+    this.weedPatches = [];
+
+    // Session coins & Weeding 1st Grade starting bonus
+    this.sessionCoins = 0;
+    const grade = StorageManager.getWeedingGrade();
+    if (grade.rank <= 1) {
+      this.sessionCoins = 100;
+    }
+
+    // Generate 55 Weed Patches on the open world
+    for (let i = 0; i < 55; i++) {
+      const wx = 120 + Math.random() * (this.worldWidth - 240);
+      const wy = 120 + Math.random() * (this.worldHeight - 240);
+      this.weedPatches.push(new WeedPatch(wx, wy));
+    }
 
     // Reset Sanctuaries
     this.sanctuaries.forEach(s => {
@@ -2792,6 +3246,10 @@ class Game {
     setCD('cd-e', this.player.timerE, this.player.cdE);
     setCD('cd-r', this.player.timerR, this.player.cdR);
 
+    // Coins in HUD
+    const hudCoins = document.getElementById('hud-coins');
+    if (hudCoins) hudCoins.textContent = (this.sessionCoins || 0).toLocaleString();
+
     // Active boss health bar HUD
     this.updateBossHUD();
   }
@@ -2905,6 +3363,9 @@ class Game {
   }
 
   addExp(amount) {
+    const grade = StorageManager.getWeedingGrade();
+    if (grade.rank <= 4) amount *= 1.12; // 4급 이상 특전: 경험치 +12%
+
     this.currentExp += amount;
     let scoreAdd = amount * 10 * this.getDiffConfig().scoreMult;
     if (this.comboCount >= 30) scoreAdd *= 1.5;
@@ -3031,25 +3492,39 @@ class Game {
 
   gameOver() {
     this.isRunning = false;
+    const totalCoins = StorageManager.addCoins(this.sessionCoins);
     StorageManager.saveRecords(this.score, this.kills, this.wave, this.difficulty, false);
     this.updateRecordDisplay();
+    this.updateStartScreenExamInfo();
 
     document.getElementById('stat-time').textContent = this.formatTime(this.gameTime);
     document.getElementById('stat-wave').textContent = `${this.wave} / ${this.maxCampaignWave}`;
     document.getElementById('stat-kills').textContent = this.kills;
     document.getElementById('stat-score').textContent = Math.round(this.score).toLocaleString();
+    const statCoins = document.getElementById('stat-coins');
+    if (statCoins) statCoins.textContent = `+${this.sessionCoins.toLocaleString()} 🪙`;
+    const statTotalCoins = document.getElementById('stat-total-coins');
+    if (statTotalCoins) statTotalCoins.textContent = totalCoins.toLocaleString();
+
     document.getElementById('gameover-screen').classList.add('active');
   }
 
   victory() {
     this.isRunning = false;
     Sound.playRelicFanfare();
+    const totalCoins = StorageManager.addCoins(this.sessionCoins);
     StorageManager.saveRecords(this.score, this.kills, this.wave, this.difficulty, true);
     this.updateRecordDisplay();
+    this.updateStartScreenExamInfo();
 
     document.getElementById('vstat-time').textContent = this.formatTime(this.gameTime);
     document.getElementById('vstat-kills').textContent = this.kills;
     document.getElementById('vstat-score').textContent = Math.round(this.score).toLocaleString();
+    const vstatCoins = document.getElementById('vstat-coins');
+    if (vstatCoins) vstatCoins.textContent = `+${this.sessionCoins.toLocaleString()} 🪙`;
+    const vstatTotalCoins = document.getElementById('vstat-total-coins');
+    if (vstatTotalCoins) vstatTotalCoins.textContent = totalCoins.toLocaleString();
+
     document.getElementById('victory-screen').classList.add('active');
   }
 
@@ -3108,7 +3583,8 @@ class Game {
         s.chestOpened = true;
         this.player.relicsCount++;
         Sound.playRelicFanfare();
-        this.damageTexts.push(new DamageText(this.player.x, this.player.y - 50, `🏆 ${s.relicName} 획득!`, '#facc15', true));
+        this.addSessionCoins(80);
+        this.damageTexts.push(new DamageText(this.player.x, this.player.y - 50, `🏆 ${s.relicName} & 80 🪙 획득!`, '#facc15', true));
 
         if (s.relicType === 'relic_pudding') {
           this.player.maxHp += 50;
@@ -3125,6 +3601,11 @@ class Game {
         }
       }
     });
+
+    // Update Interactive Weed Patches (제초 검정)
+    for (let i = 0; i < this.weedPatches.length; i++) {
+      this.weedPatches[i].update(dt, this.player, this);
+    }
 
     // Player Shooting & Update
     const wm = this.screenToWorld(this.mouse.x, this.mouse.y);
@@ -3192,7 +3673,7 @@ class Game {
     // Update Field Items
     for (let i = this.fieldItems.length - 1; i >= 0; i--) {
       const item = this.fieldItems[i];
-      item.update(dt, this.player.x, this.player.y);
+      item.update(dt, this.player.x, this.player.y, this.player.magnetMultiplier || 1.0);
 
       const dist = Math.hypot(item.x - this.player.x, item.y - this.player.y);
       if (dist < item.radius + this.player.radius) {
@@ -3313,7 +3794,7 @@ class Game {
           if (this.player.hp <= 0) {
             if (this.player.hasRevive) {
               this.player.hasRevive = false;
-              this.player.hp = this.player.maxHp * 0.5;
+              this.player.hp = this.player.maxHp * (this.player.reviveHpPercent || 0.5);
               this.player.invulnerableTimer = 3.0;
               this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, '💖 불굴의 우정 부활!', '#ec4899', true));
             } else {
@@ -3375,7 +3856,7 @@ class Game {
           if (this.player.hp <= 0) {
             if (this.player.hasRevive) {
               this.player.hasRevive = false;
-              this.player.hp = this.player.maxHp * 0.5;
+              this.player.hp = this.player.maxHp * (this.player.reviveHpPercent || 0.5);
               this.player.invulnerableTimer = 3.0;
               this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, '💖 불굴의 우정 부활!', '#ec4899', true));
             } else {
@@ -3390,6 +3871,10 @@ class Game {
         this.kills++;
         this.comboCount++;
         this.comboTimer = 2.5;
+
+        // Add coins on kill
+        const mobCoins = (enemy.type === 'boss') ? 250 : (enemy.type.includes('boss') || enemy.type.startsWith('sanctuary_boss') ? 50 : (enemy.type === 'iron_chimera' ? 12 : (Math.random() < 0.4 ? 2 : 1)));
+        this.addSessionCoins(mobCoins);
 
         // Check if killed a sanctuary guardian boss
         if (enemy.type.startsWith('sanctuary_boss')) {
@@ -3442,7 +3927,7 @@ class Game {
     // Update XP Gems
     for (let i = this.expGems.length - 1; i >= 0; i--) {
       const gem = this.expGems[i];
-      gem.update(dt, this.player.x, this.player.y);
+      gem.update(dt, this.player.x, this.player.y, this.player.magnetMultiplier || 1.0);
 
       const dist = Math.hypot(gem.x - this.player.x, gem.y - this.player.y);
       if (dist < gem.radius + this.player.radius) {
@@ -3489,6 +3974,9 @@ class Game {
 
     // Draw Sanctuaries & Chests
     this.sanctuaries.forEach(s => s.draw(this.ctx, this.camera));
+
+    // Draw Weed Patches
+    this.weedPatches.forEach((weed) => weed.draw(this.ctx));
 
     // World Map Decorations
     this.ctx.font = '22px sans-serif';

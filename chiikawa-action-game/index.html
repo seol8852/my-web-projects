@@ -70,6 +70,10 @@
           <span class="pill-icon">⚔️</span>
           <span id="hud-kills">0</span> 마리 토벌
         </div>
+        <div class="stat-pill coin-pill-hud">
+          <span class="pill-icon">🪙</span>
+          <span id="hud-coins">0</span> 코인
+        </div>
         <div class="buff-container" id="hud-buffs">
           <!-- Active Buff Icons (Shield, Double Dmg, Fever) -->
         </div>
@@ -226,6 +230,21 @@
           </div>
         </div>
 
+        <!-- Weeding License Exam Meta Upgrade Banner -->
+        <div class="meta-exam-banner" id="btn-open-exam">
+          <div class="exam-banner-left">
+            <span class="exam-icon">📜</span>
+            <div class="exam-text">
+              <span class="exam-title">치이카와 제초 검정소 (영구 강화)</span>
+              <span class="exam-subtitle" id="start-exam-grade-badge">📜 5급 제초원 • 총 투자 0P</span>
+            </div>
+          </div>
+          <div class="exam-banner-right">
+            <span class="coin-badge-box">🪙 <b id="start-coins-val">0</b> 코인</span>
+            <button class="exam-open-btn" id="btn-open-exam-action">자격증 시험 &amp; 특성 강화 ➔</button>
+          </div>
+        </div>
+
         <!-- Record Summary Banner -->
         <div class="record-badge" id="start-record-box">
           <span class="record-icon">🏆</span>
@@ -245,6 +264,44 @@
           <div><kbd>R</kbd> 초거대 레인보우 별똥별 빔</div>
         </div>
         <button id="btn-start" class="glow-btn">🌸 토벌 대작전 시작! (START) 🌸</button>
+      </div>
+    </div>
+
+    <!-- Weeding License & Permanent Talent Exam Modal -->
+    <div id="exam-modal" class="overlay-screen">
+      <div class="screen-box exam-box">
+        <div class="exam-header">
+          <div class="exam-title-group">
+            <h2 class="exam-main-title">📜 치이카와 제초 검정소 (영구 특성 연구)</h2>
+            <p class="exam-sub">토벌과 잡초 뽑기로 모은 노동 보수로 영구 스탯을 개화하고 자격증을 승급하세요!</p>
+          </div>
+          <div class="exam-badge-box">
+            <div class="grade-badge" id="exam-badge-tag">📜 제초 5급 (수습 제초원)</div>
+            <div class="exam-coin-count">보유 코인: 🪙 <span id="exam-modal-coins">0</span></div>
+          </div>
+        </div>
+
+        <!-- Grade Progress Bar -->
+        <div class="grade-progress-wrap">
+          <div class="grade-progress-label">
+            <span id="grade-progress-text">다음 등급(제초 4급)까지 5포인트 필요</span>
+            <span id="grade-bonus-text">현재 특전: 기본 스탯</span>
+          </div>
+          <div class="grade-progress-bar">
+            <div class="grade-progress-fill" id="grade-progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Talent Cards Grid -->
+        <div class="talents-grid" id="talents-grid">
+          <!-- Dynamic 8 Talent Cards rendered by game.js -->
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="exam-footer">
+          <button id="btn-reset-talents" class="exam-reset-btn" title="모든 특성을 초기화하고 코인을 100% 돌려받습니다">🔄 특성 초기화 (코인 100% 환급)</button>
+          <button id="btn-close-exam" class="glow-btn" style="min-width: 140px;">확인 및 로비로</button>
+        </div>
       </div>
     </div>
 
@@ -308,8 +365,12 @@
           <div>달성 웨이브: <span id="stat-wave">1</span></div>
           <div>토벌한 몬스터: <span id="stat-kills">0</span> 마리</div>
           <div>획득 도토리 점수: <span id="stat-score">0</span> 점</div>
+          <div class="stat-coin-row">이번 노동 보수: <span id="stat-coins" class="coin-highlight">+0 🪙</span> (총 보유: <span id="stat-total-coins">0</span> 🪙)</div>
         </div>
-        <button id="btn-restart" class="glow-btn">다시 용기내기 (RETRY)</button>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button id="btn-restart" class="glow-btn">다시 용기내기 (RETRY)</button>
+          <button id="btn-gameover-exam" class="glow-btn btn-goto-exam" style="background: linear-gradient(135deg, #10b981, #059669);">📜 제초 검정소 강화</button>
+        </div>
       </div>
     </div>
 
@@ -322,8 +383,12 @@
           <div>생존 시간: <span id="vstat-time">00:00</span></div>
           <div>토벌한 몬스터: <span id="vstat-kills">0</span> 마리</div>
           <div>최종 도토리 점수: <span id="vstat-score">0</span> 점</div>
+          <div class="stat-coin-row">이번 노동 보수: <span id="vstat-coins" class="coin-highlight">+0 🪙</span> (총 보유: <span id="vstat-total-coins">0</span> 🪙)</div>
         </div>
-        <button id="btn-victory-restart" class="glow-btn">축하 파티 & 다시하기</button>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button id="btn-victory-restart" class="glow-btn">축하 파티 &amp; 다시하기</button>
+          <button id="btn-victory-exam" class="glow-btn btn-goto-exam" style="background: linear-gradient(135deg, #10b981, #059669);">📜 제초 검정소 강화</button>
+        </div>
       </div>
     </div>
 
