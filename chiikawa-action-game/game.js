@@ -9,6 +9,19 @@ class StorageManager {
   static KEY_SETTINGS = 'chiikawa_striker_settings_v2';
   static KEY_COINS = 'chiikawa_striker_coins_v2';
   static KEY_TALENTS = 'chiikawa_striker_talents_v2';
+  static KEY_QUESTS = 'chiikawa_striker_quests_v2';
+  static KEY_MODE_RECORDS = 'chiikawa_striker_mode_records_v2';
+
+  static QUEST_DEFS = [
+    { id: 'q_bugs', name: '🐛 날벌레 소탕 작전', desc: '날벌레/풍뎅이 40마리 토벌', target: 40, reward: 80, icon: '🐛' },
+    { id: 'q_midboss', name: '⚔️ 정예 몬스터 토벌', desc: '키메라/미드보스 4마리 토벌', target: 4, reward: 150, icon: '⚔️' },
+    { id: 'q_ramen', name: '🍜 라멘집 단골 손님', desc: '라멘집 로에서 라멘 2회 이상 완식', target: 2, reward: 120, icon: '🍜' },
+    { id: 'q_gacha', name: '🎰 행운의 도토리 뽑기', desc: '도토리 캡슐 자판기 2회 이상 뽑기', target: 2, reward: 100, icon: '🎰' },
+    { id: 'q_spa', name: '♨️ 온천 힐링 마니아', desc: '치이카와 힐링 온천에서 150 HP 회복', target: 150, reward: 100, icon: '♨️' },
+    { id: 'q_fever', name: '🔥 피버 타임 폭주', desc: '피버 타임 2회 이상 발동', target: 2, reward: 180, icon: '🔥' },
+    { id: 'q_bossrush', name: '💀 보스 러시 제패', desc: '보스 러시 아레나 1회 클리어', target: 1, reward: 500, icon: '💀' },
+    { id: 'q_endless', name: '♾️ 무한의 생존자', desc: '무한 모드에서 5분(300초) 이상 생존', target: 300, reward: 300, icon: '♾️' }
+  ];
 
   static TALENT_DEFS = [
     { id: 'attack', name: '사스마타 예리화', icon: '🗡️', maxLevel: 5, costs: [40, 90, 180, 320, 500], desc: (lvl) => `기본 공격력 +${lvl * 6}% 증가` + (lvl < 5 ? ` (다음: +${(lvl+1)*6}%)` : ' (MAX)') },
@@ -27,6 +40,90 @@ class StorageManager {
       return data ? JSON.parse(data) : { bestScore: 0, maxKills: 0, bestWave: 1, clearedDiffs: [] };
     } catch (e) {
       return { bestScore: 0, maxKills: 0, bestWave: 1, clearedDiffs: [] };
+    }
+  }
+
+  static getModeRecords() {
+    try {
+      const data = localStorage.getItem(this.KEY_MODE_RECORDS);
+      return data ? JSON.parse(data) : {
+        endless: { bestTime: 0, bestKills: 0, bestWave: 1 },
+        bossrush: { cleared: false, bestTime: 0 }
+      };
+    } catch (e) {
+      return { endless: { bestTime: 0, bestKills: 0, bestWave: 1 }, bossrush: { cleared: false, bestTime: 0 } };
+    }
+  }
+
+  static saveModeRecords(mode, stats) {
+    try {
+      const rec = this.getModeRecords();
+      if (mode === 'endless') {
+        if (stats.time > rec.endless.bestTime) rec.endless.bestTime = stats.time;
+        if (stats.kills > rec.endless.bestKills) rec.endless.bestKills = stats.kills;
+        if (stats.wave > rec.endless.bestWave) rec.endless.bestWave = stats.wave;
+      } else if (mode === 'bossrush') {
+        if (stats.cleared) {
+          rec.bossrush.cleared = true;
+          if (rec.bossrush.bestTime === 0 || stats.time < rec.bossrush.bestTime) {
+            rec.bossrush.bestTime = stats.time;
+          }
+        }
+      }
+      localStorage.setItem(this.KEY_MODE_RECORDS, JSON.stringify(rec));
+      return rec;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static getQuests() {
+    try {
+      const data = localStorage.getItem(this.KEY_QUESTS);
+      const parsed = data ? JSON.parse(data) : {};
+      const result = {};
+      this.QUEST_DEFS.forEach(q => {
+        result[q.id] = parsed[q.id] || { progress: 0, claimed: false };
+      });
+      return result;
+    } catch (e) {
+      const result = {};
+      this.QUEST_DEFS.forEach(q => {
+        result[q.id] = { progress: 0, claimed: false };
+      });
+      return result;
+    }
+  }
+
+  static updateQuestProgress(questId, amount = 1) {
+    try {
+      const quests = this.getQuests();
+      if (quests[questId] && !quests[questId].claimed) {
+        const def = this.QUEST_DEFS.find(d => d.id === questId);
+        if (def) {
+          quests[questId].progress = Math.min(def.target, (quests[questId].progress || 0) + amount);
+          localStorage.setItem(this.KEY_QUESTS, JSON.stringify(quests));
+        }
+      }
+      return quests;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static claimQuest(questId) {
+    try {
+      const quests = this.getQuests();
+      const def = this.QUEST_DEFS.find(d => d.id === questId);
+      if (quests[questId] && !quests[questId].claimed && def && quests[questId].progress >= def.target) {
+        quests[questId].claimed = true;
+        localStorage.setItem(this.KEY_QUESTS, JSON.stringify(quests));
+        this.addCoins(def.reward);
+        return { success: true, reward: def.reward, newCoins: this.getCoins() };
+      }
+      return { success: false };
+    } catch (e) {
+      return { success: false };
     }
   }
 
@@ -1225,6 +1322,7 @@ class HotSpring {
         this.healCooldown = 0;
         if (player.hp < player.maxHp) {
           player.hp = Math.min(player.maxHp, player.hp + 8);
+          StorageManager.updateQuestProgress('q_spa', 8);
           damageTexts.push(new DamageText(player.x, player.y - 25, '♨️ +8 HP 힐링!', '#38bdf8', false));
           particles.push(new Particle(player.x, player.y, (Math.random() - 0.5) * 3, -2, 6, '#ec4899', 0.4, 'sparkle'));
         }
@@ -3379,6 +3477,9 @@ class Game {
     this.mouse = { x: 0, y: 0, isDown: false };
     this.selectedChar = 'chiikawa';
     this.difficulty = 'hard';
+    this.gameMode = 'campaign'; // 'campaign' | 'endless' | 'bossrush'
+    this.bossRushPhase = 0;
+    this.bossRushTotalPhases = 6;
 
     this.wave = 1;
     this.waveTimer = 0;
@@ -3458,6 +3559,31 @@ class Game {
     if (scoreEl) scoreEl.textContent = records.bestScore.toLocaleString();
     if (killsEl) killsEl.textContent = records.maxKills.toLocaleString();
     if (waveEl) waveEl.textContent = `Wave ${records.bestWave}`;
+
+    const modeRec = StorageManager.getModeRecords();
+    const endlessEl = document.getElementById('rec-endless');
+    if (endlessEl) {
+      endlessEl.textContent = `${this.formatTime(modeRec.endless.bestTime)} (${modeRec.endless.bestKills}처치)`;
+    }
+
+    const quests = StorageManager.getQuests();
+    let claimableCount = 0;
+    StorageManager.QUEST_DEFS.forEach(q => {
+      const uq = quests[q.id];
+      if (uq && !uq.claimed && uq.progress >= q.target) {
+        claimableCount++;
+      }
+    });
+    const badge = document.getElementById('start-quest-badge');
+    if (badge) {
+      if (claimableCount > 0) {
+        badge.textContent = `${claimableCount}개 완료!`;
+        badge.style.background = '#10b981';
+      } else {
+        badge.textContent = '8개 퀘스트';
+        badge.style.background = 'rgba(255, 255, 255, 0.2)';
+      }
+    }
   }
 
   resize() {
@@ -3555,6 +3681,15 @@ class Game {
       });
     });
 
+    // Mode Selection (Campaign, Endless, Boss Rush)
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.gameMode = btn.dataset.mode || 'campaign';
+      });
+    });
+
     // Difficulty Selection
     document.querySelectorAll('.diff-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -3566,6 +3701,14 @@ class Game {
 
     // Start Button
     document.getElementById('btn-start').addEventListener('click', () => this.start());
+
+    // Daily Quests Modal Buttons
+    const btnOpenQuests = document.getElementById('btn-open-quests');
+    const btnOpenQuestsAction = document.getElementById('btn-open-quests-action');
+    if (btnOpenQuests) btnOpenQuests.addEventListener('click', (e) => { if (e.target !== btnOpenQuestsAction) this.openQuestModal(); });
+    if (btnOpenQuestsAction) btnOpenQuestsAction.addEventListener('click', (e) => { e.stopPropagation(); this.openQuestModal(); });
+    const btnCloseQuests = document.getElementById('btn-close-quests');
+    if (btnCloseQuests) btnCloseQuests.addEventListener('click', () => this.closeQuestModal());
 
     // Weeding License Exam Modal Buttons
     const btnOpenExam = document.getElementById('btn-open-exam');
@@ -3810,6 +3953,78 @@ class Game {
     alert(`🔄 모든 특성이 초기화되었으며, 투자한 코인 ${res.refunded.toLocaleString()}개가 100% 환급되었습니다!`);
   }
 
+  openQuestModal() {
+    this.renderQuestModal();
+    const modal = document.getElementById('quest-modal');
+    if (modal) modal.classList.add('active');
+  }
+
+  closeQuestModal() {
+    const modal = document.getElementById('quest-modal');
+    if (modal) modal.classList.remove('active');
+    this.updateRecordDisplay();
+    this.updateStartScreenExamInfo();
+  }
+
+  renderQuestModal() {
+    const coins = StorageManager.getCoins();
+    const quests = StorageManager.getQuests();
+    const coinsEl = document.getElementById('quest-modal-coins');
+    if (coinsEl) coinsEl.textContent = coins.toLocaleString();
+
+    const listEl = document.getElementById('quests-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    StorageManager.QUEST_DEFS.forEach(q => {
+      const userQ = quests[q.id] || { progress: 0, claimed: false };
+      const curProg = Math.min(q.target, userQ.progress || 0);
+      const isComplete = curProg >= q.target;
+      const isClaimed = userQ.claimed;
+      const pct = Math.min(100, Math.round((curProg / q.target) * 100));
+
+      const card = document.createElement('div');
+      card.className = `quest-card ${isClaimed ? 'claimed' : (isComplete ? 'complete' : '')}`;
+
+      card.innerHTML = `
+        <div class="quest-card-head">
+          <div class="quest-title-wrap">
+            <span class="quest-icon">${q.icon}</span>
+            <span class="quest-name">${q.name}</span>
+          </div>
+          <span class="quest-reward-badge">🪙 +${q.reward} 코인</span>
+        </div>
+        <div class="quest-desc">${q.desc}</div>
+        <div class="quest-progress-wrap">
+          <div class="quest-progress-track">
+            <div class="quest-progress-fill" style="width: ${pct}%"></div>
+          </div>
+          <span class="quest-progress-text">${curProg} / ${q.target}</span>
+        </div>
+        <button class="quest-claim-btn ${isClaimed ? 'claimed' : (isComplete ? 'ready' : '')}" ${(!isComplete || isClaimed) ? 'disabled' : ''}>
+          ${isClaimed ? '✅ 보상 수령 완료' : (isComplete ? '🎁 보상 받기' : '진행 중...')}
+        </button>
+      `;
+
+      const btn = card.querySelector('.quest-claim-btn');
+      if (isComplete && !isClaimed) {
+        btn.addEventListener('click', () => this.claimQuestReward(q.id));
+      }
+
+      listEl.appendChild(card);
+    });
+  }
+
+  claimQuestReward(questId) {
+    const res = StorageManager.claimQuest(questId);
+    if (res.success) {
+      Sound.playRelicFanfare();
+      this.renderQuestModal();
+      this.updateRecordDisplay();
+      this.updateStartScreenExamInfo();
+    }
+  }
+
   addSessionCoins(amount) {
     const mult = this.player ? (this.player.coinGreedBonus || 1.0) : 1.0;
     const finalCoins = Math.max(1, Math.round(amount * mult));
@@ -3902,6 +4117,23 @@ class Game {
     this.maxExp = 100;
     this.comboCount = 0;
     this.comboTimer = 0;
+    this.feverTimer = 0;
+
+    if (this.gameMode === 'endless') {
+      this.maxCampaignWave = 9999;
+      this.waveDuration = 25;
+      this.damageTexts.push(new DamageText(startX, startY - 60, '♾️ 무한 서바이벌 모드 시작!', '#38bdf8', true));
+    } else if (this.gameMode === 'bossrush') {
+      this.maxCampaignWave = 6;
+      this.bossRushPhase = 1;
+      this.damageTexts.push(new DamageText(startX, startY - 60, '💀 보스 러시 아레나 시작!', '#f43f5e', true));
+      setTimeout(() => {
+        if (this.isRunning && !this.isPaused) this.spawnBossRushBoss(1);
+      }, 1500);
+    } else {
+      this.maxCampaignWave = 20;
+      this.waveDuration = 28;
+    }
 
     this.camera.x = startX - this.canvas.width / 2;
     this.camera.y = startY - this.canvas.height / 2;
@@ -3979,6 +4211,14 @@ class Game {
   }
 
   getChapterInfo(wave) {
+    if (this.gameMode === 'bossrush') {
+      return { name: `💀 보스 러시 Phase ${this.bossRushPhase || 1} / 6`, bgKey: 'battle_bg' };
+    }
+    if (this.gameMode === 'endless') {
+      const bgs = ['battle_bg', 'ramen_bg', 'tower_bg'];
+      const bg = bgs[Math.floor((wave - 1) / 5) % bgs.length];
+      return { name: `♾️ 무한 서바이벌 (Wave ${wave})`, bgKey: bg };
+    }
     if (wave <= 5) return { name: '🌸 제1장: 평화로운 숲속', bgKey: 'battle_bg' };
     if (wave <= 10) return { name: '🍜 제2장: 라멘 로 결전장', bgKey: 'ramen_bg' };
     if (wave <= 15) return { name: '🏰 제3장: 고대 지하 신전', bgKey: 'tower_bg' };
@@ -4155,7 +4395,7 @@ class Game {
   }
 
   spawnEnemy() {
-    if (!this.player) return;
+    if (!this.player || this.gameMode === 'bossrush') return;
 
     const angle = Math.random() * Math.PI * 2;
     const dist = 750 + Math.random() * 380;
@@ -4188,6 +4428,36 @@ class Game {
     else type = roll < 0.25 ? 'iron_chimera' : (roll < 0.5 ? 'lightning_beetle' : (roll < 0.75 ? 'goblin' : 'dark_swarm'));
 
     this.enemies.push(new Enemy(x, y, type, this.wave, diff));
+  }
+
+  spawnBossRushBoss(phase) {
+    if (!this.player || !this.isRunning) return;
+    const px = this.player.x;
+    const py = Math.max(120, this.player.y - 360);
+    const diff = this.getDiffConfig();
+
+    if (phase === 1) {
+      this.enemies.push(new Enemy(px, py, 'chimera', 5, diff));
+      this.showDangerBanner('Phase 1: 굶주린 원조 키메라!');
+    } else if (phase === 2) {
+      this.enemies.push(new Enemy(px, py, 'lightning_beetle', 8, diff));
+      this.showDangerBanner('Phase 2: 질풍의 번개 풍뎅이!');
+    } else if (phase === 3) {
+      this.enemies.push(new Enemy(px, py, 'iron_chimera', 12, diff));
+      this.showDangerBanner('Phase 3: 강철 가시 키메라!');
+    } else if (phase === 4) {
+      this.enemies.push(new Enemy(px - 150, py, 'midboss', 14, diff));
+      this.enemies.push(new Enemy(px + 150, py, 'chimera', 14, diff));
+      this.showDangerBanner('Phase 4: 맹화 & 키메라 듀오 습격!');
+    } else if (phase === 5) {
+      this.enemies.push(new Enemy(px - 160, py, 'iron_chimera', 18, diff));
+      this.enemies.push(new Enemy(px + 160, py, 'lightning_beetle', 18, diff));
+      this.showDangerBanner('Phase 5: 강철 & 낙뢰 더블 보스 결전!');
+    } else if (phase >= 6) {
+      this.enemies.push(new Enemy(px, py, 'boss', 20, diff));
+      this.showDangerBanner('FINAL Phase: 진(眞) 거대 아노코 결전!!');
+    }
+    this.updateHUD();
   }
 
   spawnMidBoss(wave) {
@@ -4336,6 +4606,15 @@ class Game {
     this.isRunning = false;
     const totalCoins = StorageManager.addCoins(this.sessionCoins);
     StorageManager.saveRecords(this.score, this.kills, this.wave, this.difficulty, false);
+    StorageManager.saveModeRecords(this.gameMode, {
+      time: Math.round(this.gameTime),
+      kills: this.kills,
+      wave: this.wave,
+      cleared: false
+    });
+    if (this.gameMode === 'endless') {
+      StorageManager.updateQuestProgress('q_endless', Math.round(this.gameTime));
+    }
     this.updateRecordDisplay();
     this.updateStartScreenExamInfo();
 
@@ -4356,6 +4635,18 @@ class Game {
     Sound.playRelicFanfare();
     const totalCoins = StorageManager.addCoins(this.sessionCoins);
     StorageManager.saveRecords(this.score, this.kills, this.wave, this.difficulty, true);
+    StorageManager.saveModeRecords(this.gameMode, {
+      time: Math.round(this.gameTime),
+      kills: this.kills,
+      wave: this.wave,
+      cleared: true
+    });
+    if (this.gameMode === 'bossrush') {
+      StorageManager.updateQuestProgress('q_bossrush', 1);
+    }
+    if (this.gameMode === 'endless') {
+      StorageManager.updateQuestProgress('q_endless', Math.round(this.gameTime));
+    }
     this.updateRecordDisplay();
     this.updateStartScreenExamInfo();
 
@@ -4830,6 +5121,14 @@ class Game {
         this.comboCount++;
         this.comboTimer = 2.5;
 
+        // Daily Quest Progress tracking
+        if (enemy.type === 'bug' || enemy.type === 'lightning_beetle') {
+          StorageManager.updateQuestProgress('q_bugs', 1);
+        }
+        if (enemy.type === 'chimera' || enemy.type === 'midboss' || enemy.type === 'iron_chimera' || enemy.type.startsWith('sanctuary_boss') || enemy.type === 'boss') {
+          StorageManager.updateQuestProgress('q_midboss', 1);
+        }
+
         // Add coins on kill
         let mobCoins = (enemy.type === 'boss') ? 250 : (enemy.type.includes('boss') || enemy.type.startsWith('sanctuary_boss') ? 50 : (enemy.type === 'iron_chimera' ? 12 : (Math.random() < 0.4 ? 2 : 1)));
         
@@ -4883,12 +5182,36 @@ class Game {
           );
         }
 
-        if (enemy.type === 'boss') {
+        if (enemy.type === 'boss' && this.gameMode !== 'bossrush') {
           this.victory();
           return;
         }
 
         this.enemies.splice(i, 1);
+
+        // Boss Rush Mode Phase Progression
+        if (this.gameMode === 'bossrush') {
+          const livingBosses = this.enemies.filter(e => e.hp > 0).length;
+          if (livingBosses === 0) {
+            if (this.bossRushPhase >= this.bossRushTotalPhases) {
+              this.victory();
+              return;
+            } else {
+              Sound.playRelicFanfare();
+              this.damageTexts.push(new DamageText(this.player.x, this.player.y - 50, `💀 Phase ${this.bossRushPhase} 격파! (+50 HP & 150 🪙)`, '#10b981', true));
+              this.player.hp = Math.min(this.player.maxHp, this.player.hp + 50);
+              this.addSessionCoins(150);
+              this.triggerLevelUp();
+              this.bossRushPhase++;
+              const nextPhase = this.bossRushPhase;
+              setTimeout(() => {
+                if (this.isRunning && !this.isPaused) {
+                  this.spawnBossRushBoss(nextPhase);
+                }
+              }, 3500);
+            }
+          }
+        }
       }
     }
 
@@ -5318,6 +5641,7 @@ class Game {
     if (hudCoins) hudCoins.textContent = this.sessionCoins.toLocaleString();
     Sound.playUpgrade();
     dish.apply(this);
+    StorageManager.updateQuestProgress('q_ramen', 1);
     this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, `🍜 ${dish.name} 완식! 버프 발동!`, '#f97316', true));
     this.renderRamenMenu();
     this.updateRelicHUD();
@@ -5353,6 +5677,7 @@ class Game {
     if (gCoins) gCoins.textContent = this.sessionCoins.toLocaleString();
 
     Sound.playCoin();
+    StorageManager.updateQuestProgress('q_gacha', 1);
     const globe = document.getElementById('gacha-globe');
     if (globe) globe.classList.add('spinning');
     const resultCard = document.getElementById('gacha-result-card');
@@ -5402,6 +5727,7 @@ class Game {
   triggerFever(duration = 9.0) {
     this.feverTimer = duration;
     Sound.playRelicFanfare();
+    StorageManager.updateQuestProgress('q_fever', 1);
     const feverEl = document.getElementById('fever-overlay');
     if (feverEl) feverEl.classList.add('active');
     this.damageTexts.push(new DamageText(this.player.x, this.player.y - 50, '🔥 FEVER TIME! 2배 코인 & 점수 폭증!', '#f59e0b', true));

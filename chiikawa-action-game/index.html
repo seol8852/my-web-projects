@@ -311,6 +311,34 @@
           </div>
         </div>
 
+        <!-- 🎮 Game Mode Selection (Campaign / Endless / Boss Rush) -->
+        <div class="mode-select-container">
+          <div class="mode-title">🎮 토벌 모드 선택</div>
+          <div class="mode-buttons">
+            <button class="mode-btn active" data-mode="campaign">
+              <span class="mode-emoji">🌸</span>
+              <div class="mode-info">
+                <span class="mode-name">스토리 캠페인 (20 Waves)</span>
+                <span class="mode-desc">4개 챕터 &amp; 신전 보스 + 진 아노코 최종 결전</span>
+              </div>
+            </button>
+            <button class="mode-btn" data-mode="endless">
+              <span class="mode-emoji">♾️</span>
+              <div class="mode-info">
+                <span class="mode-name">무한 서바이벌 (Endless)</span>
+                <span class="mode-desc">시간 제한 없음! 끝없이 몰려오는 몬스터 웨이브</span>
+              </div>
+            </button>
+            <button class="mode-btn" data-mode="bossrush">
+              <span class="mode-emoji">💀</span>
+              <div class="mode-info">
+                <span class="mode-name">보스 러시 아레나 (Boss Rush)</span>
+                <span class="mode-desc">잡몹 없음! 6대 정예/신전 보스 연속 1:1 결투</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <!-- Difficulty Selection -->
         <div class="difficulty-select-container">
           <div class="diff-title">⚔️ 난이도 선택</div>
@@ -339,18 +367,35 @@
           </div>
         </div>
 
-        <!-- Weeding License Exam Meta Upgrade Banner -->
-        <div class="meta-exam-banner" id="btn-open-exam">
-          <div class="exam-banner-left">
-            <span class="exam-icon">📜</span>
-            <div class="exam-text">
-              <span class="exam-title">치이카와 제초 검정소 (영구 강화)</span>
-              <span class="exam-subtitle" id="start-exam-grade-badge">📜 5급 제초원 • 총 투자 0P</span>
+        <!-- Dual Meta Banners (Weeding Exam + Daily Quests) -->
+        <div class="meta-banners-grid">
+          <!-- Weeding License Exam Meta Upgrade Banner -->
+          <div class="meta-exam-banner" id="btn-open-exam">
+            <div class="exam-banner-left">
+              <span class="exam-icon">📜</span>
+              <div class="exam-text">
+                <span class="exam-title">치이카와 제초 검정소</span>
+                <span class="exam-subtitle" id="start-exam-grade-badge">📜 5급 제초원</span>
+              </div>
+            </div>
+            <div class="exam-banner-right">
+              <span class="coin-badge-box">🪙 <b id="start-coins-val">0</b></span>
+              <button class="exam-open-btn" id="btn-open-exam-action">영구 강화 ➔</button>
             </div>
           </div>
-          <div class="exam-banner-right">
-            <span class="coin-badge-box">🪙 <b id="start-coins-val">0</b> 코인</span>
-            <button class="exam-open-btn" id="btn-open-exam-action">자격증 시험 &amp; 특성 강화 ➔</button>
+
+          <!-- Daily Quests & Achievements Banner -->
+          <div class="meta-quest-banner" id="btn-open-quests">
+            <div class="quest-banner-left">
+              <span class="quest-icon">🎯</span>
+              <div class="quest-text">
+                <span class="quest-title">일일 토벌 퀘스트 &amp; 업적</span>
+                <span class="quest-subtitle" id="start-quest-badge">진행 중 퀘스트 확인</span>
+              </div>
+            </div>
+            <div class="quest-banner-right">
+              <button class="quest-open-btn" id="btn-open-quests-action">미션 확인 ➔</button>
+            </div>
           </div>
         </div>
 
@@ -360,7 +405,8 @@
           <div class="record-text">
             <span>최고 점수: <b id="rec-score">0</b>점</span> • 
             <span>최대 토벌: <b id="rec-kills">0</b>마리</span> • 
-            <span>최고 기록: <b id="rec-wave">Wave 1</b></span>
+            <span>최고 기록: <b id="rec-wave">Wave 1</b></span> • 
+            <span>무한 생존: <b id="rec-endless">00:00</b></span>
           </div>
         </div>
 
@@ -373,6 +419,27 @@
           <div><kbd>R</kbd> 초거대 레인보우 별똥별 빔</div>
         </div>
         <button id="btn-start" class="glow-btn">🌸 토벌 대작전 시작! (START) 🌸</button>
+      </div>
+    </div>
+
+    <!-- 🎯 Daily Quests & Achievements Modal -->
+    <div id="quest-modal" class="overlay-screen">
+      <div class="screen-box quest-box">
+        <div class="quest-header">
+          <div class="quest-title-group">
+            <h2 class="quest-main-title">🎯 일일 토벌 퀘스트 &amp; 업적 챌린지</h2>
+            <p class="quest-sub">토벌 미션을 달성하고 푸짐한 노동 보수 코인을 수령하세요!</p>
+          </div>
+          <div class="quest-coins-badge">보유 코인: 🪙 <span id="quest-modal-coins">0</span></div>
+        </div>
+
+        <div class="quests-list" id="quests-list">
+          <!-- Dynamic quests rendered by game.js -->
+        </div>
+
+        <div class="quest-footer">
+          <button id="btn-close-quests" class="glow-btn" style="min-width: 150px;">확인 및 로비로 (Close)</button>
+        </div>
       </div>
     </div>
 
