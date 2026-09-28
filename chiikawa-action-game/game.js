@@ -4367,7 +4367,7 @@ class Game {
     } else if (this.selectedChar === 'rakko') {
       normalName.textContent = '쌍검 발도참'; normalIcon.textContent = '🗡️';
       qName.textContent = '십자 절단'; qIcon.textContent = '⚔️';
-      eName.textContent = '완벽 패링'; normalIcon.textContent = '🛡️';
+      eName.textContent = '완벽 패링'; eIcon.textContent = '🛡️';
       rName.textContent = '드라이브 돌진'; rIcon.textContent = '🚗';
     } else {
       normalName.textContent = '유도 별빛샷'; normalIcon.textContent = '⭐';
@@ -5840,6 +5840,9 @@ class Game {
     const modal = document.getElementById('ramen-modal');
     if (modal) modal.classList.remove('active');
     this.lastTime = performance.now();
+    if (this.isRunning && !this.isPaused && !this.isLevelingUp) {
+      requestAnimationFrame((t) => this.loop(t));
+    }
   }
 
   openGachaModal() {
@@ -5895,6 +5898,9 @@ class Game {
     const modal = document.getElementById('gacha-modal');
     if (modal) modal.classList.remove('active');
     this.lastTime = performance.now();
+    if (this.isRunning && !this.isPaused && !this.isLevelingUp) {
+      requestAnimationFrame((t) => this.loop(t));
+    }
   }
 
   addCombo(amount = 1) {
@@ -6131,7 +6137,7 @@ class Game {
   }
 
   loop(timestamp) {
-    if (!this.isRunning || this.isPaused || this.isLevelingUp) return;
+    if (!this.isRunning || this.isPaused || this.isLevelingUp || this.isShopping) return;
 
     try {
       const dt = Math.min(0.05, Math.max(0.001, (timestamp - this.lastTime) / 1000 || 0.016));
@@ -6143,7 +6149,7 @@ class Game {
       console.error("Game loop non-fatal error caught:", err);
     }
 
-    if (this.isRunning && !this.isPaused && !this.isLevelingUp) {
+    if (this.isRunning && !this.isPaused && !this.isLevelingUp && !this.isShopping) {
       requestAnimationFrame((t) => this.loop(t));
     }
   }
