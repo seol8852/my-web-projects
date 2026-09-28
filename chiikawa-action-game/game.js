@@ -1085,31 +1085,122 @@ class Particle {
 
 class DamageText {
   constructor(x, y, text, color = '#ff4081', isCrit = false) {
-    this.x = x + (Math.random() * 20 - 10);
+    this.x = x + (Math.random() * 24 - 12);
     this.y = y - 10;
     this.text = text;
     this.color = color;
     this.isCrit = isCrit;
-    this.life = 0.85;
-    this.maxLife = 0.85;
-    this.vy = isCrit ? -2.2 : -1.5;
+    this.life = isCrit ? 1.05 : 0.85;
+    this.maxLife = this.life;
+    this.vx = (Math.random() - 0.5) * 1.8;
+    this.vy = isCrit ? -3.8 : -2.4;
+    this.gravity = 4.2;
+    this.scale = isCrit ? 1.55 : 1.25;
   }
 
   update(dt) {
+    this.x += this.vx * dt * 60;
     this.y += this.vy * dt * 60;
+    this.vy += this.gravity * dt;
     this.life -= dt;
+    if (this.scale > 1.0) {
+      this.scale = Math.max(1.0, this.scale - dt * 2.8);
+    }
   }
 
   draw(ctx) {
     const alpha = Math.max(0, this.life / this.maxLife);
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = this.color;
-    ctx.font = this.isCrit ? '900 23px "Jua", "Noto Sans KR"' : 'bold 16px "Jua", "Noto Sans KR"';
-    ctx.shadowColor = 'rgba(255,255,255,0.9)';
-    ctx.shadowBlur = 6;
+    ctx.translate(this.x, this.y);
+    ctx.scale(this.scale, this.scale);
+
+    ctx.font = this.isCrit ? '900 24px "Jua", "Noto Sans KR"' : 'bold 16px "Jua", "Noto Sans KR"';
     ctx.textAlign = 'center';
-    ctx.fillText(this.text, this.x, this.y);
+    ctx.textBaseline = 'middle';
+
+    // Dark outline for crystal clarity
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = this.isCrit ? 5 : 3.5;
+    ctx.strokeText(this.text, 0, 0);
+
+    // Glowing fill
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.isCrit ? '#facc15' : this.color;
+    ctx.shadowBlur = this.isCrit ? 12 : 6;
+    ctx.fillText(this.text, 0, 0);
+
+    ctx.restore();
+  }
+}
+
+class ExpGem {
+  constructor(x, y, value = 20) {
+    this.x = x + (Math.random() * 18 - 9);
+    this.y = y + (Math.random() * 18 - 9);
+    this.value = value;
+    this.radius = value >= 100 ? 13 : (value >= 50 ? 10 : 7.5);
+    this.life = 60.0;
+    this.color = value >= 100 ? '#facc15' : (value >= 50 ? '#38bdf8' : '#ec4899');
+    this.sparkleTimer = Math.random() * Math.PI * 2;
+    this.vx = (Math.random() - 0.5) * 2.4;
+    this.vy = (Math.random() - 0.5) * 2.4;
+  }
+
+  update(dt, playerX, playerY, magnetMult = 1.0) {
+    this.life -= dt;
+    this.sparkleTimer += dt * 5.5;
+
+    // Scatter friction
+    this.vx *= 0.90;
+    this.vy *= 0.90;
+    this.x += this.vx * dt * 60;
+    this.y += this.vy * dt * 60;
+
+    const dx = playerX - this.x;
+    const dy = playerY - this.y;
+    const dist = Math.hypot(dx, dy);
+    const pullRadius = 175 * magnetMult;
+
+    if (dist < pullRadius) {
+      const intensity = Math.min(1.0, (pullRadius - dist) / pullRadius);
+      const pullSpeed = (7.5 + intensity * 15.0) * Math.max(1.0, magnetMult * 0.85);
+      this.x += (dx / dist) * pullSpeed * dt * 60;
+      this.y += (dy / dist) * pullSpeed * dt * 60;
+    }
+  }
+
+  draw(ctx) {
+    const pulse = Math.sin(this.sparkleTimer) * 1.8;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Soft mini drop shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.ellipse(0, this.radius + 2, this.radius * 0.8, this.radius * 0.35, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Star Konpeito Candy shape
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const outerR = this.radius + pulse;
+      const innerR = (this.radius + pulse) * 0.48;
+      ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * outerR, -Math.sin((18 + i * 72) * Math.PI / 180) * outerR);
+      ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * innerR, -Math.sin((54 + i * 72) * Math.PI / 180) * innerR);
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Center sparkling core
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
   }
 }
@@ -1807,54 +1898,6 @@ class Grenade {
   }
 }
 
-class ExpGem {
-  constructor(x, y, value = 15) {
-    this.x = x;
-    this.y = y;
-    this.value = value;
-    this.radius = 7;
-    this.life = 50;
-    this.color = value >= 80 ? '#f59e0b' : (value >= 40 ? '#8b5cf6' : '#10b981');
-    this.bob = Math.random() * Math.PI * 2;
-  }
-
-  update(dt, playerX, playerY, magnetMult = 1.0) {
-    this.life -= dt;
-    this.bob += dt * 4;
-
-    const dx = playerX - this.x;
-    const dy = playerY - this.y;
-    const dist = Math.hypot(dx, dy);
-    const pullRadius = 180 * magnetMult;
-
-    if (dist < pullRadius) {
-      const spd = 8.5 * Math.max(1, magnetMult * 0.7);
-      this.x += (dx / dist) * spd * dt * 60;
-      this.y += (dy / dist) * spd * dt * 60;
-    }
-  }
-
-  draw(ctx) {
-    const yOff = Math.sin(this.bob) * 3;
-    ctx.save();
-    ctx.translate(this.x, this.y + yOff);
-    ctx.fillStyle = this.color;
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 6;
-
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * 60) * Math.PI / 180;
-      const r = (i % 2 === 0) ? this.radius : this.radius * 0.55;
-      ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
-    }
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.restore();
-  }
-}
-
 // --- Enemy Classes ---
 class Enemy {
   constructor(x, y, type = 'bug', wave = 1, diffConfig = { hpMult: 1.0, dmgMult: 1.0, spdMult: 1.0 }) {
@@ -1864,6 +1907,16 @@ class Enemy {
     this.hitTimer = 0;
     this.wave = wave;
     this.diffConfig = diffConfig;
+
+    // Movement & Animation Physics
+    this.kbVx = 0;
+    this.kbVy = 0;
+    this.scaleX = 1.0;
+    this.scaleY = 1.0;
+    this.animTimer = Math.random() * Math.PI * 2;
+    this.walkCycle = Math.random() * Math.PI * 2;
+    this.facingLeft = false;
+    this.bob = 0;
 
     this.chargeTimer = 0;
     this.isCharging = false;
@@ -1973,9 +2026,27 @@ class Enemy {
     }
   }
 
-  update(dt, player, projectiles, shockwaves, particles) {
+  applyKnockback(fromX, fromY, force = 8) {
+    const angle = Math.atan2(this.y - fromY, this.x - fromX);
+    this.kbVx += Math.cos(angle) * force;
+    this.kbVy += Math.sin(angle) * force;
+    this.scaleX = 1.25;
+    this.scaleY = 0.82;
+  }
+
+  update(dt, player, projectiles, shockwaves, particles, enemies = []) {
     if (this.hitTimer > 0) this.hitTimer -= dt;
     if (this.blindTimer > 0) this.blindTimer -= dt;
+
+    // Smooth squash spring recovery
+    this.scaleX += (1.0 - this.scaleX) * dt * 14;
+    this.scaleY += (1.0 - this.scaleY) * dt * 14;
+
+    // Knockback physics damping
+    this.x += this.kbVx * dt * 60;
+    this.y += this.kbVy * dt * 60;
+    this.kbVx *= 0.84;
+    this.kbVy *= 0.84;
 
     // Apply Status DoTs
     if (this.burnTimer > 0) {
@@ -1999,8 +2070,41 @@ class Enemy {
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const dist = Math.hypot(dx, dy) || 1;
+    this.facingLeft = dx < 0;
 
-    if (this.type === 'goblin') {
+    // Boids Crowd Separation Force (prevents stacking / clumps)
+    if (enemies && enemies.length > 0) {
+      let sepX = 0, sepY = 0;
+      let count = 0;
+      for (let i = 0; i < enemies.length && count < 8; i++) {
+        const other = enemies[i];
+        if (other !== this && other.hp > 0) {
+          const edx = this.x - other.x;
+          const edy = this.y - other.y;
+          const edist = Math.hypot(edx, edy);
+          const minDist = this.radius + other.radius + 6;
+          if (edist > 0 && edist < minDist) {
+            const push = (minDist - edist) / minDist;
+            sepX += (edx / edist) * push * 1.5;
+            sepY += (edy / edist) * push * 1.5;
+            count++;
+          }
+        }
+      }
+      this.x += sepX * dt * 60;
+      this.y += sepY * dt * 60;
+    }
+
+    // Animation Timers
+    this.animTimer += dt * 8;
+    this.walkCycle += dt * (curSpeed * 3);
+
+    if (this.type === 'bug' || this.type === 'dark_swarm') {
+      this.bob = Math.sin(this.animTimer * 2) * 4;
+      this.x += (dx / dist) * curSpeed * dt * 60;
+      this.y += (dy / dist) * curSpeed * dt * 60;
+    } else if (this.type === 'goblin') {
+      this.bob = Math.abs(Math.sin(this.walkCycle)) * 5;
       if (dist > 300) {
         this.x += (dx / dist) * curSpeed * dt * 60;
         this.y += (dy / dist) * curSpeed * dt * 60;
@@ -2024,9 +2128,12 @@ class Enemy {
       }
     } else if (this.type === 'lightning_beetle') {
       this.chargeTimer += dt;
+      this.bob = Math.sin(this.animTimer * 2.5) * 3;
       if (this.chargeTimer > 3.0 && !this.isCharging && this.blindTimer <= 0) {
         this.isCharging = true;
         this.chargeAngle = Math.atan2(dy, dx);
+        this.scaleX = 1.35;
+        this.scaleY = 0.75;
         for (let k = 0; k < 6; k++) {
           particles.push(new Particle(this.x, this.y, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 6, '#fef08a', 0.25, 'sparkle'));
         }
@@ -2044,15 +2151,19 @@ class Enemy {
         this.y += (dy / dist) * curSpeed * dt * 60;
       }
     } else if (this.type === 'iron_chimera') {
+      this.bob = Math.sin(this.walkCycle) * 3;
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
 
       this.stompTimer += dt;
       if (this.stompTimer >= 4.2) {
         this.stompTimer = 0;
+        this.scaleY = 0.7;
+        this.scaleX = 1.3;
         shockwaves.push(new Shockwave(this.x, this.y, 220, Math.round(this.damage * 0.85), '#6366f1'));
       }
     } else if (this.type.startsWith('sanctuary_boss')) {
+      this.bob = Math.sin(this.walkCycle) * 4;
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
 
@@ -2073,6 +2184,7 @@ class Enemy {
         shockwaves.push(new Shockwave(this.x, this.y, 260, 28, '#ec4899'));
       }
     } else if (this.type === 'midboss') {
+      this.bob = Math.sin(this.walkCycle) * 4;
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
 
@@ -2103,6 +2215,7 @@ class Enemy {
         Sound.playBossWarning();
       }
 
+      this.bob = Math.sin(this.animTimer * 1.5) * 5;
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
 
@@ -2142,6 +2255,17 @@ class Enemy {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
+
+    // Soft Dynamic Drop Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.beginPath();
+    ctx.ellipse(0, this.radius + 4, this.radius * 0.9, this.radius * 0.36, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body transform with Bob and Squash/Stretch
+    ctx.translate(0, this.bob);
+    if (this.facingLeft) ctx.scale(-1, 1);
+    ctx.scale(this.scaleX, this.scaleY);
 
     const isHit = this.hitTimer > 0;
     const sprites = window.GameInstance?.sprites || {};
@@ -2355,6 +2479,13 @@ class Player {
 
     this.vx = 0;
     this.vy = 0;
+    this.scaleX = 1.0;
+    this.scaleY = 1.0;
+    this.renderedTilt = 0;
+    this.targetTilt = 0;
+    this.recoilX = 0;
+    this.recoilY = 0;
+    this.footstepTimer = 0;
     this.joystickVector = { x: 0, y: 0 };
     this.facingLeft = false;
     this.aimAngle = 0;
@@ -2469,6 +2600,12 @@ class Player {
     if (this.invulnerableTimer > 0) this.invulnerableTimer -= dt;
 
     if (this.doubleDamageTimer > 0) this.doubleDamageTimer -= dt;
+
+    // Smooth spring recovery for visual squash, stretch & recoil
+    this.scaleX += (1.0 - this.scaleX) * dt * 14;
+    this.scaleY += (1.0 - this.scaleY) * dt * 14;
+    this.recoilX *= 0.82;
+    this.recoilY *= 0.82;
 
     if (this.dialogueTimer > 0) this.dialogueTimer -= dt;
     if (this.dialogueLife > 0) this.dialogueLife -= dt;
@@ -2728,6 +2865,8 @@ class Player {
 
       if (this.dashDurationTimer <= 0) {
         this.isDashing = false;
+        this.scaleX = 0.85;
+        this.scaleY = 1.22;
       }
     } else {
       let moveX = 0;
@@ -2745,6 +2884,9 @@ class Player {
       const mag = Math.hypot(moveX, moveY);
       this.isMoving = mag > 0;
 
+      let targetVx = 0;
+      let targetVy = 0;
+
       if (this.isMoving) {
         let curSpeed = this.speed;
         if (this.charType === 'usagi') curSpeed += this.madnessStacks * 0.45;
@@ -2756,26 +2898,33 @@ class Player {
         if (window.GameInstance && window.GameInstance.feverTimer > 0) curSpeed *= 1.22;
 
         const moveScale = Math.min(1.0, mag);
-        this.vx = (moveX / mag) * curSpeed * moveScale;
-        this.vy = (moveY / mag) * curSpeed * moveScale;
+        targetVx = (moveX / mag) * curSpeed * moveScale;
+        targetVy = (moveY / mag) * curSpeed * moveScale;
         this.walkTimer += dt * 10;
         this.bobTimer += dt * 8;
 
         this.stepDustTimer += dt;
-        if (this.stepDustTimer >= 0.16) {
+        if (this.stepDustTimer >= 0.14) {
           this.stepDustTimer = 0;
           particles.push(
-            new Particle(this.x + (Math.random() * 12 - 6), this.y + 20, -this.vx * 0.2, (Math.random() - 0.5) * 1, 6, '#f1f5f9', 0.25, 'smoke')
+            new Particle(this.x + (Math.random() * 12 - 6), this.y + this.radius - 4, -this.vx * 0.25, (Math.random() - 0.5) * 1.5, 6, '#f1f5f9', 0.28, 'smoke')
           );
         }
       } else {
-        this.vx *= 0.8;
-        this.vy *= 0.8;
         this.bobTimer += dt * 3;
       }
 
+      // Smooth responsive inertia
+      const accel = this.isMoving ? 0.28 : 0.22;
+      this.vx += (targetVx - this.vx) * accel;
+      this.vy += (targetVy - this.vy) * accel;
+
       this.x += this.vx * dt * 60;
       this.y += this.vy * dt * 60;
+
+      // Dynamic tilt based on horizontal velocity
+      this.targetTilt = (this.vx / Math.max(1, this.speed)) * 0.14;
+      this.renderedTilt += (this.targetTilt - this.renderedTilt) * dt * 16;
     }
 
     this.x = Math.max(this.radius + 30, Math.min(worldWidth - this.radius - 30, this.x));
@@ -2793,6 +2942,8 @@ class Player {
     if (this.dashTimer > 0 || this.isDashing) return;
     this.dashTimer = this.dashCooldown;
     this.isDashing = true;
+    this.scaleX = 1.45;
+    this.scaleY = 0.68;
     
     if (this.charType === 'momonga') {
       this.dashDuration = 0.42;
@@ -2825,6 +2976,13 @@ class Player {
       const angle = this.aimAngle;
       this.dashVx = Math.cos(angle) * dashSpeed;
       this.dashVy = Math.sin(angle) * dashSpeed;
+    }
+
+    // Dash sparkle particles
+    const particles = window.GameInstance?.particles || [];
+    for (let i = 0; i < 8; i++) {
+      const a = Math.random() * Math.PI * 2;
+      particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 7, '#facc15', 0.35, 'star'));
     }
 
     // Character specific dash perks
@@ -2885,6 +3043,12 @@ class Player {
     let dmgMult = this.damageMultiplier;
     if (this.doubleDamageTimer > 0) dmgMult *= 2.0;
     if (this.charType === 'kurimanju' && this.intoxicationTimer > 0) dmgMult *= 1.35;
+
+    // Recoil kickback & shooting squash
+    this.recoilX -= Math.cos(angle) * 3.2;
+    this.recoilY -= Math.sin(angle) * 3.2;
+    this.scaleX = 0.88;
+    this.scaleY = 1.14;
 
     if (this.charType === 'usagi') {
       this.madnessStacks = Math.min(8, this.madnessStacks + 1);
@@ -3140,7 +3304,7 @@ class Player {
       damageTexts.push(new DamageText(this.x, this.y - 40, '🚗 드라이브 돌진 개시!', '#f59e0b', true));
       this.say("드라이브 출발이다! 다 비켜라!", true);
     } else {
-      window.GameInstance?.triggerSkillCutIn('chiikawa', '초거대 별똥별 레인보우 빔-!!', '별님... 우리에게 용기와 힘을 줘-!!');
+      window.GameInstance?.triggerSkillCutIn('chiikawa', '초거대 별똥별 레인보우 빔-!!', '별님... 우리에게 용기와 힘을줘-!!');
       this.isFiringLaser = true;
       this.laserTimer = this.laserDuration;
       Sound.playLaser();
@@ -3149,6 +3313,17 @@ class Player {
   }
 
   draw(ctx) {
+    // Soft Dynamic Ground Shadow
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const bob = Math.sin(this.bobTimer) * 3;
+    const shadowBob = 1 - Math.abs(bob) * 0.06;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.beginPath();
+    ctx.ellipse(0, this.radius + 6, this.radius * 0.92 * shadowBob, this.radius * 0.38 * shadowBob, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
     this.afterimages.forEach(img => {
       const alpha = Math.max(0, img.life / img.maxLife) * 0.45;
       ctx.save();
@@ -3162,13 +3337,13 @@ class Player {
     });
 
     ctx.save();
-    ctx.translate(this.x, this.y);
+    ctx.translate(this.x + this.recoilX, this.y + this.recoilY);
 
-    const bob = Math.sin(this.bobTimer) * 3;
     const walkTilt = Math.sin(this.walkTimer) * 0.08;
 
     if (this.facingLeft) ctx.scale(-1, 1);
-    ctx.rotate(walkTilt);
+    ctx.scale(this.scaleX, this.scaleY);
+    ctx.rotate(this.renderedTilt * (this.facingLeft ? -1 : 1) + walkTilt);
 
     if (this.hasShield) {
       ctx.strokeStyle = '#38bdf8';
@@ -3501,6 +3676,7 @@ class Game {
     this.isRunning = false;
     this.isPaused = false;
     this.isLevelingUp = false;
+    this.hitStopTimer = 0;
     this.lastTime = 0;
 
     this.settings = StorageManager.getSettings();
@@ -4662,6 +4838,11 @@ class Game {
   }
 
   update(dt) {
+    if (this.hitStopTimer > 0) {
+      this.hitStopTimer -= dt;
+      return;
+    }
+
     this.gameTime += dt;
 
     if (this.comboTimer > 0) {
@@ -4671,11 +4852,13 @@ class Game {
       }
     }
 
-    // Camera follow player smoothly
-    const targetCamX = this.player.x - this.canvas.width / 2;
-    const targetCamY = this.player.y - this.canvas.height / 2;
-    this.camera.x += (targetCamX - this.camera.x) * 0.12;
-    this.camera.y += (targetCamY - this.camera.y) * 0.12;
+    // Camera follow player smoothly with lookahead
+    const mouseLookX = (this.mouse.x - this.canvas.width / 2) * 0.12;
+    const mouseLookY = (this.mouse.y - this.canvas.height / 2) * 0.12;
+    const targetCamX = this.player.x + (this.player.vx * 12) + mouseLookX - this.canvas.width / 2;
+    const targetCamY = this.player.y + (this.player.vy * 12) + mouseLookY - this.canvas.height / 2;
+    this.camera.x += (targetCamX - this.camera.x) * 0.10;
+    this.camera.y += (targetCamY - this.camera.y) * 0.10;
     this.camera.x = Math.max(0, Math.min(this.worldWidth - this.canvas.width, this.camera.x));
     this.camera.y = Math.max(0, Math.min(this.worldHeight - this.canvas.height, this.camera.y));
 
@@ -4838,6 +5021,7 @@ class Game {
           b.hitEnemies.add(e);
           e.hp -= b.damage;
           e.hitTimer = 0.12;
+          e.applyKnockback(b.x, b.y, 8);
           this.damageTexts.push(new DamageText(e.x, e.y, Math.round(b.damage), '#f97316', true));
         }
       }
@@ -4861,6 +5045,7 @@ class Game {
           if (d < m.radius + e.radius) {
             e.hp -= m.damage;
             e.hitTimer = 0.15;
+            e.applyKnockback(m.targetX, m.targetY, 14);
             this.damageTexts.push(new DamageText(e.x, e.y, Math.round(m.damage), '#ff4500', true));
           }
         });
@@ -4930,10 +5115,12 @@ class Game {
 
             enemy.hp -= finalDmg;
             enemy.hitTimer = 0.12;
+            enemy.applyKnockback(p.x, p.y, isCrit ? 10 : 5.5);
 
             if (isCrit) {
               Sound.playCritHit();
               this.screenShake = 4;
+              this.hitStopTimer = 0.04;
             } else {
               Sound.playHit();
             }
@@ -5062,6 +5249,7 @@ class Game {
           if (dist < g.radius + enemy.radius) {
             enemy.hp -= g.damage;
             enemy.hitTimer = 0.15;
+            enemy.applyKnockback(g.targetX, g.targetY, 12);
             this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(g.damage), '#ff9800', true));
           }
         });
@@ -5072,7 +5260,7 @@ class Game {
     // Update Enemies & Check Death
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const enemy = this.enemies[i];
-      enemy.update(dt, this.player, this.projectiles, this.shockwaves, this.particles);
+      enemy.update(dt, this.player, this.projectiles, this.shockwaves, this.particles, this.enemies);
 
       const dist = Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y);
       if (dist < enemy.radius + this.player.radius && this.player.invulnerableTimer <= 0) {
