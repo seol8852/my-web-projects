@@ -1,6 +1,6 @@
 /* ==========================================================================
-   🌸 치이카와 스트라이커: 토벌 대작전 (Chiikawa Striker) - AAA Polish Edition
-   5000x5000 Super Open-World with 4 Treasure Sanctuaries & Boss Lairs
+   🌸 치이카와 스트라이커: 토벌 대작전 (Chiikawa Striker) - Multi-Build Evolution Edition
+   5000x5000 Super Open-World with 4 Treasure Sanctuaries & Diverse Skill Builds
    ========================================================================== */
 
 // --- Settings & Save State Controller (LocalStorage) ---
@@ -235,6 +235,24 @@ class SoundController {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.1);
+    } catch (e) {}
+  }
+
+  playLightning() {
+    try {
+      if (!this.sfxEnabled || !this.ctx || this.sfxVolume <= 0) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(980, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.18);
+      gain.gain.setValueAtTime(0.25 * this.sfxVolume, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.18);
     } catch (e) {}
   }
 
@@ -515,7 +533,7 @@ class SoundController {
 
 const Sound = new SoundController();
 
-// --- Sanctuary Zone Definition (Exploration Lairs) ---
+// --- Sanctuary Zone Definition ---
 class Sanctuary {
   constructor(id, name, x, y, bossType, relicType, relicName, icon, color) {
     this.id = id;
@@ -550,13 +568,11 @@ class Sanctuary {
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // Landmark banner
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 16px "Jua", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`${this.icon} ${this.name}`, this.x, this.y - this.radius + 35);
 
-    // Draw Treasure Chest in center
     ctx.translate(this.x, this.y);
     if (!this.chestOpened) {
       const bob = Math.sin(Date.now() / 240) * 5;
@@ -646,7 +662,7 @@ class Particle {
       this.radius = this.maxRadius * (1 + (1 - this.life / this.maxLife) * 1.4);
       this.vx *= 0.95;
       this.vy *= 0.95;
-    } else if (this.type === 'star' || this.type === 'sparkle') {
+    } else if (this.type === 'star' || this.type === 'sparkle' || this.type === 'lightning') {
       this.vx *= 0.93;
       this.vy *= 0.93;
     } else if (this.type === 'ring') {
@@ -672,6 +688,14 @@ class Particle {
       }
       ctx.closePath();
       ctx.fill();
+    } else if (this.type === 'lightning') {
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#fef08a';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(-6, -12); ctx.lineTo(2, -2); ctx.lineTo(-3, 2); ctx.lineTo(6, 12);
+      ctx.stroke();
     } else if (this.type === 'ring') {
       ctx.strokeStyle = this.color;
       ctx.lineWidth = 3;
@@ -698,7 +722,6 @@ class DamageText {
     this.life = 0.85;
     this.maxLife = 0.85;
     this.vy = isCrit ? -2.2 : -1.5;
-    this.scale = isCrit ? 1.4 : 1.0;
   }
 
   update(dt) {
@@ -823,6 +846,122 @@ class FieldItem {
     ctx.textBaseline = 'middle';
     ctx.fillText(emoji, 0, 0);
 
+    ctx.restore();
+  }
+}
+
+// --- Sub-Weapon & Active Build Entities ---
+
+// 1. 🔥 Fire Napalm Mine Entity
+class FireMine {
+  constructor(x, y, damage = 220) {
+    this.x = x;
+    this.y = y;
+    this.damage = damage;
+    this.radius = 16;
+    this.triggerRadius = 42;
+    this.exploded = false;
+    this.life = 25.0;
+  }
+
+  update(dt, enemies, particles, damageTexts) {
+    this.life -= dt;
+    for (let e of enemies) {
+      const d = Math.hypot(e.x - this.x, e.y - this.y);
+      if (d < this.triggerRadius + e.radius) {
+        this.explode(enemies, particles, damageTexts);
+        break;
+      }
+    }
+  }
+
+  explode(enemies, particles, damageTexts) {
+    this.exploded = true;
+    Sound.playExplosion();
+    particles.push(new Particle(this.x, this.y, 0, 0, 110, '#ef4444', 0.4, 'ring'));
+    for (let i = 0; i < 14; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const spd = 2 + Math.random() * 5;
+      particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 6, '#f97316', 0.45, 'star'));
+    }
+
+    enemies.forEach(e => {
+      const d = Math.hypot(e.x - this.x, e.y - this.y);
+      if (d < 110 + e.radius) {
+        e.hp -= this.damage;
+        e.hitTimer = 0.15;
+        e.burnTimer = 4.0;
+        damageTexts.push(new DamageText(e.x, e.y, Math.round(this.damage), '#ef4444', true));
+      }
+    });
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const pulse = Math.sin(Date.now() / 180) * 3;
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius + pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('💣', 0, 0);
+    ctx.restore();
+  }
+}
+
+// 2. 🍙 Mini Familiar Companion Pet
+class FamiliarPet {
+  constructor(owner) {
+    this.owner = owner;
+    this.x = owner.x - 35;
+    this.y = owner.y - 35;
+    this.shootTimer = 0;
+    this.bob = 0;
+  }
+
+  update(dt, enemies, projectiles) {
+    this.bob += dt * 5;
+    const targetX = this.owner.x + (this.owner.facingLeft ? 40 : -40);
+    const targetY = this.owner.y - 35 + Math.sin(this.bob) * 6;
+    this.x += (targetX - this.x) * 0.12;
+    this.y += (targetY - this.y) * 0.12;
+
+    this.shootTimer += dt;
+    if (this.shootTimer >= 0.85 && enemies.length > 0) {
+      this.shootTimer = 0;
+      let nearest = null;
+      let minD = 480;
+      enemies.forEach(e => {
+        const d = Math.hypot(e.x - this.x, e.y - this.y);
+        if (d < minD) { minD = d; nearest = e; }
+      });
+
+      if (nearest) {
+        const a = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+        projectiles.push(new Projectile(this.x, this.y, Math.cos(a) * 14, Math.sin(a) * 14, 85 * this.owner.damageMultiplier, 1, true, '#a855f7', 8, true, 'star'));
+      }
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#c084fc';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🍙', 0, 0);
     ctx.restore();
   }
 }
@@ -1104,7 +1243,7 @@ class ExpGem {
   }
 }
 
-// --- Enemy Classes (with Sanctuary Guardian Bosses & High Polish) ---
+// --- Enemy Classes ---
 class Enemy {
   constructor(x, y, type = 'bug', wave = 1, diffConfig = { hpMult: 1.0, dmgMult: 1.0, spdMult: 1.0 }) {
     this.x = x;
@@ -1123,6 +1262,11 @@ class Enemy {
     this.specialTimer = 0;
     this.phase = 1;
     this.blindTimer = 0;
+
+    // Status effects
+    this.burnTimer = 0;
+    this.poisonTimer = 0;
+    this.frostTimer = 0;
 
     if (type === 'bug') {
       this.radius = 20;
@@ -1221,7 +1365,25 @@ class Enemy {
     if (this.hitTimer > 0) this.hitTimer -= dt;
     if (this.blindTimer > 0) this.blindTimer -= dt;
 
-    const curSpeed = this.blindTimer > 0 ? this.speed * 0.35 : this.speed;
+    // Apply Status DoTs
+    if (this.burnTimer > 0) {
+      this.burnTimer -= dt;
+      this.hp -= 28 * dt * 60;
+      if (Math.random() < 0.2) particles.push(new Particle(this.x, this.y, 0, -2, 4, '#ef4444', 0.2, 'sparkle'));
+    }
+    if (this.poisonTimer > 0) {
+      this.poisonTimer -= dt;
+      this.hp -= 32 * dt * 60;
+      if (Math.random() < 0.2) particles.push(new Particle(this.x, this.y, 0, -1, 5, '#a855f7', 0.25, 'smoke'));
+    }
+    if (this.frostTimer > 0) {
+      this.frostTimer -= dt;
+    }
+
+    let curSpeed = this.speed;
+    if (this.blindTimer > 0) curSpeed *= 0.35;
+    if (this.frostTimer > 0) curSpeed *= 0.55;
+
     const dx = player.x - this.x;
     const dy = player.y - this.y;
     const dist = Math.hypot(dx, dy) || 1;
@@ -1404,15 +1566,6 @@ class Enemy {
       ctx.clip();
       ctx.drawImage(sprite, -this.radius - 4, -this.radius - 4, (this.radius + 4) * 2, (this.radius + 4) * 2);
       ctx.restore();
-
-      if (this.type === 'lightning_beetle') {
-        ctx.strokeStyle = '#fef08a';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.moveTo(-8, -14); ctx.lineTo(-14, -28); ctx.lineTo(-8, -26); ctx.lineTo(-12, -36);
-        ctx.moveTo(8, -14); ctx.lineTo(14, -28); ctx.lineTo(8, -26); ctx.lineTo(12, -36);
-        ctx.stroke();
-      }
     } else {
       ctx.fillStyle = isHit ? '#ffffff' : this.color;
       ctx.beginPath();
@@ -1420,9 +1573,18 @@ class Enemy {
       ctx.fill();
     }
 
-    if (this.blindTimer > 0) {
-      ctx.font = '16px sans-serif';
-      ctx.fillText('💫', -8, -this.radius - 24);
+    // Status aura indicators
+    if (this.burnTimer > 0) {
+      ctx.font = '14px sans-serif';
+      ctx.fillText('🔥', 8, -this.radius - 12);
+    }
+    if (this.poisonTimer > 0) {
+      ctx.font = '14px sans-serif';
+      ctx.fillText('🍄', -16, -this.radius - 12);
+    }
+    if (this.frostTimer > 0) {
+      ctx.font = '14px sans-serif';
+      ctx.fillText('❄️', 0, -this.radius - 12);
     }
 
     if (this.hp < this.maxHp || this.type === 'boss' || this.type.includes('boss')) {
@@ -1459,7 +1621,7 @@ function drawBubbleRect(ctx, x, y, width, height, radius) {
   }
 }
 
-// --- Player Class ---
+// --- Player Class with Diverse Build Slots ---
 class Player {
   constructor(x, y, charType = 'chiikawa', spriteImg) {
     this.x = x;
@@ -1505,13 +1667,44 @@ class Player {
     this.pierce = charType === 'hachiware' ? 2 : 1;
     this.lifesteal = 0;
 
+    // Crit stats
+    this.critChance = 0.12;
+    this.critMultiplier = 1.8;
+
     this.hasShield = false;
     this.doubleDamageTimer = 0;
 
-    // Relic buff attributes
+    // Relic & Build Buffs
     this.hasAutoShieldRegen = false;
     this.autoShieldTimer = 15.0;
     this.relicsCount = 0;
+    this.hasRevive = false;
+
+    // Elemental build triggers
+    this.hasChainLightning = false;
+    this.hasLightningSmite = false;
+    this.smiteTimer = 0;
+    this.hasFireMines = false;
+    this.mineTimer = 0;
+    this.hasFrostOrb = false;
+    this.frostAngle = 0;
+    this.hasToxicCloud = false;
+    this.toxicTimer = 0;
+    this.hasOrbitStars = false;
+    this.orbitStarAngle = 0;
+    this.hasFamiliar = false;
+    this.familiar = null;
+    this.hasFeverBerserk = false;
+
+    // Evolutions
+    this.hasEvoLightning = false;
+    this.hasEvoFire = false;
+    this.hasEvoIce = false;
+    this.hasEvoPoison = false;
+
+    // Acquired skills record for pause menu & HUD tray
+    this.acquiredCards = [];
+    this.elementCounts = { lightning: 0, fire: 0, ice: 0, poison: 0, orbit: 0, crit: 0, evolution: 0 };
 
     this.vx = 0;
     this.vy = 0;
@@ -1575,7 +1768,7 @@ class Player {
     }
   }
 
-  update(dt, keys, worldMouseX, worldMouseY, particles, grenades, boomerangs, meteors, worldWidth, worldHeight, enemies, damageTexts) {
+  update(dt, keys, worldMouseX, worldMouseY, particles, grenades, boomerangs, meteors, worldWidth, worldHeight, enemies, damageTexts, fireMines, projectiles) {
     if (this.dashTimer > 0) this.dashTimer -= dt;
     if (this.timerQ > 0) this.timerQ -= dt;
     if (this.timerE > 0) this.timerE -= dt;
@@ -1597,6 +1790,93 @@ class Player {
         this.autoShieldTimer = 15.0;
         damageTexts.push(new DamageText(this.x, this.y - 30, '🛡️ 신전 별빛 보호막 재생!', '#38bdf8', true));
       }
+    }
+
+    // ⚡ Lightning Smite Sub-Weapon
+    if (this.hasLightningSmite && enemies.length > 0) {
+      this.smiteTimer += dt;
+      const targetTime = this.hasEvoLightning ? 1.0 : 2.0;
+      if (this.smiteTimer >= targetTime) {
+        this.smiteTimer = 0;
+        const target = enemies[Math.floor(Math.random() * enemies.length)];
+        if (target) {
+          Sound.playLightning();
+          const smiteDmg = (this.hasEvoLightning ? 320 : 180) * this.damageMultiplier;
+          target.hp -= smiteDmg;
+          target.hitTimer = 0.15;
+          target.blindTimer = 1.0;
+          damageTexts.push(new DamageText(target.x, target.y - 30, `⚡ ${Math.round(smiteDmg)} [낙뢰]`, '#facc15', true));
+          particles.push(new Particle(target.x, target.y, 0, 0, 8, '#fef08a', 0.35, 'lightning'));
+        }
+      }
+    }
+
+    // 🔥 Fire Napalm Mines Sub-Weapon
+    if (this.hasFireMines) {
+      this.mineTimer += dt;
+      if (this.mineTimer >= 1.8) {
+        this.mineTimer = 0;
+        const mineDmg = (this.hasEvoFire ? 360 : 220) * this.damageMultiplier;
+        fireMines.push(new FireMine(this.x, this.y, mineDmg));
+      }
+    }
+
+    // ❄️ Frost Orbit Orb Sub-Weapon
+    if (this.hasFrostOrb) {
+      this.frostAngle += dt * 4;
+      enemies.forEach(e => {
+        for (let i = 0; i < 2; i++) {
+          const a = this.frostAngle + i * Math.PI;
+          const ox = this.x + Math.cos(a) * 90;
+          const oy = this.y + Math.sin(a) * 90;
+          const d = Math.hypot(e.x - ox, e.y - oy);
+          if (d < 22 + e.radius) {
+            e.hp -= (this.hasEvoIce ? 90 : 45) * dt * 60 * this.damageMultiplier;
+            e.hitTimer = 0.1;
+            e.frostTimer = 2.5;
+          }
+        }
+      });
+    }
+
+    // 🍄 Toxic Cloud Sub-Weapon
+    if (this.hasToxicCloud) {
+      this.toxicTimer += dt;
+      if (this.toxicTimer >= 1.4) {
+        this.toxicTimer = 0;
+        particles.push(new Particle(this.x, this.y, 0, 0, 220, '#a855f7', 0.4, 'ring'));
+        enemies.forEach(e => {
+          const d = Math.hypot(e.x - this.x, e.y - this.y);
+          if (d < 220 + e.radius) {
+            e.poisonTimer = this.hasEvoPoison ? 6.0 : 3.5;
+            e.hp -= 40 * this.damageMultiplier;
+            e.hitTimer = 0.1;
+          }
+        });
+      }
+    }
+
+    // ⭐ Orbit Guardian Stars
+    if (this.hasOrbitStars) {
+      this.orbitStarAngle += dt * 3.5;
+      enemies.forEach(e => {
+        for (let i = 0; i < 3; i++) {
+          const a = this.orbitStarAngle + (i * Math.PI * 2 / 3);
+          const ox = this.x + Math.cos(a) * 80;
+          const oy = this.y + Math.sin(a) * 80;
+          const d = Math.hypot(e.x - ox, e.y - oy);
+          if (d < 20 + e.radius) {
+            e.hp -= 60 * dt * 60 * this.damageMultiplier;
+            e.hitTimer = 0.1;
+          }
+        }
+      });
+    }
+
+    // 🍙 Mini Companion Pet
+    if (this.hasFamiliar) {
+      if (!this.familiar) this.familiar = new FamiliarPet(this);
+      this.familiar.update(dt, enemies, projectiles);
     }
 
     if (this.isTearShieldActive) {
@@ -1947,13 +2227,23 @@ class Player {
       ctx.stroke();
     }
 
-    if (this.isTearShieldActive) {
+    if (this.isTearShieldActive || this.hasOrbitStars) {
       for (let i = 0; i < 3; i++) {
-        const oAngle = this.tearOrbitAngle + (i * Math.PI * 2 / 3);
-        const ox = Math.cos(oAngle) * 55;
-        const oy = Math.sin(oAngle) * 55;
+        const oAngle = (this.hasOrbitStars ? this.orbitStarAngle : this.tearOrbitAngle) + (i * Math.PI * 2 / 3);
+        const ox = Math.cos(oAngle) * 60;
+        const oy = Math.sin(oAngle) * 60;
         ctx.font = '20px sans-serif';
         ctx.fillText('⭐', ox, oy);
+      }
+    }
+
+    if (this.hasFrostOrb) {
+      for (let i = 0; i < 2; i++) {
+        const fa = this.frostAngle + i * Math.PI;
+        const fx = Math.cos(fa) * 75;
+        const fy = Math.sin(fa) * 75;
+        ctx.font = '22px sans-serif';
+        ctx.fillText('❄️', fx, fy);
       }
     }
 
@@ -1967,6 +2257,11 @@ class Player {
     }
 
     ctx.restore();
+
+    // Draw Familiar Companion
+    if (this.hasFamiliar && this.familiar) {
+      this.familiar.draw(ctx);
+    }
 
     // Dialogue Bubble above head
     if (this.dialogueLife > 0) {
@@ -2037,6 +2332,7 @@ class Game {
     this.grenades = [];
     this.boomerangs = [];
     this.meteors = [];
+    this.fireMines = [];
     this.expGems = [];
     this.fieldItems = [];
     this.particles = [];
@@ -2337,6 +2633,7 @@ class Game {
     this.grenades = [];
     this.boomerangs = [];
     this.meteors = [];
+    this.fireMines = [];
     this.expGems = [];
     this.fieldItems = [];
     this.particles = [];
@@ -2463,6 +2760,27 @@ class Game {
       buffContainer.innerHTML += `<div class="buff-pill" style="border-color:#f59e0b;color:#f59e0b;">🔥 광기 ${this.player.madnessStacks}단</div>`;
     }
 
+    // Build Synergies Tray
+    const buildTray = document.getElementById('hud-build-tray');
+    if (buildTray) {
+      let trayHtml = '';
+      const elems = [
+        { key: 'lightning', name: '⚡번개', count: this.player.elementCounts.lightning, cls: 'elem-lightning' },
+        { key: 'fire', name: '🔥화염', count: this.player.elementCounts.fire, cls: 'elem-fire' },
+        { key: 'ice', name: '❄️빙결', count: this.player.elementCounts.ice, cls: 'elem-ice' },
+        { key: 'poison', name: '🍄맹독', count: this.player.elementCounts.poison, cls: 'elem-poison' },
+        { key: 'orbit', name: '⭐위성', count: this.player.elementCounts.orbit, cls: 'elem-orbit' },
+        { key: 'crit', name: '🎯치명', count: this.player.elementCounts.crit, cls: 'elem-crit' },
+        { key: 'evolution', name: '🌟진화', count: this.player.elementCounts.evolution, cls: 'elem-evolution' }
+      ];
+      elems.forEach(el => {
+        if (el.count > 0) {
+          trayHtml += `<span class="synergy-pill ${el.cls}">${el.name} ${el.count}</span>`;
+        }
+      });
+      buildTray.innerHTML = trayHtml;
+    }
+
     // Cooldown overlays
     const setCD = (id, cur, max) => {
       const el = document.getElementById(id);
@@ -2510,7 +2828,24 @@ class Game {
     if (!this.isRunning || this.isLevelingUp) return;
     this.isPaused = !this.isPaused;
     const pauseScreen = document.getElementById('pause-screen');
+    const rosterEl = document.getElementById('pause-build-list');
+
     if (this.isPaused) {
+      if (rosterEl && this.player) {
+        if (this.player.acquiredCards.length === 0) {
+          rosterEl.innerHTML = `<div style="color:#94a3b8;font-size:12px;padding:12px;">아직 습득한 스킬 빌드 카드가 없습니다. 레벨업하여 카드를 획득하세요!</div>`;
+        } else {
+          rosterEl.innerHTML = this.player.acquiredCards.map(c => `
+            <div class="roster-card">
+              <span class="r-icon">${c.icon}</span>
+              <div class="r-info">
+                <span class="r-name">${c.name}</span>
+                <span class="r-desc">${c.effect}</span>
+              </div>
+            </div>
+          `).join('');
+        }
+      }
       pauseScreen.classList.add('active');
     } else {
       pauseScreen.classList.remove('active');
@@ -2595,21 +2930,62 @@ class Game {
           : (Math.random() < 0.5 ? "와... 와아...!" : "훗... 후웅!"));
     this.player.say(lvlQuote, true);
 
+    // Rich 28+ Card Level Up Pool with Elements & Evolutions
     const pool = [
-      { id: 'dmg', name: '사스마타 연마', icon: '⚔️', effect: '공격력 +30%', tier: '공격', apply: () => (this.player.damageMultiplier += 0.3) },
-      { id: 'rate', name: '우사기의 발놀림', icon: '⚡', effect: '기본 공격 속도 +25%', tier: '공격', apply: () => (this.player.attackCooldown *= 0.78) },
-      { id: 'spread', name: '멀티 스타 샷', icon: '🌟', effect: '발사 탄환 수 +1 추가', tier: '공격', apply: () => (this.player.bulletCount += 1) },
-      { id: 'speed', name: '포셰트 가방 장착', icon: '🎒', effect: '이동 속도 +18%', tier: '기동', apply: () => (this.player.speed *= 1.18) },
-      { id: 'hp', name: '수제 푸딩 한입', icon: '🍮', effect: '최대 체력 +35 및 즉시 50 회복', tier: '생존', apply: () => { this.player.maxHp += 35; this.player.hp = Math.min(this.player.maxHp, this.player.hp + 50); } },
-      { id: 'pierce', name: '관통 사스마타', icon: '🗡️', effect: '탄환 관통 횟수 +1 증가', tier: '특수', apply: () => (this.player.pierce += 1) },
-      { id: 'skillQ', name: '특대 스킬 강화', icon: '🌰', effect: 'Q 스킬 쿨타임 -25% & 데미지 +60', tier: '스킬', apply: () => { this.player.cdQ *= 0.75; } },
-      { id: 'leech', name: '하치와레의 긍정 기운', icon: '💖', effect: '적 처치 시 12% 확률로 체력 12 회복', tier: '생존', apply: () => (this.player.lifesteal += 0.12) },
-      { id: 'shield', name: '철갑 거북 등껍질', icon: '🛡️', effect: '적의 공격을 1회 막아주는 보호막 획득', tier: '생존', apply: () => (this.player.hasShield = true) },
-      { id: 'magnet', name: '대형 별사탕 자석', icon: '🧲', effect: '화면의 모든 경험치와 아이템 즉시 흡수', tier: '특수', apply: () => {
+      // ⚡ 번개 빌드 (Lightning)
+      { id: 'lt_smite', elem: 'lightning', name: '낙뢰의 사스마타', icon: '⚡', effect: '2초마다 주변 적에게 번개 강타 (180 광역 피해)', tier: '⚡ 번개 무기', apply: () => { this.player.hasLightningSmite = true; } },
+      { id: 'lt_chain', elem: 'lightning', name: '체인 라이트닝', icon: '⚡', effect: '공격 시 40% 확률로 주변 3마리에게 연쇄 감전', tier: '⚡ 번개 패시브', apply: () => { this.player.hasChainLightning = true; } },
+      { id: 'lt_charge', elem: 'lightning', name: '번개 과부하', icon: '⚡', effect: '기본 공격 속도 +20% & 감전 적에게 추가 피해', tier: '⚡ 번개 패시브', apply: () => { this.player.attackCooldown *= 0.8; } },
+
+      // 🔥 화염 빌드 (Fire)
+      { id: 'fire_mine', elem: 'fire', name: '화염 도토리 지뢰', icon: '💣', effect: '이동 경로에 폭발 지뢰 매설 (220 폭발 & 화염 지속딜)', tier: '🔥 화염 무기', apply: () => { this.player.hasFireMines = true; } },
+      { id: 'fire_bullet', elem: 'fire', name: '불타는 별빛 탄환', icon: '🔥', effect: '모든 공격이 적을 불태워 4초간 지속 피해', tier: '🔥 화염 패시브', apply: () => { this.player.damageMultiplier += 0.25; } },
+      { id: 'fire_burst', elem: 'fire', name: '연쇄 열폭풍', icon: '💥', effect: '불타는 적 사망 시 사방으로 불꽃 파편 연쇄 폭발', tier: '🔥 화염 패시브', apply: () => { this.player.damageMultiplier += 0.2; } },
+
+      // ❄️ 빙결 빌드 (Ice)
+      { id: 'ice_orb', elem: 'ice', name: '서리바람 눈송이', icon: '❄️', effect: '회전하는 2개의 얼음 구체가 적을 둔화(40%) 및 타격', tier: '❄️ 빙결 무기', apply: () => { this.player.hasFrostOrb = true; } },
+      { id: 'ice_shatter', elem: 'ice', name: '동결 분쇄', icon: '🧊', effect: '둔화/빙결된 적 공격 시 100% 크리티컬 & 2.5배 피해', tier: '❄️ 빙결 패시브', apply: () => { this.player.critMultiplier += 0.7; } },
+
+      // 🍄 맹독 & 소환 빌드 (Poison & Familiar)
+      { id: 'ps_cloud', elem: 'poison', name: '독버섯 안개 방출', icon: '🍄', effect: '주기적으로 주변에 맹독 안개 방출 (지속 도트딜 & 받는데미지 +25%)', tier: '🍄 맹독 무기', apply: () => { this.player.hasToxicCloud = true; } },
+      { id: 'ps_familiar', elem: 'poison', name: '꼬마 포셰트 사스마타', icon: '🍙', effect: '0.85초마다 유도 사스마타를 쏘는 든든한 꼬마 친구 소환', tier: '🍙 소환수', apply: () => { this.player.hasFamiliar = true; } },
+
+      // ⭐ 위성 & 방어 빌드 (Orbit & Defense)
+      { id: 'orbit_stars', elem: 'orbit', name: '삼총사 별빛 위성', icon: '⭐', effect: '회전하는 3개의 별빛이 적 탄환을 방어하고 120 피해', tier: '⭐ 위성 방어', apply: () => { this.player.hasOrbitStars = true; } },
+      { id: 'def_revive', elem: 'orbit', name: '불굴의 우정 (부활)', icon: '💖', effect: '사망 시 1회 50% 체력으로 즉시 부활 & 3초 무적', tier: '💖 불사', apply: () => { this.player.hasRevive = true; } },
+
+      // 🎯 크리티컬 & 콤보 피버 (Crit & Berserk)
+      { id: 'crit_hawk', elem: 'crit', name: '정밀 조준 안경', icon: '🎯', effect: '크리티컬 확률 +25% & 크리티컬 피해 2.2배 증폭', tier: '🎯 치명타', apply: () => { this.player.critChance += 0.25; this.player.critMultiplier += 0.5; } },
+      { id: 'crit_fever', elem: 'crit', name: '콤보 피버 폭주', icon: '🔥', effect: '콤보 카운트마다 공격력 & 이동속도 무한 누적 증폭', tier: '🎯 피버', apply: () => { this.player.hasFeverBerserk = true; } },
+
+      // ⚔️ 기본 강화 카드
+      { id: 'dmg', elem: 'crit', name: '사스마타 연마', icon: '⚔️', effect: '공격력 +30% 영구 증가', tier: '공격', apply: () => (this.player.damageMultiplier += 0.3) },
+      { id: 'spread', elem: 'crit', name: '멀티 스타 샷', icon: '🌟', effect: '발사 탄환 수 +1 추가', tier: '공격', apply: () => (this.player.bulletCount += 1) },
+      { id: 'speed', elem: 'orbit', name: '포셰트 가방 장착', icon: '🎒', effect: '이동 속도 +18%', tier: '기동', apply: () => (this.player.speed *= 1.18) },
+      { id: 'hp', elem: 'orbit', name: '수제 푸딩 한입', icon: '🍮', effect: '최대 체력 +40 및 즉시 60 회복', tier: '생존', apply: () => { this.player.maxHp += 40; this.player.hp = Math.min(this.player.maxHp, this.player.hp + 60); } },
+      { id: 'pierce', elem: 'crit', name: '관통 사스마타', icon: '🗡️', effect: '탄환 관통 횟수 +1 증가', tier: '특수', apply: () => (this.player.pierce += 1) },
+      { id: 'skillQ', elem: 'crit', name: '특대 스킬 강화', icon: '🌰', effect: 'Q 스킬 쿨타임 -25% & 데미지 +60', tier: '스킬', apply: () => { this.player.cdQ *= 0.75; } },
+      { id: 'leech', elem: 'poison', name: '하치와레의 긍정 기운', icon: '💖', effect: '적 처치 시 12% 확률로 체력 12 회복', tier: '생존', apply: () => (this.player.lifesteal += 0.12) },
+      { id: 'shield', elem: 'orbit', name: '철갑 거북 등껍질', icon: '🛡️', effect: '적의 공격을 1회 막아주는 보호막 획득', tier: '생존', apply: () => (this.player.hasShield = true) },
+      { id: 'magnet', elem: 'orbit', name: '대형 별사탕 자석', icon: '🧲', effect: '화면의 모든 경험치와 아이템 즉시 흡수', tier: '특수', apply: () => {
         this.expGems.forEach(g => { g.x = this.player.x; g.y = this.player.y; });
         this.fieldItems.forEach(i => { i.x = this.player.x; i.y = this.player.y; });
       }}
     ];
+
+    // Check for Evolutions
+    if (this.player.elementCounts.lightning >= 2 && !this.player.hasEvoLightning) {
+      pool.unshift({ id: 'evo_lt', elem: 'evolution', name: '🌟 [각성] 천벌의 뇌신 강림', icon: '⚡', effect: '낙뢰 주기 1초로 단축 & 320 피해 및 광역 기절', tier: '🌟 궁극 진화', apply: () => { this.player.hasEvoLightning = true; this.player.damageMultiplier += 0.4; } });
+    }
+    if (this.player.elementCounts.fire >= 2 && !this.player.hasEvoFire) {
+      pool.unshift({ id: 'evo_fire', elem: 'evolution', name: '🌟 [각성] 지옥불 카타클리즘', icon: '🔥', effect: '화염 지뢰 피해 360 증가 및 지속 화염 폭풍 생성', tier: '🌟 궁극 진화', apply: () => { this.player.hasEvoFire = true; this.player.damageMultiplier += 0.4; } });
+    }
+    if (this.player.elementCounts.ice >= 2 && !this.player.hasEvoIce) {
+      pool.unshift({ id: 'evo_ice', elem: 'evolution', name: '🌟 [각성] 절대영도 블리자드', icon: '❄️', effect: '얼음 구체 피해 2배 & 둔화 적에게 모든 피해 2.5배', tier: '🌟 궁극 진화', apply: () => { this.player.hasEvoIce = true; this.player.damageMultiplier += 0.4; } });
+    }
+    if (this.player.elementCounts.poison >= 2 && !this.player.hasEvoPoison) {
+      pool.unshift({ id: 'evo_ps', elem: 'evolution', name: '🌟 [각성] 역병 군주 각성', icon: '🍄', effect: '맹독 지속시간 2배 & 중독된 적 사망 시 연쇄 독폭발', tier: '🌟 궁극 진화', apply: () => { this.player.hasEvoPoison = true; this.player.damageMultiplier += 0.4; } });
+    }
 
     const shuffled = [...pool].sort(() => 0.5 - Math.random());
     this.currentUpgradeCards = shuffled.slice(0, 3);
@@ -2620,12 +2996,13 @@ class Game {
     this.currentUpgradeCards.forEach((card, idx) => {
       const cardEl = document.createElement('div');
       cardEl.className = 'card-item';
+      cardEl.dataset.elem = card.elem || 'crit';
       cardEl.innerHTML = `
         <div class="card-key-badge">[${idx + 1}]</div>
+        <div class="card-elem-tag">${card.tier}</div>
         <div class="card-icon">${card.icon}</div>
         <div class="card-name">${card.name}</div>
         <div class="card-effect">${card.effect}</div>
-        <div class="card-tier">${card.tier}</div>
       `;
       cardEl.addEventListener('click', () => this.selectLevelUpCard(idx));
       container.appendChild(cardEl);
@@ -2636,7 +3013,15 @@ class Game {
 
   selectLevelUpCard(idx) {
     if (!this.isLevelingUp || !this.currentUpgradeCards || !this.currentUpgradeCards[idx]) return;
-    this.currentUpgradeCards[idx].apply();
+    const card = this.currentUpgradeCards[idx];
+    card.apply();
+
+    // Record acquired card & update element counters
+    this.player.acquiredCards.push(card);
+    if (card.elem && this.player.elementCounts[card.elem] !== undefined) {
+      this.player.elementCounts[card.elem]++;
+    }
+
     this.isLevelingUp = false;
     document.getElementById('levelup-modal').classList.remove('active');
     this.updateHUD();
@@ -2709,25 +3094,22 @@ class Game {
       this.spawnEnemy();
     }
 
-    // Sanctuary Zone Check (Boss summon & chest open)
+    // Sanctuary Zone Check
     this.sanctuaries.forEach(s => {
       const dist = Math.hypot(this.player.x - s.x, this.player.y - s.y);
 
-      // Trigger guardian mini-boss if player gets close to sanctuary
       if (dist < s.radius && !s.bossSpawned && !s.bossDefeated) {
         s.bossSpawned = true;
         this.enemies.push(new Enemy(s.x, s.y - 60, s.bossType, this.wave, this.getDiffConfig()));
         this.showDangerBanner(`${s.name} 수호 보스 출현!`);
       }
 
-      // Check treasure chest interaction
       if (dist < s.chestRadius + this.player.radius && s.bossDefeated && !s.chestOpened) {
         s.chestOpened = true;
         this.player.relicsCount++;
         Sound.playRelicFanfare();
         this.damageTexts.push(new DamageText(this.player.x, this.player.y - 50, `🏆 ${s.relicName} 획득!`, '#facc15', true));
 
-        // Apply Relic Buff
         if (s.relicType === 'relic_pudding') {
           this.player.maxHp += 50;
           this.player.hp = this.player.maxHp;
@@ -2752,8 +3134,17 @@ class Game {
 
     this.player.update(
       dt, this.keys, wm.x, wm.y, this.particles, this.grenades, this.boomerangs, this.meteors,
-      this.worldWidth, this.worldHeight, this.enemies, this.damageTexts
+      this.worldWidth, this.worldHeight, this.enemies, this.damageTexts, this.fireMines, this.projectiles
     );
+
+    // Update Fire Mines
+    for (let i = this.fireMines.length - 1; i >= 0; i--) {
+      const mine = this.fireMines[i];
+      mine.update(dt, this.enemies, this.particles, this.damageTexts);
+      if (mine.exploded || mine.life <= 0) {
+        this.fireMines.splice(i, 1);
+      }
+    }
 
     // Update Boomerangs
     for (let i = this.boomerangs.length - 1; i >= 0; i--) {
@@ -2853,19 +3244,38 @@ class Game {
           const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
           if (dist < p.size + enemy.radius) {
             p.hitEnemies.add(enemy);
-            enemy.hp -= p.damage;
+
+            // Calculate Crit
+            const isCrit = Math.random() < this.player.critChance;
+            const finalDmg = isCrit ? p.damage * this.player.critMultiplier : p.damage;
+
+            enemy.hp -= finalDmg;
             enemy.hitTimer = 0.12;
 
-            const isCrit = p.damage > 45 || Math.random() < 0.2;
             if (isCrit) {
               Sound.playCritHit();
-              this.screenShake = 3;
+              this.screenShake = 4;
             } else {
               Sound.playHit();
             }
 
+            // Chain Lightning perk
+            if (this.player.hasChainLightning && Math.random() < 0.4) {
+              Sound.playLightning();
+              this.enemies.forEach(other => {
+                if (other !== enemy) {
+                  const cd = Math.hypot(other.x - enemy.x, other.y - enemy.y);
+                  if (cd < 220) {
+                    other.hp -= 65 * this.player.damageMultiplier;
+                    other.hitTimer = 0.1;
+                    this.particles.push(new Particle(other.x, other.y, 0, 0, 6, '#fef08a', 0.25, 'lightning'));
+                  }
+                }
+              });
+            }
+
             if (this.settings.damageText) {
-              this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(p.damage), isCrit ? '#f59e0b' : p.color, isCrit));
+              this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(finalDmg), isCrit ? '#f59e0b' : p.color, isCrit));
             }
 
             for (let k = 0; k < 3; k++) {
@@ -2901,8 +3311,15 @@ class Game {
 
           this.projectiles.splice(i, 1);
           if (this.player.hp <= 0) {
-            this.gameOver();
-            return;
+            if (this.player.hasRevive) {
+              this.player.hasRevive = false;
+              this.player.hp = this.player.maxHp * 0.5;
+              this.player.invulnerableTimer = 3.0;
+              this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, '💖 불굴의 우정 부활!', '#ec4899', true));
+            } else {
+              this.gameOver();
+              return;
+            }
           }
         }
       }
@@ -2956,8 +3373,15 @@ class Game {
           this.player.say(contactQuote, true);
 
           if (this.player.hp <= 0) {
-            this.gameOver();
-            return;
+            if (this.player.hasRevive) {
+              this.player.hasRevive = false;
+              this.player.hp = this.player.maxHp * 0.5;
+              this.player.invulnerableTimer = 3.0;
+              this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, '💖 불굴의 우정 부활!', '#ec4899', true));
+            } else {
+              this.gameOver();
+              return;
+            }
           }
         }
       }
@@ -3083,6 +3507,7 @@ class Game {
 
     this.expGems.forEach((gem) => gem.draw(this.ctx));
     this.fieldItems.forEach((item) => item.draw(this.ctx));
+    this.fireMines.forEach((mine) => mine.draw(this.ctx));
     this.shockwaves.forEach((sw) => sw.draw(this.ctx));
     this.enemies.forEach((enemy) => enemy.draw(this.ctx));
     this.grenades.forEach((g) => g.draw(this.ctx));

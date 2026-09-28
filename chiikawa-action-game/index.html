@@ -38,6 +38,10 @@
           <div class="bar-outer exp-bar">
             <div class="bar-inner" id="hud-exp-bar" style="width: 0%;"></div>
           </div>
+          <!-- Active Build Synergies Tray -->
+          <div class="build-synergy-tray" id="hud-build-tray">
+            <!-- Dynamic synergy pills (e.g. ⚡ 번개, 🔥 화염, ❄️ 빙결, 🍄 맹독) -->
+          </div>
         </div>
 
         <!-- Combo Badge -->
@@ -325,10 +329,13 @@
 
     <!-- Pause Screen -->
     <div id="pause-screen" class="overlay-screen">
-      <div class="screen-box pause-box">
+      <div class="screen-box pause-box" style="max-width: 650px;">
         <h2>🌸 토벌 작전 잠시 휴식 🌸</h2>
-        <p>푸딩 하나 먹으면서 잠시 쉬어가는 중...</p>
-        <button id="btn-resume" class="glow-btn">계속 토벌하기 (Resume)</button>
+        <p>현재 장착된 스킬 빌드 &amp; 속성 시너지 현황입니다.</p>
+        <div class="pause-build-roster" id="pause-build-list">
+          <!-- Active skills list -->
+        </div>
+        <button id="btn-resume" class="glow-btn" style="margin-top: 18px;">계속 토벌하기 (Resume)</button>
       </div>
     </div>
   </div>
