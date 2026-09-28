@@ -1,6 +1,6 @@
 /* ==========================================================================
    🌸 치이카와 스트라이커: 토벌 대작전 (Chiikawa Striker)
-   Expansive Open World Map (3600x3600), Camera Follow & Minimap System
+   5000x5000 Super Open-World with 4 Treasure Sanctuaries & Boss Lairs
    ========================================================================== */
 
 // --- Audio Manager (Web Audio API Synthesizer) ---
@@ -277,6 +277,24 @@ class SoundController {
     });
   }
 
+  playRelicFanfare() {
+    if (!this.sfxEnabled || !this.ctx) return;
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+    notes.forEach((freq, idx) => {
+      const now = this.ctx.currentTime + idx * 0.08;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    });
+  }
+
   playLaser() {
     try {
       if (!this.sfxEnabled || !this.ctx) return;
@@ -417,6 +435,69 @@ class SoundController {
 }
 
 const Sound = new SoundController();
+
+// --- Sanctuary Zone Definition (Exploration Lairs) ---
+class Sanctuary {
+  constructor(id, name, x, y, bossType, relicType, relicName, icon, color) {
+    this.id = id;
+    this.name = name;
+    this.x = x;
+    this.y = y;
+    this.radius = 320;
+    this.bossType = bossType;
+    this.relicType = relicType;
+    this.relicName = relicName;
+    this.icon = icon;
+    this.color = color;
+    this.bossSpawned = false;
+    this.bossDefeated = false;
+    this.chestOpened = false;
+    this.chestRadius = 26;
+  }
+
+  draw(ctx, camera) {
+    // Draw glowing sacred circle on ground
+    ctx.save();
+    ctx.strokeStyle = this.chestOpened ? '#22c55e' : this.color;
+    ctx.lineWidth = 4;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 20;
+
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = this.chestOpened ? 'rgba(34, 197, 94, 0.06)' : 'rgba(255, 255, 255, 0.05)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Landmark banner
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 15px "Jua", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${this.icon} ${this.name}`, this.x, this.y - this.radius + 30);
+
+    // Draw Treasure Chest in center
+    ctx.translate(this.x, this.y);
+    if (!this.chestOpened) {
+      // Bouncing Chest
+      const bob = Math.sin(Date.now() / 250) * 4;
+      ctx.font = '32px sans-serif';
+      ctx.fillText(this.bossDefeated ? '🎁' : '🔒', 0, bob);
+      ctx.font = 'bold 11px "Jua", sans-serif';
+      ctx.fillStyle = this.bossDefeated ? '#facc15' : '#ef4444';
+      ctx.fillText(this.bossDefeated ? '보물 상자 열기 (접근)' : '수호 보스 격파 필요', 0, bob + 26);
+    } else {
+      ctx.font = '28px sans-serif';
+      ctx.fillText('✨', 0, 0);
+      ctx.font = 'bold 11px "Jua", sans-serif';
+      ctx.fillStyle = '#22c55e';
+      ctx.fillText('토벌 완료 (CLEARED)', 0, 22);
+    }
+    ctx.restore();
+  }
+}
 
 // --- Particle, DamageText, Shockwave, and Drop Items ---
 class Particle {
@@ -576,7 +657,7 @@ class FieldItem {
     this.y = y;
     this.itemType = itemType;
     this.radius = 18;
-    this.life = 35.0;
+    this.life = 45.0;
     this.bobTimer = Math.random() * Math.PI * 2;
   }
 
@@ -861,7 +942,7 @@ class ExpGem {
     this.y = y;
     this.value = value;
     this.radius = 7;
-    this.life = 45;
+    this.life = 50;
     this.color = value >= 80 ? '#f59e0b' : (value >= 40 ? '#8b5cf6' : '#10b981');
     this.bob = Math.random() * Math.PI * 2;
   }
@@ -902,7 +983,7 @@ class ExpGem {
   }
 }
 
-// --- Enemy Classes ---
+// --- Enemy Classes (with Sanctuary Guardian Bosses) ---
 class Enemy {
   constructor(x, y, type = 'bug', wave = 1, diffConfig = { hpMult: 1.0, dmgMult: 1.0, spdMult: 1.0 }) {
     this.x = x;
@@ -977,6 +1058,20 @@ class Enemy {
       this.color = '#6366f1';
       this.xp = 130;
       this.name = '강철 중장갑 키메라';
+    } else if (type.startsWith('sanctuary_boss')) {
+      // Sanctuary Guardian Mini-Bosses
+      this.radius = 56;
+      this.hp = 3400 * diffConfig.hpMult;
+      this.maxHp = this.hp;
+      this.speed = 1.4 * diffConfig.spdMult;
+      this.damage = Math.round(36 * diffConfig.dmgMult);
+      this.color = '#ec4899';
+      this.xp = 600;
+      this.shootCooldown = 1.6;
+      if (type === 'sanctuary_boss_nw') this.name = '🍄 독안개 가시 키메라 [성소 수호 보스]';
+      else if (type === 'sanctuary_boss_ne') this.name = '🍜 강철 갑옷 풍뎅이 [라멘 도장 보스]';
+      else if (type === 'sanctuary_boss_sw') this.name = '🏰 흑화 쌍두 키메라 [신전 수호 보스]';
+      else this.name = '⚡ 폭풍 번개 골렘 [제단 수호 보스]';
     } else if (type === 'midboss') {
       this.radius = 54;
       this.hp = (2600 + wave * 450) * diffConfig.hpMult;
@@ -1063,6 +1158,27 @@ class Enemy {
         this.stompTimer = 0;
         shockwaves.push(new Shockwave(this.x, this.y, 220, Math.round(this.damage * 0.85), '#6366f1'));
       }
+    } else if (this.type.startsWith('sanctuary_boss')) {
+      // Sanctuary Boss Multi-Action
+      this.x += (dx / dist) * curSpeed * dt * 60;
+      this.y += (dy / dist) * curSpeed * dt * 60;
+
+      this.timer += dt;
+      this.specialTimer += dt;
+
+      if (this.timer >= this.shootCooldown && this.blindTimer <= 0) {
+        this.timer = 0;
+        const count = 10;
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 / count) * i;
+          projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 5.2, Math.sin(angle) * 5.2, 18, 1, false, '#ec4899', 8, false, 'orb'));
+        }
+      }
+
+      if (this.specialTimer >= 4.5) {
+        this.specialTimer = 0;
+        shockwaves.push(new Shockwave(this.x, this.y, 260, 28, '#ec4899'));
+      }
     } else if (this.type === 'midboss') {
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
@@ -1144,7 +1260,7 @@ class Enemy {
     else if (this.type === 'dark_swarm') sprite = sprites.dark_swarm;
     else if (this.type === 'lightning_beetle') sprite = sprites.bug;
     else if (this.type === 'iron_chimera') sprite = sprites.iron_chimera;
-    else if (this.type === 'midboss') sprite = sprites.midboss;
+    else if (this.type.startsWith('sanctuary_boss') || this.type === 'midboss') sprite = sprites.midboss;
     else if (this.type === 'boss') sprite = sprites.anoko;
 
     if (isHit) {
@@ -1157,9 +1273,9 @@ class Enemy {
       ctx.save();
       const auraPulse = Math.sin(Date.now() / 140) * 3;
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = (this.type === 'boss' || this.type === 'midboss') ? 4 : 2;
+      ctx.lineWidth = (this.type === 'boss' || this.type.includes('boss')) ? 4 : 2;
       ctx.shadowColor = this.color;
-      ctx.shadowBlur = (this.type === 'boss' || this.type === 'midboss') ? 20 : 8;
+      ctx.shadowBlur = (this.type === 'boss' || this.type.includes('boss')) ? 20 : 8;
       ctx.beginPath();
       ctx.arc(0, 0, this.radius + 3 + (this.type === 'boss' ? auraPulse : 0), 0, Math.PI * 2);
       ctx.stroke();
@@ -1190,13 +1306,13 @@ class Enemy {
       ctx.fillText('💫', -8, -this.radius - 24);
     }
 
-    if (this.hp < this.maxHp || this.type === 'boss' || this.type === 'midboss') {
+    if (this.hp < this.maxHp || this.type === 'boss' || this.type.includes('boss')) {
       const barW = this.radius * 2 + 16;
-      const barH = (this.type === 'boss' || this.type === 'midboss') ? 8 : 6;
+      const barH = (this.type === 'boss' || this.type.includes('boss')) ? 8 : 6;
       const hpRatio = Math.max(0, this.hp / this.maxHp);
       ctx.fillStyle = 'rgba(0,0,0,0.65)';
       ctx.fillRect(-barW / 2, -this.radius - 18, barW, barH);
-      ctx.fillStyle = (this.type === 'boss' || this.type === 'midboss') ? '#e11d48' : '#22c55e';
+      ctx.fillStyle = (this.type === 'boss' || this.type.includes('boss')) ? '#e11d48' : '#22c55e';
       ctx.fillRect(-barW / 2, -this.radius - 18, barW * hpRatio, barH);
     }
 
@@ -1224,7 +1340,7 @@ function drawBubbleRect(ctx, x, y, width, height, radius) {
   }
 }
 
-// --- Player Class with Open World Coordinates ---
+// --- Player Class ---
 class Player {
   constructor(x, y, charType = 'chiikawa', spriteImg) {
     this.x = x;
@@ -1272,6 +1388,11 @@ class Player {
 
     this.hasShield = false;
     this.doubleDamageTimer = 0;
+
+    // Relic buff attributes
+    this.hasAutoShieldRegen = false;
+    this.autoShieldTimer = 15.0;
+    this.relicsCount = 0;
 
     this.vx = 0;
     this.vy = 0;
@@ -1347,6 +1468,16 @@ class Player {
     if (this.dialogueTimer > 0) this.dialogueTimer -= dt;
     if (this.dialogueLife > 0) this.dialogueLife -= dt;
     if (this.dialoguePopAnim < 1.0) this.dialoguePopAnim = Math.min(1.0, this.dialoguePopAnim + dt * 6);
+
+    // Auto-shield regen relic
+    if (this.hasAutoShieldRegen && !this.hasShield) {
+      this.autoShieldTimer -= dt;
+      if (this.autoShieldTimer <= 0) {
+        this.hasShield = true;
+        this.autoShieldTimer = 15.0;
+        damageTexts.push(new DamageText(this.x, this.y - 30, '🛡️ 신전 별빛 보호막 재생!', '#38bdf8', true));
+      }
+    }
 
     if (this.isTearShieldActive) {
       this.tearShieldTimer -= dt;
@@ -1466,7 +1597,6 @@ class Player {
       this.y += this.vy * dt * 60;
     }
 
-    // Clamping to Large Open World Bounds
     this.x = Math.max(this.radius + 30, Math.min(worldWidth - this.radius - 30, this.x));
     this.y = Math.max(this.radius + 30, Math.min(worldHeight - this.radius - 30, this.y));
 
@@ -1826,7 +1956,7 @@ class Player {
   }
 }
 
-// --- Main Game Orchestrator with Large World & Minimap ---
+// --- Main Game Orchestrator with 5000x5000 Open World & 4 Sanctuaries ---
 class Game {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
@@ -1835,9 +1965,9 @@ class Game {
     this.minimapCanvas = document.getElementById('minimapCanvas');
     this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
 
-    // Vast Open World Map Dimensions (3600 x 3600)
-    this.worldWidth = 3600;
-    this.worldHeight = 3600;
+    // Super Vast Open World Map Dimensions (5000 x 5000)
+    this.worldWidth = 5000;
+    this.worldHeight = 5000;
 
     this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
 
@@ -1877,7 +2007,14 @@ class Game {
     this.sprites.bg_ruins.src = 'assets/tower_bg.jpg';
     this.sprites.bg_sanctuary.src = 'assets/trio_banner.jpg';
 
-    // Static Map Environment Decorations (Flowers, trees, mushroom spots)
+    // 4 Exploration Sanctuaries
+    this.sanctuaries = [
+      new Sanctuary('nw', '독버섯 숲의 비밀 성소', 1000, 1000, 'sanctuary_boss_nw', 'relic_pudding', '🍮 대왕 황금 푸딩 (최대체력+50 & 완치)', '🍄', '#a855f7'),
+      new Sanctuary('ne', '라멘 로(郎)의 비밀 수련장', 4000, 1000, 'sanctuary_boss_ne', 'relic_ramen', '🍜 특제 차슈 라멘 (영구 공격력+35%)', '🍜', '#ef4444'),
+      new Sanctuary('sw', '환상의 고대 지하 신전', 1000, 4000, 'sanctuary_boss_sw', 'relic_shield', '🛡️ 영구 별빛 보호막 (15초 자동 재생)', '🏰', '#38bdf8'),
+      new Sanctuary('se', '우사기 번개 폭풍 제단', 4000, 4000, 'sanctuary_boss_se', 'relic_boots', '⚡ 헤르메스 당근 신발 (이속+25% & 대시쿨-40%)', '⚡', '#facc15')
+    ];
+
     this.decorations = [];
     this.generateDecorations();
 
@@ -1927,13 +2064,13 @@ class Game {
 
   generateDecorations() {
     this.decorations = [];
-    const emojis = ['🌸', '🍄', '🌼', '🌿', '🌰', '🌲', '🪨', '⛺'];
-    for (let i = 0; i < 160; i++) {
+    const emojis = ['🌸', '🍄', '🌼', '🌿', '🌰', '🌲', '🪨', '⛺', '🏮', '✨'];
+    for (let i = 0; i < 240; i++) {
       this.decorations.push({
         x: 100 + Math.random() * (this.worldWidth - 200),
         y: 100 + Math.random() * (this.worldHeight - 200),
         emoji: emojis[Math.floor(Math.random() * emojis.length)],
-        size: 20 + Math.floor(Math.random() * 16)
+        size: 20 + Math.floor(Math.random() * 18)
       });
     }
   }
@@ -2094,18 +2231,18 @@ class Game {
         Sound.bgmEnabled = true;
         Sound.startBGM();
         updateBgmBtnText();
-        this.damageTexts.push(new DamageText(this.player?.x || 1800, (this.player?.y || 1800) - 40, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
+        this.damageTexts.push(new DamageText(this.player?.x || 2500, (this.player?.y || 2500) - 40, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
       } else {
         if (Sound.currentTrackIdx === 0) {
           Sound.switchNextTrack();
           updateBgmBtnText();
-          this.damageTexts.push(new DamageText(this.player?.x || 1800, (this.player?.y || 1800) - 40, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
+          this.damageTexts.push(new DamageText(this.player?.x || 2500, (this.player?.y || 2500) - 40, `🎵 BGM: ${Sound.getCurrentTrack().name}`, '#ffd166', true));
         } else {
           Sound.bgmEnabled = false;
           Sound.stopBGM();
           Sound.currentTrackIdx = 0;
           updateBgmBtnText();
-          this.damageTexts.push(new DamageText(this.player?.x || 1800, (this.player?.y || 1800) - 40, '🔇 BGM 꺼짐', '#94a3b8', true));
+          this.damageTexts.push(new DamageText(this.player?.x || 2500, (this.player?.y || 2500) - 40, '🔇 BGM 꺼짐', '#94a3b8', true));
         }
       }
     });
@@ -2148,13 +2285,19 @@ class Game {
     this.damageTexts = [];
     this.screenShake = 0;
 
-    // Start in the center of the vast world (1800, 1800)
+    // Reset Sanctuaries
+    this.sanctuaries.forEach(s => {
+      s.bossSpawned = false;
+      s.bossDefeated = false;
+      s.chestOpened = false;
+    });
+
+    // Start in the center of the vast world (2500, 2500)
     const startX = this.worldWidth / 2;
     const startY = this.worldHeight / 2;
     const sprite = this.sprites[this.selectedChar] || this.sprites.chiikawa;
     this.player = new Player(startX, startY, this.selectedChar, sprite);
 
-    // Initial camera placement
     this.camera.x = startX - this.canvas.width / 2;
     this.camera.y = startY - this.canvas.height / 2;
 
@@ -2199,7 +2342,7 @@ class Game {
     };
 
     const title = waveNames[w] || `🔥 WAVE ${w}: 무한 나이트메어 모드 🔥`;
-    this.damageTexts.push(new DamageText(this.player?.x || 1800, (this.player?.y || 1800) - 80, title, '#ff4081', true));
+    this.damageTexts.push(new DamageText(this.player?.x || 2500, (this.player?.y || 2500) - 80, title, '#ff4081', true));
 
     if (w === 5 || w === 10 || w === 15 || w === 20) {
       Sound.playBossWarning();
@@ -2223,11 +2366,10 @@ class Game {
   spawnEnemy() {
     if (!this.player) return;
 
-    // Spawn around player in a ring outside screen (750 ~ 1100 px distance)
     const angle = Math.random() * Math.PI * 2;
-    const dist = 750 + Math.random() * 350;
-    const x = Math.max(60, Math.min(this.worldWidth - 60, this.player.x + Math.cos(angle) * dist));
-    const y = Math.max(60, Math.min(this.worldHeight - 60, this.player.y + Math.sin(angle) * dist));
+    const dist = 750 + Math.random() * 380;
+    const x = Math.max(80, Math.min(this.worldWidth - 80, this.player.x + Math.cos(angle) * dist));
+    const y = Math.max(80, Math.min(this.worldHeight - 80, this.player.y + Math.sin(angle) * dist));
 
     const roll = Math.random();
     let type = 'bug';
@@ -2401,8 +2543,8 @@ class Game {
       let html = '';
       if (this.player.hasShield) html += '<span class="buff-pill">🛡️ 실드</span>';
       if (this.player.doubleDamageTimer > 0) html += `<span class="buff-pill">🍙 2배 데미지 (${Math.ceil(this.player.doubleDamageTimer)}s)</span>`;
-      if (this.player.charType === 'usagi' && this.player.madnessStacks > 0) html += `<span class="buff-pill">🔥 광기 ${this.player.madnessStacks}단</span>`;
-      if (this.player.charType === 'hachiware' && this.player.positiveTimer > 0) html += `<span class="buff-pill">✨ 난또까나레!</span>`;
+      if (this.player.hasAutoShieldRegen) html += '<span class="buff-pill">✨ 영구보호막</span>';
+      if (this.player.relicsCount > 0) html += `<span class="buff-pill">🏆 성소유물 ${this.player.relicsCount}/4</span>`;
       buffContainer.innerHTML = html;
     }
 
@@ -2442,9 +2584,10 @@ class Game {
       }
     }
 
+    // Dynamic Spawning around player
     this.spawnTimer += dt;
     const diff = this.getDiffConfig();
-    const baseInterval = Math.max(0.24, 1.5 - this.wave * 0.06);
+    const baseInterval = Math.max(0.22, 1.4 - this.wave * 0.05);
     const spawnInterval = baseInterval / diff.spawnMult;
 
     if (this.spawnTimer >= spawnInterval) {
@@ -2452,7 +2595,56 @@ class Game {
       this.spawnEnemy();
     }
 
-    // World coordinates conversion for mouse
+    // Sanctuary Proximity & Boss Encounter Logic
+    if (this.player) {
+      this.sanctuaries.forEach(s => {
+        const dist = Math.hypot(this.player.x - s.x, this.player.y - s.y);
+
+        // Enter sanctuary warning & spawn guardian boss
+        if (dist < s.radius && !s.bossSpawned && !s.bossDefeated) {
+          s.bossSpawned = true;
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 70, `⚠️ ${s.name} 진입! 수호 보스 출현!`, s.color, true));
+          Sound.playBossWarning();
+          this.screenShake = 12;
+          this.enemies.push(new Enemy(s.x, s.y - 80, s.bossType, this.wave, this.getDiffConfig()));
+        }
+
+        // Open Chest after Boss defeated
+        if (s.bossDefeated && !s.chestOpened && dist < s.chestRadius + this.player.radius) {
+          s.chestOpened = true;
+          this.player.relicsCount++;
+          Sound.playRelicFanfare();
+          this.screenShake = 15;
+
+          // Apply Relic Buffs
+          if (s.relicType === 'relic_pudding') {
+            this.player.maxHp += 50;
+            this.player.hp = this.player.maxHp;
+            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '🏆 대왕 황금 푸딩 획득! 최대체력+50 & 완치!', '#ffd166', true));
+          } else if (s.relicType === 'relic_ramen') {
+            this.player.damageMultiplier += 0.35;
+            this.player.doubleDamageTimer = 15.0;
+            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '🏆 특제 차슈 라멘 획득! 영구공격력+35% & 15초 폭증!', '#ef4444', true));
+          } else if (s.relicType === 'relic_shield') {
+            this.player.hasAutoShieldRegen = true;
+            this.player.hasShield = true;
+            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '🏆 영구 별빛 보호막 획득! (15초 자동 재생)', '#38bdf8', true));
+          } else if (s.relicType === 'relic_boots') {
+            this.player.speed *= 1.25;
+            this.player.dashCooldown *= 0.6;
+            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '🏆 헤르메스 당근 신발 획득! 이속+25% & 대시쿨-40%!', '#facc15', true));
+          }
+
+          // Sparkling particles
+          for (let k = 0; k < 35; k++) {
+            const angle = Math.random() * Math.PI * 2;
+            const spd = 2 + Math.random() * 8;
+            this.particles.push(new Particle(s.x, s.y, Math.cos(angle) * spd, Math.sin(angle) * spd, 12, s.color, 0.7, 'star'));
+          }
+        }
+      });
+    }
+
     const worldMouseX = this.mouse.x + this.camera.x;
     const worldMouseY = this.mouse.y + this.camera.y;
 
@@ -2483,7 +2675,7 @@ class Game {
     this.camera.x = Math.max(0, Math.min(this.worldWidth - this.canvas.width, this.camera.x));
     this.camera.y = Math.max(0, Math.min(this.worldHeight - this.canvas.height, this.camera.y));
 
-    // Laser damage (Chiikawa R)
+    // Laser damage
     if (this.player.isFiringLaser) {
       this.screenShake = Math.max(this.screenShake, 5);
       const laserAngle = this.player.aimAngle;
@@ -2728,6 +2920,15 @@ class Game {
         this.comboCount++;
         this.comboTimer = 2.5;
 
+        // Check if killed a sanctuary guardian boss
+        if (enemy.type.startsWith('sanctuary_boss')) {
+          const s = this.sanctuaries.find(sc => sc.bossType === enemy.type);
+          if (s) {
+            s.bossDefeated = true;
+            this.damageTexts.push(new DamageText(enemy.x, enemy.y - 40, `✨ ${s.name} 토벌 성공! 보물 상자 개방!`, '#facc15', true));
+          }
+        }
+
         if (this.player.charType === 'hachiware' && Math.random() < 0.15) {
           this.player.positiveTimer = 3.0;
           this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '✨ 난또까나레 발동!', '#38bdf8', true));
@@ -2735,7 +2936,7 @@ class Game {
 
         this.expGems.push(new ExpGem(enemy.x, enemy.y, enemy.xp));
 
-        const isBoss = enemy.type === 'boss' || enemy.type === 'midboss';
+        const isBoss = enemy.type === 'boss' || enemy.type.includes('boss');
         if (isBoss) {
           this.fieldItems.push(new FieldItem(enemy.x, enemy.y, 'pudding'));
           this.fieldItems.push(new FieldItem(enemy.x + 30, enemy.y, 'onigiri'));
@@ -2815,12 +3016,14 @@ class Game {
 
     this.drawBackground();
 
+    // Draw Sanctuaries & Chests
+    this.sanctuaries.forEach(s => s.draw(this.ctx, this.camera));
+
     // World Map Decorations
     this.ctx.font = '22px sans-serif';
     this.ctx.textAlign = 'center';
     this.ctx.textBaseline = 'middle';
     this.decorations.forEach(dec => {
-      // Only draw if inside/near camera viewport
       if (
         dec.x > this.camera.x - 50 &&
         dec.x < this.camera.x + this.canvas.width + 50 &&
@@ -2871,12 +3074,11 @@ class Game {
     this.ctx.shadowBlur = 18;
     this.ctx.strokeRect(20, 20, this.worldWidth - 40, this.worldHeight - 40);
 
-    // Boundary corner flags
     this.ctx.fillStyle = '#ffccd5';
     this.ctx.font = 'bold 16px "Jua", sans-serif';
-    this.ctx.fillText('🌸 [마을 결계 끝자락]', 100, 50);
+    this.ctx.fillText('🌸 [마을 결계 끝자락]', 120, 50);
     this.ctx.fillText('🌸 [마을 결계 끝자락]', this.worldWidth - 160, 50);
-    this.ctx.fillText('🌸 [마을 결계 끝자락]', 100, this.worldHeight - 40);
+    this.ctx.fillText('🌸 [마을 결계 끝자락]', 120, this.worldHeight - 40);
     this.ctx.fillText('🌸 [마을 결계 끝자락]', this.worldWidth - 160, this.worldHeight - 40);
     this.ctx.restore();
   }
@@ -2884,7 +3086,7 @@ class Game {
   drawRadarPointers() {
     if (!this.player) return;
     this.enemies.forEach(e => {
-      if (e.type === 'boss' || e.type === 'midboss' || e.type === 'iron_chimera') {
+      if (e.type === 'boss' || e.type.includes('boss') || e.type === 'iron_chimera') {
         const sx = e.x - this.camera.x;
         const sy = e.y - this.camera.y;
         const isOffscreen = sx < 30 || sx > this.canvas.width - 30 || sy < 30 || sy > this.canvas.height - 30;
@@ -2937,6 +3139,24 @@ class Game {
     mCtx.lineWidth = 2;
     mCtx.strokeRect(1, 1, mW - 2, mH - 2);
 
+    // Draw Sanctuaries on minimap
+    this.sanctuaries.forEach(s => {
+      mCtx.save();
+      const sx = s.x * scaleX;
+      const sy = s.y * scaleY;
+      mCtx.strokeStyle = s.chestOpened ? '#22c55e' : s.color;
+      mCtx.lineWidth = 1.5;
+      mCtx.beginPath();
+      mCtx.arc(sx, sy, 7, 0, Math.PI * 2);
+      mCtx.stroke();
+
+      mCtx.font = '8px sans-serif';
+      mCtx.textAlign = 'center';
+      mCtx.textBaseline = 'middle';
+      mCtx.fillText(s.chestOpened ? '✅' : s.icon, sx, sy);
+      mCtx.restore();
+    });
+
     // Draw Items on minimap
     mCtx.fillStyle = '#f59e0b';
     this.fieldItems.forEach(item => {
@@ -2952,7 +3172,7 @@ class Game {
         mCtx.beginPath();
         mCtx.arc(e.x * scaleX, e.y * scaleY, 5, 0, Math.PI * 2);
         mCtx.fill();
-      } else if (e.type === 'midboss' || e.type === 'iron_chimera') {
+      } else if (e.type.includes('boss') || e.type === 'iron_chimera') {
         mCtx.fillStyle = '#f97316';
         mCtx.beginPath();
         mCtx.arc(e.x * scaleX, e.y * scaleY, 3.5, 0, Math.PI * 2);
@@ -2980,12 +3200,11 @@ class Game {
     const chInfo = this.getChapterInfo(this.wave);
     const bgSprite = this.sprites[chInfo.bgKey];
 
-    // Draw repeating atmospheric tiles across the 3600x3600 world
     if (bgSprite && bgSprite.complete && bgSprite.naturalWidth > 0) {
       this.ctx.save();
       this.ctx.globalAlpha = 0.25;
-      const tileW = 900;
-      const tileH = 900;
+      const tileW = 1000;
+      const tileH = 1000;
       for (let x = 0; x < this.worldWidth; x += tileW) {
         for (let y = 0; y < this.worldHeight; y += tileH) {
           if (
@@ -3001,7 +3220,6 @@ class Game {
       this.ctx.restore();
     }
 
-    // Grid lines for movement reference
     const tileSize = 80;
     this.ctx.save();
     this.ctx.strokeStyle = 'rgba(255, 209, 220, 0.08)';
