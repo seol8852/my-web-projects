@@ -1460,4 +1460,296 @@ input:checked + .slider:before {
   font-size: 16px;
 }
 
+/* --- Special Relics HUD Tray --- */
+.relics-tray-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 140px;
+  justify-content: flex-end;
+}
+
+.relic-badge {
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  padding: 3px 6px;
+  font-size: 12px;
+  cursor: help;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  animation: popIn 0.3s ease;
+}
+
+/* --- Proximity Interaction Prompt --- */
+.interact-prompt {
+  position: absolute;
+  bottom: 140px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(24, 21, 40, 0.88);
+  border: 2px solid #ffd166;
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  z-index: 100;
+  animation: pulsePrompt 1.4s infinite alternate;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@keyframes pulsePrompt {
+  from { transform: translateX(-50%) scale(1); box-shadow: 0 0 10px rgba(255, 209, 102, 0.4); }
+  to { transform: translateX(-50%) scale(1.06); box-shadow: 0 0 20px rgba(255, 209, 102, 0.8); }
+}
+
+.interact-key {
+  background: #f59e0b;
+  color: #1e293b;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 900;
+  font-size: 12px;
+}
+
+/* --- Ramen Shop Modal --- */
+.ramen-box {
+  background: #fffdfa;
+  border-color: #f97316;
+  max-width: 720px;
+}
+
+.ramen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 2px dashed #fed7aa;
+  padding-bottom: 12px;
+}
+
+.ramen-main-title {
+  color: #c2410c;
+  font-size: 24px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.ramen-sub {
+  color: #7c2d12;
+  font-size: 13px;
+}
+
+.ramen-coins-badge {
+  background: #fef3c7;
+  border: 2px solid #f59e0b;
+  color: #92400e;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 12px;
+}
+
+.ramen-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.ramen-card {
+  background: #ffffff;
+  border: 2.5px solid #fed7aa;
+  border-radius: 16px;
+  padding: 14px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.ramen-card:hover {
+  transform: translateY(-3px);
+  border-color: #f97316;
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.2);
+}
+
+.ramen-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.ramen-dish-icon {
+  font-size: 28px;
+}
+
+.ramen-dish-name {
+  font-size: 15px;
+  font-weight: 900;
+  color: #9a3412;
+}
+
+.ramen-dish-desc {
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.ramen-buy-btn {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #ffffff;
+  border: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.ramen-buy-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.35);
+}
+
+.ramen-buy-btn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* --- Gacha Vending Machine Modal --- */
+.gacha-box {
+  background: #faf5ff;
+  border-color: #c084fc;
+  max-width: 600px;
+}
+
+.gacha-main-title {
+  color: #7e22ce;
+  font-size: 24px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.gacha-sub {
+  color: #6b21a8;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.gacha-coins-badge {
+  background: #f3e8ff;
+  border: 2px solid #a855f7;
+  color: #6b21a8;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 14px;
+}
+
+.gacha-machine-anim-area {
+  background: #ffffff;
+  border: 3px solid #e9d5ff;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.gacha-globe {
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle at 35% 35%, #ffffff, #e9d5ff);
+  border: 4px solid #a855f7;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 15px rgba(168, 85, 247, 0.3);
+}
+
+.gacha-capsule {
+  position: absolute;
+  font-size: 24px;
+  transition: all 0.3s ease;
+}
+
+.gacha-capsule.cap1 { top: 30px; left: 35px; }
+.gacha-capsule.cap2 { top: 40px; left: 75px; }
+.gacha-capsule.cap3 { top: 75px; left: 45px; }
+.gacha-capsule.cap4 { top: 70px; left: 85px; }
+.gacha-capsule.cap5 { top: 20px; left: 60px; }
+
+.gacha-globe.spinning .gacha-capsule {
+  animation: shakeCapsules 0.2s infinite;
+}
+
+@keyframes shakeCapsules {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(6px, -6px) rotate(20deg); }
+  50% { transform: translate(-6px, 6px) rotate(-20deg); }
+  75% { transform: translate(-4px, -4px) rotate(15deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.gacha-crank-btn {
+  background: linear-gradient(135deg, #a855f7, #7e22ce);
+  color: #ffffff;
+  padding: 12px 28px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(126, 34, 206, 0.35);
+  transition: all 0.2s ease;
+}
+
+.gacha-crank-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 22px rgba(126, 34, 206, 0.5);
+}
+
+.gacha-result-card {
+  background: #ffffff;
+  border: 3px solid #facc15;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 14px;
+  animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.gacha-result-icon {
+  font-size: 36px;
+  margin-bottom: 4px;
+}
+
+.gacha-result-name {
+  font-size: 16px;
+  font-weight: 900;
+  color: #854d0e;
+  margin-bottom: 4px;
+}
+
+.gacha-result-desc {
+  font-size: 13px;
+  color: #475569;
+}
+
+
 

@@ -1125,6 +1125,224 @@ class FieldItem {
   }
 }
 
+// --- 🌟 World Landmark Entities (Stage 3) ---
+
+// 1. 🍜 Ramen Shop "Ro (郎)" Stall
+class RamenShop {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 45;
+    this.interactRadius = 110;
+    this.steamTimer = 0;
+    this.lanternBob = 0;
+  }
+
+  update(dt, particles) {
+    this.steamTimer += dt;
+    this.lanternBob += dt * 3;
+    if (this.steamTimer >= 0.25) {
+      this.steamTimer = 0;
+      particles.push(new Particle(this.x + (Math.random() * 24 - 12), this.y - 35, (Math.random() - 0.5) * 1.5, -1.8 - Math.random(), 8, '#fed7aa', 0.6, 'smoke'));
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Warm Ambient Light Glow
+    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 120);
+    grad.addColorStop(0, 'rgba(251, 146, 60, 0.35)');
+    grad.addColorStop(1, 'rgba(251, 146, 60, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 120, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wooden Stall Base
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(-45, -15, 90, 45);
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(-42, -12, 84, 18);
+
+    // Stall Counter & Noren Curtain
+    ctx.fillStyle = '#ea580c';
+    ctx.fillRect(-48, -40, 96, 22);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 13px "Jua", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🍜 郎 (RO)', 0, -25);
+
+    // Red Lanterns with bob
+    const lBob = Math.sin(this.lanternBob) * 3;
+    ctx.font = '22px sans-serif';
+    ctx.fillText('🏮', -42, -10 + lBob);
+    ctx.fillText('🏮', 42, -10 + lBob);
+
+    // Master NPC Emoji
+    ctx.font = '24px sans-serif';
+    ctx.fillText('👨‍🍳', 0, 5);
+
+    // Interaction hint above
+    ctx.font = 'bold 12px "Jua", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 4;
+    ctx.fillText('🍜 라멘집 [로]', 0, -48);
+
+    ctx.restore();
+  }
+}
+
+// 2. ♨️ Healing Hot Spring Pool
+class HotSpring {
+  constructor(x, y, radius = 150) {
+    this.x = x;
+    this.y = y;
+    this.radius = radius;
+    this.ripple = 0;
+    this.steamTimer = 0;
+    this.healCooldown = 0;
+  }
+
+  update(dt, player, damageTexts, particles) {
+    this.ripple += dt * 2.5;
+    this.steamTimer += dt;
+    if (this.steamTimer >= 0.18) {
+      this.steamTimer = 0;
+      const rx = this.x + (Math.random() * this.radius * 1.4 - this.radius * 0.7);
+      const ry = this.y + (Math.random() * this.radius * 1.4 - this.radius * 0.7);
+      particles.push(new Particle(rx, ry, (Math.random() - 0.5) * 1.5, -2 - Math.random() * 1.5, 7, '#bae6fd', 0.7, 'smoke'));
+    }
+
+    // Player inside hot spring
+    const dist = Math.hypot(player.x - this.x, player.y - this.y);
+    if (dist < this.radius) {
+      this.healCooldown += dt;
+      if (this.healCooldown >= 0.5) {
+        this.healCooldown = 0;
+        if (player.hp < player.maxHp) {
+          player.hp = Math.min(player.maxHp, player.hp + 8);
+          damageTexts.push(new DamageText(player.x, player.y - 25, '♨️ +8 HP 힐링!', '#38bdf8', false));
+          particles.push(new Particle(player.x, player.y, (Math.random() - 0.5) * 3, -2, 6, '#ec4899', 0.4, 'sparkle'));
+        }
+      }
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Outer Stone Rim
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 14;
+    ctx.fillStyle = '#0284c7';
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Hot Spring Turquoise Water Gradient
+    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, this.radius);
+    grad.addColorStop(0, 'rgba(186, 230, 253, 0.85)');
+    grad.addColorStop(0.7, 'rgba(56, 189, 248, 0.75)');
+    grad.addColorStop(1, 'rgba(2, 132, 199, 0.9)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius - 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Water Ripples
+    const r1 = (Math.sin(this.ripple) * 0.5 + 0.5) * (this.radius * 0.75);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, r1, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Center Hot Spring Icon
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('♨️', 0, 0);
+
+    // Title
+    ctx.font = 'bold 14px "Jua", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#0369a1';
+    ctx.shadowBlur = 6;
+    ctx.fillText('♨️ 치이카와 힐링 온천 (초당 HP 회복)', 0, this.radius + 24);
+
+    ctx.restore();
+  }
+}
+
+// 3. 🎰 Lucky Gacha Vending Machine
+class GachaMachine {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 35;
+    this.interactRadius = 100;
+    this.sparkleTimer = 0;
+  }
+
+  update(dt, particles) {
+    this.sparkleTimer += dt;
+    if (this.sparkleTimer >= 0.4) {
+      this.sparkleTimer = 0;
+      particles.push(new Particle(this.x + (Math.random() * 40 - 20), this.y - 30, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 6, '#c084fc', 0.4, 'sparkle'));
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // Ambient Purple Glow
+    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 90);
+    grad.addColorStop(0, 'rgba(168, 85, 247, 0.3)');
+    grad.addColorStop(1, 'rgba(168, 85, 247, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 90, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Vending Machine Stand Base
+    ctx.fillStyle = '#7e22ce';
+    ctx.fillRect(-24, 0, 48, 32);
+    ctx.fillStyle = '#9333ea';
+    ctx.fillRect(-20, 4, 40, 24);
+
+    // Glass Globe Dome
+    ctx.fillStyle = 'rgba(243, 232, 255, 0.9)';
+    ctx.strokeStyle = '#c084fc';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, -16, 26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Little Capsules inside
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔴', -8, -20);
+    ctx.fillText('🟡', 8, -20);
+    ctx.fillText('🔵', 0, -8);
+
+    // Banner Title
+    ctx.font = 'bold 12px "Jua", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#6b21a8';
+    ctx.shadowBlur = 5;
+    ctx.fillText('🎰 캡슐 자판기 [20🪙]', 0, -48);
+
+    ctx.restore();
+  }
+}
+
 // --- Sub-Weapon & Active Build Entities ---
 
 // 1. 🔥 Fire Napalm Mine Entity
@@ -2003,6 +2221,10 @@ class Player {
     this.hasAutoShieldRegen = false;
     this.autoShieldTimer = 15.0;
     this.relicsCount = 0;
+    this.relics = [];
+    this.ribbonCooldown = 0;
+    this.cameraCooldown = 12.0;
+    this.hasSpicyRamen = false;
     this.hasRevive = false;
     this.reviveHpPercent = 0.50;
 
@@ -2159,6 +2381,35 @@ class Player {
         this.hasShield = true;
         this.autoShieldTimer = 15.0;
         damageTexts.push(new DamageText(this.x, this.y - 30, '🛡️ 신전 별빛 보호막 재생!', '#38bdf8', true));
+      }
+    }
+
+    // 🎀 Blue Ribbon Relic (Emergency Invulnerability)
+    if (this.ribbonCooldown > 0) this.ribbonCooldown -= dt;
+    if (this.relics.includes('relic_ribbon') && this.hp <= this.maxHp * 0.25 && this.ribbonCooldown <= 0) {
+      this.ribbonCooldown = 60.0;
+      this.invulnerableTimer = 5.0;
+      this.doubleDamageTimer = 5.0;
+      Sound.playCritHit();
+      damageTexts.push(new DamageText(this.x, this.y - 45, '🎀 파란 리본 각성 (5초 무적 & 2배 극딜)!', '#38bdf8', true));
+      this.say("어떻게든 될 거야! 파란 리본의 용기!", true);
+    }
+
+    // 📷 Olympus Camera Relic (Auto Time Freeze)
+    if (this.relics.includes('relic_camera')) {
+      this.cameraCooldown -= dt;
+      if (this.cameraCooldown <= 0) {
+        this.cameraCooldown = 14.0;
+        Sound.playLaser();
+        if (window.GameInstance) window.GameInstance.screenShake = 6;
+        enemies.forEach(e => {
+          if (e.type !== 'boss') {
+            e.stunTimer = 3.0;
+            e.blindTimer = 3.0;
+            e.hitTimer = 0.2;
+          }
+        });
+        damageTexts.push(new DamageText(this.x, this.y - 35, '📷 카메라 섬광 플래시 (전체 3초 정지)!', '#facc15', true));
       }
     }
 
@@ -2919,6 +3170,143 @@ class Player {
   }
 }
 
+// --- 🌟 Stage 3 Landmark Catalogs (Ramen Shop & Gacha Vending) ---
+const RAMEN_DISHES = [
+  {
+    id: 'ramen_garlic',
+    icon: '🍜',
+    name: '마늘 듬뿍 특제 차슈 라멘',
+    cost: 45,
+    desc: '마늘과 두툼한 차슈의 환상 조합! 영구 공격력 +30% & 15초간 극딜 2배 폭증 버프를 부여합니다.',
+    apply: (game) => {
+      game.player.damageMultiplier += 0.30;
+      game.player.doubleDamageTimer = 15.0;
+      if (!game.player.relics.includes('🍜 특제 차슈 라멘')) game.player.relics.push('🍜 특제 차슈 라멘');
+    }
+  },
+  {
+    id: 'ramen_tonkotsu',
+    icon: '🍲',
+    name: '진한 돈코츠 라멘',
+    cost: 35,
+    desc: '오랜 시간 푹 고아낸 보약 육수! 최대 체력 +50 & 현재 체력을 100% 즉시 완치합니다.',
+    apply: (game) => {
+      game.player.maxHp += 50;
+      game.player.hp = game.player.maxHp;
+      if (!game.player.relics.includes('🍲 진한 돈코츠')) game.player.relics.push('🍲 진한 돈코츠');
+    }
+  },
+  {
+    id: 'ramen_gyoza',
+    icon: '🥟',
+    name: '바삭바삭 교자 만두 세트',
+    cost: 30,
+    desc: '겉바속촉 육즙 폭발 교자! 이동속도 +20% 증가 및 대시(Space) 쿨타임을 30% 단축합니다.',
+    apply: (game) => {
+      game.player.speed *= 1.20;
+      game.player.dashCooldown *= 0.70;
+      if (!game.player.relics.includes('🥟 교자 만두')) game.player.relics.push('🥟 교자 만두');
+    }
+  },
+  {
+    id: 'ramen_spicy',
+    icon: '🌶️',
+    name: '지옥 불꽃 카라미소 라멘',
+    cost: 55,
+    desc: '화끈한 매운맛의 정점! 모든 일반 공격에 화염 폭발 데미지(80 피해)를 영구 부여합니다.',
+    apply: (game) => {
+      game.player.hasSpicyRamen = true;
+      if (!game.player.relics.includes('🌶️ 카라미소')) game.player.relics.push('🌶️ 카라미소');
+    }
+  }
+];
+
+const GACHA_REWARDS = [
+  {
+    id: 'relic_ribbon',
+    type: 'relic',
+    icon: '🎀',
+    name: '하치와레의 파란 리본',
+    desc: '체력 25% 이하 위기 시 5초간 무적 & 2배 공격력 각성! (60초 쿨다운)',
+    apply: (game) => {
+      if (!game.player.relics.includes('relic_ribbon')) game.player.relics.push('relic_ribbon');
+    }
+  },
+  {
+    id: 'relic_wand',
+    type: 'relic',
+    icon: '🥢',
+    name: '우사기의 번개 지팡이',
+    desc: '모든 공격 탄환 크기 +30%, 넉백 2배 & 적중 시 25% 확률로 벼락 낙뢰 소환!',
+    apply: (game) => {
+      if (!game.player.relics.includes('relic_wand')) game.player.relics.push('relic_wand');
+    }
+  },
+  {
+    id: 'relic_goblet',
+    type: 'relic',
+    icon: '🍺',
+    name: '쿠리만주의 전설 안주 잔',
+    desc: '몬스터 처치 시 15% 확률로 추가 보너스 코인 & 체력 +3 즉시 회복!',
+    apply: (game) => {
+      if (!game.player.relics.includes('relic_goblet')) game.player.relics.push('relic_goblet');
+    }
+  },
+  {
+    id: 'relic_carkey',
+    type: 'relic',
+    icon: '🚗',
+    name: '라코 스승의 슈퍼카 키',
+    desc: '이동속도 +20% 증가 & 대시(Space) 시 전방 적에게 250 돌진 충돌 피해!',
+    apply: (game) => {
+      game.player.speed *= 1.20;
+      if (!game.player.relics.includes('relic_carkey')) game.player.relics.push('relic_carkey');
+    }
+  },
+  {
+    id: 'relic_crown',
+    type: 'relic',
+    icon: '👑',
+    name: '모몬가의 반짝이 왕관',
+    desc: '모든 경험치 보석 가치 +40% 증가 & 필드 회복 아이템 드랍률 2배 증가!',
+    apply: (game) => {
+      if (!game.player.relics.includes('relic_crown')) game.player.relics.push('relic_crown');
+    }
+  },
+  {
+    id: 'relic_camera',
+    type: 'relic',
+    icon: '📷',
+    name: '하치와레의 올림푸스 카메라',
+    desc: '14초마다 자동으로 플래시가 터져 화면 내 모든 일반 몬스터를 3초간 정지!',
+    apply: (game) => {
+      if (!game.player.relics.includes('relic_camera')) game.player.relics.push('relic_camera');
+    }
+  },
+  {
+    id: 'jackpot_coins',
+    type: 'coins',
+    icon: '🪙',
+    name: '골드 잭팟 대박 (+60 🪙)',
+    desc: '축하합니다! 황금빛 코인 60개가 쏟아져 들어왔습니다!',
+    apply: (game) => {
+      game.addSessionCoins(60);
+    }
+  },
+  {
+    id: 'pudding_party',
+    type: 'item',
+    icon: '🍮',
+    name: '특대 푸딩 & 마그넷 파티',
+    desc: '체력 완전 회복 + 전 맵의 모든 경험치 보석과 아이템을 강력 흡수합니다!',
+    apply: (game) => {
+      game.player.hp = game.player.maxHp;
+      game.expGems.forEach(g => { g.x = game.player.x; g.y = game.player.y; });
+      game.fieldItems.forEach(it => { it.x = game.player.x; it.y = game.player.y; });
+    }
+  }
+];
+
 // --- Main Game Engine ---
 class Game {
   constructor() {
@@ -2939,6 +3327,14 @@ class Game {
       new Sanctuary('sw', '고대 지하 신전의 성역', 1000, 4000, 'sanctuary_boss_sw', 'relic_shield', '🛡️ 영구 별빛 보호막 (15초마다 무한 자동재생)', '🏰', '#3b82f6'),
       new Sanctuary('se', '우사기 번개 제단', 4000, 4000, 'sanctuary_boss_se', 'relic_boots', '🥾 헤르메스 당근 신발 (이속+25% & 대시쿨-40%)', '⚡', '#eab308')
     ];
+
+    // Stage 3 World Landmarks
+    this.ramenShop = new RamenShop(2500, 2300);
+    this.hotSpring = new HotSpring(1500, 3500, 160);
+    this.gachaMachines = [new GachaMachine(3500, 1500), new GachaMachine(1800, 1800)];
+    this.nearbyInteractable = null;
+    this.isShopping = false;
+    this.isGachaSpinning = false;
 
     this.sakuraParticles = [];
     for (let i = 0; i < 45; i++) {
@@ -3075,7 +3471,12 @@ class Game {
           this.player.useQ(wm.x, wm.y, this.grenades, this.boomerangs);
         }
         if (e.code === 'KeyE') {
-          this.player.useE(this.damageTexts);
+          if (this.nearbyInteractable) {
+            if (this.nearbyInteractable.type === 'ramen') this.openRamenModal();
+            else if (this.nearbyInteractable.type === 'gacha') this.openGachaModal();
+          } else {
+            this.player.useE(this.damageTexts);
+          }
         }
         if (e.code === 'KeyR') {
           const wm = this.screenToWorld(this.mouse.x, this.mouse.y);
@@ -3104,6 +3505,28 @@ class Game {
         this.mouse.isDown = false;
       }
     });
+
+    // Proximity Interaction Prompt Click
+    const interactPrompt = document.getElementById('interact-prompt');
+    if (interactPrompt) {
+      interactPrompt.addEventListener('click', () => {
+        if (this.nearbyInteractable) {
+          if (this.nearbyInteractable.type === 'ramen') this.openRamenModal();
+          else if (this.nearbyInteractable.type === 'gacha') this.openGachaModal();
+        }
+      });
+    }
+
+    // Ramen Shop Modal Buttons
+    const btnCloseRamen = document.getElementById('btn-close-ramen');
+    if (btnCloseRamen) btnCloseRamen.addEventListener('click', () => this.closeRamenModal());
+
+    // Gacha Machine Modal Buttons
+    const btnCloseGacha = document.getElementById('btn-close-gacha');
+    if (btnCloseGacha) btnCloseGacha.addEventListener('click', () => this.closeGachaModal());
+
+    const btnSpinGacha = document.getElementById('btn-spin-gacha');
+    if (btnSpinGacha) btnSpinGacha.addEventListener('click', () => this.spinGacha());
 
     // Character Selection
     document.querySelectorAll('.char-card').forEach(card => {
@@ -3599,6 +4022,9 @@ class Game {
     const hudCoins = document.getElementById('hud-coins');
     if (hudCoins) hudCoins.textContent = (this.sessionCoins || 0).toLocaleString();
 
+    // Relics in HUD
+    this.updateRelicHUD();
+
     // Active boss health bar HUD
     this.updateBossHUD();
   }
@@ -3956,6 +4382,40 @@ class Game {
       this.weedPatches[i].update(dt, this.player, this);
     }
 
+    // 🌟 Update Stage 3 World Landmarks (Ramen, Hot Spring, Gacha)
+    if (this.ramenShop) this.ramenShop.update(dt, this.particles);
+    if (this.hotSpring) this.hotSpring.update(dt, this.player, this.damageTexts, this.particles);
+    if (this.gachaMachines) this.gachaMachines.forEach(g => g.update(dt, this.particles));
+
+    // Landmark Proximity Prompt Check
+    let foundInteractable = null;
+    if (this.ramenShop) {
+      const rd = Math.hypot(this.player.x - this.ramenShop.x, this.player.y - this.ramenShop.y);
+      if (rd < this.ramenShop.interactRadius) {
+        foundInteractable = { type: 'ramen', target: this.ramenShop, label: '🍜 [E] 라멘 주문하기 (Open Shop)' };
+      }
+    }
+    if (!foundInteractable && this.gachaMachines) {
+      for (let g of this.gachaMachines) {
+        const gd = Math.hypot(this.player.x - g.x, this.player.y - g.y);
+        if (gd < g.interactRadius) {
+          foundInteractable = { type: 'gacha', target: g, label: '🎰 [E] 캡슐 자판기 뽑기 [20🪙]' };
+          break;
+        }
+      }
+    }
+    this.nearbyInteractable = foundInteractable;
+    const promptEl = document.getElementById('interact-prompt');
+    const promptLabel = document.getElementById('interact-label');
+    if (promptEl && promptLabel) {
+      if (foundInteractable && !this.isShopping) {
+        promptLabel.textContent = foundInteractable.label;
+        promptEl.style.display = 'flex';
+      } else {
+        promptEl.style.display = 'none';
+      }
+    }
+
     // Player Shooting & Update
     const wm = this.screenToWorld(this.mouse.x, this.mouse.y);
     if (this.mouse.isDown) {
@@ -4100,6 +4560,25 @@ class Game {
                     other.hitTimer = 0.1;
                     this.particles.push(new Particle(other.x, other.y, 0, 0, 6, '#fef08a', 0.25, 'lightning'));
                   }
+                }
+              });
+            }
+
+            // Usagi Wand relic
+            if (this.player.relics.includes('relic_wand') && Math.random() < 0.25) {
+              Sound.playLightning();
+              enemy.hp -= 90 * this.player.damageMultiplier;
+              this.particles.push(new Particle(enemy.x, enemy.y, 0, 0, 7, '#fef08a', 0.3, 'lightning'));
+            }
+
+            // Spicy Ramen relic
+            if (this.player.hasSpicyRamen && Math.random() < 0.35) {
+              Sound.playExplosion();
+              this.particles.push(new Particle(enemy.x, enemy.y, 0, 0, 65, '#ef4444', 0.35, 'ring'));
+              this.enemies.forEach(other => {
+                if (Math.hypot(other.x - enemy.x, other.y - enemy.y) < 65) {
+                  other.hp -= 80 * this.player.damageMultiplier;
+                  other.burnTimer = 3.0;
                 }
               });
             }
@@ -4254,7 +4733,15 @@ class Game {
         this.comboTimer = 2.5;
 
         // Add coins on kill
-        const mobCoins = (enemy.type === 'boss') ? 250 : (enemy.type.includes('boss') || enemy.type.startsWith('sanctuary_boss') ? 50 : (enemy.type === 'iron_chimera' ? 12 : (Math.random() < 0.4 ? 2 : 1)));
+        let mobCoins = (enemy.type === 'boss') ? 250 : (enemy.type.includes('boss') || enemy.type.startsWith('sanctuary_boss') ? 50 : (enemy.type === 'iron_chimera' ? 12 : (Math.random() < 0.4 ? 2 : 1)));
+        
+        // 🍺 Goblet Relic Bonus
+        if (this.player.relics.includes('relic_goblet') && Math.random() < 0.2) {
+          mobCoins += 2;
+          this.player.hp = Math.min(this.player.maxHp, this.player.hp + 3);
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, '+3 HP [안주잔]', '#d97706', false));
+        }
+
         this.addSessionCoins(mobCoins);
 
         // Check if killed a sanctuary guardian boss
@@ -4271,7 +4758,9 @@ class Game {
           this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '✨ 난또까나레 발동!', '#38bdf8', true));
         }
 
-        this.expGems.push(new ExpGem(enemy.x, enemy.y, enemy.xp));
+        // 👑 Crown Relic Bonus for XP
+        const xpMult = this.player.relics.includes('relic_crown') ? 1.4 : 1.0;
+        this.expGems.push(new ExpGem(enemy.x, enemy.y, Math.round(enemy.xp * xpMult)));
 
         const isBoss = enemy.type === 'boss' || enemy.type.includes('boss');
         if (isBoss) {
@@ -4355,6 +4844,11 @@ class Game {
 
     // Draw Sanctuaries & Chests
     this.sanctuaries.forEach(s => s.draw(this.ctx, this.camera));
+
+    // 🌟 Draw Stage 3 Landmarks (Hot Spring, Ramen Shop, Gacha)
+    if (this.hotSpring) this.hotSpring.draw(this.ctx);
+    if (this.ramenShop) this.ramenShop.draw(this.ctx);
+    if (this.gachaMachines) this.gachaMachines.forEach(g => g.draw(this.ctx));
 
     // Draw Weed Patches
     this.weedPatches.forEach((weed) => weed.draw(this.ctx));
@@ -4510,6 +5004,28 @@ class Game {
       mCtx.restore();
     });
 
+    // 🌟 Draw Stage 3 Landmarks on Minimap
+    if (this.hotSpring) {
+      mCtx.font = '10px sans-serif';
+      mCtx.textAlign = 'center';
+      mCtx.textBaseline = 'middle';
+      mCtx.fillText('♨️', this.hotSpring.x * scaleX, this.hotSpring.y * scaleY);
+    }
+    if (this.ramenShop) {
+      mCtx.font = '10px sans-serif';
+      mCtx.textAlign = 'center';
+      mCtx.textBaseline = 'middle';
+      mCtx.fillText('🍜', this.ramenShop.x * scaleX, this.ramenShop.y * scaleY);
+    }
+    if (this.gachaMachines) {
+      this.gachaMachines.forEach(g => {
+        mCtx.font = '10px sans-serif';
+        mCtx.textAlign = 'center';
+        mCtx.textBaseline = 'middle';
+        mCtx.fillText('🎰', g.x * scaleX, g.y * scaleY);
+      });
+    }
+
     // Draw Items on minimap
     mCtx.fillStyle = '#f59e0b';
     this.fieldItems.forEach(item => {
@@ -4628,6 +5144,146 @@ class Game {
 
       this.ctx.restore();
     } catch (e) {}
+  }
+
+  // --- 🌟 Stage 3 Landmark & Relic Interaction Methods ---
+  updateRelicHUD() {
+    const tray = document.getElementById('hud-relics-tray');
+    if (!tray || !this.player) return;
+    if (this.player.relics.length === 0) {
+      tray.innerHTML = '';
+      return;
+    }
+    const icons = {
+      relic_ribbon: { icon: '🎀', title: '파란 리본 (위기시 5초 무적 & 2배딜)' },
+      relic_wand: { icon: '🥢', title: '번개 지팡이 (크기+30% & 25% 낙뢰)' },
+      relic_goblet: { icon: '🍺', title: '안주 잔 (처치시 코인 & 힐)' },
+      relic_carkey: { icon: '🚗', title: '슈퍼카 키 (이속+20% & 대시 250딜)' },
+      relic_crown: { icon: '👑', title: '보석 왕관 (경험치 +40%)' },
+      relic_camera: { icon: '📷', title: '카메라 (14초마다 3초 정지)' },
+      '🍜 특제 차슈 라멘': { icon: '🍜', title: '특제 차슈 (공격력 +30%)' },
+      '🍲 진한 돈코츠': { icon: '🍲', title: '돈코츠 (체력 +50)' },
+      '🥟 교자 만두': { icon: '🥟', title: '교자 세트 (이속+20% & 대시쿨-30%)' },
+      '🌶️ 카라미소': { icon: '🌶️', title: '카라미소 (화염 폭발 공격)' }
+    };
+    tray.innerHTML = this.player.relics.map(r => {
+      const info = icons[r] || { icon: '🏆', title: r };
+      return `<div class="relic-badge" title="${info.title}">${info.icon}</div>`;
+    }).join('');
+  }
+
+  openRamenModal() {
+    this.isShopping = true;
+    this.renderRamenMenu();
+    const modal = document.getElementById('ramen-modal');
+    if (modal) modal.classList.add('active');
+  }
+
+  renderRamenMenu() {
+    const coinsEl = document.getElementById('ramen-modal-coins');
+    if (coinsEl) coinsEl.textContent = (this.sessionCoins || 0).toLocaleString();
+    const grid = document.getElementById('ramen-menu-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    RAMEN_DISHES.forEach(dish => {
+      const card = document.createElement('div');
+      card.className = 'ramen-card';
+      const canAfford = (this.sessionCoins || 0) >= dish.cost;
+      const alreadyBought = this.player && this.player.relics.includes(dish.name);
+
+      card.innerHTML = `
+        <div>
+          <div class="ramen-card-head">
+            <span class="ramen-dish-icon">${dish.icon}</span>
+            <span class="ramen-dish-name">${dish.name}</span>
+          </div>
+          <div class="ramen-dish-desc">${dish.desc}</div>
+        </div>
+        <button class="ramen-buy-btn" ${(!canAfford && !alreadyBought) ? 'disabled' : ''}>
+          ${alreadyBought ? '✅ 구매 완료' : `🪙 ${dish.cost} 코인 주문하기`}
+        </button>
+      `;
+
+      const btn = card.querySelector('.ramen-buy-btn');
+      if (canAfford && !alreadyBought) {
+        btn.addEventListener('click', () => this.buyRamen(dish));
+      }
+      grid.appendChild(card);
+    });
+  }
+
+  buyRamen(dish) {
+    if ((this.sessionCoins || 0) < dish.cost) return;
+    this.sessionCoins -= dish.cost;
+    const hudCoins = document.getElementById('hud-coins');
+    if (hudCoins) hudCoins.textContent = this.sessionCoins.toLocaleString();
+    Sound.playUpgrade();
+    dish.apply(this);
+    this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, `🍜 ${dish.name} 완식! 버프 발동!`, '#f97316', true));
+    this.renderRamenMenu();
+    this.updateRelicHUD();
+  }
+
+  closeRamenModal() {
+    this.isShopping = false;
+    const modal = document.getElementById('ramen-modal');
+    if (modal) modal.classList.remove('active');
+    this.lastTime = performance.now();
+  }
+
+  openGachaModal() {
+    this.isShopping = true;
+    const coinsEl = document.getElementById('gacha-modal-coins');
+    if (coinsEl) coinsEl.textContent = (this.sessionCoins || 0).toLocaleString();
+    const resultCard = document.getElementById('gacha-result-card');
+    if (resultCard) resultCard.style.display = 'none';
+    const modal = document.getElementById('gacha-modal');
+    if (modal) modal.classList.add('active');
+  }
+
+  spinGacha() {
+    if (this.isGachaSpinning || (this.sessionCoins || 0) < 20) {
+      Sound.playHit();
+      return;
+    }
+    this.isGachaSpinning = true;
+    this.sessionCoins -= 20;
+    const hudCoins = document.getElementById('hud-coins');
+    if (hudCoins) hudCoins.textContent = this.sessionCoins.toLocaleString();
+    const gCoins = document.getElementById('gacha-modal-coins');
+    if (gCoins) gCoins.textContent = this.sessionCoins.toLocaleString();
+
+    Sound.playCoin();
+    const globe = document.getElementById('gacha-globe');
+    if (globe) globe.classList.add('spinning');
+    const resultCard = document.getElementById('gacha-result-card');
+    if (resultCard) resultCard.style.display = 'none';
+
+    setTimeout(() => {
+      if (globe) globe.classList.remove('spinning');
+      this.isGachaSpinning = false;
+      Sound.playRelicFanfare();
+
+      const reward = GACHA_REWARDS[Math.floor(Math.random() * GACHA_REWARDS.length)];
+      reward.apply(this);
+
+      if (resultCard) {
+        document.getElementById('gacha-res-icon').textContent = reward.icon;
+        document.getElementById('gacha-res-name').textContent = reward.name;
+        document.getElementById('gacha-res-desc').textContent = reward.desc;
+        resultCard.style.display = 'block';
+      }
+      this.damageTexts.push(new DamageText(this.player.x, this.player.y - 45, `🎰 ${reward.name} 획득!`, '#c084fc', true));
+      this.updateRelicHUD();
+    }, 1200);
+  }
+
+  closeGachaModal() {
+    this.isShopping = false;
+    const modal = document.getElementById('gacha-modal');
+    if (modal) modal.classList.remove('active');
+    this.lastTime = performance.now();
   }
 
   loop(timestamp) {
