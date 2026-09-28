@@ -853,6 +853,96 @@ kbd {
   transition: width 0.1s linear;
 }
 
+/* --- Ancient Underground Dungeon HUD --- */
+.dungeon-hud-container {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 440px;
+  max-width: 90vw;
+  background: rgba(18, 12, 34, 0.92);
+  border: 2px solid #a855f7;
+  border-radius: 16px;
+  padding: 8px 14px;
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.5), inset 0 0 15px rgba(192, 132, 252, 0.2);
+  backdrop-filter: blur(8px);
+  z-index: 105;
+  pointer-events: none;
+  animation: dungeonPulse 2s infinite alternate ease-in-out;
+}
+
+@keyframes dungeonPulse {
+  0% { box-shadow: 0 0 15px rgba(168, 85, 247, 0.35); }
+  100% { box-shadow: 0 0 30px rgba(192, 132, 252, 0.7); }
+}
+
+.dungeon-hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.dungeon-icon {
+  font-size: 16px;
+  animation: floatBounce 1s infinite alternate ease-in-out;
+}
+
+.dungeon-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: #c084fc;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
+}
+
+.dungeon-timer {
+  font-size: 14px;
+  font-weight: 900;
+  color: #fbbf24;
+  font-family: monospace;
+}
+
+.dungeon-progress-track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(168, 85, 247, 0.5);
+}
+
+.dungeon-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #a855f7, #c084fc, #facc15);
+  box-shadow: 0 0 12px rgba(192, 132, 252, 0.8);
+  transition: width 0.1s linear;
+}
+
+.dungeon-hud-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dungeon-coins {
+  color: #facc15;
+}
+
+.dungeon-status {
+  color: #e2e8f0;
+  opacity: 0.9;
+}
+
 /* --- Cinematic Danger Warning Banner --- */
 .danger-banner {
   position: absolute;
