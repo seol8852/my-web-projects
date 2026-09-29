@@ -916,6 +916,93 @@ class DungeonPortal {
   }
 }
 
+// --- 🏛️ Ancient Underground Dungeon Hazard (낙석 & 번개 석순 함정) ---
+class DungeonHazard {
+  constructor(x, y, radius = 75, delay = 1.3) {
+    this.x = x;
+    this.y = y;
+    this.radius = radius;
+    this.delay = delay;
+    this.maxDelay = delay;
+    this.exploded = false;
+    this.life = 0.4;
+  }
+
+  update(dt, player, enemies, damageTexts, particles, shockwaves) {
+    if (!this.exploded) {
+      this.delay -= dt;
+      if (this.delay <= 0) {
+        this.exploded = true;
+        Sound.playExplosion();
+        if (window.GameInstance) window.GameInstance.screenShake = 8;
+
+        particles.push(new Particle(this.x, this.y, 0, 0, this.radius, '#ef4444', 0.45, 'ring'));
+        for (let k = 0; k < 14; k++) {
+          const a = Math.random() * Math.PI * 2;
+          const spd = 2.5 + Math.random() * 6;
+          particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 7 + Math.random() * 5, '#c084fc', 0.5, 'star'));
+        }
+
+        // Damage Player
+        const pDist = Math.hypot(player.x - this.x, player.y - this.y);
+        if (pDist < this.radius + player.radius && player.invulnerableTimer <= 0) {
+          if (player.hasShield) {
+            player.hasShield = false;
+            damageTexts.push(new DamageText(player.x, player.y, '🛡️ 보호막 방어!', '#38bdf8', true));
+          } else {
+            let dmg = 35;
+            if (player.hasFriendshipLink && player.hp <= player.maxHp * 0.5) dmg = Math.max(1, Math.round(dmg * 0.65));
+            player.hp -= dmg;
+            player.invulnerableTimer = 0.4;
+            Sound.playHit();
+            damageTexts.push(new DamageText(player.x, player.y, `-${dmg} 🏛️ [지하 낙석]`, '#ef4444', true));
+          }
+        }
+
+        // Damage Enemies
+        enemies.forEach(e => {
+          const ed = Math.hypot(e.x - this.x, e.y - this.y);
+          if (ed < this.radius + e.radius) {
+            e.hp -= 320;
+            e.hitTimer = 0.15;
+            e.applyKnockback(this.x, this.y, 7.5);
+            damageTexts.push(new DamageText(e.x, e.y - 20, '320 [함정피해]', '#c084fc', false));
+          }
+        });
+      }
+    } else {
+      this.life -= dt;
+    }
+  }
+
+  draw(ctx) {
+    if (this.exploded) return;
+    const progress = Math.max(0, Math.min(1, 1 - (this.delay / this.maxDelay)));
+    ctx.save();
+    // Danger telegraph ring
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Expanding fill
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.28)';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius * progress, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Central warning icon
+    ctx.font = '16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⚠️', this.x, this.y);
+    ctx.restore();
+  }
+}
+
 // --- Sanctuary Zone Definition ---
 class Sanctuary {
   constructor(id, name, x, y, bossType, relicType, relicName, icon, color) {
@@ -2468,24 +2555,46 @@ class Enemy {
       this.name = '진(眞) 거대 아노코 [최종 결전]';
       this.shootCooldown = 1.5;
     } else if (type === 'golden_goblin') {
-      this.radius = 24;
-      this.hp = (180 + wave * 30) * diffConfig.hpMult;
+      this.radius = 26;
+      this.hp = (320 + wave * 45) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = (3.8 + Math.random() * 0.5) * diffConfig.spdMult;
-      this.damage = Math.round(12 * diffConfig.dmgMult);
+      this.speed = (4.0 + Math.random() * 0.5) * diffConfig.spdMult;
+      this.damage = Math.round(16 * diffConfig.dmgMult);
       this.color = '#fbbf24';
-      this.xp = 90 + wave * 15;
+      this.xp = 140 + wave * 25;
       this.name = '황금 도굴 고블린 🪙';
-    } else if (type === 'ancient_golem') {
-      this.radius = 48;
-      this.hp = (1200 + wave * 180) * diffConfig.hpMult;
+      this.shootCooldown = 2.6;
+    } else if (type === 'ancient_sentinel') {
+      this.radius = 32;
+      this.hp = (700 + wave * 120) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.25 * diffConfig.spdMult;
-      this.damage = Math.round(32 * diffConfig.dmgMult);
+      this.speed = 2.4 * diffConfig.spdMult;
+      this.damage = Math.round(26 * diffConfig.dmgMult);
+      this.color = '#818cf8';
+      this.xp = 260 + wave * 35;
+      this.name = '🗿 고대 수호 석병';
+    } else if (type === 'ancient_golem') {
+      this.radius = 52;
+      this.hp = (2600 + wave * 360) * diffConfig.hpMult;
+      this.maxHp = this.hp;
+      this.speed = 1.45 * diffConfig.spdMult;
+      this.damage = Math.round(36 * diffConfig.dmgMult);
       this.color = '#a855f7';
-      this.xp = 550 + wave * 50;
-      this.shootCooldown = 1.6;
+      this.xp = 900 + wave * 100;
+      this.shootCooldown = 1.8;
       this.name = '🏛️ 고대 지하 수호 골렘';
+      this.isElite = true;
+    } else if (type === 'shadow_golem') {
+      this.radius = 50;
+      this.hp = (2200 + wave * 300) * diffConfig.hpMult;
+      this.maxHp = this.hp;
+      this.speed = 1.85 * diffConfig.spdMult;
+      this.damage = Math.round(42 * diffConfig.dmgMult);
+      this.color = '#e11d48';
+      this.xp = 1100 + wave * 120;
+      this.shootCooldown = 1.4;
+      this.name = '⚡ 흑화 폭주 골렘 [분노]';
+      this.isElite = true;
     } else if (type === 'elite_bounty') {
       this.radius = 45;
       this.hp = (1100 + wave * 220) * diffConfig.hpMult;
@@ -2728,6 +2837,24 @@ class Enemy {
       if (Math.random() < 0.25) {
         particles.push(new Particle(this.x, this.y, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 4, '#fbbf24', 0.35, 'star'));
       }
+      // Self-defense coin darts
+      this.timer += dt;
+      if (this.timer >= this.shootCooldown && dist < 240 && this.blindTimer <= 0) {
+        this.timer = 0;
+        const pAngle = Math.atan2(player.y - this.y, player.x - this.x);
+        for (let ca of [-0.25, 0, 0.25]) {
+          projectiles.push(
+            new Projectile(this.x, this.y, Math.cos(pAngle + ca) * 6.8, Math.sin(pAngle + ca) * 6.8, this.damage, 1, false, '#facc15', 7, false, 'coin')
+          );
+        }
+      }
+    } else if (this.type === 'ancient_sentinel') {
+      this.bob = Math.sin(this.walkCycle * 1.5) * 2.5;
+      this.x += (dx / dist) * curSpeed * dt * 60;
+      this.y += (dy / dist) * curSpeed * dt * 60;
+      if (Math.random() < 0.15) {
+        particles.push(new Particle(this.x, this.y, 0, 0, 5, '#818cf8', 0.25, 'smoke'));
+      }
     } else if (this.type === 'ancient_golem') {
       this.bob = Math.sin(this.walkCycle) * 3.5;
       this.x += (dx / dist) * curSpeed * dt * 60;
@@ -2738,18 +2865,49 @@ class Enemy {
 
       if (this.timer >= this.shootCooldown && this.blindTimer <= 0) {
         this.timer = 0;
-        const count = 8;
+        const count = 12;
         for (let i = 0; i < count; i++) {
-          const angle = (Math.PI * 2 / count) * i + Math.sin(this.animTimer);
+          const angle = (Math.PI * 2 / count) * i + Math.sin(this.animTimer * 2);
           projectiles.push(
-            new Projectile(this.x, this.y, Math.cos(angle) * 4.6, Math.sin(angle) * 4.6, 18, 1, false, '#a855f7', 8, false, 'orb')
+            new Projectile(this.x, this.y, Math.cos(angle) * 5.5, Math.sin(angle) * 5.5, 22, 1, false, '#a855f7', 9, false, 'orb')
           );
         }
       }
 
-      if (this.specialTimer >= 3.6) {
+      if (this.specialTimer >= 3.8) {
         this.specialTimer = 0;
-        shockwaves.push(new Shockwave(this.x, this.y, 250, 28, '#c084fc'));
+        Sound.playExplosion();
+        shockwaves.push(new Shockwave(this.x, this.y, 280, 32, '#c084fc'));
+        // Spawn 2 stone sentinels on slam if fewer than 4 exist
+        const sentinels = enemies.filter(e => e.type === 'ancient_sentinel').length;
+        if (sentinels < 4) {
+          enemies.push(new Enemy(this.x - 40, this.y, 'ancient_sentinel', this.wave, this.diffConfig || { hpMult: 1, dmgMult: 1, spdMult: 1 }));
+          enemies.push(new Enemy(this.x + 40, this.y, 'ancient_sentinel', this.wave, this.diffConfig || { hpMult: 1, dmgMult: 1, spdMult: 1 }));
+        }
+      }
+    } else if (this.type === 'shadow_golem') {
+      this.bob = Math.sin(this.walkCycle * 1.8) * 4.0;
+      this.x += (dx / dist) * curSpeed * dt * 60;
+      this.y += (dy / dist) * curSpeed * dt * 60;
+
+      this.timer += dt;
+      this.specialTimer += dt;
+
+      if (this.timer >= this.shootCooldown && this.blindTimer <= 0) {
+        this.timer = 0;
+        const baseAngle = Math.atan2(player.y - this.y, player.x - this.x);
+        for (let i = -2; i <= 2; i++) {
+          const angle = baseAngle + i * 0.28;
+          projectiles.push(
+            new Projectile(this.x, this.y, Math.cos(angle) * 7.5, Math.sin(angle) * 7.5, 26, 1, false, '#ef4444', 9, false, 'orb')
+          );
+        }
+      }
+
+      if (this.specialTimer >= 2.8) {
+        this.specialTimer = 0;
+        Sound.playExplosion();
+        shockwaves.push(new Shockwave(this.x, this.y, 300, 35, '#ef4444'));
       }
     } else {
       this.x += (dx / dist) * curSpeed * dt * 60;
@@ -2779,7 +2937,9 @@ class Enemy {
     if (this.type === 'bug') sprite = sprites.bug;
     else if (this.type === 'goblin') sprite = sprites.goblin;
     else if (this.type === 'golden_goblin') sprite = sprites.goblin;
+    else if (this.type === 'ancient_sentinel') sprite = sprites.goblin || sprites.bug;
     else if (this.type === 'ancient_golem') sprite = sprites.iron_chimera || sprites.midboss;
+    else if (this.type === 'shadow_golem') sprite = sprites.iron_chimera || sprites.midboss;
     else if (this.type === 'chimera' || this.type === 'elite_bounty') sprite = sprites.chimera;
     else if (this.type === 'dark_swarm') sprite = sprites.dark_swarm;
     else if (this.type === 'lightning_beetle') sprite = sprites.bug;
@@ -4487,6 +4647,9 @@ class Game {
     this.dungeonPortalSpawnedWaves = new Set();
     this.dungeonSpawnTimer = 0;
     this.dungeonGolemSpawned = false;
+    this.dungeonShadowGolemSpawned = false;
+    this.dungeonHazards = [];
+    this.dungeonHazardTimer = 0;
 
     this.sakuraParticles = [];
     for (let i = 0; i < 45; i++) {
@@ -5183,6 +5346,9 @@ class Game {
     this.dungeonPortalSpawnedWaves = new Set();
     this.dungeonSpawnTimer = 0;
     this.dungeonGolemSpawned = false;
+    this.dungeonShadowGolemSpawned = false;
+    this.dungeonHazards = [];
+    this.dungeonHazardTimer = 0;
     const dHud = document.getElementById('dungeon-hud');
     if (dHud) dHud.style.display = 'none';
 
@@ -6243,27 +6409,71 @@ class Game {
       if (fillEl) fillEl.style.width = `${Math.max(0, Math.min(100, (this.dungeonTimer / this.dungeonMaxTime) * 100))}%`;
       if (coinsEl) coinsEl.textContent = `🪙 획득 코인: +${this.dungeonCoinsGained}`;
       if (statusEl) {
-        if (this.dungeonGolemSpawned) statusEl.textContent = '⚠️ 고대 수호 골렘을 토벌하세요!';
-        else statusEl.textContent = '황금 도굴꾼을 소탕하세요!';
+        if (this.dungeonShadowGolemSpawned) statusEl.textContent = '🔥 [폭주] 흑화 폭주 골렘 & 지하 함정 가동!';
+        else if (this.dungeonGolemSpawned) statusEl.textContent = '⚠️ [위험] 고대 수호 골렘을 토벌하세요!';
+        else statusEl.textContent = '⚔️ 고대 석실 수호대 & 황금 도굴꾼 소탕!';
       }
 
-      // Keep spawning Golden Goblins
+      // 1. Spawning Chamber Guardians & Goblins
       const goblinCount = this.enemies.filter(e => e.type === 'golden_goblin').length;
-      if (goblinCount < 7 && Math.random() < 0.09) {
+      if (goblinCount < 6 && Math.random() < 0.08) {
         const a = Math.random() * Math.PI * 2;
-        const r = 160 + Math.random() * 150;
+        const r = 160 + Math.random() * 160;
         const gx = 2500 + Math.cos(a) * r;
         const gy = 2500 + Math.sin(a) * r;
         this.enemies.push(new Enemy(gx, gy, 'golden_goblin', this.wave, this.getDiffConfig()));
       }
 
-      // Spawn Ancient Golem Mini-Boss at <= 30 seconds
+      // Chamber guardian reinforcements
+      const guardCount = this.enemies.filter(e => e.type === 'iron_chimera' || e.type === 'lightning_beetle').length;
+      if (guardCount < 4 && Math.random() < 0.04) {
+        const a = Math.random() * Math.PI * 2;
+        const r = 240 + Math.random() * 100;
+        const type = Math.random() < 0.5 ? 'iron_chimera' : 'lightning_beetle';
+        this.enemies.push(new Enemy(2500 + Math.cos(a) * r, 2500 + Math.sin(a) * r, type, this.wave, this.getDiffConfig()));
+      }
+
+      // 2. Spawn Ancient Golem Mini-Boss at <= 30 seconds (Phase 2)
       if (this.dungeonTimer <= 30.0 && !this.dungeonGolemSpawned) {
         this.dungeonGolemSpawned = true;
-        this.enemies.push(new Enemy(2500, 2400, 'ancient_golem', this.wave, this.getDiffConfig()));
-        this.showDangerBanner('🏛️ 고대 지하 수호 골렘 강림!');
+        this.enemies.push(new Enemy(2500, 2380, 'ancient_golem', this.wave, this.getDiffConfig()));
+        this.showDangerBanner('🏛️ [Phase 2] 고대 지하 수호 골렘 강림!');
         Sound.playBossWarning();
         this.damageTexts.push(new DamageText(2500, 2350, '⚠️ 고대 수호 골렘 등장!', '#c084fc', true));
+      }
+
+      // 3. Spawn Shadow Golem Mini-Boss & Overload at <= 15 seconds (Phase 3 Enraged!)
+      if (this.dungeonTimer <= 15.0 && !this.dungeonShadowGolemSpawned) {
+        this.dungeonShadowGolemSpawned = true;
+        this.enemies.push(new Enemy(2500, 2620, 'shadow_golem', this.wave, this.getDiffConfig()));
+        this.showDangerBanner('🔥 [Phase 3] 보물창고 폭주! 흑화 폭주 골렘 등장!');
+        Sound.playBossWarning();
+        this.screenShake = 12;
+        this.damageTexts.push(new DamageText(2500, 2580, '⚡ 흑화 폭주 골렘 출현!', '#ef4444', true));
+      }
+
+      // 4. Update & Spawn Dungeon Falling Stalactite Hazards
+      this.dungeonHazardTimer = (this.dungeonHazardTimer || 0) + dt;
+      if (this.dungeonHazardTimer >= (this.dungeonShadowGolemSpawned ? 1.4 : 2.2)) {
+        this.dungeonHazardTimer = 0;
+        const hx = 2160 + Math.random() * 680;
+        const hy = 2160 + Math.random() * 680;
+        this.dungeonHazards.push(new DungeonHazard(hx, hy, 75, 1.3));
+        if (this.dungeonShadowGolemSpawned || Math.random() < 0.4) {
+          const pa = Math.random() * Math.PI * 2;
+          const pr = 60 + Math.random() * 130;
+          const px = Math.max(2160, Math.min(2840, this.player.x + Math.cos(pa) * pr));
+          const py = Math.max(2160, Math.min(2840, this.player.y + Math.sin(pa) * pr));
+          this.dungeonHazards.push(new DungeonHazard(px, py, 70, 1.2));
+        }
+      }
+
+      for (let i = this.dungeonHazards.length - 1; i >= 0; i--) {
+        const dh = this.dungeonHazards[i];
+        dh.update(dt, this.player, this.enemies, this.damageTexts, this.particles, this.shockwaves);
+        if (dh.exploded && dh.life <= 0) {
+          this.dungeonHazards.splice(i, 1);
+        }
       }
 
       // Constrain enemies inside dungeon room
@@ -7114,6 +7324,9 @@ class Game {
     });
 
     // Culled Entity Rendering (Saves 300%+ Canvas draw overhead)
+    if (this.inDungeon && this.dungeonHazards) {
+      this.dungeonHazards.forEach(dh => dh.draw(this.ctx));
+    }
     this.expGems.forEach((gem) => { if (inView(gem)) gem.draw(this.ctx); });
     this.fieldItems.forEach((item) => { if (inView(item)) item.draw(this.ctx); });
     this.fireMines.forEach((mine) => { if (inView(mine)) mine.draw(this.ctx); });
@@ -7504,6 +7717,9 @@ class Game {
     this.dungeonTimer = this.dungeonMaxTime;
     this.dungeonCoinsGained = 0;
     this.dungeonGolemSpawned = false;
+    this.dungeonShadowGolemSpawned = false;
+    this.dungeonHazards = [];
+    this.dungeonHazardTimer = 0;
 
     // Save surface world state
     this.savedSurface = {
@@ -7541,27 +7757,40 @@ class Game {
     if (dHud) dHud.style.display = 'block';
 
     Sound.playRelicFanfare();
-    this.showDangerBanner('🏛️ 고대 지하 보물창고 성소 입장!');
-    this.damageTexts.push(new DamageText(this.player.x, this.player.y - 60, '✨ 고대 지하 던전 진입! 황금 고블린을 사냥하세요!', '#c084fc', true));
+    this.showDangerBanner('🏛️ [고난도] 고대 지하 보물창고 성소 입장!');
+    this.damageTexts.push(new DamageText(this.player.x, this.player.y - 60, '✨ 고대 지하 던전 진입! 고대 수호대와 황금 고블린을 토벌하세요!', '#c084fc', true));
 
-    // Initial Golden Goblins
-    for (let i = 0; i < 6; i++) {
-      const angle = (Math.PI * 2 / 6) * i;
-      const gx = 2500 + Math.cos(angle) * 220;
-      const gy = 2500 + Math.sin(angle) * 220;
+    // Initial Chamber Guards (4 Golden Goblins + 3 Iron Chimeras + 2 Lightning Beetles)
+    for (let i = 0; i < 4; i++) {
+      const angle = (Math.PI * 2 / 4) * i;
+      const gx = 2500 + Math.cos(angle) * 200;
+      const gy = 2500 + Math.sin(angle) * 200;
       this.enemies.push(new Enemy(gx, gy, 'golden_goblin', this.wave, this.getDiffConfig()));
+    }
+    for (let i = 0; i < 3; i++) {
+      const angle = (Math.PI * 2 / 3) * i + 0.5;
+      const gx = 2500 + Math.cos(angle) * 260;
+      const gy = 2500 + Math.sin(angle) * 260;
+      this.enemies.push(new Enemy(gx, gy, 'iron_chimera', this.wave, this.getDiffConfig()));
+    }
+    for (let i = 0; i < 2; i++) {
+      const angle = (Math.PI * 2 / 2) * i + 1.0;
+      const gx = 2500 + Math.cos(angle) * 240;
+      const gy = 2500 + Math.sin(angle) * 240;
+      this.enemies.push(new Enemy(gx, gy, 'lightning_beetle', this.wave, this.getDiffConfig()));
     }
   }
 
   completeUndergroundDungeon() {
     if (!this.inDungeon) return;
     this.inDungeon = false;
+    this.dungeonHazards = [];
 
     const dHud = document.getElementById('dungeon-hud');
     if (dHud) dHud.style.display = 'none';
 
-    // Vault completion bonus (+200 coins, full heal, upgrade level)
-    const completionBonus = 200;
+    // Vault completion bonus (+350 coins, full heal, upgrade level)
+    const completionBonus = 350;
     this.addSessionCoins(completionBonus);
     if (this.player) this.player.hp = this.player.maxHp;
     Sound.playRelicFanfare();
@@ -7590,7 +7819,7 @@ class Game {
       this.savedSurface = null;
     }
 
-    this.showDangerBanner('🎉 고대 지하 보물창고 완전 정복! (+200🪙 & 전설 보상)');
+    this.showDangerBanner('🎉 고대 지하 보물창고 완전 정복! (+350🪙 & 전설 보상)');
     if (this.player) {
       this.damageTexts.push(new DamageText(this.player.x, this.player.y - 60, `🎉 던전 정복! 총 +${this.dungeonCoinsGained + completionBonus} 🪙 획득 & 완치!`, '#facc15', true));
 
