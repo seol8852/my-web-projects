@@ -2828,142 +2828,142 @@ class Enemy {
 
     if (type === 'bug') {
       this.radius = 20;
-      this.hp = (32 + wave * 9) * diffConfig.hpMult;
+      this.hp = (45 + wave * 14) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = (2.6 + Math.random() * 0.6) * diffConfig.spdMult;
-      this.damage = Math.round(10 * diffConfig.dmgMult);
+      this.speed = (2.7 + Math.random() * 0.6) * diffConfig.spdMult;
+      this.damage = Math.round(14 * diffConfig.dmgMult);
       this.color = '#a855f7';
-      this.xp = 20 + wave * 4;
+      this.xp = 22 + wave * 4;
       this.name = '날벌레 몬스터';
     } else if (type === 'goblin') {
       this.radius = 26;
-      this.hp = (85 + wave * 22) * diffConfig.hpMult;
+      this.hp = (115 + wave * 30) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 2.0 * diffConfig.spdMult;
-      this.damage = Math.round(15 * diffConfig.dmgMult);
-      this.shootCooldown = Math.max(1.5, 2.8 - wave * 0.05);
+      this.speed = 2.1 * diffConfig.spdMult;
+      this.damage = Math.round(18 * diffConfig.dmgMult);
+      this.shootCooldown = Math.max(1.3, 2.5 - wave * 0.06);
       this.color = '#10b981';
-      this.xp = 45 + wave * 8;
+      this.xp = 48 + wave * 8;
       this.name = '숲속 고블린';
     } else if (type === 'chimera') {
       this.radius = 34;
-      this.hp = (280 + wave * 65) * diffConfig.hpMult;
+      this.hp = (380 + wave * 90) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.35 * diffConfig.spdMult;
-      this.damage = Math.round(26 * diffConfig.dmgMult);
+      this.speed = 1.4 * diffConfig.spdMult;
+      this.damage = Math.round(32 * diffConfig.dmgMult);
       this.color = '#f97316';
-      this.xp = 120 + wave * 18;
+      this.xp = 130 + wave * 18;
       this.name = '눈물의 장갑 키메라';
     } else if (type === 'dark_swarm') {
       this.radius = 18;
-      this.hp = (45 + wave * 11) * diffConfig.hpMult;
+      this.hp = (65 + wave * 16) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = (3.6 + Math.random() * 0.4) * diffConfig.spdMult;
-      this.damage = Math.round(14 * diffConfig.dmgMult);
+      this.speed = (3.8 + Math.random() * 0.4) * diffConfig.spdMult;
+      this.damage = Math.round(18 * diffConfig.dmgMult);
       this.color = '#475569';
-      this.xp = 35 + wave * 6;
+      this.xp = 38 + wave * 6;
       this.name = '어둠의 검은 벌레';
     } else if (type === 'lightning_beetle') {
       this.radius = 22;
-      this.hp = (110 + wave * 28) * diffConfig.hpMult;
+      this.hp = (160 + wave * 38) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 2.2 * diffConfig.spdMult;
-      this.damage = Math.round(22 * diffConfig.dmgMult);
+      this.speed = 2.3 * diffConfig.spdMult;
+      this.damage = Math.round(28 * diffConfig.dmgMult);
       this.color = '#eab308';
-      this.xp = 80 + wave * 12;
+      this.xp = 90 + wave * 12;
       this.name = '번개 풍뎅이';
     } else if (type === 'iron_chimera') {
       this.radius = 42;
-      this.hp = (600 + wave * 110) * diffConfig.hpMult;
+      this.hp = (850 + wave * 160) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.15 * diffConfig.spdMult;
-      this.damage = Math.round(35 * diffConfig.dmgMult);
+      this.speed = 1.2 * diffConfig.spdMult;
+      this.damage = Math.round(42 * diffConfig.dmgMult);
       this.color = '#6366f1';
-      this.xp = 200 + wave * 25;
+      this.xp = 220 + wave * 25;
       this.name = '강철 중장갑 키메라';
     } else if (type.startsWith('sanctuary_boss')) {
       this.radius = 58;
-      this.hp = 4600 * diffConfig.hpMult;
+      this.hp = 5600 * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.45 * diffConfig.spdMult;
-      this.damage = Math.round(42 * diffConfig.dmgMult);
+      this.speed = 1.48 * diffConfig.spdMult;
+      this.damage = Math.round(48 * diffConfig.dmgMult);
       this.color = '#ec4899';
-      this.xp = 1400;
-      this.shootCooldown = 1.5;
+      this.xp = 1600;
+      this.shootCooldown = 1.4;
       if (type === 'sanctuary_boss_nw') this.name = '🍄 독안개 가시 키메라';
       else if (type === 'sanctuary_boss_ne') this.name = '🍜 강철 갑옷 풍뎅이';
       else if (type === 'sanctuary_boss_sw') this.name = '🏰 흑화 쌍두 키메라';
       else this.name = '⚡ 폭풍 번개 골렘';
     } else if (type === 'midboss') {
       this.radius = 56;
-      this.hp = (3200 + wave * 500) * diffConfig.hpMult;
+      this.hp = (4200 + wave * 650) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.5 * diffConfig.spdMult;
-      this.damage = Math.round(38 * diffConfig.dmgMult);
+      this.speed = 1.52 * diffConfig.spdMult;
+      this.damage = Math.round(46 * diffConfig.dmgMult);
       this.color = '#ea580c';
-      this.xp = 1200 + wave * 100;
-      this.shootCooldown = 1.6;
+      this.xp = 1300 + wave * 100;
+      this.shootCooldown = 1.5;
       if (wave <= 5) this.name = '폭주하는 가시 키메라';
       else this.name = '돌연변이 쌍두 키메라';
     } else if (type === 'boss') {
       this.radius = 72;
-      this.hp = (8200 + wave * 850) * diffConfig.hpMult;
+      this.hp = (10800 + wave * 1200) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.55 * diffConfig.spdMult;
-      this.damage = Math.round(52 * diffConfig.dmgMult);
+      this.speed = 1.6 * diffConfig.spdMult;
+      this.damage = Math.round(62 * diffConfig.dmgMult);
       this.color = '#e11d48';
-      this.xp = 4500;
+      this.xp = 5000;
       this.name = '진(眞) 거대 아노코 [최종 결전]';
-      this.shootCooldown = 1.4;
+      this.shootCooldown = 1.3;
     } else if (type === 'golden_goblin') {
       this.radius = 26;
-      this.hp = (320 + wave * 45) * diffConfig.hpMult;
+      this.hp = (450 + wave * 65) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = (4.0 + Math.random() * 0.5) * diffConfig.spdMult;
-      this.damage = Math.round(16 * diffConfig.dmgMult);
+      this.speed = (4.2 + Math.random() * 0.5) * diffConfig.spdMult;
+      this.damage = Math.round(18 * diffConfig.dmgMult);
       this.color = '#fbbf24';
-      this.xp = 800 + wave * 150;
+      this.xp = 900 + wave * 180;
       this.name = '황금 도굴 고블린 🪙';
-      this.shootCooldown = 2.6;
+      this.shootCooldown = 2.4;
     } else if (type === 'ancient_sentinel') {
       this.radius = 32;
-      this.hp = (700 + wave * 120) * diffConfig.hpMult;
+      this.hp = (950 + wave * 170) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 2.4 * diffConfig.spdMult;
-      this.damage = Math.round(26 * diffConfig.dmgMult);
+      this.speed = 2.45 * diffConfig.spdMult;
+      this.damage = Math.round(32 * diffConfig.dmgMult);
       this.color = '#818cf8';
-      this.xp = 260 + wave * 35;
+      this.xp = 280 + wave * 35;
       this.name = '🗿 고대 수호 석병';
     } else if (type === 'ancient_golem') {
       this.radius = 54;
-      this.hp = (3000 + wave * 400) * diffConfig.hpMult;
+      this.hp = (3800 + wave * 520) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.5 * diffConfig.spdMult;
-      this.damage = Math.round(40 * diffConfig.dmgMult);
+      this.speed = 1.52 * diffConfig.spdMult;
+      this.damage = Math.round(48 * diffConfig.dmgMult);
       this.color = '#a855f7';
-      this.xp = 1100 + wave * 120;
-      this.shootCooldown = 1.6;
+      this.xp = 1200 + wave * 120;
+      this.shootCooldown = 1.5;
       this.name = '🏛️ 고대 지하 수호 골렘';
       this.isElite = true;
     } else if (type === 'shadow_golem') {
       this.radius = 52;
-      this.hp = (2800 + wave * 380) * diffConfig.hpMult;
+      this.hp = (3500 + wave * 480) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.9 * diffConfig.spdMult;
-      this.damage = Math.round(45 * diffConfig.dmgMult);
+      this.speed = 1.95 * diffConfig.spdMult;
+      this.damage = Math.round(52 * diffConfig.dmgMult);
       this.color = '#e11d48';
-      this.xp = 1300 + wave * 140;
-      this.shootCooldown = 1.3;
+      this.xp = 1400 + wave * 140;
+      this.shootCooldown = 1.25;
       this.name = '⚡ 흑화 폭주 골렘 [분노]';
       this.isElite = true;
     } else if (type === 'elite_bounty') {
       this.radius = 48;
-      this.hp = (1400 + wave * 260) * diffConfig.hpMult;
+      this.hp = (1800 + wave * 320) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.65 * diffConfig.spdMult;
-      this.damage = Math.round(35 * diffConfig.dmgMult);
+      this.speed = 1.7 * diffConfig.spdMult;
+      this.damage = Math.round(42 * diffConfig.dmgMult);
       this.color = '#c084fc';
-      this.xp = 800 + wave * 80;
+      this.xp = 900 + wave * 80;
       this.name = '👑 [현상수배] 악명 높은 돌연변이 키메라';
       this.isElite = true;
     }
@@ -6030,11 +6030,13 @@ class Game {
 
   getDiffConfig() {
     if (this.difficulty === 'nightmare') {
-      return { hpMult: 1.6, dmgMult: 1.5, spdMult: 1.25, scoreMult: 2.0 };
+      return { hpMult: 2.2, dmgMult: 2.0, spdMult: 1.35, scoreMult: 2.5 };
+    } else if (this.difficulty === 'hard') {
+      return { hpMult: 1.6, dmgMult: 1.55, spdMult: 1.2, scoreMult: 1.6 };
     } else if (this.difficulty === 'normal') {
-      return { hpMult: 0.8, dmgMult: 0.75, spdMult: 0.9, scoreMult: 0.8 };
+      return { hpMult: 1.25, dmgMult: 1.25, spdMult: 1.1, scoreMult: 1.0 };
     }
-    return { hpMult: 1.0, dmgMult: 1.0, spdMult: 1.0, scoreMult: 1.0 };
+    return { hpMult: 1.25, dmgMult: 1.25, spdMult: 1.1, scoreMult: 1.0 };
   }
 
   showDangerBanner(title = '거대 키메라 출현!') {
@@ -7268,8 +7270,8 @@ class Game {
       }
 
       // Surface Monster Spawning
-      const maxMobs = 24 + this.wave * 3;
-      if (this.enemies.length < maxMobs && Math.random() < 0.08 + this.wave * 0.005) {
+      const maxMobs = 30 + this.wave * 4;
+      if (this.enemies.length < maxMobs && Math.random() < 0.12 + this.wave * 0.008) {
         this.spawnEnemy();
       }
 
