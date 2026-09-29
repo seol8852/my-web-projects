@@ -1313,6 +1313,107 @@ class ExpGem {
   }
 }
 
+class LightningBolt {
+  constructor(startX, startY, endX, endY, color = '#facc15', width = 6) {
+    this.startX = startX;
+    this.startY = startY;
+    this.endX = endX;
+    this.endY = endY;
+    this.color = color;
+    this.width = width;
+    this.life = 0.28;
+    this.maxLife = 0.28;
+    this.segments = [];
+    this.generateSegments();
+  }
+
+  generateSegments() {
+    const dist = Math.hypot(this.endX - this.startX, this.endY - this.startY);
+    const steps = Math.max(5, Math.floor(dist / 26));
+    let curX = this.startX;
+    let curY = this.startY;
+    this.segments.push({ x: curX, y: curY });
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const targetX = this.startX + (this.endX - this.startX) * t;
+      const targetY = this.startY + (this.endY - this.startY) * t;
+      const jitter = (Math.random() - 0.5) * 36;
+      curX = targetX + jitter;
+      curY = targetY + (Math.random() - 0.5) * 20;
+      this.segments.push({ x: curX, y: curY });
+    }
+    this.segments.push({ x: this.endX, y: this.endY });
+  }
+
+  update(dt) {
+    this.life -= dt;
+  }
+
+  draw(ctx) {
+    if (this.life <= 0 || this.segments.length < 2) return;
+    const alpha = Math.max(0, this.life / this.maxLife);
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = this.width * (0.6 + alpha * 0.8);
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.moveTo(this.segments[0].x, this.segments[0].y);
+    for (let i = 1; i < this.segments.length; i++) {
+      ctx.lineTo(this.segments[i].x, this.segments[i].y);
+    }
+    ctx.stroke();
+
+    // Bright White Core
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = Math.max(1.5, this.width * 0.35);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+class SlashWave {
+  constructor(x, y, angle, radius = 220, color = '#38bdf8') {
+    this.x = x;
+    this.y = y;
+    this.angle = angle;
+    this.radius = radius;
+    this.color = color;
+    this.life = 0.35;
+    this.maxLife = 0.35;
+  }
+
+  update(dt) {
+    this.life -= dt;
+  }
+
+  draw(ctx) {
+    if (this.life <= 0) return;
+    const alpha = Math.max(0, this.life / this.maxLife);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.angle);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 9;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 24;
+
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius * (1.25 - alpha * 0.25), -Math.PI / 2.8, Math.PI / 2.8);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, this.radius * (1.25 - alpha * 0.25), -Math.PI / 3.4, Math.PI / 3.4);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
 class Shockwave {
   constructor(x, y, maxRadius = 180, damage = 22, color = '#ea580c') {
     this.x = x;
@@ -1690,13 +1791,30 @@ class FireMine {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
-    const pulse = Math.sin(Date.now() / 180) * 3;
-    ctx.fillStyle = 'rgba(239, 68, 68, 0.4)';
+    const pulse = Math.sin(Date.now() / 150) * 4;
+
+    // Fiery Warning Ring
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.arc(0, 0, this.triggerRadius + pulse * 0.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Glowing Lava Aura
+    const mineGrad = ctx.createRadialGradient(0, 0, 4, 0, 0, this.radius + 6);
+    mineGrad.addColorStop(0, '#fef08a');
+    mineGrad.addColorStop(0.5, '#f97316');
+    mineGrad.addColorStop(1, 'rgba(239, 68, 68, 0.2)');
+    ctx.fillStyle = mineGrad;
+    ctx.shadowColor = '#ea580c';
+    ctx.shadowBlur = 16;
     ctx.beginPath();
     ctx.arc(0, 0, this.radius + pulse, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.font = '20px sans-serif';
+    ctx.font = '24px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('💣', 0, 0);
@@ -1816,40 +1934,43 @@ class Projectile {
     ctx.rotate(this.rotation);
     ctx.fillStyle = this.color;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 14;
 
     if (this.shape === 'crescent') {
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(0, 0, this.size * 1.5, -Math.PI / 2.5, Math.PI / 2.5);
-      ctx.stroke();
-    } else if (this.shape === 'blade') {
-      ctx.strokeStyle = '#60a5fa';
       ctx.lineWidth = 5;
       ctx.beginPath();
-      ctx.arc(0, 0, this.size * 1.8, -Math.PI / 2.2, Math.PI / 2.2);
+      ctx.arc(0, 0, this.size * 1.6, -Math.PI / 2.4, Math.PI / 2.4);
       ctx.stroke();
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2;
       ctx.stroke();
+    } else if (this.shape === 'blade') {
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size * 1.9, -Math.PI / 2.2, Math.PI / 2.2);
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
     } else if (this.shape === 'snack') {
-      ctx.font = `${Math.round(this.size * 2.2)}px sans-serif`;
+      ctx.font = `${Math.round(this.size * 2.4)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('🌰', 0, 0);
     } else if (this.shape === 'heart') {
-      ctx.font = `${Math.round(this.size * 2.4)}px sans-serif`;
+      ctx.font = `${Math.round(this.size * 2.6)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('💖', 0, 0);
     } else if (this.shape === 'carrot') {
       ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
-      ctx.ellipse(0, 0, this.size * 1.4, this.size * 0.7, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, this.size * 1.5, this.size * 0.75, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = '#22c55e';
-      ctx.fillRect(-this.size * 1.3, -2, 4, 4);
+      ctx.fillRect(-this.size * 1.4, -2, 4, 4);
     } else if (this.shape === 'star') {
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
@@ -1858,9 +1979,21 @@ class Projectile {
       }
       ctx.closePath();
       ctx.fill();
+
+      // Bright Star Center
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size * 0.35, 0, Math.PI * 2);
+      ctx.fill();
     } else {
       ctx.beginPath();
       ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bright White Core
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size * 0.45, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
@@ -2813,18 +2946,28 @@ class Player {
     // ⚡ Lightning Smite Sub-Weapon
     if (this.hasLightningSmite && enemies.length > 0) {
       this.smiteTimer += dt;
-      const targetTime = this.hasEvoLightning ? 1.0 : 2.0;
+      const targetTime = this.hasEvoLightning ? 0.9 : 1.7;
       if (this.smiteTimer >= targetTime) {
         this.smiteTimer = 0;
         const target = enemies[Math.floor(Math.random() * enemies.length)];
         if (target) {
           Sound.playLightning();
-          const smiteDmg = (this.hasEvoLightning ? 320 : 180) * this.damageMultiplier;
+          const smiteDmg = (this.hasEvoLightning ? 340 : 200) * this.damageMultiplier;
           target.hp -= smiteDmg;
           target.hitTimer = 0.15;
           target.blindTimer = 1.0;
-          damageTexts.push(new DamageText(target.x, target.y - 30, `⚡ ${Math.round(smiteDmg)} [낙뢰]`, '#facc15', true));
-          particles.push(new Particle(target.x, target.y, 0, 0, 8, '#fef08a', 0.35, 'lightning'));
+          damageTexts.push(new DamageText(target.x, target.y - 30, `⚡ ${Math.round(smiteDmg)} [천둥강타]`, '#facc15', true));
+          
+          if (window.GameInstance) {
+            window.GameInstance.lightningBolts.push(
+              new LightningBolt(target.x + (Math.random() - 0.5) * 80, target.y - 520, target.x, target.y, this.hasEvoLightning ? '#38bdf8' : '#facc15', 8)
+            );
+          }
+          for (let i = 0; i < 8; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const spd = 3 + Math.random() * 5;
+            particles.push(new Particle(target.x, target.y, Math.cos(a) * spd, Math.sin(a) * spd, 6, '#fef08a', 0.35, 'star'));
+          }
         }
       }
     }
@@ -2832,9 +2975,9 @@ class Player {
     // 🔥 Fire Napalm Mines Sub-Weapon
     if (this.hasFireMines) {
       this.mineTimer += dt;
-      if (this.mineTimer >= 1.8) {
+      if (this.mineTimer >= 1.6) {
         this.mineTimer = 0;
-        const mineDmg = (this.hasEvoFire ? 360 : 220) * this.damageMultiplier;
+        const mineDmg = (this.hasEvoFire ? 380 : 240) * this.damageMultiplier;
         fireMines.push(new FireMine(this.x, this.y, mineDmg));
       }
     }
@@ -2845,11 +2988,11 @@ class Player {
       enemies.forEach(e => {
         for (let i = 0; i < 2; i++) {
           const a = this.frostAngle + i * Math.PI;
-          const ox = this.x + Math.cos(a) * 90;
-          const oy = this.y + Math.sin(a) * 90;
+          const ox = this.x + Math.cos(a) * 95;
+          const oy = this.y + Math.sin(a) * 95;
           const d = Math.hypot(e.x - ox, e.y - oy);
-          if (d < 22 + e.radius) {
-            e.hp -= (this.hasEvoIce ? 90 : 45) * dt * 60 * this.damageMultiplier;
+          if (d < 30 + e.radius) {
+            e.hp -= (this.hasEvoIce ? 100 : 50) * dt * 60 * this.damageMultiplier;
             e.hitTimer = 0.1;
             e.frostTimer = 2.5;
           }
@@ -2860,14 +3003,25 @@ class Player {
     // 🍄 Toxic Cloud Sub-Weapon
     if (this.hasToxicCloud) {
       this.toxicTimer += dt;
-      if (this.toxicTimer >= 1.4) {
+      // Ambient Spores
+      if (Math.random() < 0.25) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.random() * 160;
+        particles.push(new Particle(this.x + Math.cos(a) * r, this.y + Math.sin(a) * r, 0, -0.8, 8, '#c084fc', 0.4, 'sparkle'));
+      }
+      if (this.toxicTimer >= 1.3) {
         this.toxicTimer = 0;
-        particles.push(new Particle(this.x, this.y, 0, 0, 220, '#a855f7', 0.4, 'ring'));
+        particles.push(new Particle(this.x, this.y, 0, 0, 240, '#a855f7', 0.45, 'ring'));
+        for (let i = 0; i < 10; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const r = 80 + Math.random() * 140;
+          particles.push(new Particle(this.x + Math.cos(a) * r, this.y + Math.sin(a) * r, 0, -1.2, 10, '#9333ea', 0.5, 'sparkle'));
+        }
         enemies.forEach(e => {
           const d = Math.hypot(e.x - this.x, e.y - this.y);
-          if (d < 220 + e.radius) {
+          if (d < 240 + e.radius) {
             e.poisonTimer = this.hasEvoPoison ? 6.0 : 3.5;
-            e.hp -= 40 * this.damageMultiplier;
+            e.hp -= 45 * this.damageMultiplier;
             e.hitTimer = 0.1;
           }
         });
@@ -3322,7 +3476,15 @@ class Player {
           e.hitTimer = 0.15;
         }
       });
-      window.GameInstance.screenShake = 8;
+      if (window.GameInstance) {
+        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 350, '#ffffff', 0.4, 'ring'));
+        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 260, '#fef08a', 0.35, 'ring'));
+        for (let i = 0; i < 16; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const spd = 4 + Math.random() * 8;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 7, '#ffffff', 0.45, 'star'));
+        }
+      }
       this.say("카메라 플래시 찰칵!", true);
     } else if (this.charType === 'kurimanju') {
       grenades.push(new Grenade(this.x, this.y, targetX, targetY, 320 * this.damageMultiplier, 210));
@@ -3347,6 +3509,10 @@ class Player {
           )
         );
       }
+      if (window.GameInstance) {
+        window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle - 0.22, 240, '#38bdf8'));
+        window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle + 0.22, 240, '#ffffff'));
+      }
       Sound.playCritHit();
       this.say("비검! 십자 베기!", true);
     } else {
@@ -3367,6 +3533,9 @@ class Player {
       this.hp = Math.min(this.maxHp, this.hp + 35);
       this.positiveTimer = 6.0;
       damageTexts.push(new DamageText(this.x, this.y - 25, '+35 HP 힐링!', '#10b981', true));
+      if (window.GameInstance) {
+        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 120, '#10b981', 0.45, 'ring'));
+      }
       this.say("기타 치면서 힘내자!", true);
     } else if (this.charType === 'kurimanju') {
       this.hp = Math.min(this.maxHp, this.hp + 25);
@@ -3378,7 +3547,9 @@ class Player {
         e.hp -= 100 * this.damageMultiplier;
         e.hitTimer = 0.15;
       });
-      window.GameInstance.screenShake = 10;
+      if (window.GameInstance) {
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 280, 100, '#f59e0b'));
+      }
       damageTexts.push(new DamageText(this.x, this.y - 25, '🍺 음주 포효 (광역기절 & 공격+35%)!', '#f59e0b', true));
       this.say("하아ー! 한잔 마셨다!", true);
     } else if (this.charType === 'momonga') {
@@ -3391,16 +3562,29 @@ class Player {
           e.hitTimer = 0.1;
         }
       });
+      if (window.GameInstance) {
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 320, 0, '#f472b6'));
+        for (let i = 0; i < 12; i++) {
+          const a = (i * Math.PI * 2) / 12;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 10, '#f472b6', 0.6, 'heart'));
+        }
+      }
       damageTexts.push(new DamageText(this.x, this.y - 25, '💖 칭찬 매혹 (주변 3.5초 매혹 & 힐)!', '#f472b6', true));
       this.say("나를 칭찬해줘-!!", true);
     } else if (this.charType === 'rakko') {
       this.parryTimer = 1.8;
+      if (window.GameInstance) {
+        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 100, '#38bdf8', 0.4, 'ring'));
+      }
       damageTexts.push(new DamageText(this.x, this.y - 25, '🛡️ 완벽 패링 자세 (1.8초)!', '#38bdf8', true));
       this.say("검사의 호흡... 언제든 와라!", true);
     } else {
       this.isTearShieldActive = true;
       this.tearShieldTimer = 6.0;
       this.hasShield = true;
+      if (window.GameInstance) {
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 220, 0, '#ff79b0'));
+      }
       damageTexts.push(new DamageText(this.x, this.y - 25, '🛡️ 눈물 방패 각성!', '#ff79b0', true));
       this.say("용기 100% 각성-!!", true);
     }
@@ -3426,7 +3610,17 @@ class Player {
         e.hp -= 480 * this.damageMultiplier;
         e.hitTimer = 0.2;
       });
-      window.GameInstance.screenShake = 16;
+      if (window.GameInstance) {
+        const baseAngle = Math.atan2(targetY - this.y, targetX - this.x);
+        for (let offset of [-0.4, -0.2, 0, 0.2, 0.4]) {
+          window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle + offset, 300, '#38bdf8'));
+        }
+        for (let i = 0; i < 18; i++) {
+          const a = baseAngle + (Math.random() - 0.5) * 1.2;
+          const spd = 7 + Math.random() * 10;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 8, '#7dd3fc', 0.4, 'sparkle'));
+        }
+      }
       damageTexts.push(new DamageText(this.x, this.y - 40, '⚡ 메가 슬래시 참격!', '#38bdf8', true));
       this.say("난또까나레 메가 슬래시-!!", true);
     } else if (this.charType === 'kurimanju') {
@@ -3551,24 +3745,127 @@ class Player {
       ctx.restore();
     }
 
-    if (this.isTearShieldActive || this.hasOrbitStars) {
-      for (let i = 0; i < 3; i++) {
-        const oAngle = (this.hasOrbitStars ? this.orbitStarAngle : this.tearOrbitAngle) + (i * Math.PI * 2 / 3);
-        const ox = Math.cos(oAngle) * 60;
-        const oy = Math.sin(oAngle) * 60;
-        ctx.font = '20px sans-serif';
-        ctx.fillText('⭐', ox, oy);
-      }
+    // 🍄 Toxic Cloud Biohazard Aura
+    if (this.hasToxicCloud) {
+      ctx.save();
+      const pPulse = 1 + Math.sin(Date.now() / 250) * 0.06;
+      const toxicGrad = ctx.createRadialGradient(0, bob, 30, 0, bob, 220 * pPulse);
+      toxicGrad.addColorStop(0, 'rgba(168, 85, 247, 0.25)');
+      toxicGrad.addColorStop(0.7, 'rgba(147, 51, 234, 0.12)');
+      toxicGrad.addColorStop(1, 'rgba(147, 51, 234, 0)');
+      ctx.fillStyle = toxicGrad;
+      ctx.beginPath();
+      ctx.arc(0, bob, 220 * pPulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(192, 132, 252, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([8, 8]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
     }
 
+    // 🌪️ Usagi Tornado Whirling Vortex
+    if (this.charType === 'usagi' && this.isTornadoSpinning) {
+      ctx.save();
+      ctx.rotate(Date.now() / 60);
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.75)';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#facc15';
+      ctx.shadowBlur = 20;
+      for (let r = 24; r <= 68; r += 14) {
+        ctx.beginPath();
+        ctx.arc(0, bob, r, 0, Math.PI * 1.5);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // ⭐ Orbit Guardian Stars & Shield
+    if (this.isTearShieldActive || this.hasOrbitStars) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, bob, 85, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (let i = 0; i < 3; i++) {
+        const oAngle = (this.hasOrbitStars ? this.orbitStarAngle : this.tearOrbitAngle) + (i * Math.PI * 2 / 3);
+        const ox = Math.cos(oAngle) * 85;
+        const oy = bob + Math.sin(oAngle) * 85;
+
+        ctx.save();
+        ctx.translate(ox, oy);
+        ctx.rotate(oAngle * 2.5);
+
+        ctx.shadowColor = '#facc15';
+        ctx.shadowBlur = 18;
+        ctx.fillStyle = '#facc15';
+
+        ctx.beginPath();
+        const outerR = 14;
+        const innerR = 6.5;
+        for (let p = 0; p < 5; p++) {
+          ctx.lineTo(Math.cos((18 + p * 72) * Math.PI / 180) * outerR, -Math.sin((18 + p * 72) * Math.PI / 180) * outerR);
+          ctx.lineTo(Math.cos((54 + p * 72) * Math.PI / 180) * innerR, -Math.sin((54 + p * 72) * Math.PI / 180) * innerR);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+
+    // ❄️ Frost Orbit Orbs
     if (this.hasFrostOrb) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, bob, 95, 0, Math.PI * 2);
+      ctx.stroke();
+
       for (let i = 0; i < 2; i++) {
         const fa = this.frostAngle + i * Math.PI;
-        const fx = Math.cos(fa) * 75;
-        const fy = Math.sin(fa) * 75;
-        ctx.font = '22px sans-serif';
-        ctx.fillText('❄️', fx, fy);
+        const fx = Math.cos(fa) * 95;
+        const fy = bob + Math.sin(fa) * 95;
+
+        ctx.save();
+        ctx.translate(fx, fy);
+        ctx.rotate(-fa * 3);
+
+        ctx.shadowColor = '#38bdf8';
+        ctx.shadowBlur = 22;
+
+        const iceGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 16);
+        iceGrad.addColorStop(0, '#ffffff');
+        iceGrad.addColorStop(0.45, '#7dd3fc');
+        iceGrad.addColorStop(1, '#0284c7');
+        ctx.fillStyle = iceGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        for (let k = 0; k < 6; k++) {
+          const sa = (k * Math.PI / 3);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(sa) * 11, Math.sin(sa) * 11);
+          ctx.stroke();
+        }
+
+        ctx.restore();
       }
+      ctx.restore();
     }
 
     if (this.sprite && this.sprite.complete && this.sprite.naturalWidth > 0) {
@@ -3818,6 +4115,8 @@ class Game {
     this.particles = [];
     this.damageTexts = [];
     this.shockwaves = [];
+    this.lightningBolts = [];
+    this.slashWaves = [];
 
     this.keys = {};
     this.mouse = { x: 0, y: 0, isDown: false };
@@ -4448,6 +4747,8 @@ class Game {
     this.particles = [];
     this.damageTexts = [];
     this.shockwaves = [];
+    this.lightningBolts = [];
+    this.slashWaves = [];
     this.weedPatches = [];
 
     // Reset Underground Dungeon
@@ -5410,13 +5711,16 @@ class Game {
             // Chain Lightning perk
             if (this.player.hasChainLightning && Math.random() < 0.4) {
               Sound.playLightning();
+              let chains = 0;
               this.enemies.forEach(other => {
-                if (other !== enemy) {
+                if (other !== enemy && chains < 3) {
                   const cd = Math.hypot(other.x - enemy.x, other.y - enemy.y);
-                  if (cd < 220) {
-                    other.hp -= 65 * this.player.damageMultiplier;
+                  if (cd < 240) {
+                    chains++;
+                    other.hp -= 75 * this.player.damageMultiplier;
                     other.hitTimer = 0.1;
-                    this.particles.push(new Particle(other.x, other.y, 0, 0, 6, '#fef08a', 0.25, 'lightning'));
+                    this.lightningBolts.push(new LightningBolt(enemy.x, enemy.y, other.x, other.y, '#facc15', 5));
+                    this.particles.push(new Particle(other.x, other.y, 0, 0, 8, '#fef08a', 0.25, 'lightning'));
                   }
                 }
               });
@@ -5425,8 +5729,9 @@ class Game {
             // Usagi Wand relic
             if (this.player.relics.includes('relic_wand') && Math.random() < 0.25) {
               Sound.playLightning();
-              enemy.hp -= 90 * this.player.damageMultiplier;
-              this.particles.push(new Particle(enemy.x, enemy.y, 0, 0, 7, '#fef08a', 0.3, 'lightning'));
+              enemy.hp -= 110 * this.player.damageMultiplier;
+              this.lightningBolts.push(new LightningBolt(enemy.x + (Math.random() - 0.5) * 40, enemy.y - 450, enemy.x, enemy.y, '#c084fc', 6.5));
+              this.particles.push(new Particle(enemy.x, enemy.y, 0, 0, 9, '#e9d5ff', 0.3, 'lightning'));
             }
 
             // Spicy Ramen relic
@@ -5725,6 +6030,16 @@ class Game {
       if (this.damageTexts[i].life <= 0) this.damageTexts.splice(i, 1);
     }
 
+    for (let i = this.lightningBolts.length - 1; i >= 0; i--) {
+      this.lightningBolts[i].update(dt);
+      if (this.lightningBolts[i].life <= 0) this.lightningBolts.splice(i, 1);
+    }
+
+    for (let i = this.slashWaves.length - 1; i >= 0; i--) {
+      this.slashWaves[i].update(dt);
+      if (this.slashWaves[i].life <= 0) this.slashWaves.splice(i, 1);
+    }
+
     // Memory & Object safety caps (prevents GC spikes)
     if (this.particles.length > 250) {
       this.particles.splice(0, this.particles.length - 250);
@@ -5810,6 +6125,8 @@ class Game {
     }
 
     this.particles.forEach((pt) => { if (inView(pt)) pt.draw(this.ctx); });
+    this.slashWaves.forEach((sw) => { if (inView(sw)) sw.draw(this.ctx); });
+    this.lightningBolts.forEach((lb) => lb.draw(this.ctx));
     this.damageTexts.forEach((dt) => { if (inView(dt)) dt.draw(this.ctx); });
 
     // Sakura atmosphere petals (Culled)
@@ -6069,6 +6386,8 @@ class Game {
       projectiles: [...this.projectiles],
       expGems: [...this.expGems],
       fieldItems: [...this.fieldItems],
+      lightningBolts: [...this.lightningBolts],
+      slashWaves: [...this.slashWaves],
       portal: portal
     };
 
@@ -6077,6 +6396,8 @@ class Game {
     this.projectiles = [];
     this.expGems = [];
     this.fieldItems = [];
+    this.lightningBolts = [];
+    this.slashWaves = [];
 
     // Teleport player to dungeon center
     this.player.x = 2500;
@@ -6126,6 +6447,8 @@ class Game {
       this.projectiles = this.savedSurface.projectiles;
       this.expGems = this.savedSurface.expGems;
       this.fieldItems = this.savedSurface.fieldItems;
+      this.lightningBolts = this.savedSurface.lightningBolts || [];
+      this.slashWaves = this.savedSurface.slashWaves || [];
 
       if (this.savedSurface.portal) {
         const idx = this.dungeonPortals.indexOf(this.savedSurface.portal);
