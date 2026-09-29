@@ -1255,10 +1255,8 @@ class Particle {
     ctx.rotate(this.rotation);
 
     if (this.type === 'star') {
-      // 🌟 Radiant 5-pointed Star with White Core
+      // 🌟 Radiant 5-pointed Star with White Core (Optimized)
       ctx.fillStyle = this.color;
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 12;
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
         ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * this.radius, -Math.sin((18 + i * 72) * Math.PI / 180) * this.radius);
@@ -1270,13 +1268,11 @@ class Particle {
       // Gleaming central core
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius * 0.35, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.radius * 0.38, 0, Math.PI * 2);
       ctx.fill();
     } else if (this.type === 'sparkle') {
       // ✨ 4-pointed Diamond Lens Flare Cross
       ctx.fillStyle = this.color;
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 14;
       ctx.beginPath();
       for (let i = 0; i < 4; i++) {
         const a = (i * Math.PI / 2);
@@ -1288,33 +1284,33 @@ class Particle {
 
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius * 0.35, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.radius * 0.38, 0, Math.PI * 2);
       ctx.fill();
     } else if (this.type === 'flame') {
       // 🔥 Fiery Teardrop Ember
-      const fGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, this.radius);
-      fGrad.addColorStop(0, '#ffffff');
-      fGrad.addColorStop(0.3, '#fef08a');
-      fGrad.addColorStop(0.7, '#f97316');
-      fGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
-      ctx.fillStyle = fGrad;
-      ctx.shadowColor = '#ea580c';
-      ctx.shadowBlur = 10;
+      ctx.fillStyle = this.color || '#f97316';
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius * 0.55, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius * 0.28, 0, Math.PI * 2);
       ctx.fill();
     } else if (this.type === 'ice') {
       // ❄️ Hexagonal Frost Snowflake Crystal
       ctx.strokeStyle = this.color || '#38bdf8';
-      ctx.lineWidth = 2;
-      ctx.shadowColor = '#bae6fd';
-      ctx.shadowBlur = 10;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
       for (let k = 0; k < 6; k++) {
         const sa = (k * Math.PI / 3);
         ctx.moveTo(0, 0);
         ctx.lineTo(Math.cos(sa) * this.radius, Math.sin(sa) * this.radius);
-        // branch
         const bx = Math.cos(sa) * this.radius * 0.6;
         const by = Math.sin(sa) * this.radius * 0.6;
         ctx.moveTo(bx, by);
@@ -1325,13 +1321,11 @@ class Particle {
       ctx.stroke();
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius * 0.25, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.radius * 0.3, 0, Math.PI * 2);
       ctx.fill();
     } else if (this.type === 'heart') {
       // 💖 Glowing Vector Heart
       ctx.fillStyle = this.color || '#f472b6';
-      ctx.shadowColor = this.color || '#ec4899';
-      ctx.shadowBlur = 12;
       const s = this.radius * 0.12;
       ctx.beginPath();
       ctx.moveTo(0, 3 * s);
@@ -1348,9 +1342,7 @@ class Particle {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = this.color || '#10b981';
-      ctx.shadowColor = this.color || '#34d399';
-      ctx.shadowBlur = 10;
-      ctx.fillText(Math.random() < 0.5 ? '🎵' : '🎶', 0, 0);
+      ctx.fillText(this.radius > 6 ? '🎵' : '🎶', 0, 0);
     } else if (this.type === 'bubble') {
       // 🫧 Iridescent Bubble
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
@@ -1367,9 +1359,7 @@ class Particle {
     } else if (this.type === 'lightning') {
       // ⚡ Jagged Electric Spark
       ctx.strokeStyle = this.color || '#facc15';
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#fef08a';
-      ctx.shadowBlur = 12;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.moveTo(-this.radius, -this.radius);
       ctx.lineTo(0, -this.radius * 0.2);
@@ -1383,25 +1373,19 @@ class Particle {
     } else if (this.type === 'ring') {
       // 💫 Glowing Shockwave Halo Ring
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = Math.max(1.5, 4 * alpha);
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 14;
+      ctx.lineWidth = Math.max(1.5, 3.5 * alpha);
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.stroke();
     } else if (this.type === 'petal') {
       // 🌸 Sakura Blossom Petal
       ctx.fillStyle = this.color || '#ffccd5';
-      ctx.shadowColor = '#f472b6';
-      ctx.shadowBlur = 6;
       ctx.beginPath();
       ctx.ellipse(0, 0, this.radius, this.radius * 0.55, 0, 0, Math.PI * 2);
       ctx.fill();
     } else {
       // Soft Glowing Orbs / Smoke
       ctx.fillStyle = this.color;
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = 6;
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.fill();
@@ -1448,13 +1432,11 @@ class DamageText {
 
     // Dark outline for crystal clarity
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = this.isCrit ? 5 : 3.5;
+    ctx.lineWidth = this.isCrit ? 4.5 : 3.0;
     ctx.strokeText(this.text, 0, 0);
 
-    // Glowing fill
+    // High-contrast fill
     ctx.fillStyle = this.color;
-    ctx.shadowColor = this.isCrit ? '#facc15' : this.color;
-    ctx.shadowBlur = this.isCrit ? 12 : 6;
     ctx.fillText(this.text, 0, 0);
 
     ctx.restore();
@@ -1510,8 +1492,6 @@ class ExpGem {
 
     // Star Konpeito Candy shape
     ctx.fillStyle = this.color;
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 10;
     ctx.beginPath();
     for (let i = 0; i < 5; i++) {
       const outerR = this.radius + pulse;
@@ -1588,11 +1568,9 @@ class LightningBolt {
     ctx.save();
     ctx.globalAlpha = alpha;
 
-    // 1. Broad outer atmospheric glow
+    // 1. Broad outer atmospheric glow (alpha layering)
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.width * (0.8 + alpha * 0.8) + 6;
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 24;
+    ctx.lineWidth = this.width * (0.8 + alpha * 0.8) + 4;
     ctx.beginPath();
     ctx.moveTo(this.segments[0].x, this.segments[0].y);
     for (let i = 1; i < this.segments.length; i++) {
@@ -1601,20 +1579,18 @@ class LightningBolt {
     ctx.stroke();
 
     // 2. Primary colored intense arc
-    ctx.lineWidth = Math.min(6, this.width * (0.5 + alpha * 0.6));
+    ctx.lineWidth = Math.min(5, this.width * (0.5 + alpha * 0.5));
     ctx.stroke();
 
     // 3. Ultra-bright Pure White Plasma Core
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2.2;
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 10;
+    ctx.lineWidth = 1.8;
     ctx.stroke();
 
     // Draw branching mini bolts
     if (this.branches.length > 0) {
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.0;
       ctx.beginPath();
       this.branches.forEach(b => {
         ctx.moveTo(b.x1, b.y1);
@@ -1657,18 +1633,14 @@ class SlashWave {
 
     // Outer Neon Aura
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = 12;
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 24;
+    ctx.lineWidth = 8;
     ctx.beginPath();
     ctx.arc(0, 0, currentR, -Math.PI / 2.6, Math.PI / 2.6);
     ctx.stroke();
 
     // Inner Radiant Blade
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 4;
-    ctx.shadowColor = '#ffffff';
-    ctx.shadowBlur = 12;
+    ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(0, 0, currentR, -Math.PI / 3.0, Math.PI / 3.0);
     ctx.stroke();
@@ -1678,7 +1650,7 @@ class SlashWave {
     ctx.globalAlpha = alpha * 0.35;
     ctx.beginPath();
     ctx.arc(0, 0, currentR, -Math.PI / 2.6, Math.PI / 2.6);
-    ctx.arc(0, 0, currentR - 25, Math.PI / 2.6, -Math.PI / 2.6, true);
+    ctx.arc(0, 0, currentR - 20, Math.PI / 2.6, -Math.PI / 2.6, true);
     ctx.closePath();
     ctx.fill();
 
@@ -1730,9 +1702,7 @@ class Shockwave {
     
     // Outer expanding glowing shockwave
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = Math.max(2, 6 * alpha);
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 18;
+    ctx.lineWidth = Math.max(2, 5 * alpha);
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.stroke();
@@ -1740,10 +1710,9 @@ class Shockwave {
     // Inner bright secondary ring
     if (this.radius > 25) {
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.0;
-      ctx.shadowBlur = 8;
+      ctx.lineWidth = 1.8;
       ctx.beginPath();
-      ctx.arc(this.x, this.y, this.radius - 12, 0, Math.PI * 2);
+      ctx.arc(this.x, this.y, this.radius - 10, 0, Math.PI * 2);
       ctx.stroke();
     }
 
@@ -2666,20 +2635,22 @@ class Projectile {
     this.life -= dt;
     this.rotation = Math.atan2(this.vy, this.vx);
 
-    // Dynamic Trail Particles for Player Projectiles
-    if (this.fromPlayer && window.GameInstance?.particles) {
+    // Dynamic Trail Particles for Player Projectiles (Throttled & settings-aware)
+    if (this.fromPlayer && window.GameInstance?.particles && window.GameInstance.settings.highParticles) {
       this.trailTimer += dt;
-      if (this.trailTimer >= 0.05) {
+      if (this.trailTimer >= 0.10) {
         this.trailTimer = 0;
         const pts = window.GameInstance.particles;
-        if (this.shape === 'star') {
-          pts.push(new Particle(this.x, this.y, -this.vx * 0.12, -this.vy * 0.12, 4.5, this.color, 0.22, 'sparkle'));
-        } else if (this.shape === 'crescent' || this.shape === 'blade') {
-          pts.push(new Particle(this.x, this.y, -this.vx * 0.1, -this.vy * 0.1, 5, this.color, 0.20, 'sparkle'));
-        } else if (this.shape === 'carrot') {
-          pts.push(new Particle(this.x, this.y, -this.vx * 0.15, -this.vy * 0.15, 5, '#f97316', 0.25, 'flame'));
-        } else if (this.shape === 'heart') {
-          pts.push(new Particle(this.x, this.y, -this.vx * 0.08, -this.vy * 0.08, 4, '#f472b6', 0.25, 'heart'));
+        if (pts.length < 160) {
+          if (this.shape === 'star') {
+            pts.push(new Particle(this.x, this.y, -this.vx * 0.12, -this.vy * 0.12, 4.0, this.color, 0.20, 'sparkle'));
+          } else if (this.shape === 'crescent' || this.shape === 'blade') {
+            pts.push(new Particle(this.x, this.y, -this.vx * 0.1, -this.vy * 0.1, 4.5, this.color, 0.18, 'sparkle'));
+          } else if (this.shape === 'carrot') {
+            pts.push(new Particle(this.x, this.y, -this.vx * 0.15, -this.vy * 0.15, 4.5, '#f97316', 0.22, 'flame'));
+          } else if (this.shape === 'heart') {
+            pts.push(new Particle(this.x, this.y, -this.vx * 0.08, -this.vy * 0.08, 3.5, '#f472b6', 0.22, 'heart'));
+          }
         }
       }
     }
@@ -2690,19 +2661,17 @@ class Projectile {
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
     ctx.fillStyle = this.color;
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 18;
 
     if (this.shape === 'crescent') {
       // 🌙 Glowing Cyan Crescent Energy Blade
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = 7;
+      ctx.lineWidth = 5.5;
       ctx.beginPath();
       ctx.arc(0, 0, this.size * 1.8, -Math.PI / 2.3, Math.PI / 2.3);
       ctx.stroke();
 
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 2.0;
       ctx.beginPath();
       ctx.arc(0, 0, this.size * 1.8, -Math.PI / 2.8, Math.PI / 2.8);
       ctx.stroke();
@@ -2718,15 +2687,13 @@ class Projectile {
     } else if (this.shape === 'blade') {
       // 🗡️ Azure Master Katana Shockwave
       ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 8;
-      ctx.shadowColor = '#60a5fa';
-      ctx.shadowBlur = 20;
+      ctx.lineWidth = 6;
       ctx.beginPath();
       ctx.arc(0, 0, this.size * 2.1, -Math.PI / 2.2, Math.PI / 2.2);
       ctx.stroke();
 
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(0, 0, this.size * 2.1, -Math.PI / 2.6, Math.PI / 2.6);
       ctx.stroke();
@@ -2741,14 +2708,10 @@ class Projectile {
       ctx.font = `${Math.round(this.size * 2.8)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.shadowColor = '#f472b6';
-      ctx.shadowBlur = 18;
       ctx.fillText('💖', 0, 0);
     } else if (this.shape === 'carrot') {
       // 🥕 Flaming Rocket Carrot
       ctx.fillStyle = '#ea580c';
-      ctx.shadowColor = '#f97316';
-      ctx.shadowBlur = 16;
       ctx.beginPath();
       ctx.ellipse(0, 0, this.size * 1.6, this.size * 0.8, 0, 0, Math.PI * 2);
       ctx.fill();
@@ -3974,13 +3937,16 @@ class Enemy {
 
     if (sprite && sprite.complete && sprite.naturalWidth > 0) {
       ctx.save();
+      const isBossOrElite = this.type === 'boss' || this.type.includes('boss') || this.isElite;
       const auraPulse = Math.sin(Date.now() / 140) * 3;
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = (this.type === 'boss' || this.type.includes('boss') || this.isElite) ? 4 : 2;
-      ctx.shadowColor = this.color;
-      ctx.shadowBlur = (this.type === 'boss' || this.type.includes('boss') || this.isElite) ? 20 : 8;
+      ctx.lineWidth = isBossOrElite ? 3.5 : 2.0;
+      if (isBossOrElite) {
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 14;
+      }
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius + 3 + (this.type === 'boss' || this.isElite ? auraPulse : 0), 0, Math.PI * 2);
+      ctx.arc(0, 0, this.radius + 3 + (isBossOrElite ? auraPulse : 0), 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.beginPath();
@@ -3999,9 +3965,7 @@ class Enemy {
     if (this.isShielding) {
       ctx.save();
       ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 12;
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
       ctx.stroke();
@@ -8713,19 +8677,23 @@ class Game {
       if (this.slashWaves[i].life <= 0) this.slashWaves.splice(i, 1);
     }
 
-    // Memory & Object safety caps (prevents GC spikes)
-    if (this.particles.length > 250) {
-      this.particles.splice(0, this.particles.length - 250);
+    // Memory & Object safety caps (prevents GC spikes and maintains 60+ FPS)
+    if (this.particles.length > 180) {
+      this.particles.splice(0, this.particles.length - 180);
     }
-    if (this.damageTexts.length > 60) {
-      this.damageTexts.splice(0, this.damageTexts.length - 60);
+    if (this.damageTexts.length > 40) {
+      this.damageTexts.splice(0, this.damageTexts.length - 40);
     }
 
     if (this.screenShake > 0) {
       this.screenShake = Math.max(0, this.screenShake - dt * 35);
     }
 
-    this.updateHUD();
+    // Throttle DOM HUD updates to 30 FPS to eliminate browser layout reflow lag
+    this.hudTick = (this.hudTick || 0) + 1;
+    if (this.hudTick % 2 === 0) {
+      this.updateHUD();
+    }
   }
 
   draw() {
@@ -8835,9 +8803,7 @@ class Game {
   drawWorldBoundaries() {
     this.ctx.save();
     this.ctx.strokeStyle = '#ff4081';
-    this.ctx.lineWidth = 6;
-    this.ctx.shadowColor = '#ff4081';
-    this.ctx.shadowBlur = 18;
+    this.ctx.lineWidth = 5;
     this.ctx.strokeRect(20, 20, this.worldWidth - 40, this.worldHeight - 40);
 
     this.ctx.fillStyle = '#ffccd5';
@@ -8865,8 +8831,6 @@ class Game {
           this.ctx.translate(rx, ry);
           this.ctx.rotate(angle);
           this.ctx.fillStyle = e.type === 'boss' ? '#e11d48' : '#f97316';
-          this.ctx.shadowColor = this.ctx.fillStyle;
-          this.ctx.shadowBlur = 12;
           this.ctx.beginPath();
           this.ctx.moveTo(16, 0);
           this.ctx.lineTo(-10, -10);
@@ -8882,6 +8846,9 @@ class Game {
 
   drawMinimap() {
     if (!this.minimapCtx || !this.player) return;
+    this.minimapRenderTick = (this.minimapRenderTick || 0) + 1;
+    if (this.minimapRenderTick % 2 !== 0) return; // 30 FPS throttle
+
     const mCtx = this.minimapCtx;
     const mW = this.minimapCanvas.width;
     const mH = this.minimapCanvas.height;
@@ -8892,16 +8859,12 @@ class Game {
     const scaleY = mH / this.worldHeight;
 
     // Biome Sector Colors on Minimap
-    // NW: Toxic Shroom Forest
     mCtx.fillStyle = '#1c152a';
     mCtx.fillRect(0, 0, mW / 2, mH / 2);
-    // NE: Crimson Maple Peaks
     mCtx.fillStyle = '#2b1616';
     mCtx.fillRect(mW / 2, 0, mW / 2, mH / 2);
-    // SW: Crystal Ruins Shrine
     mCtx.fillStyle = '#0f1d2b';
     mCtx.fillRect(0, mH / 2, mW / 2, mH / 2);
-    // SE: Starlight & Thunder Dunes
     mCtx.fillStyle = '#2b2214';
     mCtx.fillRect(mW / 2, mH / 2, mW / 2, mH / 2);
 
@@ -8911,9 +8874,6 @@ class Game {
     mCtx.beginPath();
     mCtx.arc(mW / 2, mH / 2, mW * 0.22, 0, Math.PI * 2);
     mCtx.fill();
-    mCtx.strokeStyle = 'rgba(255, 182, 193, 0.3)';
-    mCtx.lineWidth = 1;
-    mCtx.stroke();
     mCtx.restore();
 
     // Viewport camera rect
@@ -8944,7 +8904,7 @@ class Game {
       mCtx.restore();
     });
 
-    // 🌟 Draw Landmarks on Minimap
+    // Landmarks on Minimap
     mCtx.font = '9px sans-serif';
     mCtx.textAlign = 'center';
     mCtx.textBaseline = 'middle';
@@ -8956,46 +8916,19 @@ class Game {
     if (this.crystalObelisk) mCtx.fillText('🔮', this.crystalObelisk.x * scaleX, this.crystalObelisk.y * scaleY);
     if (this.usagiRadioTower) mCtx.fillText('🗼', this.usagiRadioTower.x * scaleX, this.usagiRadioTower.y * scaleY);
 
-    if (this.gachaMachines) {
-      this.gachaMachines.forEach(g => {
-        mCtx.fillText('🎰', g.x * scaleX, g.y * scaleY);
-      });
-    }
-
-    // Draw Items on minimap
-    mCtx.fillStyle = '#f59e0b';
-    this.fieldItems.forEach(item => {
-      mCtx.beginPath();
-      mCtx.arc(item.x * scaleX, item.y * scaleY, 2, 0, Math.PI * 2);
-      mCtx.fill();
-    });
-
     // Draw Enemies on minimap
     this.enemies.forEach(e => {
-      if (e.type === 'boss') {
-        mCtx.fillStyle = '#e11d48';
-        mCtx.beginPath();
-        mCtx.arc(e.x * scaleX, e.y * scaleY, 5, 0, Math.PI * 2);
-        mCtx.fill();
-      } else if (e.type.includes('boss') || e.type === 'iron_chimera') {
-        mCtx.fillStyle = '#f97316';
-        mCtx.beginPath();
-        mCtx.arc(e.x * scaleX, e.y * scaleY, 3.5, 0, Math.PI * 2);
-        mCtx.fill();
-      } else {
-        mCtx.fillStyle = '#a855f7';
-        mCtx.beginPath();
-        mCtx.arc(e.x * scaleX, e.y * scaleY, 1.5, 0, Math.PI * 2);
-        mCtx.fill();
-      }
+      const isBoss = e.type === 'boss' || e.type.includes('boss');
+      mCtx.fillStyle = isBoss ? '#f43f5e' : (e.isElite ? '#f59e0b' : '#a855f7');
+      mCtx.beginPath();
+      mCtx.arc(e.x * scaleX, e.y * scaleY, isBoss ? 4.5 : (e.isElite ? 3.0 : 1.5), 0, Math.PI * 2);
+      mCtx.fill();
     });
 
     // Draw Player dot
     const px = this.player.x * scaleX;
     const py = this.player.y * scaleY;
     mCtx.fillStyle = this.player.bulletColor || '#ff4081';
-    mCtx.shadowColor = '#ffffff';
-    mCtx.shadowBlur = 4;
     mCtx.beginPath();
     mCtx.arc(px, py, 3.5, 0, Math.PI * 2);
     mCtx.fill();
@@ -9011,35 +8944,30 @@ class Game {
     const camY = this.camera.y;
     const cW = this.canvas.width;
     const cH = this.canvas.height;
-
-    // 🎨 Biome Base Atmospheric Fill
-    // Determine player/camera biome center
     const midX = this.worldWidth / 2;
     const midY = this.worldHeight / 2;
+    const centerX = camX + cW / 2;
+    const centerY = camY + cH / 2;
 
     this.ctx.save();
-    // Default base fill
-    this.ctx.fillStyle = '#141824';
+
+    // Determine current biome base background color
+    let baseColor = '#141824';
+    if (centerX < midX && centerY < midY) baseColor = '#1a1226'; // NW: Toxic
+    else if (centerX >= midX && centerY < midY) baseColor = '#241212'; // NE: Crimson
+    else if (centerX < midX && centerY >= midY) baseColor = '#0e1a29'; // SW: Crystal
+    else baseColor = '#211a10'; // SE: Thunder
+
+    // Center Sakura Meadow override
+    const centerDist = Math.hypot(centerX - midX, centerY - midY);
+    if (centerDist < 1600) {
+      baseColor = '#16281e';
+    }
+
+    this.ctx.fillStyle = baseColor;
     this.ctx.fillRect(camX, camY, cW, cH);
 
-    // Dynamic 5-Biome Soft Gradients overlay
-    const biomes = [
-      { name: 'toxic', cx: midX * 0.45, cy: midY * 0.45, r: 2400, color1: 'rgba(56, 24, 76, 0.45)', color2: 'rgba(20, 36, 32, 0.35)' },
-      { name: 'crimson', cx: midX * 1.55, cy: midY * 0.45, r: 2400, color1: 'rgba(84, 28, 28, 0.45)', color2: 'rgba(48, 20, 16, 0.35)' },
-      { name: 'crystal', cx: midX * 0.45, cy: midY * 1.55, r: 2400, color1: 'rgba(18, 52, 86, 0.45)', color2: 'rgba(10, 24, 46, 0.35)' },
-      { name: 'thunder', cx: midX * 1.55, cy: midY * 1.55, r: 2400, color1: 'rgba(82, 60, 24, 0.45)', color2: 'rgba(38, 28, 14, 0.35)' },
-      { name: 'sakura_center', cx: midX, cy: midY, r: 1600, color1: 'rgba(32, 74, 50, 0.6)', color2: 'rgba(255, 182, 193, 0.12)' }
-    ];
-
-    biomes.forEach(b => {
-      const grad = this.ctx.createRadialGradient(b.cx, b.cy, 200, b.cx, b.cy, b.r);
-      grad.addColorStop(0, b.color1);
-      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      this.ctx.fillStyle = grad;
-      this.ctx.fillRect(camX, camY, cW, cH);
-    });
-
-    // Chapter Background Texture Overlay (Tiled & Blended)
+    // Chapter Background Texture Overlay (Tiled inside viewport bounds)
     const chInfo = this.getChapterInfo(this.wave);
     const bgSprite = this.sprites[chInfo.bgKey];
 
@@ -9047,21 +8975,19 @@ class Game {
       this.ctx.globalAlpha = 0.22;
       const tileW = 1000;
       const tileH = 1000;
-      for (let x = 0; x < this.worldWidth; x += tileW) {
-        for (let y = 0; y < this.worldHeight; y += tileH) {
-          if (
-            x + tileW > camX &&
-            x < camX + cW &&
-            y + tileH > camY &&
-            y < camY + cH
-          ) {
-            this.ctx.drawImage(bgSprite, x, y, tileW, tileH);
-          }
+      const minX = Math.max(0, Math.floor(camX / tileW) * tileW);
+      const maxX = Math.min(this.worldWidth, Math.ceil((camX + cW) / tileW) * tileW);
+      const minY = Math.max(0, Math.floor(camY / tileH) * tileH);
+      const maxY = Math.min(this.worldHeight, Math.ceil((camY + cH) / tileH) * tileH);
+
+      for (let x = minX; x < maxX; x += tileW) {
+        for (let y = minY; y < maxY; y += tileH) {
+          this.ctx.drawImage(bgSprite, x, y, tileW, tileH);
         }
       }
     }
 
-    // Biome Ambient Ground Grid & Cross Pattern
+    // Biome Ambient Ground Grid (Single batched stroke)
     this.ctx.globalAlpha = 1.0;
     const tileSize = 80;
     this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
@@ -9072,18 +8998,16 @@ class Game {
     const startY = Math.floor(camY / tileSize) * tileSize;
     const endY = camY + cH;
 
-    for (let x = startX; x < endX; x += tileSize) {
-      this.ctx.beginPath();
+    this.ctx.beginPath();
+    for (let x = startX; x <= endX; x += tileSize) {
       this.ctx.moveTo(x, camY);
       this.ctx.lineTo(x, camY + cH);
-      this.ctx.stroke();
     }
-    for (let y = startY; y < endY; y += tileSize) {
-      this.ctx.beginPath();
+    for (let y = startY; y <= endY; y += tileSize) {
       this.ctx.moveTo(camX, y);
       this.ctx.lineTo(camX + cW, y);
-      this.ctx.stroke();
     }
+    this.ctx.stroke();
 
     this.ctx.restore();
   }
@@ -9458,19 +9382,15 @@ class Game {
       rainbowGrad.addColorStop(1, 'rgba(168, 85, 247, 0.55)');
 
       this.ctx.fillStyle = rainbowGrad;
-      this.ctx.shadowColor = '#ffffff';
-      this.ctx.shadowBlur = 28;
       this.ctx.fillRect(0, -36, len, 72);
 
       // 3. Double-Helix Helical Energy Spiral Waves
-      this.ctx.lineWidth = 3.5;
+      this.ctx.lineWidth = 3.0;
       for (let waveIdx = 0; waveIdx < 2; waveIdx++) {
         const sign = waveIdx === 0 ? 1 : -1;
         this.ctx.strokeStyle = waveIdx === 0 ? '#fde047' : '#38bdf8';
-        this.ctx.shadowColor = this.ctx.strokeStyle;
-        this.ctx.shadowBlur = 16;
         this.ctx.beginPath();
-        for (let x = 0; x < len; x += 15) {
+        for (let x = 0; x < len; x += 18) {
           const y = Math.sin((x / 45) + (t * sign)) * 28 * sign;
           if (x === 0) this.ctx.moveTo(x, y);
           else this.ctx.lineTo(x, y);
@@ -9484,8 +9404,6 @@ class Game {
       coreGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.98)');
       coreGrad.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
       this.ctx.fillStyle = coreGrad;
-      this.ctx.shadowColor = '#ffffff';
-      this.ctx.shadowBlur = 20;
       this.ctx.fillRect(0, -12, len, 24);
 
       this.ctx.restore();
@@ -9880,14 +9798,16 @@ class Game {
     if (!this.isRunning || this.isPaused || this.isLevelingUp || this.isShopping) return;
 
     try {
-      const rawDt = (timestamp - this.lastTime) / 1000 || 0.007;
-      const dt = Math.min(0.05, Math.max(0.001, rawDt));
+      if (!this.lastTime) this.lastTime = timestamp;
+      const rawDt = (timestamp - this.lastTime) / 1000;
+      // Clamp delta time to [0.001, 0.033] for silky smooth 60 FPS motion without frame drops
+      const dt = Math.min(0.033, Math.max(0.001, rawDt));
       this.lastTime = timestamp;
 
       // Calculate real-time FPS
       this.frameCount++;
-      this.fpsTimer += dt;
-      if (this.fpsTimer >= 0.25) {
+      this.fpsTimer += rawDt;
+      if (this.fpsTimer >= 0.4) {
         this.fps = Math.round(this.frameCount / this.fpsTimer);
         this.frameCount = 0;
         this.fpsTimer = 0;
