@@ -146,16 +146,27 @@ class StorageManager {
   static getSettings() {
     try {
       const data = localStorage.getItem(this.KEY_SETTINGS);
-      return data ? JSON.parse(data) : {
+      if (data) {
+        const parsed = JSON.parse(data);
+        return {
+          bgmVol: parsed.bgmVol !== undefined ? parsed.bgmVol : 0.8,
+          sfxVol: parsed.sfxVol !== undefined ? parsed.sfxVol : 0.9,
+          screenShake: parsed.screenShake === true, // default off unless explicitly on
+          damageText: parsed.damageText !== false,
+          highParticles: parsed.highParticles !== false,
+          touchControls: parsed.touchControls !== false
+        };
+      }
+      return {
         bgmVol: 0.8,
         sfxVol: 0.9,
-        screenShake: true,
+        screenShake: false,
         damageText: true,
         highParticles: true,
         touchControls: true
       };
     } catch (e) {
-      return { bgmVol: 0.8, sfxVol: 0.9, screenShake: true, damageText: true, highParticles: true, touchControls: true };
+      return { bgmVol: 0.8, sfxVol: 0.9, screenShake: false, damageText: true, highParticles: true, touchControls: true };
     }
   }
 
@@ -5042,13 +5053,11 @@ class Game {
       }
     }
 
-    // Camera follow player smoothly with lookahead
-    const mouseLookX = (this.mouse.x - this.canvas.width / 2) * 0.12;
-    const mouseLookY = (this.mouse.y - this.canvas.height / 2) * 0.12;
-    const targetCamX = this.player.x + (this.player.vx * 12) + mouseLookX - this.canvas.width / 2;
-    const targetCamY = this.player.y + (this.player.vy * 12) + mouseLookY - this.canvas.height / 2;
-    this.camera.x += (targetCamX - this.camera.x) * 0.10;
-    this.camera.y += (targetCamY - this.camera.y) * 0.10;
+    // Stable, smooth camera tracking centered on player (Zero motion sickness/sway)
+    const targetCamX = this.player.x - this.canvas.width / 2;
+    const targetCamY = this.player.y - this.canvas.height / 2;
+    this.camera.x += (targetCamX - this.camera.x) * 0.15;
+    this.camera.y += (targetCamY - this.camera.y) * 0.15;
     this.camera.x = Math.max(0, Math.min(this.worldWidth - this.canvas.width, this.camera.x));
     this.camera.y = Math.max(0, Math.min(this.worldHeight - this.canvas.height, this.camera.y));
 
@@ -5725,7 +5734,7 @@ class Game {
     }
 
     if (this.screenShake > 0) {
-      this.screenShake = Math.max(0, this.screenShake - dt * 20);
+      this.screenShake = Math.max(0, this.screenShake - dt * 35);
     }
 
     this.updateHUD();
@@ -5736,8 +5745,9 @@ class Game {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     if (this.screenShake > 0 && this.settings.screenShake) {
-      const sx = (Math.random() - 0.5) * this.screenShake * 2;
-      const sy = (Math.random() - 0.5) * this.screenShake * 2;
+      const clamped = Math.min(2.0, this.screenShake * 0.15);
+      const sx = (Math.random() - 0.5) * clamped;
+      const sy = (Math.random() - 0.5) * clamped;
       this.ctx.translate(sx, sy);
     }
 
