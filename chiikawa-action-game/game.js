@@ -7013,20 +7013,296 @@ class Game {
       cardEl.dataset.elem = card.elem || 'crit';
 
       const curLvl = pLevels[card.id] || 0;
-      const levelBadge = card.maxLevel > 1 && card.maxLevel < 999 ? ` (Lv.${curLvl + 1})` : '';
+      const nextLvl = curLvl + 1;
+      
+      let levelTagHtml = '';
+      let titleLevelBadge = '';
+      if (card.elem === 'evolution') {
+        levelTagHtml = `<div class="card-level-tag evo">🌟 [궁극 진화 각성]</div>`;
+      } else if (card.maxLevel > 1 && card.maxLevel < 999) {
+        levelTagHtml = `<div class="card-level-tag upgrade">Lv.${curLvl} ➡️ <b>Lv.${nextLvl}</b> <span style="font-size:10px; color:#64748b; font-weight:normal;">(MAX Lv.${card.maxLevel})</span></div>`;
+        titleLevelBadge = ` (Lv.${nextLvl})`;
+      } else if (card.maxLevel === 1) {
+        levelTagHtml = `<div class="card-level-tag new">✨ NEW (신규 습득)</div>`;
+      } else {
+        levelTagHtml = `<div class="card-level-tag repeat">♾️ 즉시 보너스</div>`;
+      }
+
+      const effectHtml = this.getCardStatPreview(card, curLvl);
 
       cardEl.innerHTML = `
         <div class="card-key-badge">[${idx + 1}]</div>
-        <div class="card-elem-tag">${card.tier}${levelBadge}</div>
+        <div class="card-elem-tag">${card.tier}</div>
+        ${levelTagHtml}
         <div class="card-icon">${card.icon}</div>
-        <div class="card-name">${card.name}${levelBadge}</div>
-        <div class="card-effect">${card.effect}</div>
+        <div class="card-name">${card.name}${titleLevelBadge}</div>
+        <div class="card-effect">${effectHtml}</div>
       `;
       cardEl.addEventListener('click', () => this.selectLevelUpCard(idx));
       container.appendChild(cardEl);
     });
 
     document.getElementById('levelup-modal').classList.add('active');
+  }
+
+  getCardStatPreview(card, curLvl) {
+    const nextLvl = curLvl + 1;
+    switch (card.id) {
+      case 'leech': {
+        const curPct = curLvl * 12;
+        const nextPct = nextLvl * 12;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">❤️ 흡혈 회복 확률</span>
+              <span class="stat-change">
+                <span class="stat-old">${curPct}%</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">${nextPct}%</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 적 처치 시 12 HP 회복 확률 +12%p 증가!</div>
+          </div>`;
+      }
+      case 'dmg': {
+        const curDmg = curLvl * 25;
+        const nextDmg = nextLvl * 25;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">⚔️ 공격력 증가</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curDmg}%</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextDmg}%</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 영구 데미지 배율 +25% 대폭 증가!</div>
+          </div>`;
+      }
+      case 'spread': {
+        const curCount = 1 + curLvl;
+        const nextCount = 1 + nextLvl;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🌟 동시 발사 탄환</span>
+              <span class="stat-change">
+                <span class="stat-old">${curCount}발</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">${nextCount}발</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 기본 공격 탄환 +1발 추가 발사!</div>
+          </div>`;
+      }
+      case 'speed': {
+        const curSpd = curLvl * 15;
+        const nextSpd = nextLvl * 15;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">👟 이동 속도</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curSpd}%</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextSpd}%</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 무빙 &amp; 카이팅 속도 +15% 가속!</div>
+          </div>`;
+      }
+      case 'hp': {
+        const curMax = curLvl * 35;
+        const nextMax = nextLvl * 35;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🍮 최대 체력</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curMax} HP</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextMax} HP</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 최대 HP +35 &amp; 즉시 +50 HP 힐링!</div>
+          </div>`;
+      }
+      case 'pierce': {
+        const curP = curLvl;
+        const nextP = nextLvl;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🗡️ 탄환 관통 횟수</span>
+              <span class="stat-change">
+                <span class="stat-old">${curP}회</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">${nextP}회</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 적 몬스터 관통 타격 +1회 추가!</div>
+          </div>`;
+      }
+      case 'skillQ': {
+        const curRed = Math.round((1 - Math.pow(0.80, curLvl)) * 100);
+        const nextRed = Math.round((1 - Math.pow(0.80, nextLvl)) * 100);
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🌰 Q 스킬 쿨타임</span>
+              <span class="stat-change">
+                <span class="stat-old">-${curRed}%</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">-${nextRed}%</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 쿨타임 -20% 단축 &amp; 스킬 위력 증폭!</div>
+          </div>`;
+      }
+      case 'crit_hawk': {
+        const curCrit = curLvl * 20;
+        const nextCrit = nextLvl * 20;
+        const curMult = (1.5 + curLvl * 0.5).toFixed(1);
+        const nextMult = (1.5 + nextLvl * 0.5).toFixed(1);
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🎯 치명타율/피해</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curCrit}% (${curMult}x)</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextCrit}% (${nextMult}x)</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 치명타 확률 +20% &amp; 피해 배율 +0.5x!</div>
+          </div>`;
+      }
+      case 'lt_charge': {
+        const curSpd = Math.round((1 - Math.pow(0.82, curLvl)) * 100);
+        const nextSpd = Math.round((1 - Math.pow(0.82, nextLvl)) * 100);
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">⚡ 공격 쿨타임 감소</span>
+              <span class="stat-change">
+                <span class="stat-old">-${curSpd}%</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">-${nextSpd}%</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 기본 공격 속도 +18% 초고속 가속!</div>
+          </div>`;
+      }
+      case 'fire_bullet': {
+        const curD = curLvl * 25;
+        const nextD = nextLvl * 25;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🔥 공격력 / 화염</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curD}%</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextD}%</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 공격력 +25% &amp; 4초간 화상 도트딜!</div>
+          </div>`;
+      }
+      case 'fire_burst': {
+        const curD = curLvl * 20;
+        const nextD = nextLvl * 20;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">💥 공격력 / 폭발</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curD}%</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextD}%</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 공격력 +20% &amp; 폭발 범위 +30% 증폭!</div>
+          </div>`;
+      }
+      case 'ice_shatter': {
+        const curM = (curLvl * 0.6).toFixed(1);
+        const nextM = (nextLvl * 0.6).toFixed(1);
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🧊 크리티컬 피해</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curM}x</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextM}x</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 치명타 배율 +0.6x &amp; 둔화 적 추가딜!</div>
+          </div>`;
+      }
+      case 'wind_tailwind': {
+        const curB = curLvl * 15;
+        const nextB = nextLvl * 15;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🍃 이속 &amp; 공격 증폭</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curB}%</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextB}%</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 순풍 가호: 이속 및 공증 +15%!</div>
+          </div>`;
+      }
+      case 'sweet_pancake': {
+        const curH = curLvl * 10;
+        const nextH = nextLvl * 10;
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-row">
+              <span class="stat-label">🥞 보석 12개당 회복</span>
+              <span class="stat-change">
+                <span class="stat-old">+${curH} HP</span>
+                <span class="stat-arrow">➡️</span>
+                <span class="stat-new">+${nextH} HP</span>
+              </span>
+            </div>
+            <div class="stat-delta">✨ 보석 12개마다 체력 +10 HP 힐!</div>
+          </div>`;
+      }
+      default: {
+        if (card.elem === 'evolution') {
+          return `
+            <div class="card-effect-desc">${card.effect}</div>
+            <div class="card-stat-preview" style="border-color:#f472b6; background:#fff0f6;">
+              <div class="stat-delta" style="color:#db2777; font-size:11.5px; font-weight:bold;">🌟 [궁극 각성] 원소 융합으로 전설 스킬 개화!</div>
+            </div>`;
+        }
+        return `
+          <div class="card-effect-desc">${card.effect}</div>
+          <div class="card-stat-preview">
+            <div class="stat-delta" style="color:#2563eb;">${card.maxLevel === 1 ? '✨ 최초 습득 시 영구 활성화됩니다.' : '✨ 선택 즉시 효과가 적용됩니다.'}</div>
+          </div>`;
+      }
+    }
   }
 
   selectLevelUpCard(idx) {
