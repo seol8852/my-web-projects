@@ -1215,7 +1215,8 @@ class Particle {
     this.maxLife = life;
     this.type = type;
     this.rotation = Math.random() * Math.PI * 2;
-    this.rotSpeed = (Math.random() - 0.5) * 8;
+    this.rotSpeed = (Math.random() - 0.5) * 10;
+    this.scale = 1.0;
   }
 
   update(dt) {
@@ -1225,14 +1226,24 @@ class Particle {
     this.rotation += this.rotSpeed * dt;
 
     if (this.type === 'smoke') {
-      this.radius = this.maxRadius * (1 + (1 - this.life / this.maxLife) * 1.4);
+      this.radius = this.maxRadius * (1 + (1 - this.life / this.maxLife) * 1.5);
+      this.vx *= 0.94;
+      this.vy *= 0.94;
+    } else if (this.type === 'flame') {
+      this.vy -= 0.15 * dt * 60;
       this.vx *= 0.95;
-      this.vy *= 0.95;
-    } else if (this.type === 'star' || this.type === 'sparkle' || this.type === 'lightning') {
-      this.vx *= 0.93;
-      this.vy *= 0.93;
+      this.radius = this.maxRadius * (this.life / this.maxLife);
+    } else if (this.type === 'star' || this.type === 'sparkle' || this.type === 'ice' || this.type === 'heart') {
+      this.vx *= 0.92;
+      this.vy *= 0.92;
     } else if (this.type === 'ring') {
-      this.radius += dt * 180;
+      this.radius += dt * 220;
+    } else if (this.type === 'bubble') {
+      this.vy -= 0.25 * dt * 60;
+      this.x += Math.sin(this.rotation) * 0.4;
+    } else if (this.type === 'lightning') {
+      this.vx *= 0.88;
+      this.vy *= 0.88;
     }
   }
 
@@ -1244,9 +1255,10 @@ class Particle {
     ctx.rotate(this.rotation);
 
     if (this.type === 'star') {
+      // 🌟 Radiant 5-pointed Star with White Core
       ctx.fillStyle = this.color;
       ctx.shadowColor = this.color;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 12;
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
         ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * this.radius, -Math.sin((18 + i * 72) * Math.PI / 180) * this.radius);
@@ -1254,22 +1266,142 @@ class Particle {
       }
       ctx.closePath();
       ctx.fill();
-    } else if (this.type === 'lightning') {
-      ctx.strokeStyle = this.color;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#fef08a';
+
+      // Gleaming central core
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.type === 'sparkle') {
+      // ✨ 4-pointed Diamond Lens Flare Cross
+      ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = (i * Math.PI / 2);
+        ctx.lineTo(Math.cos(a) * this.radius * 1.5, Math.sin(a) * this.radius * 1.5);
+        ctx.lineTo(Math.cos(a + Math.PI / 4) * (this.radius * 0.28), Math.sin(a + Math.PI / 4) * (this.radius * 0.28));
+      }
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.type === 'flame') {
+      // 🔥 Fiery Teardrop Ember
+      const fGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, this.radius);
+      fGrad.addColorStop(0, '#ffffff');
+      fGrad.addColorStop(0.3, '#fef08a');
+      fGrad.addColorStop(0.7, '#f97316');
+      fGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+      ctx.fillStyle = fGrad;
+      ctx.shadowColor = '#ea580c';
       ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.moveTo(-6, -12); ctx.lineTo(2, -2); ctx.lineTo(-3, 2); ctx.lineTo(6, 12);
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.type === 'ice') {
+      // ❄️ Hexagonal Frost Snowflake Crystal
+      ctx.strokeStyle = this.color || '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#bae6fd';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const sa = (k * Math.PI / 3);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(sa) * this.radius, Math.sin(sa) * this.radius);
+        // branch
+        const bx = Math.cos(sa) * this.radius * 0.6;
+        const by = Math.sin(sa) * this.radius * 0.6;
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + Math.cos(sa + 0.6) * this.radius * 0.35, by + Math.sin(sa + 0.6) * this.radius * 0.35);
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + Math.cos(sa - 0.6) * this.radius * 0.35, by + Math.sin(sa - 0.6) * this.radius * 0.35);
+      }
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.type === 'heart') {
+      // 💖 Glowing Vector Heart
+      ctx.fillStyle = this.color || '#f472b6';
+      ctx.shadowColor = this.color || '#ec4899';
+      ctx.shadowBlur = 12;
+      const s = this.radius * 0.12;
+      ctx.beginPath();
+      ctx.moveTo(0, 3 * s);
+      ctx.bezierCurveTo(-5 * s, -4 * s, -10 * s, 1 * s, 0, 11 * s);
+      ctx.bezierCurveTo(10 * s, 1 * s, 5 * s, -4 * s, 0, 3 * s);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-2 * s, 2 * s, 1.5 * s, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.type === 'music') {
+      // 🎵 Musical Jam Note
+      ctx.font = `bold ${Math.round(this.radius * 2)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = this.color || '#10b981';
+      ctx.shadowColor = this.color || '#34d399';
+      ctx.shadowBlur = 10;
+      ctx.fillText(Math.random() < 0.5 ? '🎵' : '🎶', 0, 0);
+    } else if (this.type === 'bubble') {
+      // 🫧 Iridescent Bubble
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.fillStyle = this.color || 'rgba(250, 204, 21, 0.35)';
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-this.radius * 0.35, -this.radius * 0.35, this.radius * 0.25, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (this.type === 'lightning') {
+      // ⚡ Jagged Electric Spark
+      ctx.strokeStyle = this.color || '#facc15';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#fef08a';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(-this.radius, -this.radius);
+      ctx.lineTo(0, -this.radius * 0.2);
+      ctx.lineTo(-this.radius * 0.3, 0);
+      ctx.lineTo(this.radius, this.radius);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.2;
       ctx.stroke();
     } else if (this.type === 'ring') {
+      // 💫 Glowing Shockwave Halo Ring
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = 3;
+      ctx.lineWidth = Math.max(1.5, 4 * alpha);
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 14;
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (this.type === 'petal') {
+      // 🌸 Sakura Blossom Petal
+      ctx.fillStyle = this.color || '#ffccd5';
+      ctx.shadowColor = '#f472b6';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, this.radius, this.radius * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
     } else {
+      // Soft Glowing Orbs / Smoke
       ctx.fillStyle = this.color;
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 6;
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.fill();
@@ -1401,33 +1533,47 @@ class ExpGem {
 }
 
 class LightningBolt {
-  constructor(startX, startY, endX, endY, color = '#facc15', width = 6) {
+  constructor(startX, startY, endX, endY, color = '#facc15', width = 7) {
     this.startX = startX;
     this.startY = startY;
     this.endX = endX;
     this.endY = endY;
     this.color = color;
     this.width = width;
-    this.life = 0.28;
-    this.maxLife = 0.28;
+    this.life = 0.32;
+    this.maxLife = 0.32;
     this.segments = [];
+    this.branches = [];
     this.generateSegments();
   }
 
   generateSegments() {
     const dist = Math.hypot(this.endX - this.startX, this.endY - this.startY);
-    const steps = Math.max(5, Math.floor(dist / 26));
+    const steps = Math.max(6, Math.floor(dist / 22));
     let curX = this.startX;
     let curY = this.startY;
     this.segments.push({ x: curX, y: curY });
+
     for (let i = 1; i < steps; i++) {
       const t = i / steps;
       const targetX = this.startX + (this.endX - this.startX) * t;
       const targetY = this.startY + (this.endY - this.startY) * t;
-      const jitter = (Math.random() - 0.5) * 36;
+      const jitter = (Math.random() - 0.5) * 48;
       curX = targetX + jitter;
-      curY = targetY + (Math.random() - 0.5) * 20;
+      curY = targetY + (Math.random() - 0.5) * 25;
       this.segments.push({ x: curX, y: curY });
+
+      // Fork mini branching arcs
+      if (Math.random() < 0.35 && i > 1 && i < steps - 1) {
+        const bLen = 30 + Math.random() * 45;
+        const bAngle = Math.atan2(this.endY - this.startY, this.endX - this.startX) + (Math.random() - 0.5) * 1.5;
+        this.branches.push({
+          x1: curX,
+          y1: curY,
+          x2: curX + Math.cos(bAngle) * bLen,
+          y2: curY + Math.sin(bAngle) * bLen
+        });
+      }
     }
     this.segments.push({ x: this.endX, y: this.endY });
   }
@@ -1438,13 +1584,15 @@ class LightningBolt {
 
   draw(ctx) {
     if (this.life <= 0 || this.segments.length < 2) return;
-    const alpha = Math.max(0, this.life / this.maxLife) * 0.85;
+    const alpha = Math.max(0, this.life / this.maxLife);
     ctx.save();
     ctx.globalAlpha = alpha;
+
+    // 1. Broad outer atmospheric glow
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = Math.min(5, this.width * (0.6 + alpha * 0.6));
+    ctx.lineWidth = this.width * (0.8 + alpha * 0.8) + 6;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 24;
     ctx.beginPath();
     ctx.moveTo(this.segments[0].x, this.segments[0].y);
     for (let i = 1; i < this.segments.length; i++) {
@@ -1452,10 +1600,32 @@ class LightningBolt {
     }
     ctx.stroke();
 
-    // Bright White Core
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
+    // 2. Primary colored intense arc
+    ctx.lineWidth = Math.min(6, this.width * (0.5 + alpha * 0.6));
     ctx.stroke();
+
+    // 3. Ultra-bright Pure White Plasma Core
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.2;
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+
+    // Draw branching mini bolts
+    if (this.branches.length > 0) {
+      ctx.strokeStyle = this.color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      this.branches.forEach(b => {
+        ctx.moveTo(b.x1, b.y1);
+        ctx.lineTo(b.x2, b.y2);
+      });
+      ctx.stroke();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.0;
+      ctx.stroke();
+    }
+
     ctx.restore();
   }
 }
@@ -1467,8 +1637,8 @@ class SlashWave {
     this.angle = angle;
     this.radius = radius;
     this.color = color;
-    this.life = 0.32;
-    this.maxLife = 0.32;
+    this.life = 0.35;
+    this.maxLife = 0.35;
   }
 
   update(dt) {
@@ -1477,25 +1647,40 @@ class SlashWave {
 
   draw(ctx) {
     if (this.life <= 0) return;
-    const alpha = Math.max(0, this.life / this.maxLife) * 0.65;
+    const alpha = Math.max(0, this.life / this.maxLife);
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
     ctx.globalAlpha = alpha;
+
+    const currentR = this.radius * (1.25 - alpha * 0.25);
+
+    // Outer Neon Aura
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 12;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 16;
-
+    ctx.shadowBlur = 24;
     ctx.beginPath();
-    ctx.arc(0, 0, this.radius * (1.2 - alpha * 0.2), -Math.PI / 2.8, Math.PI / 2.8);
+    ctx.arc(0, 0, currentR, -Math.PI / 2.6, Math.PI / 2.6);
     ctx.stroke();
 
+    // Inner Radiant Blade
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 4;
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 12;
     ctx.beginPath();
-    ctx.arc(0, 0, this.radius * (1.2 - alpha * 0.2), -Math.PI / 3.4, Math.PI / 3.4);
+    ctx.arc(0, 0, currentR, -Math.PI / 3.0, Math.PI / 3.0);
     ctx.stroke();
+
+    // Sharp Tapering Light Ribbon
+    ctx.fillStyle = this.color;
+    ctx.globalAlpha = alpha * 0.35;
+    ctx.beginPath();
+    ctx.arc(0, 0, currentR, -Math.PI / 2.6, Math.PI / 2.6);
+    ctx.arc(0, 0, currentR - 25, Math.PI / 2.6, -Math.PI / 2.6, true);
+    ctx.closePath();
+    ctx.fill();
 
     ctx.restore();
   }
@@ -1539,16 +1724,36 @@ class Shockwave {
   }
 
   draw(ctx) {
-    const alpha = Math.max(0, this.life / this.maxLife) * 0.55;
+    const alpha = Math.max(0, this.life / this.maxLife);
     ctx.save();
     ctx.globalAlpha = alpha;
+    
+    // Outer expanding glowing shockwave
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = Math.max(2, 6 * alpha);
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 18;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.stroke();
+
+    // Inner bright secondary ring
+    if (this.radius > 25) {
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.0;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius - 12, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Soft radiant inner fill
+    ctx.fillStyle = this.color;
+    ctx.globalAlpha = alpha * 0.12;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
   }
 }
@@ -2427,6 +2632,7 @@ class Projectile {
     this.hitEnemies = new Set();
     this.life = 5.0;
     this.rotation = Math.atan2(vy, vx);
+    this.trailTimer = 0;
   }
 
   update(dt, target = null, enemies = []) {
@@ -2459,6 +2665,24 @@ class Projectile {
     this.distance += Math.hypot(stepX, stepY);
     this.life -= dt;
     this.rotation = Math.atan2(this.vy, this.vx);
+
+    // Dynamic Trail Particles for Player Projectiles
+    if (this.fromPlayer && window.GameInstance?.particles) {
+      this.trailTimer += dt;
+      if (this.trailTimer >= 0.05) {
+        this.trailTimer = 0;
+        const pts = window.GameInstance.particles;
+        if (this.shape === 'star') {
+          pts.push(new Particle(this.x, this.y, -this.vx * 0.12, -this.vy * 0.12, 4.5, this.color, 0.22, 'sparkle'));
+        } else if (this.shape === 'crescent' || this.shape === 'blade') {
+          pts.push(new Particle(this.x, this.y, -this.vx * 0.1, -this.vy * 0.1, 5, this.color, 0.20, 'sparkle'));
+        } else if (this.shape === 'carrot') {
+          pts.push(new Particle(this.x, this.y, -this.vx * 0.15, -this.vy * 0.15, 5, '#f97316', 0.25, 'flame'));
+        } else if (this.shape === 'heart') {
+          pts.push(new Particle(this.x, this.y, -this.vx * 0.08, -this.vy * 0.08, 4, '#f472b6', 0.25, 'heart'));
+        }
+      }
+    }
   }
 
   draw(ctx) {
@@ -2467,43 +2691,77 @@ class Projectile {
     ctx.rotate(this.rotation);
     ctx.fillStyle = this.color;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 18;
 
     if (this.shape === 'crescent') {
+      // 🌙 Glowing Cyan Crescent Energy Blade
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 7;
       ctx.beginPath();
-      ctx.arc(0, 0, this.size * 1.6, -Math.PI / 2.4, Math.PI / 2.4);
+      ctx.arc(0, 0, this.size * 1.8, -Math.PI / 2.3, Math.PI / 2.3);
       ctx.stroke();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else if (this.shape === 'blade') {
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      ctx.arc(0, 0, this.size * 1.9, -Math.PI / 2.2, Math.PI / 2.2);
-      ctx.stroke();
+
       ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size * 1.8, -Math.PI / 2.8, Math.PI / 2.8);
+      ctx.stroke();
+
+      // Translucent inner blade energy
+      ctx.fillStyle = this.color;
+      ctx.globalAlpha = 0.45;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size * 1.8, -Math.PI / 2.3, Math.PI / 2.3);
+      ctx.arc(0, 0, this.size * 0.8, Math.PI / 2.3, -Math.PI / 2.3, true);
+      ctx.closePath();
+      ctx.fill();
+    } else if (this.shape === 'blade') {
+      // 🗡️ Azure Master Katana Shockwave
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 8;
+      ctx.shadowColor = '#60a5fa';
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size * 2.1, -Math.PI / 2.2, Math.PI / 2.2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, 0, this.size * 2.1, -Math.PI / 2.6, Math.PI / 2.6);
       ctx.stroke();
     } else if (this.shape === 'snack') {
-      ctx.font = `${Math.round(this.size * 2.4)}px sans-serif`;
+      // 🌰 Steaming Golden Chestnut
+      ctx.font = `${Math.round(this.size * 2.6)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('🌰', 0, 0);
     } else if (this.shape === 'heart') {
-      ctx.font = `${Math.round(this.size * 2.6)}px sans-serif`;
+      // 💖 Radiant Pulsing Neon Heart
+      ctx.font = `${Math.round(this.size * 2.8)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#f472b6';
+      ctx.shadowBlur = 18;
       ctx.fillText('💖', 0, 0);
     } else if (this.shape === 'carrot') {
-      ctx.fillStyle = '#f59e0b';
+      // 🥕 Flaming Rocket Carrot
+      ctx.fillStyle = '#ea580c';
+      ctx.shadowColor = '#f97316';
+      ctx.shadowBlur = 16;
       ctx.beginPath();
-      ctx.ellipse(0, 0, this.size * 1.5, this.size * 0.75, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, this.size * 1.6, this.size * 0.8, 0, 0, Math.PI * 2);
       ctx.fill();
+
+      // Green leafy tail
       ctx.fillStyle = '#22c55e';
-      ctx.fillRect(-this.size * 1.4, -2, 4, 4);
+      ctx.fillRect(-this.size * 1.5, -2.5, 5, 5);
+
+      // White heat highlight
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(this.size * 0.4, 0, this.size * 0.6, this.size * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
     } else if (this.shape === 'tear') {
       // 💧 Weeping tear projectile
       ctx.fillStyle = '#38bdf8';
@@ -2596,10 +2854,11 @@ class Projectile {
       ctx.textBaseline = 'middle';
       ctx.fillText('💣', 0, 0);
     } else if (this.shape === 'star') {
+      // 🌟 Radiant 5-Pointed Star Bullet
       ctx.beginPath();
       for (let i = 0; i < 5; i++) {
         ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * this.size, -Math.sin((18 + i * 72) * Math.PI / 180) * this.size);
-        ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (this.size * 0.5), -Math.sin((54 + i * 72) * Math.PI / 180) * (this.size * 0.5));
+        ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (this.size * 0.48), -Math.sin((54 + i * 72) * Math.PI / 180) * (this.size * 0.48));
       }
       ctx.closePath();
       ctx.fill();
@@ -2607,7 +2866,7 @@ class Projectile {
       // Bright Star Center
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(0, 0, this.size * 0.35, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.size * 0.38, 0, Math.PI * 2);
       ctx.fill();
     } else {
       ctx.beginPath();
@@ -2630,7 +2889,7 @@ class Boomerang {
     this.y = y;
     this.owner = owner;
     this.damage = damage;
-    this.radius = 16;
+    this.radius = 18;
     const angle = Math.atan2(targetY - y, targetX - x);
     this.vx = Math.cos(angle) * 14;
     this.vy = Math.sin(angle) * 14;
@@ -2638,11 +2897,12 @@ class Boomerang {
     this.maxLife = 1.4;
     this.hitEnemies = new Set();
     this.rotation = 0;
+    this.trailTimer = 0;
   }
 
   update(dt, player) {
     this.life -= dt;
-    this.rotation += dt * 18;
+    this.rotation += dt * 22;
 
     if (this.life < this.maxLife * 0.5 && player) {
       const dx = player.x - this.x;
@@ -2654,21 +2914,38 @@ class Boomerang {
 
     this.x += this.vx * dt * 60;
     this.y += this.vy * dt * 60;
+
+    // Glowing spark trail
+    if (window.GameInstance?.particles) {
+      this.trailTimer += dt;
+      if (this.trailTimer >= 0.04) {
+        this.trailTimer = 0;
+        window.GameInstance.particles.push(
+          new Particle(this.x, this.y, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, 6, '#facc15', 0.25, 'sparkle')
+        );
+      }
+    }
   }
 
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rotation);
-    ctx.fillStyle = '#ea580c';
-    ctx.shadowColor = '#f97316';
-    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#f59e0b';
+    ctx.shadowColor = '#facc15';
+    ctx.shadowBlur = 18;
 
+    // Curved glowing boomerang
     ctx.beginPath();
-    ctx.arc(0, 0, 18, 0, Math.PI);
+    ctx.arc(0, 0, 20, -Math.PI / 3, Math.PI);
     ctx.lineTo(-4, 0);
     ctx.closePath();
     ctx.fill();
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
     ctx.restore();
   }
 }
@@ -2677,13 +2954,14 @@ class CarrotMeteor {
   constructor(targetX, targetY, damage = 650, radius = 260) {
     this.targetX = targetX;
     this.targetY = targetY;
-    this.x = targetX - 250;
-    this.y = targetY - 450;
+    this.x = targetX - 280;
+    this.y = targetY - 480;
     this.damage = damage;
     this.radius = radius;
     this.progress = 0;
     this.speed = 1.8;
     this.landed = false;
+    this.trailTimer = 0;
   }
 
   update(dt) {
@@ -2692,26 +2970,65 @@ class CarrotMeteor {
       this.progress = 1.0;
       this.landed = true;
     }
-    this.x = (this.targetX - 250) + 250 * this.progress;
-    this.y = (this.targetY - 450) + 450 * this.progress;
+    this.x = (this.targetX - 280) + 280 * this.progress;
+    this.y = (this.targetY - 480) + 480 * this.progress;
+
+    // Meteor Flame Trail
+    if (window.GameInstance?.particles) {
+      this.trailTimer += dt;
+      if (this.trailTimer >= 0.03) {
+        this.trailTimer = 0;
+        for (let i = 0; i < 2; i++) {
+          window.GameInstance.particles.push(
+            new Particle(this.x + (Math.random() * 20 - 10), this.y + (Math.random() * 20 - 10), -2 - Math.random() * 3, -3 - Math.random() * 3, 10, '#ea580c', 0.35, 'flame')
+          );
+        }
+      }
+    }
   }
 
   draw(ctx) {
     ctx.save();
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.6)';
+    // 1. Danger Target Reticle on Ground
+    const pulse = Math.sin(Date.now() / 100) * 5;
+    ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 3;
+    ctx.shadowColor = '#ef4444';
+    ctx.shadowBlur = 14;
+    ctx.setLineDash([8, 6]);
     ctx.beginPath();
-    ctx.arc(this.targetX, this.targetY, this.radius * (1 - this.progress * 0.5), 0, Math.PI * 2);
+    ctx.arc(this.targetX, this.targetY, this.radius * (1 - this.progress * 0.45) + pulse, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.setLineDash([]);
 
+    // Expanding warning danger fill
+    ctx.fillStyle = 'rgba(239, 68, 68, 0.22)';
+    ctx.beginPath();
+    ctx.arc(this.targetX, this.targetY, this.radius * this.progress, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 2. Giant Fiery Meteor Body
     ctx.translate(this.x, this.y);
     ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = '#ea580c';
+
+    const mGrad = ctx.createRadialGradient(0, 0, 5, 0, 0, 55);
+    mGrad.addColorStop(0, '#ffffff');
+    mGrad.addColorStop(0.3, '#fef08a');
+    mGrad.addColorStop(0.65, '#ea580c');
+    mGrad.addColorStop(1, 'rgba(239, 68, 68, 0.2)');
+
+    ctx.fillStyle = mGrad;
     ctx.shadowColor = '#ff4500';
-    ctx.shadowBlur = 30;
+    ctx.shadowBlur = 36;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 45, 20, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 55, 26, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🥕', 0, 0);
+
     ctx.restore();
   }
 }
@@ -2730,6 +3047,7 @@ class Grenade {
     this.speed = 1.6;
     this.exploded = false;
     this.arcHeight = 120;
+    this.fuseTimer = 0;
   }
 
   update(dt) {
@@ -2742,21 +3060,42 @@ class Grenade {
     const linearY = this.startY + (this.targetY - this.startY) * this.progress;
     const arc = 4 * this.arcHeight * this.progress * (1 - this.progress);
     this.y = linearY - arc;
+
+    // Sparking fuse sparks in flight
+    if (window.GameInstance?.particles) {
+      this.fuseTimer += dt;
+      if (this.fuseTimer >= 0.04) {
+        this.fuseTimer = 0;
+        window.GameInstance.particles.push(
+          new Particle(this.x, this.y - 12, (Math.random() - 0.5) * 3, -1 - Math.random() * 2, 5, '#facc15', 0.25, 'sparkle')
+        );
+      }
+    }
   }
 
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.rotate(this.progress * 14);
+    ctx.rotate(this.progress * 16);
 
     ctx.fillStyle = '#8b5e3c';
+    ctx.shadowColor = '#f59e0b';
+    ctx.shadowBlur = 10;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 16, 20, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 18, 22, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = '#5c3a21';
     ctx.beginPath();
-    ctx.arc(0, -10, 16, Math.PI, 0);
+    ctx.arc(0, -11, 18, Math.PI, 0);
+    ctx.fill();
+
+    // Glowing fuse spark
+    ctx.fillStyle = '#facc15';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(0, -18, 4, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
@@ -4715,30 +5054,44 @@ class Player {
         const ty = this.y + Math.sin(baseAngle) * 350;
         boomerangs.push(new Boomerang(this.x, this.y, tx, ty, 180 * this.damageMultiplier, this));
       }
+      if (window.GameInstance?.particles) {
+        for (let s = 0; s < 12; s++) {
+          const a = Math.random() * Math.PI * 2;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 5, Math.sin(a) * 5, 8, '#facc15', 0.4, 'flame'));
+        }
+      }
       this.say("부메랑 우라-!!", true);
     } else if (this.charType === 'hachiware') {
       Sound.playExplosion();
       const enemies = window.GameInstance?.enemies || [];
       enemies.forEach(e => {
         const d = Math.hypot(e.x - this.x, e.y - this.y);
-        if (d < 350) {
+        if (d < 380) {
           e.blindTimer = 2.8;
           e.hp -= 120 * this.damageMultiplier;
           e.hitTimer = 0.15;
         }
       });
       if (window.GameInstance) {
-        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 350, '#ffffff', 0.4, 'ring'));
-        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 260, '#fef08a', 0.35, 'ring'));
-        for (let i = 0; i < 16; i++) {
+        window.GameInstance.screenShake = 8;
+        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 380, '#ffffff', 0.45, 'ring'));
+        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 280, '#38bdf8', 0.4, 'ring'));
+        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 180, '#fef08a', 0.35, 'ring'));
+        for (let i = 0; i < 24; i++) {
           const a = Math.random() * Math.PI * 2;
-          const spd = 4 + Math.random() * 8;
-          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 7, '#ffffff', 0.45, 'star'));
+          const spd = 4 + Math.random() * 9;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 8, '#ffffff', 0.5, 'sparkle'));
         }
       }
       this.say("카메라 플래시 찰칵!", true);
     } else if (this.charType === 'kurimanju') {
       grenades.push(new Grenade(this.x, this.y, targetX, targetY, 320 * this.damageMultiplier, 210));
+      if (window.GameInstance?.particles) {
+        for (let s = 0; s < 10; s++) {
+          const a = Math.random() * Math.PI * 2;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 7, '#d97706', 0.35, 'flame'));
+        }
+      }
       this.say("알밤 폭탄 받아라!", true);
     } else if (this.charType === 'momonga') {
       for (let i = 0; i < 4; i++) {
@@ -4746,6 +5099,12 @@ class Player {
         const tx = this.x + Math.cos(angle) * 300;
         const ty = this.y + Math.sin(angle) * 300;
         boomerangs.push(new Boomerang(this.x, this.y, tx, ty, 150 * this.damageMultiplier, this));
+      }
+      if (window.GameInstance?.particles) {
+        for (let s = 0; s < 14; s++) {
+          const a = (s * Math.PI * 2) / 14;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 5, Math.sin(a) * 5, 8, '#f472b6', 0.45, 'heart'));
+        }
       }
       this.say("꼬리 회오리 폭풍!", true);
     } else if (this.charType === 'rakko') {
@@ -4761,13 +5120,24 @@ class Player {
         );
       }
       if (window.GameInstance) {
-        window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle - 0.22, 240, '#38bdf8'));
-        window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle + 0.22, 240, '#ffffff'));
+        window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle - 0.25, 260, '#38bdf8'));
+        window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle + 0.25, 260, '#ffffff'));
+        for (let s = 0; s < 16; s++) {
+          const a = baseAngle + (Math.random() - 0.5) * 1.5;
+          const spd = 5 + Math.random() * 8;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 7, '#38bdf8', 0.4, 'sparkle'));
+        }
       }
       Sound.playCritHit();
       this.say("비검! 십자 베기!", true);
     } else {
       grenades.push(new Grenade(this.x, this.y, targetX, targetY, 260 * this.damageMultiplier, 190));
+      if (window.GameInstance?.particles) {
+        for (let s = 0; s < 10; s++) {
+          const a = Math.random() * Math.PI * 2;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 7, '#ff79b0', 0.35, 'star'));
+        }
+      }
       this.say("도토리 폭탄 받아랏!", true);
     }
   }
@@ -4779,13 +5149,25 @@ class Player {
     if (this.charType === 'usagi') {
       this.isTornadoSpinning = true;
       this.tornadoTimer = 3.5;
+      if (window.GameInstance) {
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 180, 0, '#facc15'));
+        for (let s = 0; s < 18; s++) {
+          const a = Math.random() * Math.PI * 2;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 6, Math.sin(a) * 6, 9, '#f59e0b', 0.45, 'flame'));
+        }
+      }
       this.say("우라라라라 회전-!!", true);
     } else if (this.charType === 'hachiware') {
       this.hp = Math.min(this.maxHp, this.hp + 35);
       this.positiveTimer = 6.0;
-      damageTexts.push(new DamageText(this.x, this.y - 25, '+35 HP 힐링!', '#10b981', true));
+      damageTexts.push(new DamageText(this.x, this.y - 25, '🎵 +35 HP 힐링 잼!', '#10b981', true));
       if (window.GameInstance) {
-        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 120, '#10b981', 0.45, 'ring'));
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 160, 0, '#10b981'));
+        for (let i = 0; i < 14; i++) {
+          const a = (i * Math.PI * 2) / 14;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 8, '#34d399', 0.55, 'music'));
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 3, Math.sin(a) * 3, 6, '#86efac', 0.45, 'sparkle'));
+        }
       }
       this.say("기타 치면서 힘내자!", true);
     } else if (this.charType === 'kurimanju') {
@@ -4799,7 +5181,13 @@ class Player {
         e.hitTimer = 0.15;
       });
       if (window.GameInstance) {
-        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 280, 100, '#f59e0b'));
+        window.GameInstance.screenShake = 10;
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 300, 100, '#f59e0b'));
+        for (let i = 0; i < 16; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const spd = 3 + Math.random() * 6;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 8, '#fef08a', 0.55, 'bubble'));
+        }
       }
       damageTexts.push(new DamageText(this.x, this.y - 25, '🍺 음주 포효 (광역기절 & 공격+35%)!', '#f59e0b', true));
       this.say("하아ー! 한잔 마셨다!", true);
@@ -4814,10 +5202,10 @@ class Player {
         }
       });
       if (window.GameInstance) {
-        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 320, 0, '#f472b6'));
-        for (let i = 0; i < 12; i++) {
-          const a = (i * Math.PI * 2) / 12;
-          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 10, '#f472b6', 0.6, 'heart'));
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 340, 0, '#f472b6'));
+        for (let i = 0; i < 20; i++) {
+          const a = (i * Math.PI * 2) / 20;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 5, Math.sin(a) * 5, 11, '#f472b6', 0.65, 'heart'));
         }
       }
       damageTexts.push(new DamageText(this.x, this.y - 25, '💖 칭찬 매혹 (주변 3.5초 매혹 & 힐)!', '#f472b6', true));
@@ -4825,7 +5213,11 @@ class Player {
     } else if (this.charType === 'rakko') {
       this.parryTimer = 1.8;
       if (window.GameInstance) {
-        window.GameInstance.particles.push(new Particle(this.x, this.y, 0, 0, 100, '#38bdf8', 0.4, 'ring'));
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 140, 0, '#38bdf8'));
+        for (let i = 0; i < 16; i++) {
+          const a = Math.random() * Math.PI * 2;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 5, Math.sin(a) * 5, 8, '#bae6fd', 0.45, 'ice'));
+        }
       }
       damageTexts.push(new DamageText(this.x, this.y - 25, '🛡️ 완벽 패링 자세 (1.8초)!', '#38bdf8', true));
       this.say("검사의 호흡... 언제든 와라!", true);
@@ -4834,7 +5226,11 @@ class Player {
       this.tearShieldTimer = 6.0;
       this.hasShield = true;
       if (window.GameInstance) {
-        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 220, 0, '#ff79b0'));
+        window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 240, 0, '#ff79b0'));
+        for (let i = 0; i < 16; i++) {
+          const a = (i * Math.PI * 2) / 16;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 8, '#ff79b0', 0.5, 'star'));
+        }
       }
       damageTexts.push(new DamageText(this.x, this.y - 25, '🛡️ 눈물 방패 각성!', '#ff79b0', true));
       this.say("용기 100% 각성-!!", true);
@@ -4848,8 +5244,8 @@ class Player {
     if (this.charType === 'usagi') {
       window.GameInstance?.triggerSkillCutIn('usagi', '초특대 당근 메테오 강림-!!', '우뺘아아아-!! 뿌루루루-!!');
       for (let i = 0; i < 4; i++) {
-        const ox = (Math.random() - 0.5) * 220;
-        const oy = (Math.random() - 0.5) * 220;
+        const ox = (Math.random() - 0.5) * 240;
+        const oy = (Math.random() - 0.5) * 240;
         meteors.push(new CarrotMeteor(targetX + ox, targetY + oy, 550 * this.damageMultiplier, 220));
       }
       this.say("초특대 당근 메테오-!!", true);
@@ -4862,14 +5258,15 @@ class Player {
         e.hitTimer = 0.2;
       });
       if (window.GameInstance) {
+        window.GameInstance.screenShake = 12;
         const baseAngle = Math.atan2(targetY - this.y, targetX - this.x);
         for (let offset of [-0.4, -0.2, 0, 0.2, 0.4]) {
-          window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle + offset, 300, '#38bdf8'));
+          window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle + offset, 320, '#38bdf8'));
         }
-        for (let i = 0; i < 18; i++) {
-          const a = baseAngle + (Math.random() - 0.5) * 1.2;
-          const spd = 7 + Math.random() * 10;
-          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 8, '#7dd3fc', 0.4, 'sparkle'));
+        for (let i = 0; i < 24; i++) {
+          const a = baseAngle + (Math.random() - 0.5) * 1.4;
+          const spd = 7 + Math.random() * 12;
+          window.GameInstance.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 9, '#7dd3fc', 0.5, 'sparkle'));
         }
       }
       damageTexts.push(new DamageText(this.x, this.y - 40, '⚡ 메가 슬래시 참격!', '#38bdf8', true));
@@ -4892,11 +5289,12 @@ class Player {
           new Projectile(
             this.x, this.y,
             Math.cos(a) * 15, Math.sin(a) * 15,
-            340 * this.damageMultiplier, 3, true, '#f472b6', 11, true, 'heart'
+            340 * this.damageMultiplier, 3, true, '#f472b6', 12, true, 'heart'
           )
         );
       }
-      window.GameInstance.screenShake = 12;
+      window.GameInstance.screenShake = 14;
+      window.GameInstance.shockwaves.push(new Shockwave(this.x, this.y, 400, 0, '#f472b6'));
       damageTexts.push(new DamageText(this.x, this.y - 40, '👑 하트 슈퍼노바 폭발!', '#f472b6', true));
       this.say("내 귀여움을 받아라-!!", true);
     } else if (this.charType === 'rakko') {
@@ -4905,7 +5303,7 @@ class Player {
       this.driveTimer = 4.5;
       this.invulnerableTimer = 4.8;
       Sound.playLaser();
-      window.GameInstance.screenShake = 10;
+      window.GameInstance.screenShake = 12;
       damageTexts.push(new DamageText(this.x, this.y - 40, '🚗 드라이브 돌진 개시!', '#f59e0b', true));
       this.say("드라이브 출발이다! 다 비켜라!", true);
     } else {
@@ -9033,26 +9431,62 @@ class Game {
       const ly = this.player.y || 0;
       const angle = this.player.aimAngle || 0;
       const len = 1600;
+      const t = Date.now() / 80;
 
       this.ctx.save();
-      this.ctx.globalAlpha = 0.6;
       this.ctx.translate(lx, ly);
       this.ctx.rotate(angle);
 
-      const grad = this.ctx.createLinearGradient(0, -20, 0, 20);
-      grad.addColorStop(0, 'rgba(255, 64, 129, 0.65)');
-      grad.addColorStop(0.25, 'rgba(255, 209, 102, 0.7)');
-      grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.85)');
-      grad.addColorStop(0.75, 'rgba(6, 214, 160, 0.7)');
-      grad.addColorStop(1, 'rgba(17, 138, 178, 0.65)');
+      // 1. Dazzling Muzzle Charge Flare at Sasumata tip
+      const muzzleGrad = this.ctx.createRadialGradient(0, 0, 4, 0, 0, 52);
+      muzzleGrad.addColorStop(0, '#ffffff');
+      muzzleGrad.addColorStop(0.3, 'rgba(250, 204, 21, 0.95)');
+      muzzleGrad.addColorStop(0.6, 'rgba(244, 114, 182, 0.7)');
+      muzzleGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      this.ctx.fillStyle = muzzleGrad;
+      this.ctx.beginPath();
+      this.ctx.arc(0, 0, 52, 0, Math.PI * 2);
+      this.ctx.fill();
 
-      this.ctx.fillStyle = grad;
+      // 2. Wide Prismatic Rainbow Aura Wave
+      const rainbowGrad = this.ctx.createLinearGradient(0, -42, 0, 42);
+      rainbowGrad.addColorStop(0, 'rgba(244, 63, 94, 0.55)');
+      rainbowGrad.addColorStop(0.2, 'rgba(249, 115, 22, 0.65)');
+      rainbowGrad.addColorStop(0.4, 'rgba(234, 179, 8, 0.75)');
+      rainbowGrad.addColorStop(0.6, 'rgba(34, 197, 94, 0.75)');
+      rainbowGrad.addColorStop(0.8, 'rgba(56, 189, 248, 0.65)');
+      rainbowGrad.addColorStop(1, 'rgba(168, 85, 247, 0.55)');
+
+      this.ctx.fillStyle = rainbowGrad;
       this.ctx.shadowColor = '#ffffff';
-      this.ctx.shadowBlur = 14;
-      this.ctx.fillRect(0, -18, len, 36);
+      this.ctx.shadowBlur = 28;
+      this.ctx.fillRect(0, -36, len, 72);
 
-      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      this.ctx.fillRect(0, -5, len, 10);
+      // 3. Double-Helix Helical Energy Spiral Waves
+      this.ctx.lineWidth = 3.5;
+      for (let waveIdx = 0; waveIdx < 2; waveIdx++) {
+        const sign = waveIdx === 0 ? 1 : -1;
+        this.ctx.strokeStyle = waveIdx === 0 ? '#fde047' : '#38bdf8';
+        this.ctx.shadowColor = this.ctx.strokeStyle;
+        this.ctx.shadowBlur = 16;
+        this.ctx.beginPath();
+        for (let x = 0; x < len; x += 15) {
+          const y = Math.sin((x / 45) + (t * sign)) * 28 * sign;
+          if (x === 0) this.ctx.moveTo(x, y);
+          else this.ctx.lineTo(x, y);
+        }
+        this.ctx.stroke();
+      }
+
+      // 4. Inner Piercing Pure White Plasma Laser Core
+      const coreGrad = this.ctx.createLinearGradient(0, -12, 0, 12);
+      coreGrad.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+      coreGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.98)');
+      coreGrad.addColorStop(1, 'rgba(255, 255, 255, 0.2)');
+      this.ctx.fillStyle = coreGrad;
+      this.ctx.shadowColor = '#ffffff';
+      this.ctx.shadowBlur = 20;
+      this.ctx.fillRect(0, -12, len, 24);
 
       this.ctx.restore();
     } catch (e) {}
