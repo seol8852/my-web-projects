@@ -5039,11 +5039,6 @@ class Game {
   }
 
   update(dt) {
-    if (this.hitStopTimer > 0) {
-      this.hitStopTimer -= dt;
-      return;
-    }
-
     this.gameTime += dt;
 
     if (this.comboTimer > 0) {
@@ -5401,8 +5396,6 @@ class Game {
 
             if (isCrit) {
               Sound.playCritHit();
-              this.screenShake = 4;
-              this.hitStopTimer = 0.04;
             } else {
               Sound.playHit();
             }
