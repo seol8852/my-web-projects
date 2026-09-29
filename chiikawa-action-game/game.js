@@ -3830,14 +3830,14 @@ class Game {
 
     this.wave = 1;
     this.waveTimer = 0;
-    this.waveDuration = 42;
-    this.maxCampaignWave = 20;
+    this.waveDuration = 35;
+    this.maxCampaignWave = 12;
     this.gameTime = 0;
     this.score = 0;
     this.kills = 0;
     this.level = 1;
     this.currentExp = 0;
-    this.maxExp = 100;
+    this.maxExp = 80;
 
     this.comboCount = 0;
     this.comboTimer = 0;
@@ -4508,8 +4508,8 @@ class Game {
         if (this.isRunning && !this.isPaused) this.spawnBossRushBoss(1);
       }, 1500);
     } else {
-      this.maxCampaignWave = 20;
-      this.waveDuration = 42;
+      this.maxCampaignWave = 12;
+      this.waveDuration = 35;
     }
 
     this.camera.x = startX - this.canvas.width / 2;
@@ -4596,9 +4596,9 @@ class Game {
       const bg = bgs[Math.floor((wave - 1) / 5) % bgs.length];
       return { name: `♾️ 무한 서바이벌 (Wave ${wave})`, bgKey: bg };
     }
-    if (wave <= 5) return { name: '🌸 제1장: 평화로운 숲속', bgKey: 'battle_bg' };
-    if (wave <= 10) return { name: '🍜 제2장: 라멘 로 결전장', bgKey: 'ramen_bg' };
-    if (wave <= 15) return { name: '🏰 제3장: 고대 지하 신전', bgKey: 'tower_bg' };
+    if (wave <= 4) return { name: '🌸 제1장: 평화로운 숲속', bgKey: 'battle_bg' };
+    if (wave <= 8) return { name: '🍜 제2장: 라멘 로 결전장', bgKey: 'ramen_bg' };
+    if (wave <= 11) return { name: '🏰 제3장: 고대 지하 신전', bgKey: 'tower_bg' };
     return { name: '⚡ 최종장: 진(眞) 아노코 토벌전', bgKey: 'battle_bg' };
   }
 
@@ -4786,23 +4786,15 @@ class Game {
     if (this.wave === 1) type = 'bug';
     else if (this.wave === 2) type = roll < 0.5 ? 'goblin' : 'bug';
     else if (this.wave === 3) type = roll < 0.4 ? 'lightning_beetle' : (roll < 0.7 ? 'goblin' : 'bug');
-    else if (this.wave === 4) type = roll < 0.4 ? 'chimera' : (roll < 0.7 ? 'goblin' : 'bug');
-    else if (this.wave === 5) type = roll < 0.5 ? 'goblin' : 'bug';
-    else if (this.wave === 6) type = roll < 0.65 ? 'dark_swarm' : 'bug';
-    else if (this.wave === 7) type = roll < 0.5 ? 'goblin' : (roll < 0.8 ? 'dark_swarm' : 'lightning_beetle');
+    else if (this.wave === 4) type = roll < 0.45 ? 'chimera' : (roll < 0.75 ? 'goblin' : 'bug');
+    else if (this.wave === 5) type = roll < 0.55 ? 'dark_swarm' : (roll < 0.8 ? 'goblin' : 'lightning_beetle');
+    else if (this.wave === 6) type = roll < 0.5 ? 'lightning_beetle' : (roll < 0.8 ? 'dark_swarm' : 'goblin');
+    else if (this.wave === 7) type = roll < 0.45 ? 'iron_chimera' : (roll < 0.75 ? 'chimera' : 'dark_swarm');
     else if (this.wave === 8) type = roll < 0.45 ? 'iron_chimera' : (roll < 0.75 ? 'lightning_beetle' : 'dark_swarm');
-    else if (this.wave === 9) type = roll < 0.35 ? 'iron_chimera' : (roll < 0.65 ? 'chimera' : 'dark_swarm');
-    else if (this.wave === 10) type = roll < 0.4 ? 'dark_swarm' : (roll < 0.7 ? 'goblin' : 'lightning_beetle');
-    else if (this.wave === 11) type = roll < 0.55 ? 'goblin' : 'dark_swarm';
-    else if (this.wave === 12) type = roll < 0.6 ? 'lightning_beetle' : 'goblin';
-    else if (this.wave === 13) type = roll < 0.5 ? 'iron_chimera' : 'chimera';
-    else if (this.wave === 14) type = roll < 0.3 ? 'iron_chimera' : (roll < 0.6 ? 'lightning_beetle' : 'goblin');
-    else if (this.wave === 15) type = roll < 0.4 ? 'iron_chimera' : 'dark_swarm';
-    else if (this.wave === 16) type = roll < 0.45 ? 'iron_chimera' : 'lightning_beetle';
-    else if (this.wave === 17) type = roll < 0.5 ? 'dark_swarm' : 'goblin';
-    else if (this.wave === 18) type = roll < 0.35 ? 'iron_chimera' : (roll < 0.7 ? 'chimera' : 'dark_swarm');
-    else if (this.wave === 19) type = roll < 0.3 ? 'iron_chimera' : (roll < 0.55 ? 'lightning_beetle' : (roll < 0.8 ? 'chimera' : 'goblin'));
-    else type = roll < 0.25 ? 'iron_chimera' : (roll < 0.5 ? 'lightning_beetle' : (roll < 0.75 ? 'goblin' : 'dark_swarm'));
+    else if (this.wave === 9) type = roll < 0.4 ? 'iron_chimera' : (roll < 0.7 ? 'chimera' : 'goblin');
+    else if (this.wave === 10) type = roll < 0.4 ? 'iron_chimera' : (roll < 0.7 ? 'dark_swarm' : 'lightning_beetle');
+    else if (this.wave === 11) type = roll < 0.45 ? 'iron_chimera' : (roll < 0.75 ? 'chimera' : 'lightning_beetle');
+    else type = roll < 0.35 ? 'iron_chimera' : (roll < 0.6 ? 'lightning_beetle' : (roll < 0.8 ? 'dark_swarm' : 'goblin'));
 
     this.enemies.push(new Enemy(x, y, type, this.wave, diff));
   }
@@ -4841,7 +4833,7 @@ class Game {
     const x = this.player ? this.player.x : this.worldWidth / 2;
     const y = Math.max(100, (this.player ? this.player.y : this.worldHeight / 2) - 650);
     this.enemies.push(new Enemy(x, y, 'midboss', wave, this.getDiffConfig()));
-    this.showDangerBanner(`제${Math.ceil(wave / 5)}장 보스 등장!`);
+    this.showDangerBanner(wave <= 4 ? '⚠️ 제1장 보스: 폭주하는 가시 키메라 출현!' : '⚠️ 제2장 보스: 돌연변이 쌍두 키메라 출현!');
   }
 
   spawnFinalBoss(wave) {
@@ -4854,6 +4846,7 @@ class Game {
   addExp(amount) {
     const grade = StorageManager.getWeedingGrade();
     if (grade.rank <= 4) amount *= 1.12; // 4급 이상 특전: 경험치 +12%
+    amount *= 1.25; // 7~8분 모드 레벨업 템포 보정
 
     this.currentExp += amount;
     let scoreAdd = amount * 10 * this.getDiffConfig().scoreMult;
@@ -4864,7 +4857,7 @@ class Game {
     if (this.currentExp >= this.maxExp && !this.isLevelingUp) {
       this.currentExp -= this.maxExp;
       this.level++;
-      this.maxExp = Math.round(this.maxExp * 1.35);
+      this.maxExp = Math.round(this.maxExp * 1.28);
       this.triggerLevelUp();
     }
     this.updateHUD();
@@ -5116,15 +5109,15 @@ class Game {
         this.wave++;
         this.damageTexts.push(new DamageText(this.player.x, this.player.y - 45, `🌸 WAVE ${this.wave} 시작! 🌸`, '#f59e0b', true));
 
-        if (this.wave === 5 || this.wave === 10 || this.wave === 15) {
+        if (this.wave === 4 || this.wave === 8) {
           this.spawnMidBoss(this.wave);
         } else if (this.wave === this.maxCampaignWave) {
           this.spawnFinalBoss(this.wave);
         }
       }
 
-      // Spawn Dungeon Portal periodically on surface (Wave 3, 8, 13, 18 or every 110s in endless)
-      if ((this.wave === 3 || this.wave === 8 || this.wave === 13 || this.wave === 18) && !this.dungeonPortalSpawnedWaves.has(this.wave)) {
+      // Spawn Dungeon Portal periodically on surface (Wave 3, 7, 10 or every 110s in endless)
+      if ((this.wave === 3 || this.wave === 7 || this.wave === 10) && !this.dungeonPortalSpawnedWaves.has(this.wave)) {
         this.dungeonPortalSpawnedWaves.add(this.wave);
         this.spawnDungeonPortal();
       } else if (this.gameMode === 'endless') {
