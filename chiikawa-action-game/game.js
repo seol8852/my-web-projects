@@ -2882,39 +2882,39 @@ class Enemy {
       this.xp = 200 + wave * 25;
       this.name = '강철 중장갑 키메라';
     } else if (type.startsWith('sanctuary_boss')) {
-      this.radius = 56;
-      this.hp = 3400 * diffConfig.hpMult;
+      this.radius = 58;
+      this.hp = 4600 * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.4 * diffConfig.spdMult;
-      this.damage = Math.round(36 * diffConfig.dmgMult);
+      this.speed = 1.45 * diffConfig.spdMult;
+      this.damage = Math.round(42 * diffConfig.dmgMult);
       this.color = '#ec4899';
-      this.xp = 1000;
-      this.shootCooldown = 1.6;
+      this.xp = 1400;
+      this.shootCooldown = 1.5;
       if (type === 'sanctuary_boss_nw') this.name = '🍄 독안개 가시 키메라';
       else if (type === 'sanctuary_boss_ne') this.name = '🍜 강철 갑옷 풍뎅이';
       else if (type === 'sanctuary_boss_sw') this.name = '🏰 흑화 쌍두 키메라';
       else this.name = '⚡ 폭풍 번개 골렘';
     } else if (type === 'midboss') {
-      this.radius = 54;
-      this.hp = (2600 + wave * 450) * diffConfig.hpMult;
+      this.radius = 56;
+      this.hp = (3200 + wave * 500) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.45 * diffConfig.spdMult;
-      this.damage = Math.round(34 * diffConfig.dmgMult);
+      this.speed = 1.5 * diffConfig.spdMult;
+      this.damage = Math.round(38 * diffConfig.dmgMult);
       this.color = '#ea580c';
-      this.xp = 850 + wave * 80;
-      this.shootCooldown = 1.8;
+      this.xp = 1200 + wave * 100;
+      this.shootCooldown = 1.6;
       if (wave <= 5) this.name = '폭주하는 가시 키메라';
       else this.name = '돌연변이 쌍두 키메라';
     } else if (type === 'boss') {
-      this.radius = 68;
-      this.hp = (6500 + wave * 700) * diffConfig.hpMult;
+      this.radius = 72;
+      this.hp = (8200 + wave * 850) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.5 * diffConfig.spdMult;
-      this.damage = Math.round(48 * diffConfig.dmgMult);
+      this.speed = 1.55 * diffConfig.spdMult;
+      this.damage = Math.round(52 * diffConfig.dmgMult);
       this.color = '#e11d48';
-      this.xp = 3000;
+      this.xp = 4500;
       this.name = '진(眞) 거대 아노코 [최종 결전]';
-      this.shootCooldown = 1.5;
+      this.shootCooldown = 1.4;
     } else if (type === 'golden_goblin') {
       this.radius = 26;
       this.hp = (320 + wave * 45) * diffConfig.hpMult;
@@ -2935,35 +2935,35 @@ class Enemy {
       this.xp = 260 + wave * 35;
       this.name = '🗿 고대 수호 석병';
     } else if (type === 'ancient_golem') {
-      this.radius = 52;
-      this.hp = (2600 + wave * 360) * diffConfig.hpMult;
+      this.radius = 54;
+      this.hp = (3000 + wave * 400) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.45 * diffConfig.spdMult;
-      this.damage = Math.round(36 * diffConfig.dmgMult);
+      this.speed = 1.5 * diffConfig.spdMult;
+      this.damage = Math.round(40 * diffConfig.dmgMult);
       this.color = '#a855f7';
-      this.xp = 900 + wave * 100;
-      this.shootCooldown = 1.8;
+      this.xp = 1100 + wave * 120;
+      this.shootCooldown = 1.6;
       this.name = '🏛️ 고대 지하 수호 골렘';
       this.isElite = true;
     } else if (type === 'shadow_golem') {
-      this.radius = 50;
-      this.hp = (2200 + wave * 300) * diffConfig.hpMult;
+      this.radius = 52;
+      this.hp = (2800 + wave * 380) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.85 * diffConfig.spdMult;
-      this.damage = Math.round(42 * diffConfig.dmgMult);
+      this.speed = 1.9 * diffConfig.spdMult;
+      this.damage = Math.round(45 * diffConfig.dmgMult);
       this.color = '#e11d48';
-      this.xp = 1100 + wave * 120;
-      this.shootCooldown = 1.4;
+      this.xp = 1300 + wave * 140;
+      this.shootCooldown = 1.3;
       this.name = '⚡ 흑화 폭주 골렘 [분노]';
       this.isElite = true;
     } else if (type === 'elite_bounty') {
-      this.radius = 45;
-      this.hp = (1100 + wave * 220) * diffConfig.hpMult;
+      this.radius = 48;
+      this.hp = (1400 + wave * 260) * diffConfig.hpMult;
       this.maxHp = this.hp;
-      this.speed = 1.6 * diffConfig.spdMult;
-      this.damage = Math.round(30 * diffConfig.dmgMult);
+      this.speed = 1.65 * diffConfig.spdMult;
+      this.damage = Math.round(35 * diffConfig.dmgMult);
       this.color = '#c084fc';
-      this.xp = 600 + wave * 60;
+      this.xp = 800 + wave * 80;
       this.name = '👑 [현상수배] 악명 높은 돌연변이 키메라';
       this.isElite = true;
     }
@@ -3053,14 +3053,14 @@ class Enemy {
       this.telegraphTimer -= dt;
     }
 
-    // Thunder strike callouts
+    // Thunder strike callouts (SE Boss)
     if (this.thunderTargets && this.thunderTargets.length > 0) {
       this.thunderTimer -= dt;
       if (this.thunderTimer <= 0) {
         Sound.playLightning();
         this.thunderTargets.forEach(t => {
-          shockwaves.push(new Shockwave(t.x, t.y, 110, 24, '#facc15'));
-          for (let k = 0; k < 12; k++) {
+          shockwaves.push(new Shockwave(t.x, t.y, 120, 26, '#facc15'));
+          for (let k = 0; k < 14; k++) {
             particles.push(new Particle(t.x, t.y, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 6, '#fde047', 0.35, 'sparkle'));
           }
         });
@@ -3068,7 +3068,23 @@ class Enemy {
       }
     }
 
-    // Leaping Smash Physics (for Chimera & Boss)
+    // Meteor strike callouts (Boss Phase 2)
+    if (this.meteorTargets && this.meteorTargets.length > 0) {
+      this.meteorTimer -= dt;
+      if (this.meteorTimer <= 0) {
+        Sound.playExplosion();
+        this.meteorTargets.forEach(m => {
+          shockwaves.push(new Shockwave(m.x, m.y, 140, 28, '#f43f5e'));
+          for (let k = 0; k < 16; k++) {
+            const a = Math.random() * Math.PI * 2;
+            particles.push(new Particle(m.x, m.y, Math.cos(a) * 5, Math.sin(a) * 5, 7, '#f43f5e', 0.45, 'star'));
+          }
+        });
+        this.meteorTargets = [];
+      }
+    }
+
+    // Leaping Smash Physics (for Chimera, Midboss & Boss)
     if (this.isLeaping) {
       this.leapProgress += dt * 1.6;
       this.x = this.leapStartX + (this.leapTargetX - this.leapStartX) * Math.min(1.0, this.leapProgress);
@@ -3081,10 +3097,12 @@ class Enemy {
         this.scaleX = 1.45;
         this.scaleY = 0.65;
         Sound.playExplosion();
-        shockwaves.push(new Shockwave(this.x, this.y, 180, Math.round(this.damage * 0.9), '#f97316'));
-        for (let k = 0; k < 14; k++) {
+        const shockRadius = (this.type === 'boss') ? 340 : 190;
+        const shockDmg = Math.round(this.damage * 0.95);
+        shockwaves.push(new Shockwave(this.x, this.y, shockRadius, shockDmg, this.color || '#f97316'));
+        for (let k = 0; k < 18; k++) {
           const a = Math.random() * Math.PI * 2;
-          particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 6, '#f97316', 0.4, 'star'));
+          particles.push(new Particle(this.x, this.y, Math.cos(a) * 5, Math.sin(a) * 5, 7, this.color || '#f97316', 0.45, 'star'));
         }
       }
       return;
@@ -3127,7 +3145,7 @@ class Enemy {
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
 
-      // 🦟 New Attack: Swoop Dive Bomb (급강하 찌르기)
+      // 🦟 Swoop Dive Bomb
       this.timer += dt;
       if (this.timer >= 3.6 && dist < 380 && dist > 110 && this.blindTimer <= 0) {
         this.timer = 0;
@@ -3145,12 +3163,11 @@ class Enemy {
       }
     } else if (this.type === 'dark_swarm') {
       this.bob = Math.sin(this.animTimer * 2.4) * 3;
-      // Fast erratic flanking movement
       const flankAngle = Math.atan2(dy, dx) + Math.sin(this.animTimer * 3) * 0.4;
       this.x += Math.cos(flankAngle) * curSpeed * dt * 60;
       this.y += Math.sin(flankAngle) * curSpeed * dt * 60;
 
-      // 🌑 New Attack: Shadow Blink Ambush (그림자 순간이동 기습)
+      // 🌑 Shadow Blink Ambush
       this.blinkCooldown -= dt;
       if (this.blinkCooldown <= 0 && dist > 190 && this.blindTimer <= 0) {
         this.blinkCooldown = 3.2 + Math.random() * 2.0;
@@ -3170,7 +3187,6 @@ class Enemy {
         this.x += (dx / dist) * curSpeed * dt * 60;
         this.y += (dy / dist) * curSpeed * dt * 60;
       } else if (dist < 150) {
-        // 🤸 Acrobatic Backflip Evasion & Parting Darts
         this.x -= (dx / dist) * curSpeed * 1.6 * dt * 60;
         this.y -= (dy / dist) * curSpeed * 1.6 * dt * 60;
         if (Math.random() < 0.1 && this.blindTimer <= 0) {
@@ -3207,7 +3223,7 @@ class Enemy {
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
 
-      // 💧 Pattern 1: Weeping Tear Drops (비통의 눈물 탄환)
+      // 💧 Weeping Tear Drops
       this.timer += dt;
       if (this.timer >= 2.8 && this.blindTimer <= 0) {
         this.timer = 0;
@@ -3219,7 +3235,7 @@ class Enemy {
         }
       }
 
-      // 🐾 Pattern 2: Leap Ground Slam (도약 지진 강타)
+      // 🐾 Leap Ground Slam
       this.specialTimer += dt;
       if (this.specialTimer >= 5.5 && dist < 450 && dist > 100 && this.blindTimer <= 0) {
         this.specialTimer = 0;
@@ -3244,7 +3260,6 @@ class Enemy {
       }
 
       if (this.isCharging) {
-        // ⚡ Z-shaped Zig-Zag Thunder Dash
         const zigZag = Math.sin(this.chargeTimer * 22) * 0.5;
         this.x += Math.cos(this.chargeAngle + zigZag) * curSpeed * 3.4 * dt * 60;
         this.y += Math.sin(this.chargeAngle + zigZag) * curSpeed * 3.4 * dt * 60;
@@ -3264,7 +3279,7 @@ class Enemy {
       this.x += (dx / dist) * curSpeed * dt * 60;
       this.y += (dy / dist) * curSpeed * dt * 60;
 
-      // 🪨 Pattern 1: Rolling Heavy Boulder Toss (대지 바위 투척)
+      // 🪨 Rolling Heavy Boulder Toss
       this.timer += dt;
       if (this.timer >= 4.0 && this.blindTimer <= 0) {
         this.timer = 0;
@@ -3274,7 +3289,7 @@ class Enemy {
         );
       }
 
-      // 🛡️ Pattern 2: Iron Guard Fortification (철벽 방어 태세)
+      // 🛡️ Iron Guard Fortification
       this.shieldTimer -= dt;
       if (this.shieldTimer <= -6.0) {
         this.shieldTimer = 2.0;
@@ -3284,7 +3299,7 @@ class Enemy {
         }
       }
 
-      // 💥 Pattern 3: Seismic Foot Stomp (지진 충격파)
+      // 💥 Seismic Foot Stomp
       this.stompTimer += dt;
       if (this.stompTimer >= 4.5) {
         this.stompTimer = 0;
@@ -3301,66 +3316,80 @@ class Enemy {
       this.specialTimer += dt;
 
       if (this.type === 'sanctuary_boss_nw') {
-        // 🍄 NW Boss: Poison Spore Mortar & Thorn Ring
+        // 🍄 NW Boss: Poison Spore Mortar Cluster + 16-Way Needle Tempest
         if (this.timer >= this.shootCooldown && this.blindTimer <= 0) {
           this.timer = 0;
-          for (let i = 0; i < 3; i++) {
-            const pa = Math.atan2(dy, dx) + (i - 1) * 0.35;
-            projectiles.push(new Projectile(this.x, this.y, Math.cos(pa) * 5.5, Math.sin(pa) * 5.5, 20, 1, false, '#a855f7', 10, false, 'spore'));
+          for (let i = 0; i < 4; i++) {
+            const pa = Math.atan2(dy, dx) + (i - 1.5) * 0.28;
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(pa) * 5.8, Math.sin(pa) * 5.8, 22, 1, false, '#a855f7', 10, false, 'spore'));
+          }
+        }
+        if (this.specialTimer >= 3.8) {
+          this.specialTimer = 0;
+          Sound.playExplosion();
+          shockwaves.push(new Shockwave(this.x, this.y, 300, 32, '#a855f7'));
+          for (let i = 0; i < 16; i++) {
+            const angle = (Math.PI * 2 / 16) * i;
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 5.5, Math.sin(angle) * 5.5, 18, 1, false, '#d946ef', 7, false, 'needle'));
+          }
+        }
+      } else if (this.type === 'sanctuary_boss_ne') {
+        // 🍜 NE Boss: Sonic Steel Shell Roll & Shrapnel Shotgun
+        if (this.timer >= 4.2 && !this.isRolling && this.blindTimer <= 0) {
+          this.timer = 0;
+          this.isRolling = true;
+          this.rollDuration = 1.3;
+          const rAngle = Math.atan2(dy, dx);
+          this.rollVx = Math.cos(rAngle) * curSpeed * 4.6;
+          this.rollVy = Math.sin(rAngle) * curSpeed * 4.6;
+          Sound.playDash();
+        }
+        if (this.specialTimer >= 3.2) {
+          this.specialTimer = 0;
+          const baseAngle = Math.atan2(dy, dx);
+          for (let i = 0; i < 6; i++) {
+            const angle = baseAngle + (i - 2.5) * 0.22;
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 6.2, Math.sin(angle) * 6.2, 20, 2, false, '#f97316', 8, false, 'boulder'));
+          }
+        }
+      } else if (this.type === 'sanctuary_boss_sw') {
+        // 🏰 SW Boss: Dual Darkflame Breath Stream & Dark Gravity Orb
+        if (this.timer >= this.shootCooldown && this.blindTimer <= 0) {
+          this.timer = 0;
+          const bAngle = Math.atan2(dy, dx);
+          for (let offset of [-0.36, -0.18, 0, 0.18, 0.36]) {
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(bAngle + offset) * 7.0, Math.sin(bAngle + offset) * 7.0, 22, 1, false, '#1e1b4b', 10, false, 'dark_orb'));
           }
         }
         if (this.specialTimer >= 4.2) {
           this.specialTimer = 0;
-          shockwaves.push(new Shockwave(this.x, this.y, 270, 30, '#a855f7'));
-          for (let i = 0; i < 12; i++) {
-            const angle = (Math.PI * 2 / 12) * i;
-            projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 5.0, Math.sin(angle) * 5.0, 16, 1, false, '#d946ef', 7, false, 'needle'));
+          Sound.playExplosion();
+          shockwaves.push(new Shockwave(this.x, this.y, 300, 34, '#ec4899'));
+          // Slow radiating dark vortex
+          for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 / 8) * i;
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 4.0, Math.sin(angle) * 4.0, 20, 1, false, '#7e22ce', 9, false, 'dark_orb'));
           }
-        }
-      } else if (this.type === 'sanctuary_boss_ne') {
-        // 🍜 NE Boss: Sonic Iron Roll & Shrapnel
-        if (this.timer >= 5.0 && !this.isRolling && this.blindTimer <= 0) {
-          this.timer = 0;
-          this.isRolling = true;
-          this.rollDuration = 1.1;
-          const rAngle = Math.atan2(dy, dx);
-          this.rollVx = Math.cos(rAngle) * curSpeed * 4.2;
-          this.rollVy = Math.sin(rAngle) * curSpeed * 4.2;
-        }
-        if (this.specialTimer >= 3.8) {
-          this.specialTimer = 0;
-          for (let i = 0; i < 10; i++) {
-            const angle = (Math.PI * 2 / 10) * i;
-            projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 5.8, Math.sin(angle) * 5.8, 18, 1, false, '#f97316', 7, false, 'boulder'));
-          }
-        }
-      } else if (this.type === 'sanctuary_boss_sw') {
-        // 🏰 SW Boss: Dual Darkflame Breath Sweep
-        if (this.timer >= this.shootCooldown && this.blindTimer <= 0) {
-          this.timer = 0;
-          const bAngle = Math.atan2(dy, dx);
-          for (let offset of [-0.35, -0.18, 0, 0.18, 0.35]) {
-            projectiles.push(new Projectile(this.x, this.y, Math.cos(bAngle + offset) * 6.5, Math.sin(bAngle + offset) * 6.5, 20, 1, false, '#1e1b4b', 9, false, 'dark_orb'));
-          }
-        }
-        if (this.specialTimer >= 4.5) {
-          this.specialTimer = 0;
-          shockwaves.push(new Shockwave(this.x, this.y, 280, 32, '#ec4899'));
         }
       } else {
         // ⚡ SE Boss: Judgement Thunder Strikes & EMP Ring
-        if (this.timer >= 4.2 && this.blindTimer <= 0) {
+        if (this.timer >= 3.2 && this.blindTimer <= 0) {
           this.timer = 0;
-          this.thunderTimer = 0.9;
+          this.thunderTimer = 0.85;
           this.thunderTargets = [
             { x: player.x, y: player.y },
-            { x: player.x + (Math.random() - 0.5) * 120, y: player.y + (Math.random() - 0.5) * 120 },
-            { x: player.x + (Math.random() - 0.5) * 160, y: player.y + (Math.random() - 0.5) * 160 }
+            { x: player.x + (Math.random() - 0.5) * 140, y: player.y + (Math.random() - 0.5) * 140 },
+            { x: player.x + (Math.random() - 0.5) * 180, y: player.y + (Math.random() - 0.5) * 180 },
+            { x: player.x + (Math.random() - 0.5) * 220, y: player.y + (Math.random() - 0.5) * 220 }
           ];
         }
-        if (this.specialTimer >= 3.5) {
+        if (this.specialTimer >= 3.4) {
           this.specialTimer = 0;
-          shockwaves.push(new Shockwave(this.x, this.y, 260, 26, '#facc15'));
+          shockwaves.push(new Shockwave(this.x, this.y, 280, 28, '#facc15'));
+          for (let i = 0; i < 4; i++) {
+            const angle = (Math.PI / 2) * i + Math.random() * 0.5;
+            projectiles.push(new Projectile(this.x, this.y, Math.cos(angle) * 6.5, Math.sin(angle) * 6.5, 18, 1, false, '#fde047', 7, false, 'lightning_spark'));
+          }
         }
       }
     } else if (this.type === 'midboss') {
@@ -3373,18 +3402,25 @@ class Enemy {
 
       if (this.timer >= this.shootCooldown && this.blindTimer <= 0) {
         this.timer = 0;
-        const count = 8;
+        const count = 10;
         for (let i = 0; i < count; i++) {
           const angle = (Math.PI * 2 / count) * i;
           projectiles.push(
-            new Projectile(this.x, this.y, Math.cos(angle) * 5.0, Math.sin(angle) * 5.0, 18, 1, false, '#ea580c', 8, false, 'orb')
+            new Projectile(this.x, this.y, Math.cos(angle) * 5.4, Math.sin(angle) * 5.4, 20, 1, false, '#ea580c', 8, false, 'orb')
           );
         }
       }
 
-      if (this.specialTimer >= 4.8) {
+      if (this.specialTimer >= 4.4) {
         this.specialTimer = 0;
-        shockwaves.push(new Shockwave(this.x, this.y, 260, 28, '#ea580c'));
+        Sound.playExplosion();
+        shockwaves.push(new Shockwave(this.x, this.y, 280, 30, '#ea580c'));
+        const baseAngle = Math.atan2(dy, dx);
+        for (let i = -1; i <= 1; i++) {
+          projectiles.push(
+            new Projectile(this.x, this.y, Math.cos(baseAngle + i * 0.3) * 7.5, Math.sin(baseAngle + i * 0.3) * 7.5, 24, 1, false, '#fbbf24', 9, false, 'boulder')
+          );
+        }
       }
     } else if (this.type === 'boss') {
       const hpRatio = this.hp / this.maxHp;
@@ -3402,35 +3438,52 @@ class Enemy {
       this.timer += dt;
       this.specialTimer += dt;
 
-      // 🌸 Pattern 1: Star Barrage
+      // 🌸 Phase 1 & 2: Starlight Spiral Barrage
       if (this.timer >= this.shootCooldown && this.blindTimer <= 0) {
         this.timer = 0;
-        const count = this.phase === 2 ? 22 : 14;
+        const count = this.phase === 2 ? 24 : 16;
         for (let i = 0; i < count; i++) {
-          const angle = (Math.PI * 2 / count) * i + Math.sin(Date.now() / 200);
-          const pSpeed = this.phase === 2 ? 6.2 : 4.8;
+          const angle = (Math.PI * 2 / count) * i + Math.sin(Date.now() / 180);
+          const pSpeed = this.phase === 2 ? 6.5 : 5.0;
           projectiles.push(
-            new Projectile(this.x, this.y, Math.cos(angle) * pSpeed, Math.sin(angle) * pSpeed, 20, 1, false, '#f43f5e', 8, false, 'star')
+            new Projectile(this.x, this.y, Math.cos(angle) * pSpeed, Math.sin(angle) * pSpeed, 22, 1, false, '#f43f5e', 8, false, 'star')
           );
         }
       }
 
-      // 🌟 Pattern 2: Claw Laser Sweeps & Phase 2 Stellar Meteors
-      if (this.specialTimer >= (this.phase === 2 ? 2.6 : 3.8)) {
+      // 🌟 Phase 1 & 2: Shadow Claw Slashes & Phase 2 Dimensional Warp
+      if (this.specialTimer >= (this.phase === 2 ? 2.4 : 3.6) && this.blindTimer <= 0) {
         this.specialTimer = 0;
+
+        // 🗡️ Triple Shadow Claw Slashes
+        const baseAngle = Math.atan2(dy, dx);
         for (let offset of [-0.4, -0.2, 0, 0.2, 0.4]) {
-          const baseAngle = Math.atan2(dy, dx) + offset;
           projectiles.push(
-            new Projectile(this.x, this.y, Math.cos(baseAngle) * 8.8, Math.sin(baseAngle) * 8.8, 28, 1, false, '#fbbf24', 10, false, 'orb')
+            new Projectile(this.x, this.y, Math.cos(baseAngle + offset) * 9.2, Math.sin(baseAngle + offset) * 9.2, 30, 2, false, '#38bdf8', 12, false, 'blade')
           );
         }
+
         if (this.phase === 2) {
-          shockwaves.push(new Shockwave(this.x, this.y, 330, 34, '#e11d48'));
-          // Summon 2 stellar impact zones
-          for (let k = 0; k < 2; k++) {
-            const sx = player.x + (Math.random() - 0.5) * 180;
-            const sy = player.y + (Math.random() - 0.5) * 180;
-            shockwaves.push(new Shockwave(sx, sy, 120, 22, '#f43f5e'));
+          Sound.playExplosion();
+          shockwaves.push(new Shockwave(this.x, this.y, 350, 36, '#e11d48'));
+
+          // 🌠 Celestial Meteor Shower (4 impact craters)
+          this.meteorTimer = 0.75;
+          this.meteorTargets = [
+            { x: player.x, y: player.y },
+            { x: player.x + (Math.random() - 0.5) * 160, y: player.y + (Math.random() - 0.5) * 160 },
+            { x: player.x + (Math.random() - 0.5) * 200, y: player.y + (Math.random() - 0.5) * 200 },
+            { x: player.x + (Math.random() - 0.5) * 240, y: player.y + (Math.random() - 0.5) * 240 }
+          ];
+
+          // 🌀 Phase Warp Stomp Leap if far
+          if (dist > 250 && Math.random() < 0.45) {
+            this.isLeaping = true;
+            this.leapProgress = 0;
+            this.leapStartX = this.x;
+            this.leapStartY = this.y;
+            this.leapTargetX = player.x + (Math.random() - 0.5) * 60;
+            this.leapTargetY = player.y + (Math.random() - 0.5) * 60;
           }
         }
       }
@@ -3480,7 +3533,7 @@ class Enemy {
         for (let i = -2; i <= 2; i++) {
           const angle = bAngle + i * 0.22;
           projectiles.push(
-            new Projectile(this.x, this.y, Math.cos(angle) * 7.0, Math.sin(angle) * 7.0, 24, 1, false, this.color, 9, false, 'dark_orb')
+            new Projectile(this.x, this.y, Math.cos(angle) * 7.2, Math.sin(angle) * 7.2, 26, 1, false, this.color, 9, false, 'dark_orb')
           );
         }
       }
@@ -3506,14 +3559,38 @@ class Enemy {
     if (this.thunderTargets && this.thunderTargets.length > 0) {
       ctx.save();
       ctx.strokeStyle = '#facc15';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([5, 5]);
       this.thunderTargets.forEach(t => {
         ctx.beginPath();
-        ctx.arc(t.x, t.y, 35, 0, Math.PI * 2);
+        ctx.arc(t.x, t.y, 40, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.fillStyle = 'rgba(250, 204, 21, 0.2)';
+        ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
         ctx.fill();
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚡', t.x, t.y);
+      });
+      ctx.restore();
+    }
+
+    // 🌠 Meteor Impact Craters on ground (Boss Phase 2)
+    if (this.meteorTargets && this.meteorTargets.length > 0) {
+      ctx.save();
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([4, 4]);
+      this.meteorTargets.forEach(m => {
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 45, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(244, 63, 94, 0.25)';
+        ctx.fill();
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('☄️', m.x, m.y);
       });
       ctx.restore();
     }
