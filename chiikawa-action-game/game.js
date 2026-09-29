@@ -5785,6 +5785,7 @@ class Game {
 
     this.isRunning = false;
     this.isPaused = false;
+    this.pausedBySettings = false;
     this.isLevelingUp = false;
     this.hitStopTimer = 0;
     this.lastTime = 0;
@@ -5931,6 +5932,13 @@ class Game {
       this.keys[e.code] = true;
 
       if (e.code === 'KeyP') this.togglePause();
+
+      if (e.code === 'Escape') {
+        const settingsModal = document.getElementById('settings-modal');
+        if (settingsModal && settingsModal.classList.contains('active')) {
+          this.closeSettings();
+        }
+      }
 
       if (this.isLevelingUp) {
         if (e.code === 'Digit1') this.selectLevelUpCard(0);
@@ -6104,15 +6112,23 @@ class Game {
     const settingsModal = document.getElementById('settings-modal');
     const btnCloseSettings = document.getElementById('btn-close-settings');
 
-    if (btnSettings && settingsModal) {
+    if (btnSettings) {
       btnSettings.addEventListener('click', () => {
-        settingsModal.classList.add('active');
+        this.openSettings();
       });
     }
 
-    if (btnCloseSettings && settingsModal) {
+    if (btnCloseSettings) {
       btnCloseSettings.addEventListener('click', () => {
-        settingsModal.classList.remove('active');
+        this.closeSettings();
+      });
+    }
+
+    if (settingsModal) {
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+          this.closeSettings();
+        }
       });
     }
 
@@ -6774,6 +6790,32 @@ class Game {
       pauseScreen.classList.remove('active');
       this.lastTime = performance.now();
       requestAnimationFrame((t) => this.loop(t));
+    }
+  }
+
+  openSettings() {
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) settingsModal.classList.add('active');
+
+    // If game is actively running without pause, pause it while browsing settings
+    if (this.isRunning && !this.isPaused && !this.isLevelingUp && !this.isShopping) {
+      this.pausedBySettings = true;
+      this.isPaused = true;
+    }
+  }
+
+  closeSettings() {
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) settingsModal.classList.remove('active');
+
+    // If game was paused by entering settings, resume cleanly
+    if (this.pausedBySettings) {
+      this.pausedBySettings = false;
+      this.isPaused = false;
+      this.lastTime = performance.now();
+      if (this.isRunning && !this.isPaused && !this.isLevelingUp && !this.isShopping) {
+        requestAnimationFrame((t) => this.loop(t));
+      }
     }
   }
 
