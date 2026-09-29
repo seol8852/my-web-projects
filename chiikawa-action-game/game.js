@@ -8518,6 +8518,9 @@ class Game {
         this.comboCount++;
         this.comboTimer = 2.5;
 
+        // 👑 Crown Relic Bonus for XP
+        const xpMult = (this.player && this.player.relics && this.player.relics.includes('relic_crown')) ? 1.4 : 1.0;
+
         // Daily Quest Progress tracking
         if (enemy.type === 'bug' || enemy.type === 'lightning_beetle') {
           StorageManager.updateQuestProgress('q_bugs', 1);
@@ -8574,8 +8577,6 @@ class Game {
           this.damageTexts.push(new DamageText(this.player.x, this.player.y - 30, '✨ 난또까나레 발동!', '#38bdf8', true));
         }
 
-        // 👑 Crown Relic Bonus for XP
-        const xpMult = this.player.relics.includes('relic_crown') ? 1.4 : 1.0;
         this.expGems.push(new ExpGem(enemy.x, enemy.y, Math.round(enemy.xp * xpMult)));
 
         const isBoss = enemy.type === 'boss' || enemy.type.includes('boss');
