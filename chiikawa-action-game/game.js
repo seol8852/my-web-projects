@@ -1351,13 +1351,13 @@ class LightningBolt {
 
   draw(ctx) {
     if (this.life <= 0 || this.segments.length < 2) return;
-    const alpha = Math.max(0, this.life / this.maxLife);
+    const alpha = Math.max(0, this.life / this.maxLife) * 0.85;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.width * (0.6 + alpha * 0.8);
+    ctx.lineWidth = Math.min(5, this.width * (0.6 + alpha * 0.6));
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 20;
+    ctx.shadowBlur = 14;
     ctx.beginPath();
     ctx.moveTo(this.segments[0].x, this.segments[0].y);
     for (let i = 1; i < this.segments.length; i++) {
@@ -1367,7 +1367,7 @@ class LightningBolt {
 
     // Bright White Core
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = Math.max(1.5, this.width * 0.35);
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.restore();
   }
@@ -1380,8 +1380,8 @@ class SlashWave {
     this.angle = angle;
     this.radius = radius;
     this.color = color;
-    this.life = 0.35;
-    this.maxLife = 0.35;
+    this.life = 0.32;
+    this.maxLife = 0.32;
   }
 
   update(dt) {
@@ -1390,24 +1390,24 @@ class SlashWave {
 
   draw(ctx) {
     if (this.life <= 0) return;
-    const alpha = Math.max(0, this.life / this.maxLife);
+    const alpha = Math.max(0, this.life / this.maxLife) * 0.65;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = 9;
+    ctx.lineWidth = 6;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 24;
+    ctx.shadowBlur = 16;
 
     ctx.beginPath();
-    ctx.arc(0, 0, this.radius * (1.25 - alpha * 0.25), -Math.PI / 2.8, Math.PI / 2.8);
+    ctx.arc(0, 0, this.radius * (1.2 - alpha * 0.2), -Math.PI / 2.8, Math.PI / 2.8);
     ctx.stroke();
 
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3.5;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(0, 0, this.radius * (1.25 - alpha * 0.25), -Math.PI / 3.4, Math.PI / 3.4);
+    ctx.arc(0, 0, this.radius * (1.2 - alpha * 0.2), -Math.PI / 3.4, Math.PI / 3.4);
     ctx.stroke();
 
     ctx.restore();
@@ -1452,13 +1452,13 @@ class Shockwave {
   }
 
   draw(ctx) {
-    const alpha = Math.max(0, this.life / this.maxLife);
+    const alpha = Math.max(0, this.life / this.maxLife) * 0.55;
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 3.5;
     ctx.shadowColor = this.color;
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.stroke();
@@ -1791,30 +1791,30 @@ class FireMine {
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
-    const pulse = Math.sin(Date.now() / 150) * 4;
+    const pulse = Math.sin(Date.now() / 150) * 3;
 
-    // Fiery Warning Ring
-    ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([6, 6]);
+    // Fiery Warning Ring (Subtle translucent)
+    ctx.strokeStyle = 'rgba(249, 115, 22, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
     ctx.beginPath();
     ctx.arc(0, 0, this.triggerRadius + pulse * 0.5, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Glowing Lava Aura
-    const mineGrad = ctx.createRadialGradient(0, 0, 4, 0, 0, this.radius + 6);
-    mineGrad.addColorStop(0, '#fef08a');
-    mineGrad.addColorStop(0.5, '#f97316');
-    mineGrad.addColorStop(1, 'rgba(239, 68, 68, 0.2)');
+    // Glowing Lava Aura (Soft translucency)
+    const mineGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, this.radius + 4);
+    mineGrad.addColorStop(0, 'rgba(254, 240, 138, 0.5)');
+    mineGrad.addColorStop(0.5, 'rgba(249, 115, 22, 0.25)');
+    mineGrad.addColorStop(1, 'rgba(239, 68, 68, 0)');
     ctx.fillStyle = mineGrad;
     ctx.shadowColor = '#ea580c';
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = 10;
     ctx.beginPath();
     ctx.arc(0, 0, this.radius + pulse, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.font = '24px sans-serif';
+    ctx.font = '22px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('💣', 0, 0);
@@ -3745,35 +3745,35 @@ class Player {
       ctx.restore();
     }
 
-    // 🍄 Toxic Cloud Biohazard Aura
+    // 🍄 Toxic Cloud Biohazard Aura (Soft Translucent Fog)
     if (this.hasToxicCloud) {
       ctx.save();
-      const pPulse = 1 + Math.sin(Date.now() / 250) * 0.06;
-      const toxicGrad = ctx.createRadialGradient(0, bob, 30, 0, bob, 220 * pPulse);
-      toxicGrad.addColorStop(0, 'rgba(168, 85, 247, 0.25)');
-      toxicGrad.addColorStop(0.7, 'rgba(147, 51, 234, 0.12)');
+      const pPulse = 1 + Math.sin(Date.now() / 250) * 0.05;
+      const toxicGrad = ctx.createRadialGradient(0, bob, 20, 0, bob, 220 * pPulse);
+      toxicGrad.addColorStop(0, 'rgba(168, 85, 247, 0.12)');
+      toxicGrad.addColorStop(0.7, 'rgba(147, 51, 234, 0.04)');
       toxicGrad.addColorStop(1, 'rgba(147, 51, 234, 0)');
       ctx.fillStyle = toxicGrad;
       ctx.beginPath();
       ctx.arc(0, bob, 220 * pPulse, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(192, 132, 252, 0.45)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([8, 8]);
+      ctx.strokeStyle = 'rgba(192, 132, 252, 0.25)';
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([6, 6]);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.restore();
     }
 
-    // 🌪️ Usagi Tornado Whirling Vortex
+    // 🌪️ Usagi Tornado Whirling Vortex (Light Energy Swirl)
     if (this.charType === 'usagi' && this.isTornadoSpinning) {
       ctx.save();
       ctx.rotate(Date.now() / 60);
-      ctx.strokeStyle = 'rgba(250, 204, 21, 0.75)';
-      ctx.lineWidth = 4;
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.45)';
+      ctx.lineWidth = 2.5;
       ctx.shadowColor = '#facc15';
-      ctx.shadowBlur = 20;
-      for (let r = 24; r <= 68; r += 14) {
+      ctx.shadowBlur = 12;
+      for (let r = 24; r <= 64; r += 14) {
         ctx.beginPath();
         ctx.arc(0, bob, r, 0, Math.PI * 1.5);
         ctx.stroke();
@@ -3781,11 +3781,11 @@ class Player {
       ctx.restore();
     }
 
-    // ⭐ Orbit Guardian Stars & Shield
+    // ⭐ Orbit Guardian Stars & Shield (Compact, Glowing Satellites)
     if (this.isTearShieldActive || this.hasOrbitStars) {
       ctx.save();
-      ctx.strokeStyle = 'rgba(250, 204, 21, 0.35)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.25)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(0, bob, 85, 0, Math.PI * 2);
       ctx.stroke();
@@ -3800,12 +3800,12 @@ class Player {
         ctx.rotate(oAngle * 2.5);
 
         ctx.shadowColor = '#facc15';
-        ctx.shadowBlur = 18;
-        ctx.fillStyle = '#facc15';
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = 'rgba(250, 204, 21, 0.9)';
 
         ctx.beginPath();
-        const outerR = 14;
-        const innerR = 6.5;
+        const outerR = 12;
+        const innerR = 5.5;
         for (let p = 0; p < 5; p++) {
           ctx.lineTo(Math.cos((18 + p * 72) * Math.PI / 180) * outerR, -Math.sin((18 + p * 72) * Math.PI / 180) * outerR);
           ctx.lineTo(Math.cos((54 + p * 72) * Math.PI / 180) * innerR, -Math.sin((54 + p * 72) * Math.PI / 180) * innerR);
@@ -3815,7 +3815,7 @@ class Player {
 
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+        ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore();
@@ -3823,11 +3823,11 @@ class Player {
       ctx.restore();
     }
 
-    // ❄️ Frost Orbit Orbs
+    // ❄️ Frost Orbit Orbs (Crystal Ice Satellites)
     if (this.hasFrostOrb) {
       ctx.save();
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(0, bob, 95, 0, Math.PI * 2);
       ctx.stroke();
@@ -3842,24 +3842,24 @@ class Player {
         ctx.rotate(-fa * 3);
 
         ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 22;
+        ctx.shadowBlur = 14;
 
-        const iceGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 16);
-        iceGrad.addColorStop(0, '#ffffff');
-        iceGrad.addColorStop(0.45, '#7dd3fc');
-        iceGrad.addColorStop(1, '#0284c7');
+        const iceGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 13);
+        iceGrad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+        iceGrad.addColorStop(0.45, 'rgba(125, 211, 252, 0.85)');
+        iceGrad.addColorStop(1, 'rgba(2, 132, 199, 0.7)');
         ctx.fillStyle = iceGrad;
         ctx.beginPath();
-        ctx.arc(0, 0, 15, 0, Math.PI * 2);
+        ctx.arc(0, 0, 13, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         for (let k = 0; k < 6; k++) {
           const sa = (k * Math.PI / 3);
           ctx.beginPath();
           ctx.moveTo(0, 0);
-          ctx.lineTo(Math.cos(sa) * 11, Math.sin(sa) * 11);
+          ctx.lineTo(Math.cos(sa) * 9.5, Math.sin(sa) * 9.5);
           ctx.stroke();
         }
 
@@ -6563,23 +6563,24 @@ class Game {
       const len = 1600;
 
       this.ctx.save();
+      this.ctx.globalAlpha = 0.6;
       this.ctx.translate(lx, ly);
       this.ctx.rotate(angle);
 
-      const grad = this.ctx.createLinearGradient(0, -25, 0, 25);
-      grad.addColorStop(0, 'rgba(255, 64, 129, 0.85)');
-      grad.addColorStop(0.25, 'rgba(255, 209, 102, 0.9)');
-      grad.addColorStop(0.5, 'rgba(255, 255, 255, 1.0)');
-      grad.addColorStop(0.75, 'rgba(6, 214, 160, 0.9)');
-      grad.addColorStop(1, 'rgba(17, 138, 178, 0.85)');
+      const grad = this.ctx.createLinearGradient(0, -20, 0, 20);
+      grad.addColorStop(0, 'rgba(255, 64, 129, 0.65)');
+      grad.addColorStop(0.25, 'rgba(255, 209, 102, 0.7)');
+      grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.85)');
+      grad.addColorStop(0.75, 'rgba(6, 214, 160, 0.7)');
+      grad.addColorStop(1, 'rgba(17, 138, 178, 0.65)');
 
       this.ctx.fillStyle = grad;
       this.ctx.shadowColor = '#ffffff';
-      this.ctx.shadowBlur = 20;
-      this.ctx.fillRect(0, -22, len, 44);
+      this.ctx.shadowBlur = 14;
+      this.ctx.fillRect(0, -18, len, 36);
 
-      this.ctx.fillStyle = '#ffffff';
-      this.ctx.fillRect(0, -7, len, 14);
+      this.ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      this.ctx.fillRect(0, -5, len, 10);
 
       this.ctx.restore();
     } catch (e) {}
