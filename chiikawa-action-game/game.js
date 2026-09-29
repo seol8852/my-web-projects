@@ -2990,6 +2990,7 @@ class Player {
 
     // Acquired skills record for pause menu & HUD tray
     this.acquiredCards = [];
+    this.perkLevels = {};
     this.elementCounts = { lightning: 0, fire: 0, ice: 0, poison: 0, orbit: 0, crit: 0, evolution: 0 };
 
     this.vx = 0;
@@ -5427,64 +5428,342 @@ class Game {
           : (Math.random() < 0.5 ? "와... 와아...!" : "훗... 후웅!"));
     this.player.say(lvlQuote, true);
 
-    // Rich 28+ Card Level Up Pool with Elements & Evolutions
-    const pool = [
+    const p = this.player;
+    const pLevels = p.perkLevels || {};
+
+    // Complete Perk Catalog with unique / maxLevel controls
+    const rawCatalog = [
       // ⚡ 번개 빌드 (Lightning)
-      { id: 'lt_smite', elem: 'lightning', name: '낙뢰의 사스마타', icon: '⚡', effect: '2초마다 주변 적에게 번개 강타 (180 광역 피해)', tier: '⚡ 번개 무기', apply: () => { this.player.hasLightningSmite = true; } },
-      { id: 'lt_chain', elem: 'lightning', name: '체인 라이트닝', icon: '⚡', effect: '공격 시 40% 확률로 주변 3마리에게 연쇄 감전', tier: '⚡ 번개 패시브', apply: () => { this.player.hasChainLightning = true; } },
-      { id: 'lt_charge', elem: 'lightning', name: '번개 과부하', icon: '⚡', effect: '기본 공격 속도 +20% & 감전 적에게 추가 피해', tier: '⚡ 번개 패시브', apply: () => { this.player.attackCooldown *= 0.8; } },
+      {
+        id: 'lt_smite',
+        elem: 'lightning',
+        name: '낙뢰의 사스마타',
+        icon: '⚡',
+        tier: '⚡ 번개 무기',
+        maxLevel: 1,
+        effect: '2초마다 주변 무작위 적에게 강력한 벼락 강타 (200 광역 피해 & 실명)',
+        apply: () => { p.hasLightningSmite = true; }
+      },
+      {
+        id: 'lt_chain',
+        elem: 'lightning',
+        name: '체인 라이트닝',
+        icon: '⚡',
+        tier: '⚡ 번개 패시브',
+        maxLevel: 1,
+        effect: '공격 시 40% 확률로 주변 3마리에게 연쇄 전격 볼트 감전',
+        apply: () => { p.hasChainLightning = true; }
+      },
+      {
+        id: 'lt_charge',
+        elem: 'lightning',
+        name: '번개 과부하',
+        icon: '⚡',
+        tier: '⚡ 번개 패시브',
+        maxLevel: 3,
+        effect: '기본 공격 속도 +20% 가속 & 탄환 속도 증가',
+        apply: () => { p.attackCooldown *= 0.82; }
+      },
 
       // 🔥 화염 빌드 (Fire)
-      { id: 'fire_mine', elem: 'fire', name: '화염 도토리 지뢰', icon: '💣', effect: '이동 경로에 폭발 지뢰 매설 (220 폭발 & 화염 지속딜)', tier: '🔥 화염 무기', apply: () => { this.player.hasFireMines = true; } },
-      { id: 'fire_bullet', elem: 'fire', name: '불타는 별빛 탄환', icon: '🔥', effect: '모든 공격이 적을 불태워 4초간 지속 피해', tier: '🔥 화염 패시브', apply: () => { this.player.damageMultiplier += 0.25; } },
-      { id: 'fire_burst', elem: 'fire', name: '연쇄 열폭풍', icon: '💥', effect: '불타는 적 사망 시 사방으로 불꽃 파편 연쇄 폭발', tier: '🔥 화염 패시브', apply: () => { this.player.damageMultiplier += 0.2; } },
+      {
+        id: 'fire_mine',
+        elem: 'fire',
+        name: '화염 도토리 지뢰',
+        icon: '💣',
+        tier: '🔥 화염 무기',
+        maxLevel: 1,
+        effect: '1.6초마다 이동 경로에 화염 지뢰 매설 (240 폭발 & 화염 지속딜)',
+        apply: () => { p.hasFireMines = true; }
+      },
+      {
+        id: 'fire_bullet',
+        elem: 'fire',
+        name: '불타는 별빛 탄환',
+        icon: '🔥',
+        tier: '🔥 화염 패시브',
+        maxLevel: 3,
+        effect: '공격력 +25% 증가 및 탄환 적중 시 4초간 화염 화상 지속 피해',
+        apply: () => { p.damageMultiplier += 0.25; }
+      },
+      {
+        id: 'fire_burst',
+        elem: 'fire',
+        name: '연쇄 열폭풍',
+        icon: '💥',
+        tier: '🔥 화염 패시브',
+        maxLevel: 3,
+        effect: '공격력 +20% 증가 및 폭발 범위 30% 증폭',
+        apply: () => { p.damageMultiplier += 0.20; }
+      },
 
       // ❄️ 빙결 빌드 (Ice)
-      { id: 'ice_orb', elem: 'ice', name: '서리바람 눈송이', icon: '❄️', effect: '회전하는 2개의 얼음 구체가 적을 둔화(40%) 및 타격', tier: '❄️ 빙결 무기', apply: () => { this.player.hasFrostOrb = true; } },
-      { id: 'ice_shatter', elem: 'ice', name: '동결 분쇄', icon: '🧊', effect: '둔화/빙결된 적 공격 시 100% 크리티컬 & 2.5배 피해', tier: '❄️ 빙결 패시브', apply: () => { this.player.critMultiplier += 0.7; } },
+      {
+        id: 'ice_orb',
+        elem: 'ice',
+        name: '서리바람 눈송이',
+        icon: '❄️',
+        tier: '❄️ 빙결 무기',
+        maxLevel: 1,
+        effect: '회전하는 2개의 얼음 결정 구체가 적을 지속 둔화(40%) 및 타격',
+        apply: () => { p.hasFrostOrb = true; }
+      },
+      {
+        id: 'ice_shatter',
+        elem: 'ice',
+        name: '동결 분쇄',
+        icon: '🧊',
+        tier: '❄️ 빙결 패시브',
+        maxLevel: 3,
+        effect: '크리티컬 배율 +0.6x 증폭 및 둔화된 적에게 추가 데미지',
+        apply: () => { p.critMultiplier += 0.6; }
+      },
 
       // 🍄 맹독 & 소환 빌드 (Poison & Familiar)
-      { id: 'ps_cloud', elem: 'poison', name: '독버섯 안개 방출', icon: '🍄', effect: '주기적으로 주변에 맹독 안개 방출 (지속 도트딜 & 받는데미지 +25%)', tier: '🍄 맹독 무기', apply: () => { this.player.hasToxicCloud = true; } },
-      { id: 'ps_familiar', elem: 'poison', name: '꼬마 포셰트 사스마타', icon: '🍙', effect: '0.85초마다 유도 사스마타를 쏘는 든든한 꼬마 친구 소환', tier: '🍙 소환수', apply: () => { this.player.hasFamiliar = true; } },
+      {
+        id: 'ps_cloud',
+        elem: 'poison',
+        name: '독버섯 안개 방출',
+        icon: '🍄',
+        tier: '🍄 맹독 무기',
+        maxLevel: 1,
+        effect: '주변 240px 범위에 맹독 안개 방출 (중독 도트딜 & 받는데미지 증가)',
+        apply: () => { p.hasToxicCloud = true; }
+      },
+      {
+        id: 'ps_familiar',
+        elem: 'poison',
+        name: '꼬마 포셰트 사스마타',
+        icon: '🍙',
+        tier: '🍙 소환수',
+        maxLevel: 1,
+        effect: '0.85초마다 유도 사스마타를 쏘는 든든한 꼬마 친구 소환',
+        apply: () => { p.hasFamiliar = true; }
+      },
 
       // ⭐ 위성 & 방어 빌드 (Orbit & Defense)
-      { id: 'orbit_stars', elem: 'orbit', name: '삼총사 별빛 위성', icon: '⭐', effect: '회전하는 3개의 별빛이 적 탄환을 방어하고 120 피해', tier: '⭐ 위성 방어', apply: () => { this.player.hasOrbitStars = true; } },
-      { id: 'def_revive', elem: 'orbit', name: '불굴의 우정 (부활)', icon: '💖', effect: '사망 시 1회 50% 체력으로 즉시 부활 & 3초 무적', tier: '💖 불사', apply: () => { this.player.hasRevive = true; } },
+      {
+        id: 'orbit_stars',
+        elem: 'orbit',
+        name: '삼총사 별빛 위성',
+        icon: '⭐',
+        tier: '⭐ 위성 방어',
+        maxLevel: 1,
+        effect: '회전하는 3개의 빛나는 별빛이 적 탄환을 소멸시키고 120 피해',
+        apply: () => { p.hasOrbitStars = true; }
+      },
+      {
+        id: 'def_revive',
+        elem: 'orbit',
+        name: '불굴의 우정 (부활)',
+        icon: '💖',
+        tier: '💖 불사',
+        maxLevel: 1,
+        effect: '사망 시 1회 50% 체력으로 즉시 부활 & 3초 무적',
+        apply: () => { p.hasRevive = true; }
+      },
 
       // 🎯 크리티컬 & 콤보 피버 (Crit & Berserk)
-      { id: 'crit_hawk', elem: 'crit', name: '정밀 조준 안경', icon: '🎯', effect: '크리티컬 확률 +25% & 크리티컬 피해 2.2배 증폭', tier: '🎯 치명타', apply: () => { this.player.critChance += 0.25; this.player.critMultiplier += 0.5; } },
-      { id: 'crit_fever', elem: 'crit', name: '콤보 피버 폭주', icon: '🔥', effect: '콤보 카운트마다 공격력 & 이동속도 무한 누적 증폭', tier: '🎯 피버', apply: () => { this.player.hasFeverBerserk = true; } },
+      {
+        id: 'crit_hawk',
+        elem: 'crit',
+        name: '정밀 조준 안경',
+        icon: '🎯',
+        tier: '🎯 치명타',
+        maxLevel: 3,
+        effect: '크리티컬 확률 +20% & 크리티컬 피해 +0.5x 증폭',
+        apply: () => { p.critChance += 0.20; p.critMultiplier += 0.5; }
+      },
+      {
+        id: 'crit_fever',
+        elem: 'crit',
+        name: '콤보 피버 폭주',
+        icon: '🔥',
+        tier: '🎯 피버',
+        maxLevel: 1,
+        effect: '콤보 카운트마다 공격력 & 이동속도 무한 누적 증폭',
+        apply: () => { p.hasFeverBerserk = true; }
+      },
 
-      // ⚔️ 기본 강화 카드
-      { id: 'dmg', elem: 'crit', name: '사스마타 연마', icon: '⚔️', effect: '공격력 +30% 영구 증가', tier: '공격', apply: () => (this.player.damageMultiplier += 0.3) },
-      { id: 'spread', elem: 'crit', name: '멀티 스타 샷', icon: '🌟', effect: '발사 탄환 수 +1 추가', tier: '공격', apply: () => (this.player.bulletCount += 1) },
-      { id: 'speed', elem: 'orbit', name: '포셰트 가방 장착', icon: '🎒', effect: '이동 속도 +18%', tier: '기동', apply: () => (this.player.speed *= 1.18) },
-      { id: 'hp', elem: 'orbit', name: '수제 푸딩 한입', icon: '🍮', effect: '최대 체력 +40 및 즉시 60 회복', tier: '생존', apply: () => { this.player.maxHp += 40; this.player.hp = Math.min(this.player.maxHp, this.player.hp + 60); } },
-      { id: 'pierce', elem: 'crit', name: '관통 사스마타', icon: '🗡️', effect: '탄환 관통 횟수 +1 증가', tier: '특수', apply: () => (this.player.pierce += 1) },
-      { id: 'skillQ', elem: 'crit', name: '특대 스킬 강화', icon: '🌰', effect: 'Q 스킬 쿨타임 -25% & 데미지 +60', tier: '스킬', apply: () => { this.player.cdQ *= 0.75; } },
-      { id: 'leech', elem: 'poison', name: '하치와레의 긍정 기운', icon: '💖', effect: '적 처치 시 12% 확률로 체력 12 회복', tier: '생존', apply: () => (this.player.lifesteal += 0.12) },
-      { id: 'shield', elem: 'orbit', name: '철갑 거북 등껍질', icon: '🛡️', effect: '적의 공격을 1회 막아주는 보호막 획득', tier: '생존', apply: () => (this.player.hasShield = true) },
-      { id: 'magnet', elem: 'orbit', name: '대형 별사탕 자석', icon: '🧲', effect: '화면의 모든 경험치와 아이템 즉시 흡수', tier: '특수', apply: () => {
-        this.expGems.forEach(g => { g.x = this.player.x; g.y = this.player.y; });
-        this.fieldItems.forEach(i => { i.x = this.player.x; i.y = this.player.y; });
-      }}
+      // ⚔️ 기본 성장 및 강화 카드
+      {
+        id: 'dmg',
+        elem: 'crit',
+        name: '사스마타 연마',
+        icon: '⚔️',
+        tier: '공격',
+        maxLevel: 5,
+        effect: '공격력 +25% 영구 증가',
+        apply: () => { p.damageMultiplier += 0.25; }
+      },
+      {
+        id: 'spread',
+        elem: 'crit',
+        name: '멀티 스타 샷',
+        icon: '🌟',
+        tier: '공격',
+        maxLevel: 3,
+        effect: '발사 탄환 수 +1 추가',
+        apply: () => { p.bulletCount += 1; }
+      },
+      {
+        id: 'speed',
+        elem: 'orbit',
+        name: '포셰트 가방 장착',
+        icon: '🎒',
+        tier: '기동',
+        maxLevel: 4,
+        effect: '이동 속도 +15% 증가',
+        apply: () => { p.speed *= 1.15; }
+      },
+      {
+        id: 'hp',
+        elem: 'orbit',
+        name: '수제 푸딩 한입',
+        icon: '🍮',
+        tier: '생존',
+        maxLevel: 5,
+        effect: '최대 체력 +35 및 즉시 체력 50 회복',
+        apply: () => { p.maxHp += 35; p.hp = Math.min(p.maxHp, p.hp + 50); }
+      },
+      {
+        id: 'pierce',
+        elem: 'crit',
+        name: '관통 사스마타',
+        icon: '🗡️',
+        tier: '특수',
+        maxLevel: 3,
+        effect: '탄환 관통 횟수 +1 증가',
+        apply: () => { p.pierce += 1; }
+      },
+      {
+        id: 'skillQ',
+        elem: 'crit',
+        name: '특대 스킬 강화',
+        icon: '🌰',
+        tier: '스킬',
+        maxLevel: 3,
+        effect: 'Q 스킬 쿨타임 -20% 감소 & 스킬 위력 증가',
+        apply: () => { p.cdQ *= 0.80; }
+      },
+      {
+        id: 'leech',
+        elem: 'poison',
+        name: '하치와레의 긍정 기운',
+        icon: '💖',
+        tier: '생존',
+        maxLevel: 3,
+        effect: '적 처치 시 12% 확률로 체력 12 회복',
+        apply: () => { p.lifesteal += 0.12; }
+      },
+      {
+        id: 'shield',
+        elem: 'orbit',
+        name: '철갑 거북 등껍질',
+        icon: '🛡️',
+        tier: '생존',
+        maxLevel: 1,
+        effect: '적의 공격을 1회 완벽 방어하는 보호막 획득',
+        apply: () => { p.hasShield = true; }
+      },
+      {
+        id: 'magnet',
+        elem: 'orbit',
+        name: '대형 별사탕 자석',
+        icon: '🧲',
+        tier: '특수',
+        maxLevel: 999,
+        effect: '화면의 모든 경험치 보석과 아이템을 캐릭터에게 즉시 흡수',
+        apply: () => {
+          this.expGems.forEach(g => { g.x = p.x; g.y = p.y; });
+          this.fieldItems.forEach(i => { i.x = p.x; i.y = p.y; });
+        }
+      }
     ];
 
-    // Check for Evolutions
-    if (this.player.elementCounts.lightning >= 2 && !this.player.hasEvoLightning) {
-      pool.unshift({ id: 'evo_lt', elem: 'evolution', name: '🌟 [각성] 천벌의 뇌신 강림', icon: '⚡', effect: '낙뢰 주기 1초로 단축 & 320 피해 및 광역 기절', tier: '🌟 궁극 진화', apply: () => { this.player.hasEvoLightning = true; this.player.damageMultiplier += 0.4; } });
+    // Filter available perks by level check
+    const availablePool = rawCatalog.filter(card => {
+      const currentLvl = pLevels[card.id] || 0;
+      return currentLvl < card.maxLevel;
+    });
+
+    // Check for Evolutions (Pre-requisites: element count >= 2, not yet evolved)
+    if (p.elementCounts.lightning >= 2 && !p.hasEvoLightning && (pLevels['evo_lt'] || 0) < 1) {
+      availablePool.unshift({
+        id: 'evo_lt',
+        elem: 'evolution',
+        name: '🌟 [각성] 천벌의 뇌신 강림',
+        icon: '⚡',
+        tier: '🌟 궁극 진화',
+        maxLevel: 1,
+        effect: '낙뢰 주기 0.9초로 대폭 단축 & 340 피해 및 광역 기절',
+        apply: () => { p.hasEvoLightning = true; p.damageMultiplier += 0.35; }
+      });
     }
-    if (this.player.elementCounts.fire >= 2 && !this.player.hasEvoFire) {
-      pool.unshift({ id: 'evo_fire', elem: 'evolution', name: '🌟 [각성] 지옥불 카타클리즘', icon: '🔥', effect: '화염 지뢰 피해 360 증가 및 지속 화염 폭풍 생성', tier: '🌟 궁극 진화', apply: () => { this.player.hasEvoFire = true; this.player.damageMultiplier += 0.4; } });
+    if (p.elementCounts.fire >= 2 && !p.hasEvoFire && (pLevels['evo_fire'] || 0) < 1) {
+      availablePool.unshift({
+        id: 'evo_fire',
+        elem: 'evolution',
+        name: '🌟 [각성] 지옥불 카타클리즘',
+        icon: '🔥',
+        tier: '🌟 궁극 진화',
+        maxLevel: 1,
+        effect: '화염 지뢰 피해 380 증가 및 지뢰 매설 주기 1.2초 단축',
+        apply: () => { p.hasEvoFire = true; p.damageMultiplier += 0.35; }
+      });
     }
-    if (this.player.elementCounts.ice >= 2 && !this.player.hasEvoIce) {
-      pool.unshift({ id: 'evo_ice', elem: 'evolution', name: '🌟 [각성] 절대영도 블리자드', icon: '❄️', effect: '얼음 구체 피해 2배 & 둔화 적에게 모든 피해 2.5배', tier: '🌟 궁극 진화', apply: () => { this.player.hasEvoIce = true; this.player.damageMultiplier += 0.4; } });
+    if (p.elementCounts.ice >= 2 && !p.hasEvoIce && (pLevels['evo_ice'] || 0) < 1) {
+      availablePool.unshift({
+        id: 'evo_ice',
+        elem: 'evolution',
+        name: '🌟 [각성] 절대영도 블리자드',
+        icon: '❄️',
+        tier: '🌟 궁극 진화',
+        maxLevel: 1,
+        effect: '얼음 구체 피해 2배 & 둔화된 적에게 모든 피해 2.5배 증폭',
+        apply: () => { p.hasEvoIce = true; p.damageMultiplier += 0.35; }
+      });
     }
-    if (this.player.elementCounts.poison >= 2 && !this.player.hasEvoPoison) {
-      pool.unshift({ id: 'evo_ps', elem: 'evolution', name: '🌟 [각성] 역병 군주 각성', icon: '🍄', effect: '맹독 지속시간 2배 & 중독된 적 사망 시 연쇄 독폭발', tier: '🌟 궁극 진화', apply: () => { this.player.hasEvoPoison = true; this.player.damageMultiplier += 0.4; } });
+    if (p.elementCounts.poison >= 2 && !p.hasEvoPoison && (pLevels['evo_ps'] || 0) < 1) {
+      availablePool.unshift({
+        id: 'evo_ps',
+        elem: 'evolution',
+        name: '🌟 [각성] 역병 군주 각성',
+        icon: '🍄',
+        tier: '🌟 궁극 진화',
+        maxLevel: 1,
+        effect: '맹독 지속시간 2배 & 중독된 적 사망 시 연쇄 독폭발',
+        apply: () => { p.hasEvoPoison = true; p.damageMultiplier += 0.35; }
+      });
     }
 
-    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    // Fallback if all perks maxed out
+    if (availablePool.length === 0) {
+      availablePool.push(
+        {
+          id: 'gold_bonus',
+          elem: 'orbit',
+          name: '풍요의 황금 보물',
+          icon: '🪙',
+          tier: '💰 보너스',
+          maxLevel: 999,
+          effect: '+120 🪙 코인 즉시 획득 & 50 HP 회복',
+          apply: () => { this.addSessionCoins(120); p.hp = Math.min(p.maxHp, p.hp + 50); }
+        },
+        {
+          id: 'exp_burst',
+          elem: 'crit',
+          name: '영혼의 별사탕 폭풍',
+          icon: '✨',
+          tier: '✨ 보너스',
+          maxLevel: 999,
+          effect: '공격력 +10% 영구 증가 & 전체 적 150 광역 피해',
+          apply: () => { p.damageMultiplier += 0.10; this.enemies.forEach(e => e.hp -= 150); }
+        }
+      );
+    }
+
+    const shuffled = [...availablePool].sort(() => 0.5 - Math.random());
     this.currentUpgradeCards = shuffled.slice(0, 3);
 
     const container = document.getElementById('cards-container');
@@ -5494,11 +5773,15 @@ class Game {
       const cardEl = document.createElement('div');
       cardEl.className = 'card-item';
       cardEl.dataset.elem = card.elem || 'crit';
+
+      const curLvl = pLevels[card.id] || 0;
+      const levelBadge = card.maxLevel > 1 && card.maxLevel < 999 ? ` (Lv.${curLvl + 1})` : '';
+
       cardEl.innerHTML = `
         <div class="card-key-badge">[${idx + 1}]</div>
-        <div class="card-elem-tag">${card.tier}</div>
+        <div class="card-elem-tag">${card.tier}${levelBadge}</div>
         <div class="card-icon">${card.icon}</div>
-        <div class="card-name">${card.name}</div>
+        <div class="card-name">${card.name}${levelBadge}</div>
         <div class="card-effect">${card.effect}</div>
       `;
       cardEl.addEventListener('click', () => this.selectLevelUpCard(idx));
@@ -5511,6 +5794,9 @@ class Game {
   selectLevelUpCard(idx) {
     if (!this.isLevelingUp || !this.currentUpgradeCards || !this.currentUpgradeCards[idx]) return;
     const card = this.currentUpgradeCards[idx];
+    
+    // Increment perk level
+    this.player.perkLevels[card.id] = (this.player.perkLevels[card.id] || 0) + 1;
     card.apply();
 
     // Record acquired card & update element counters
