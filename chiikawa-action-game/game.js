@@ -2033,6 +2033,248 @@ class GachaMachine {
   }
 }
 
+// 4. 🧪 Witch's Magic Cauldron (독버섯 숲 마녀 가마솥)
+class WitchCauldron {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 42;
+    this.interactRadius = 100;
+    this.bubbleTimer = 0;
+    this.buffCooldown = 0;
+  }
+
+  update(dt, player, damageTexts, particles) {
+    this.bubbleTimer += dt;
+    if (this.buffCooldown > 0) this.buffCooldown -= dt;
+    if (this.bubbleTimer >= 0.22) {
+      this.bubbleTimer = 0;
+      particles.push(new Particle(this.x + (Math.random() * 28 - 14), this.y - 20, (Math.random() - 0.5) * 1.5, -2 - Math.random(), 7, '#a855f7', 0.55, 'smoke'));
+    }
+  }
+
+  interact(player, damageTexts, particles) {
+    if (this.buffCooldown > 0) {
+      damageTexts.push(new DamageText(this.x, this.y - 45, `🧪 비약 제조 중... (${Math.ceil(this.buffCooldown)}s)`, '#a855f7', true));
+      return;
+    }
+    this.buffCooldown = 45.0;
+    Sound.playPickup();
+    player.invulnerableTimer = 3.0;
+    player.doubleDamageTimer = 8.0;
+    player.hp = Math.min(player.maxHp, player.hp + 60);
+    damageTexts.push(new DamageText(player.x, player.y - 50, '🧪 마녀의 특제 비약! (+60 HP & 8초 공격력 2배)!', '#c084fc', true));
+    for (let i = 0; i < 20; i++) {
+      const a = Math.random() * Math.PI * 2;
+      particles.push(new Particle(this.x, this.y, Math.cos(a) * 4, Math.sin(a) * 4, 6, '#e879f9', 0.5, 'star'));
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, 100);
+    grad.addColorStop(0, 'rgba(168, 85, 247, 0.4)');
+    grad.addColorStop(1, 'rgba(168, 85, 247, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 100, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Cauldron Pot
+    ctx.fillStyle = '#1e1b4b';
+    ctx.beginPath();
+    ctx.arc(0, 5, 36, 0, Math.PI);
+    ctx.fill();
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath();
+    ctx.ellipse(0, 5, 32, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '32px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🧪', 0, -8);
+
+    ctx.font = 'bold 12px "Jua", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#4c1d95';
+    ctx.shadowBlur = 5;
+    ctx.fillText('🧪 마녀의 비약 가마솥 [E]', 0, -48);
+    ctx.restore();
+  }
+}
+
+// 5. 🏕️ Campfire Rest Site (모험가 모닥불 쉼터)
+class Campfire {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 40;
+    this.restRadius = 140;
+    this.sparkTimer = 0;
+    this.healTimer = 0;
+  }
+
+  update(dt, player, damageTexts, particles) {
+    this.sparkTimer += dt;
+    if (this.sparkTimer >= 0.15) {
+      this.sparkTimer = 0;
+      particles.push(new Particle(this.x + (Math.random() * 20 - 10), this.y - 10, (Math.random() - 0.5) * 2, -2.5 - Math.random() * 2, 6, '#f97316', 0.45, 'star'));
+    }
+
+    const dist = Math.hypot(player.x - this.x, player.y - this.y);
+    if (dist < this.restRadius) {
+      this.healTimer += dt;
+      if (this.healTimer >= 0.8) {
+        this.healTimer = 0;
+        if (player.hp < player.maxHp) {
+          player.hp = Math.min(player.maxHp, player.hp + 6);
+          damageTexts.push(new DamageText(player.x, player.y - 25, '🏕️ +6 HP 쉼터 회복', '#10b981', false));
+        }
+      }
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 140);
+    grad.addColorStop(0, 'rgba(239, 68, 68, 0.35)');
+    grad.addColorStop(1, 'rgba(239, 68, 68, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 140, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Logs & Tent
+    ctx.font = '34px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🔥', 0, 0);
+    ctx.fillText('⛺', 38, -12);
+
+    ctx.font = 'bold 12px "Jua", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#991b1b';
+    ctx.shadowBlur = 5;
+    ctx.fillText('🏕️ 모험가 모닥불 쉼터 (지속 치유)', 0, -42);
+    ctx.restore();
+  }
+}
+
+// 6. 🔮 Ancient Crystal Obelisk (고대 마력 수정탑)
+class CrystalObelisk {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 42;
+    this.interactRadius = 110;
+    this.pulse = 0;
+    this.cooldown = 0;
+  }
+
+  update(dt, particles) {
+    this.pulse += dt * 3;
+    if (this.cooldown > 0) this.cooldown -= dt;
+    if (Math.random() < 0.3) {
+      const a = Math.random() * Math.PI * 2;
+      particles.push(new Particle(this.x + Math.cos(a) * 35, this.y + Math.sin(a) * 35, 0, -1.5, 6, '#38bdf8', 0.45, 'sparkle'));
+    }
+  }
+
+  interact(player, expGems, fieldItems, damageTexts, particles) {
+    if (this.cooldown > 0) {
+      damageTexts.push(new DamageText(this.x, this.y - 45, `🔮 마력 재충전 중... (${Math.ceil(this.cooldown)}s)`, '#38bdf8', true));
+      return;
+    }
+    this.cooldown = 50.0;
+    Sound.playLaser();
+    expGems.forEach(g => { g.x = player.x; g.y = player.y; });
+    fieldItems.forEach(it => { it.x = player.x; it.y = player.y; });
+    damageTexts.push(new DamageText(player.x, player.y - 50, '🔮 고대 수정탑의 공명! 전체 아이템/경험치 즉시 흡수!', '#38bdf8', true));
+    for (let i = 0; i < 25; i++) {
+      const a = Math.random() * Math.PI * 2;
+      particles.push(new Particle(this.x, this.y, Math.cos(a) * 5, Math.sin(a) * 5, 7, '#38bdf8', 0.5, 'star'));
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 110);
+    grad.addColorStop(0, 'rgba(56, 189, 248, 0.4)');
+    grad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 110, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🔮', 0, 0);
+
+    ctx.font = 'bold 12px "Jua", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#0369a1';
+    ctx.shadowBlur = 5;
+    ctx.fillText('🔮 고대 수정탑 [E] (전역 흡수)', 0, -46);
+    ctx.restore();
+  }
+}
+
+// 7. 🗼 Usagi Radio Tower (우사기 메가 전파탑)
+class UsagiRadioTower {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 45;
+    this.zapTimer = 0;
+  }
+
+  update(dt, player, enemies, damageTexts, particles, shockwaves) {
+    this.zapTimer += dt;
+    if (this.zapTimer >= 3.0) {
+      this.zapTimer = 0;
+      Sound.playLightning();
+      shockwaves.push(new Shockwave(this.x, this.y, 260, 28, '#facc15'));
+      enemies.forEach(e => {
+        if (Math.hypot(e.x - this.x, e.y - this.y) < 260) {
+          e.hp -= 150;
+          e.stunTimer = 1.8;
+          e.hitTimer = 0.15;
+          damageTexts.push(new DamageText(e.x, e.y - 20, '⚡ 150 [전파스턴]', '#facc15', false));
+        }
+      });
+    }
+  }
+
+  draw(ctx) {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, 120);
+    grad.addColorStop(0, 'rgba(250, 204, 21, 0.35)');
+    grad.addColorStop(1, 'rgba(250, 204, 21, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 120, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '36px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🗼', 0, 0);
+
+    ctx.font = 'bold 12px "Jua", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#854d0e';
+    ctx.shadowBlur = 5;
+    ctx.fillText('🗼 우사기 전파탑 (주기적 전격 방출)', 0, -46);
+    ctx.restore();
+  }
+}
+
 // --- Sub-Weapon & Active Build Entities ---
 
 // 1. 🔥 Fire Napalm Mine Entity
@@ -4616,23 +4858,32 @@ class Game {
     this.minimapCanvas = document.getElementById('minimapCanvas');
     this.minimapCtx = this.minimapCanvas ? this.minimapCanvas.getContext('2d') : null;
 
-    this.worldWidth = 5000;
-    this.worldHeight = 5000;
+    this.worldWidth = 7200;
+    this.worldHeight = 7200;
 
     this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
     this.screenShake = 0;
 
     this.sanctuaries = [
-      new Sanctuary('nw', '독버섯 숲의 비밀 성소', 1000, 1000, 'sanctuary_boss_nw', 'relic_pudding', '🍮 대왕 황금 푸딩 (최대체력+50 & 완치)', '🍄', '#a855f7'),
-      new Sanctuary('ne', '라멘 로 비밀 수련장', 4000, 1000, 'sanctuary_boss_ne', 'relic_ramen', '🍜 특제 차슈 라멘 (영구 공격력+35%)', '🍜', '#ef4444'),
-      new Sanctuary('sw', '고대 지하 신전의 성역', 1000, 4000, 'sanctuary_boss_sw', 'relic_shield', '🛡️ 영구 별빛 보호막 (15초마다 무한 자동재생)', '🏰', '#3b82f6'),
-      new Sanctuary('se', '우사기 번개 제단', 4000, 4000, 'sanctuary_boss_se', 'relic_boots', '🥾 헤르메스 당근 신발 (이속+25% & 대시쿨-40%)', '⚡', '#eab308')
+      new Sanctuary('nw', '독버섯 숲의 비밀 성소', 1400, 1400, 'sanctuary_boss_nw', 'relic_pudding', '🍮 대왕 황금 푸딩 (최대체력+50 & 완치)', '🍄', '#a855f7'),
+      new Sanctuary('ne', '라멘 로 비밀 수련장', 5800, 1400, 'sanctuary_boss_ne', 'relic_ramen', '🍜 특제 차슈 라멘 (영구 공격력+35%)', '🍜', '#ef4444'),
+      new Sanctuary('sw', '고대 지하 신전의 성역', 1400, 5800, 'sanctuary_boss_sw', 'relic_shield', '🛡️ 영구 별빛 보호막 (15초마다 무한 자동재생)', '🏰', '#3b82f6'),
+      new Sanctuary('se', '우사기 번개 제단', 5800, 5800, 'sanctuary_boss_se', 'relic_boots', '🥾 헤르메스 당근 신발 (이속+25% & 대시쿨-40%)', '⚡', '#eab308')
     ];
 
-    // Stage 3 World Landmarks
-    this.ramenShop = new RamenShop(2500, 2300);
-    this.hotSpring = new HotSpring(1500, 3500, 160);
-    this.gachaMachines = [new GachaMachine(3500, 1500), new GachaMachine(1800, 1800)];
+    // Stage 3 & 4 World Landmarks Across 5 Biomes
+    this.ramenShop = new RamenShop(3600, 3350);
+    this.hotSpring = new HotSpring(3100, 4100, 170);
+    this.gachaMachines = [
+      new GachaMachine(4100, 3350),
+      new GachaMachine(3100, 3100),
+      new GachaMachine(4100, 4100)
+    ];
+    this.witchCauldron = new WitchCauldron(2000, 1500);
+    this.campfire = new Campfire(5300, 2000);
+    this.crystalObelisk = new CrystalObelisk(2000, 5300);
+    this.usagiRadioTower = new UsagiRadioTower(5300, 5300);
+
     this.nearbyInteractable = null;
     this.isShopping = false;
     this.isGachaSpinning = false;
@@ -4766,12 +5017,54 @@ class Game {
   }
 
   generateDecorations() {
-    const emojis = ['🌸', '🍄', '🌲', '⛺', '🪨', '🍀', '🌼', '🪵', '🍂', '✨', '🍙', '🍮'];
-    for (let i = 0; i < 280; i++) {
+    this.decorations = [];
+    // 1. Center Sakura Meadow (2400~4800, 2400~4800)
+    const centerEmojis = ['🌸', '🌼', '🍀', '🍡', '🍙', '🍮', '✨', '💖', '🌺'];
+    for (let i = 0; i < 200; i++) {
       this.decorations.push({
-        x: 100 + Math.random() * (this.worldWidth - 200),
-        y: 100 + Math.random() * (this.worldHeight - 200),
-        emoji: emojis[Math.floor(Math.random() * emojis.length)]
+        x: 2400 + Math.random() * 2400,
+        y: 2400 + Math.random() * 2400,
+        emoji: centerEmojis[Math.floor(Math.random() * centerEmojis.length)]
+      });
+    }
+
+    // 2. NW Toxic Shroom Forest (0~3600, 0~3600)
+    const nwEmojis = ['🍄', '🌲', '🪨', '🌿', '🪵', '✨', '🍃', '🕸️'];
+    for (let i = 0; i < 120; i++) {
+      this.decorations.push({
+        x: 120 + Math.random() * 3400,
+        y: 120 + Math.random() * 3400,
+        emoji: nwEmojis[Math.floor(Math.random() * nwEmojis.length)]
+      });
+    }
+
+    // 3. NE Crimson Peaks (3600~7200, 0~3600)
+    const neEmojis = ['🍁', '🍂', '🔥', '🪨', '⛺', '🪵', '🍜', '🏮'];
+    for (let i = 0; i < 120; i++) {
+      this.decorations.push({
+        x: 3600 + Math.random() * 3480,
+        y: 120 + Math.random() * 3400,
+        emoji: neEmojis[Math.floor(Math.random() * neEmojis.length)]
+      });
+    }
+
+    // 4. SW Crystal Shrine (0~3600, 3600~7200)
+    const swEmojis = ['💎', '🔮', '🏛️', '🪨', '✨', '⭐', '🛡️', '💠'];
+    for (let i = 0; i < 120; i++) {
+      this.decorations.push({
+        x: 120 + Math.random() * 3400,
+        y: 3600 + Math.random() * 3480,
+        emoji: swEmojis[Math.floor(Math.random() * swEmojis.length)]
+      });
+    }
+
+    // 5. SE Thunder Dunes (3600~7200, 3600~7200)
+    const seEmojis = ['🌵', '⚡', '⭐', '🪨', '🏜️', '🥕', '✨', '🌪️'];
+    for (let i = 0; i < 120; i++) {
+      this.decorations.push({
+        x: 3600 + Math.random() * 3480,
+        y: 3600 + Math.random() * 3480,
+        emoji: seEmojis[Math.floor(Math.random() * seEmojis.length)]
       });
     }
   }
@@ -4844,6 +5137,8 @@ class Game {
             if (this.nearbyInteractable.type === 'ramen') this.openRamenModal();
             else if (this.nearbyInteractable.type === 'gacha') this.openGachaModal();
             else if (this.nearbyInteractable.type === 'dungeon') this.enterUndergroundDungeon(this.nearbyInteractable.target);
+            else if (this.nearbyInteractable.type === 'witch' && this.witchCauldron) this.witchCauldron.interact(this.player, this.damageTexts, this.particles);
+            else if (this.nearbyInteractable.type === 'obelisk' && this.crystalObelisk) this.crystalObelisk.interact(this.player, this.expGems, this.fieldItems, this.damageTexts, this.particles);
           } else {
             this.player.useE(this.damageTexts);
           }
@@ -4884,6 +5179,8 @@ class Game {
           if (this.nearbyInteractable.type === 'ramen') this.openRamenModal();
           else if (this.nearbyInteractable.type === 'gacha') this.openGachaModal();
           else if (this.nearbyInteractable.type === 'dungeon') this.enterUndergroundDungeon(this.nearbyInteractable.target);
+          else if (this.nearbyInteractable.type === 'witch' && this.witchCauldron) this.witchCauldron.interact(this.player, this.damageTexts, this.particles);
+          else if (this.nearbyInteractable.type === 'obelisk' && this.crystalObelisk) this.crystalObelisk.interact(this.player, this.expGems, this.fieldItems, this.damageTexts, this.particles);
         }
       });
     }
@@ -6561,10 +6858,14 @@ class Game {
         this.weedPatches[i].update(dt, this.player, this);
       }
 
-      // 🌟 Update Stage 3 World Landmarks (Ramen, Hot Spring, Gacha)
+      // 🌟 Update Stage 3 & 4 World Landmarks Across 5 Biomes
       if (this.ramenShop) this.ramenShop.update(dt, this.particles);
       if (this.hotSpring) this.hotSpring.update(dt, this.player, this.damageTexts, this.particles);
       if (this.gachaMachines) this.gachaMachines.forEach(g => g.update(dt, this.particles));
+      if (this.witchCauldron) this.witchCauldron.update(dt, this.player, this.damageTexts, this.particles);
+      if (this.campfire) this.campfire.update(dt, this.player, this.damageTexts, this.particles);
+      if (this.crystalObelisk) this.crystalObelisk.update(dt, this.particles);
+      if (this.usagiRadioTower) this.usagiRadioTower.update(dt, this.player, this.enemies, this.damageTexts, this.particles, this.shockwaves);
 
       // 🎲 Dynamic Field Random Events Progression
       if (!this.activeEvent) {
@@ -6670,6 +6971,18 @@ class Game {
             foundInteractable = { type: 'gacha', target: g, label: '🎰 [E] 캡슐 자판기 뽑기 [20🪙]' };
             break;
           }
+        }
+      }
+      if (!foundInteractable && this.witchCauldron) {
+        const wd = Math.hypot(this.player.x - this.witchCauldron.x, this.player.y - this.witchCauldron.y);
+        if (wd < this.witchCauldron.interactRadius) {
+          foundInteractable = { type: 'witch', target: this.witchCauldron, label: '🧪 [E] 마녀의 특제 비약 달이기' };
+        }
+      }
+      if (!foundInteractable && this.crystalObelisk) {
+        const od = Math.hypot(this.player.x - this.crystalObelisk.x, this.player.y - this.crystalObelisk.y);
+        if (od < this.crystalObelisk.interactRadius) {
+          foundInteractable = { type: 'obelisk', target: this.crystalObelisk, label: '🔮 [E] 고대 마력 수정탑 공명 (전역 아이템 흡수)' };
         }
       }
       if (!foundInteractable && this.dungeonPortals) {
@@ -7307,9 +7620,13 @@ class Game {
     // Draw Sanctuaries & Chests
     this.sanctuaries.forEach(s => s.draw(this.ctx, this.camera));
 
-    // 🌟 Draw Stage 3 Landmarks (Hot Spring, Ramen Shop, Gacha)
+    // 🌟 Draw Stage 3 Landmarks & Interactive Shrines
     if (this.hotSpring && inView(this.hotSpring)) this.hotSpring.draw(this.ctx);
     if (this.ramenShop && inView(this.ramenShop)) this.ramenShop.draw(this.ctx);
+    if (this.witchCauldron && inView(this.witchCauldron)) this.witchCauldron.draw(this.ctx);
+    if (this.campfire && inView(this.campfire)) this.campfire.draw(this.ctx);
+    if (this.crystalObelisk && inView(this.crystalObelisk)) this.crystalObelisk.draw(this.ctx);
+    if (this.usagiRadioTower && inView(this.usagiRadioTower)) this.usagiRadioTower.draw(this.ctx);
     if (this.gachaMachines) this.gachaMachines.forEach(g => { if (inView(g)) g.draw(this.ctx); });
 
     // Draw Surface Ancient Dungeon Portals (Culled)
@@ -7390,10 +7707,10 @@ class Game {
 
     this.ctx.fillStyle = '#ffccd5';
     this.ctx.font = 'bold 16px "Jua", sans-serif';
-    this.ctx.fillText('🌸 [마을 결계 끝자락]', 120, 50);
-    this.ctx.fillText('🌸 [마을 결계 끝자락]', this.worldWidth - 160, 50);
-    this.ctx.fillText('🌸 [마을 결계 끝자락]', 120, this.worldHeight - 40);
-    this.ctx.fillText('🌸 [마을 결계 끝자락]', this.worldWidth - 160, this.worldHeight - 40);
+    this.ctx.fillText('🌸 [먼치킨 치이카와 대륙 결계]', 150, 50);
+    this.ctx.fillText('🌸 [먼치킨 치이카와 대륙 결계]', this.worldWidth - 200, 50);
+    this.ctx.fillText('🌸 [먼치킨 치이카와 대륙 결계]', 150, this.worldHeight - 40);
+    this.ctx.fillText('🌸 [먼치킨 치이카와 대륙 결계]', this.worldWidth - 200, this.worldHeight - 40);
     this.ctx.restore();
   }
 
@@ -7436,21 +7753,42 @@ class Game {
 
     mCtx.clearRect(0, 0, mW, mH);
 
-    // Background
-    mCtx.fillStyle = '#181528';
-    mCtx.fillRect(0, 0, mW, mH);
-
     const scaleX = mW / this.worldWidth;
     const scaleY = mH / this.worldHeight;
 
+    // Biome Sector Colors on Minimap
+    // NW: Toxic Shroom Forest
+    mCtx.fillStyle = '#1c152a';
+    mCtx.fillRect(0, 0, mW / 2, mH / 2);
+    // NE: Crimson Maple Peaks
+    mCtx.fillStyle = '#2b1616';
+    mCtx.fillRect(mW / 2, 0, mW / 2, mH / 2);
+    // SW: Crystal Ruins Shrine
+    mCtx.fillStyle = '#0f1d2b';
+    mCtx.fillRect(0, mH / 2, mW / 2, mH / 2);
+    // SE: Starlight & Thunder Dunes
+    mCtx.fillStyle = '#2b2214';
+    mCtx.fillRect(mW / 2, mH / 2, mW / 2, mH / 2);
+
+    // Center: Sakura Meadow
+    mCtx.save();
+    mCtx.fillStyle = '#1e3828';
+    mCtx.beginPath();
+    mCtx.arc(mW / 2, mH / 2, mW * 0.22, 0, Math.PI * 2);
+    mCtx.fill();
+    mCtx.strokeStyle = 'rgba(255, 182, 193, 0.3)';
+    mCtx.lineWidth = 1;
+    mCtx.stroke();
+    mCtx.restore();
+
     // Viewport camera rect
-    mCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    mCtx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
     mCtx.lineWidth = 1;
     mCtx.strokeRect(this.camera.x * scaleX, this.camera.y * scaleY, this.canvas.width * scaleX, this.canvas.height * scaleY);
 
     // World border
     mCtx.strokeStyle = '#ffccd5';
-    mCtx.lineWidth = 2;
+    mCtx.lineWidth = 1.5;
     mCtx.strokeRect(1, 1, mW - 2, mH - 2);
 
     // Draw Sanctuaries on minimap
@@ -7471,24 +7809,20 @@ class Game {
       mCtx.restore();
     });
 
-    // 🌟 Draw Stage 3 Landmarks on Minimap
-    if (this.hotSpring) {
-      mCtx.font = '10px sans-serif';
-      mCtx.textAlign = 'center';
-      mCtx.textBaseline = 'middle';
-      mCtx.fillText('♨️', this.hotSpring.x * scaleX, this.hotSpring.y * scaleY);
-    }
-    if (this.ramenShop) {
-      mCtx.font = '10px sans-serif';
-      mCtx.textAlign = 'center';
-      mCtx.textBaseline = 'middle';
-      mCtx.fillText('🍜', this.ramenShop.x * scaleX, this.ramenShop.y * scaleY);
-    }
+    // 🌟 Draw Landmarks on Minimap
+    mCtx.font = '9px sans-serif';
+    mCtx.textAlign = 'center';
+    mCtx.textBaseline = 'middle';
+
+    if (this.hotSpring) mCtx.fillText('♨️', this.hotSpring.x * scaleX, this.hotSpring.y * scaleY);
+    if (this.ramenShop) mCtx.fillText('🍜', this.ramenShop.x * scaleX, this.ramenShop.y * scaleY);
+    if (this.witchCauldron) mCtx.fillText('🧪', this.witchCauldron.x * scaleX, this.witchCauldron.y * scaleY);
+    if (this.campfire) mCtx.fillText('🏕️', this.campfire.x * scaleX, this.campfire.y * scaleY);
+    if (this.crystalObelisk) mCtx.fillText('🔮', this.crystalObelisk.x * scaleX, this.crystalObelisk.y * scaleY);
+    if (this.usagiRadioTower) mCtx.fillText('🗼', this.usagiRadioTower.x * scaleX, this.usagiRadioTower.y * scaleY);
+
     if (this.gachaMachines) {
       this.gachaMachines.forEach(g => {
-        mCtx.font = '10px sans-serif';
-        mCtx.textAlign = 'center';
-        mCtx.textBaseline = 'middle';
         mCtx.fillText('🎰', g.x * scaleX, g.y * scaleY);
       });
     }
@@ -7538,49 +7872,81 @@ class Game {
       return;
     }
 
+    const camX = this.camera.x;
+    const camY = this.camera.y;
+    const cW = this.canvas.width;
+    const cH = this.canvas.height;
+
+    // 🎨 Biome Base Atmospheric Fill
+    // Determine player/camera biome center
+    const midX = this.worldWidth / 2;
+    const midY = this.worldHeight / 2;
+
+    this.ctx.save();
+    // Default base fill
+    this.ctx.fillStyle = '#141824';
+    this.ctx.fillRect(camX, camY, cW, cH);
+
+    // Dynamic 5-Biome Soft Gradients overlay
+    const biomes = [
+      { name: 'toxic', cx: midX * 0.45, cy: midY * 0.45, r: 2400, color1: 'rgba(56, 24, 76, 0.45)', color2: 'rgba(20, 36, 32, 0.35)' },
+      { name: 'crimson', cx: midX * 1.55, cy: midY * 0.45, r: 2400, color1: 'rgba(84, 28, 28, 0.45)', color2: 'rgba(48, 20, 16, 0.35)' },
+      { name: 'crystal', cx: midX * 0.45, cy: midY * 1.55, r: 2400, color1: 'rgba(18, 52, 86, 0.45)', color2: 'rgba(10, 24, 46, 0.35)' },
+      { name: 'thunder', cx: midX * 1.55, cy: midY * 1.55, r: 2400, color1: 'rgba(82, 60, 24, 0.45)', color2: 'rgba(38, 28, 14, 0.35)' },
+      { name: 'sakura_center', cx: midX, cy: midY, r: 1600, color1: 'rgba(32, 74, 50, 0.6)', color2: 'rgba(255, 182, 193, 0.12)' }
+    ];
+
+    biomes.forEach(b => {
+      const grad = this.ctx.createRadialGradient(b.cx, b.cy, 200, b.cx, b.cy, b.r);
+      grad.addColorStop(0, b.color1);
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      this.ctx.fillStyle = grad;
+      this.ctx.fillRect(camX, camY, cW, cH);
+    });
+
+    // Chapter Background Texture Overlay (Tiled & Blended)
     const chInfo = this.getChapterInfo(this.wave);
     const bgSprite = this.sprites[chInfo.bgKey];
 
     if (bgSprite && bgSprite.complete && bgSprite.naturalWidth > 0) {
-      this.ctx.save();
-      this.ctx.globalAlpha = 0.28;
+      this.ctx.globalAlpha = 0.22;
       const tileW = 1000;
       const tileH = 1000;
       for (let x = 0; x < this.worldWidth; x += tileW) {
         for (let y = 0; y < this.worldHeight; y += tileH) {
           if (
-            x + tileW > this.camera.x &&
-            x < this.camera.x + this.canvas.width &&
-            y + tileH > this.camera.y &&
-            y < this.camera.y + this.canvas.height
+            x + tileW > camX &&
+            x < camX + cW &&
+            y + tileH > camY &&
+            y < camY + cH
           ) {
             this.ctx.drawImage(bgSprite, x, y, tileW, tileH);
           }
         }
       }
-      this.ctx.restore();
     }
 
+    // Biome Ambient Ground Grid & Cross Pattern
+    this.ctx.globalAlpha = 1.0;
     const tileSize = 80;
-    this.ctx.save();
-    this.ctx.strokeStyle = 'rgba(255, 209, 220, 0.08)';
+    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     this.ctx.lineWidth = 1;
 
-    const startX = Math.floor(this.camera.x / tileSize) * tileSize;
-    const endX = this.camera.x + this.canvas.width;
-    const startY = Math.floor(this.camera.y / tileSize) * tileSize;
-    const endY = this.camera.y + this.canvas.height;
+    const startX = Math.floor(camX / tileSize) * tileSize;
+    const endX = camX + cW;
+    const startY = Math.floor(camY / tileSize) * tileSize;
+    const endY = camY + cH;
 
     for (let x = startX; x < endX; x += tileSize) {
       this.ctx.beginPath();
-      this.ctx.moveTo(x, this.camera.y);
-      this.ctx.lineTo(x, this.camera.y + this.canvas.height);
+      this.ctx.moveTo(x, camY);
+      this.ctx.lineTo(x, camY + cH);
       this.ctx.stroke();
     }
     for (let y = startY; y < endY; y += tileSize) {
       this.ctx.beginPath();
-      this.ctx.moveTo(this.camera.x, y);
-      this.ctx.lineTo(this.camera.x + this.canvas.width, y);
+      this.ctx.moveTo(camX, y);
+      this.ctx.lineTo(camX + cW, y);
       this.ctx.stroke();
     }
 
@@ -8307,6 +8673,8 @@ class Game {
           if (this.nearbyInteractable.type === 'ramen') this.openRamenModal();
           else if (this.nearbyInteractable.type === 'gacha') this.openGachaModal();
           else if (this.nearbyInteractable.type === 'dungeon') this.enterUndergroundDungeon(this.nearbyInteractable.target);
+          else if (this.nearbyInteractable.type === 'witch' && this.witchCauldron) this.witchCauldron.interact(this.player, this.damageTexts, this.particles);
+          else if (this.nearbyInteractable.type === 'obelisk' && this.crystalObelisk) this.crystalObelisk.interact(this.player, this.expGems, this.fieldItems, this.damageTexts, this.particles);
         } else if (this.isRunning && !this.isPaused && !this.isLevelingUp && this.player) {
           this.player.useE(this.damageTexts);
         }
