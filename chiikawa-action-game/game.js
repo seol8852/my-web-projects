@@ -2982,16 +2982,39 @@ class Player {
     this.familiar = null;
     this.hasFeverBerserk = false;
 
+    // 🌪️ Wind / Melee / Gourmet / Magic New Skills
+    this.hasWindScythe = false;
+    this.windScytheTimer = 0;
+    this.hasSasumataThrust = false;
+    this.thrustTimer = 0;
+    this.hasRamenBreath = false;
+    this.ramenBreathTimer = 0;
+    this.ramenBreathActiveTimer = 0;
+    this.hasStarShower = false;
+    this.starShowerTimer = 0;
+    this.hasKurimanjuChestnut = false;
+    this.chestnutTimer = 0;
+    this.hasCrossCounter = false;
+    this.hasPrismRefract = false;
+    this.hasSweetPancake = false;
+    this.gemPancakeCounter = 0;
+    this.hasSugarRush = false;
+    this.sugarRushTimer = 0;
+    this.hasFriendshipLink = false;
+    this.hasTailwind = false;
+
     // Evolutions
     this.hasEvoLightning = false;
     this.hasEvoFire = false;
     this.hasEvoIce = false;
     this.hasEvoPoison = false;
+    this.hasEvoWind = false;
+    this.hasEvoGourmet = false;
 
     // Acquired skills record for pause menu & HUD tray
     this.acquiredCards = [];
     this.perkLevels = {};
-    this.elementCounts = { lightning: 0, fire: 0, ice: 0, poison: 0, orbit: 0, crit: 0, evolution: 0 };
+    this.elementCounts = { lightning: 0, fire: 0, ice: 0, poison: 0, orbit: 0, crit: 0, wind: 0, gourmet: 0, magic: 0, evolution: 0 };
 
     this.vx = 0;
     this.vy = 0;
@@ -3272,6 +3295,152 @@ class Player {
     if (this.hasFamiliar) {
       if (!this.familiar) this.familiar = new FamiliarPet(this);
       this.familiar.update(dt, enemies, projectiles);
+    }
+
+    // 🌪️ Wind Scythe Sub-Weapon
+    if (this.hasWindScythe) {
+      this.windScytheTimer += dt;
+      const targetInterval = this.hasEvoWind ? 0.9 : 1.6;
+      if (this.windScytheTimer >= targetInterval) {
+        this.windScytheTimer = 0;
+        Sound.playCritHit();
+        const baseAngle = this.aimAngle || 0;
+        const scytheCount = this.hasEvoWind ? 4 : 2;
+        for (let i = 0; i < scytheCount; i++) {
+          const off = (i - (scytheCount - 1) / 2) * 0.32;
+          const sa = baseAngle + off;
+          projectiles.push(new Projectile(
+            this.x, this.y,
+            Math.cos(sa) * 16, Math.sin(sa) * 16,
+            (this.hasEvoWind ? 340 : 220) * this.damageMultiplier,
+            this.hasEvoWind ? 99 : 3,
+            true, '#34d399', 14, false, 'blade'
+          ));
+        }
+        if (window.GameInstance) {
+          window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, baseAngle, 220, '#34d399'));
+        }
+      }
+    }
+
+    // 🗡️ Sasumata Thrust Strike Sub-Weapon
+    if (this.hasSasumataThrust && enemies.length > 0) {
+      this.thrustTimer += dt;
+      if (this.thrustTimer >= 1.2) {
+        this.thrustTimer = 0;
+        let nearest = null;
+        let minD = 380;
+        for (let e of enemies) {
+          const d = Math.hypot(e.x - this.x, e.y - this.y);
+          if (d < minD) { minD = d; nearest = e; }
+        }
+        if (nearest) {
+          const a = Math.atan2(nearest.y - this.y, nearest.x - this.x);
+          Sound.playCritHit();
+          if (window.GameInstance) {
+            window.GameInstance.slashWaves.push(new SlashWave(this.x, this.y, a, 260, '#38bdf8'));
+          }
+          enemies.forEach(e => {
+            const ed = Math.hypot(e.x - this.x, e.y - this.y);
+            const eAngle = Math.atan2(e.y - this.y, e.x - this.x);
+            if (ed < 260 && Math.abs(eAngle - a) < 0.6) {
+              const dmg = 260 * this.damageMultiplier;
+              e.hp -= dmg;
+              e.hitTimer = 0.15;
+              e.applyKnockback(this.x, this.y, 9.0);
+              damageTexts.push(new DamageText(e.x, e.y - 25, `🗡️ ${Math.round(dmg)} [진검찌르기]`, '#38bdf8', true));
+            }
+          });
+        }
+      }
+    }
+
+    // 🍜 Ramen Fire Breath Sub-Weapon
+    if (this.hasRamenBreath) {
+      this.ramenBreathTimer += dt;
+      if (this.ramenBreathTimer >= 2.8) {
+        this.ramenBreathTimer = 0;
+        this.ramenBreathActiveTimer = 1.2;
+        Sound.playLaser();
+      }
+      if (this.ramenBreathActiveTimer > 0) {
+        this.ramenBreathActiveTimer -= dt;
+        const bAngle = this.aimAngle || 0;
+        for (let k = 0; k < 2; k++) {
+          const a = bAngle + (Math.random() - 0.5) * 0.65;
+          const spd = 6 + Math.random() * 8;
+          particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 8, '#ef4444', 0.35, 'ring'));
+        }
+        enemies.forEach(e => {
+          const ed = Math.hypot(e.x - this.x, e.y - this.y);
+          const ea = Math.atan2(e.y - this.y, e.x - this.x);
+          if (ed < 260 && Math.abs(ea - bAngle) < 0.55) {
+            e.hp -= (this.hasEvoGourmet ? 180 : 110) * dt * 60 * this.damageMultiplier;
+            e.burnTimer = 4.0;
+            e.hitTimer = 0.08;
+          }
+        });
+      }
+    }
+
+    // ⭐ Star Shower Sub-Weapon
+    if (this.hasStarShower) {
+      this.starShowerTimer += dt;
+      if (this.starShowerTimer >= 2.4) {
+        this.starShowerTimer = 0;
+        Sound.playExplosion();
+        for (let i = 0; i < 6; i++) {
+          const ox = (Math.random() - 0.5) * 360;
+          const oy = (Math.random() - 0.5) * 360;
+          const tx = this.x + ox;
+          const ty = this.y + oy;
+          particles.push(new Particle(tx, ty, 0, 0, 90, '#facc15', 0.4, 'ring'));
+          for (let s = 0; s < 4; s++) {
+            const sa = Math.random() * Math.PI * 2;
+            particles.push(new Particle(tx, ty, Math.cos(sa) * 4, Math.sin(sa) * 4, 6, '#fef08a', 0.4, 'star'));
+          }
+          enemies.forEach(e => {
+            const d = Math.hypot(e.x - tx, e.y - ty);
+            if (d < 90 + e.radius) {
+              e.hp -= 160 * this.damageMultiplier;
+              e.hitTimer = 0.12;
+              damageTexts.push(new DamageText(e.x, e.y - 20, '⭐ 160 [유성]', '#facc15', false));
+            }
+          });
+        }
+      }
+    }
+
+    // 🌰 Kurimanju Chestnut Bomb Sub-Weapon
+    if (this.hasKurimanjuChestnut && enemies.length > 0) {
+      this.chestnutTimer += dt;
+      if (this.chestnutTimer >= 3.2) {
+        this.chestnutTimer = 0;
+        const target = enemies[Math.floor(Math.random() * enemies.length)];
+        if (target) {
+          Sound.playExplosion();
+          particles.push(new Particle(target.x, target.y, 0, 0, 150, '#d97706', 0.45, 'ring'));
+          for (let s = 0; s < 10; s++) {
+            const a = Math.random() * Math.PI * 2;
+            particles.push(new Particle(target.x, target.y, Math.cos(a) * 5, Math.sin(a) * 5, 8, '#b45309', 0.5, 'star'));
+          }
+          enemies.forEach(e => {
+            const d = Math.hypot(e.x - target.x, e.y - target.y);
+            if (d < 150 + e.radius) {
+              const dmg = 320 * this.damageMultiplier;
+              e.hp -= dmg;
+              e.stunTimer = 2.2;
+              e.hitTimer = 0.15;
+              damageTexts.push(new DamageText(e.x, e.y - 30, `🌰 ${Math.round(dmg)} [알밤스턴]`, '#d97706', true));
+            }
+          });
+        }
+      }
+    }
+
+    // Sugar Rush buff timer
+    if (this.sugarRushTimer > 0) {
+      this.sugarRushTimer -= dt;
     }
 
     if (this.isTearShieldActive) {
@@ -3572,6 +3741,9 @@ class Player {
     } else if (this.charType === 'kurimanju' && this.intoxicationTimer > 0) {
       curCooldown *= 0.65;
     }
+    if (this.sugarRushTimer > 0) {
+      curCooldown *= 0.55;
+    }
 
     if (this.fireTimer > 0) return;
     this.fireTimer = curCooldown;
@@ -3579,6 +3751,7 @@ class Player {
     const angle = Math.atan2(targetY - this.y, targetX - this.x);
     let dmgMult = this.damageMultiplier;
     if (this.doubleDamageTimer > 0) dmgMult *= 2.0;
+    if (this.sugarRushTimer > 0) dmgMult *= 1.35;
     if (this.charType === 'kurimanju' && this.intoxicationTimer > 0) dmgMult *= 1.35;
 
     // Recoil kickback & shooting squash
@@ -5214,6 +5387,9 @@ class Game {
         { key: 'fire', name: '🔥화염', count: this.player.elementCounts.fire, cls: 'elem-fire' },
         { key: 'ice', name: '❄️빙결', count: this.player.elementCounts.ice, cls: 'elem-ice' },
         { key: 'poison', name: '🍄맹독', count: this.player.elementCounts.poison, cls: 'elem-poison' },
+        { key: 'wind', name: '🌪️질풍', count: this.player.elementCounts.wind, cls: 'elem-wind' },
+        { key: 'gourmet', name: '🍜미식', count: this.player.elementCounts.gourmet, cls: 'elem-gourmet' },
+        { key: 'magic', name: '✨마법', count: this.player.elementCounts.magic, cls: 'elem-magic' },
         { key: 'orbit', name: '⭐위성', count: this.player.elementCounts.orbit, cls: 'elem-orbit' },
         { key: 'crit', name: '🎯치명', count: this.player.elementCounts.crit, cls: 'elem-crit' },
         { key: 'evolution', name: '🌟진화', count: this.player.elementCounts.evolution, cls: 'elem-evolution' }
@@ -5585,6 +5761,126 @@ class Game {
         apply: () => { p.hasFeverBerserk = true; }
       },
 
+      // 🌪️ 질풍 빌드 (Wind)
+      {
+        id: 'wind_scythe',
+        elem: 'wind',
+        name: '우사기의 질풍 낫바람',
+        icon: '🌪️',
+        tier: '🌪️ 질풍 무기',
+        maxLevel: 1,
+        effect: '1.6초마다 전방으로 적을 꿰뚫는 2갈래 에메랄드 참격파 방출 (220 피해)',
+        apply: () => { p.hasWindScythe = true; }
+      },
+      {
+        id: 'wind_tailwind',
+        elem: 'wind',
+        name: '질풍의 순풍 가호',
+        icon: '🍃',
+        tier: '🌪️ 질풍 패시브',
+        maxLevel: 3,
+        effect: '이동 속도 +15% 증가 & 이동 속도에 비례해 공격력 +15% 증폭',
+        apply: () => { p.hasTailwind = true; p.speed *= 1.15; p.damageMultiplier += 0.15; }
+      },
+
+      // 🍜 미식 & 요리 빌드 (Gourmet)
+      {
+        id: 'ramen_fire_breath',
+        elem: 'gourmet',
+        name: '지옥의 매운 라멘 불뿜기',
+        icon: '🍜',
+        tier: '🍜 미식 무기',
+        maxLevel: 1,
+        effect: '2.8초마다 1.2초간 전방에 맹렬한 라멘 화염 방출 (초당 110 지속 화상 피해)',
+        apply: () => { p.hasRamenBreath = true; }
+      },
+      {
+        id: 'sweet_pancake',
+        elem: 'gourmet',
+        name: '달콤한 핫케이크 간식',
+        icon: '🥞',
+        tier: '🍜 미식 패시브',
+        maxLevel: 3,
+        effect: '경험치 보석 12개 획득할 때마다 체력 +10 즉시 회복',
+        apply: () => { p.hasSweetPancake = true; }
+      },
+      {
+        id: 'sugar_rush',
+        elem: 'gourmet',
+        name: '별사탕 슈가 러시',
+        icon: '🍭',
+        tier: '🍜 미식 패시브',
+        maxLevel: 1,
+        effect: '필드 아이템 획득 시 6초간 공격속도 2배 가속 & 공격력 +35% 폭주',
+        apply: () => { p.hasSugarRush = true; }
+      },
+
+      // ✨ 별빛 마법 빌드 (Magic)
+      {
+        id: 'star_shower',
+        elem: 'magic',
+        name: '유성우 별빛 비',
+        icon: '⭐',
+        tier: '✨ 마법 무기',
+        maxLevel: 1,
+        effect: '2.4초마다 주변 넓은 범위에 6개의 별빛 유성을 무차별 투하 (160 광역 피해)',
+        apply: () => { p.hasStarShower = true; }
+      },
+      {
+        id: 'prism_beam',
+        elem: 'magic',
+        name: '프리즘 굴절 렌즈',
+        icon: '🔮',
+        tier: '✨ 마법 패시브',
+        maxLevel: 1,
+        effect: '투사체가 적에게 명중할 때마다 35% 확률로 2개의 유도 별빛 탄환으로 굴절 분열',
+        apply: () => { p.hasPrismRefract = true; }
+      },
+
+      // 🗡️ 무술 & 검술 빌드 (Melee & Arts)
+      {
+        id: 'sasumata_thrust',
+        elem: 'crit',
+        name: '진검 사스마타 찌르기',
+        icon: '🗡️',
+        tier: '🗡️ 검술 무기',
+        maxLevel: 1,
+        effect: '1.2초마다 가장 가까운 적을 향해 강력한 쾌속 찌르기 충격파 방출 (260 피해 & 넉백)',
+        apply: () => { p.hasSasumataThrust = true; }
+      },
+      {
+        id: 'cross_counter',
+        elem: 'crit',
+        name: '반격의 검술',
+        icon: '⚔️',
+        tier: '🗡️ 검술 패시브',
+        maxLevel: 1,
+        effect: '피격 시 45% 확률로 0.6초 무적 & 4방향 십자 참격파 반격 (350 피해 & 넉백)',
+        apply: () => { p.hasCrossCounter = true; }
+      },
+
+      // 🌰 특수 동료 지원 (Companion)
+      {
+        id: 'familiar_kurimanju',
+        elem: 'poison',
+        name: '선배 쿠리만쥬의 특대 알밤',
+        icon: '🌰',
+        tier: '🌰 동료 무기',
+        maxLevel: 1,
+        effect: '3.2초마다 적 무리 중앙에 거대 알밤 폭탄 투하 (320 피해 & 2.2초 광역 기절)',
+        apply: () => { p.hasKurimanjuChestnut = true; }
+      },
+      {
+        id: 'friendship_link',
+        elem: 'orbit',
+        name: '치이카와 삼총사의 유대',
+        icon: '🤝',
+        tier: '⭐ 유대 패시브',
+        maxLevel: 1,
+        effect: '모든 스킬 쿨타임 -15% 감소 및 체력 50% 이하일 때 받는 피해 35% 경감',
+        apply: () => { p.hasFriendshipLink = true; p.cdQ *= 0.85; p.cdE *= 0.85; p.cdR *= 0.85; }
+      },
+
       // ⚔️ 기본 성장 및 강화 카드
       {
         id: 'dmg',
@@ -5734,6 +6030,30 @@ class Game {
         maxLevel: 1,
         effect: '맹독 지속시간 2배 & 중독된 적 사망 시 연쇄 독폭발',
         apply: () => { p.hasEvoPoison = true; p.damageMultiplier += 0.35; }
+      });
+    }
+    if (p.elementCounts.wind >= 2 && !p.hasEvoWind && (pLevels['evo_wind'] || 0) < 1) {
+      availablePool.unshift({
+        id: 'evo_wind',
+        elem: 'evolution',
+        name: '🌟 [각성] 태풍의 눈',
+        icon: '🌪️',
+        tier: '🌟 궁극 진화',
+        maxLevel: 1,
+        effect: '질풍 낫바람이 0.9초마다 4갈래 340 관통 칼날로 진화 & 전체 공격력 +35%',
+        apply: () => { p.hasEvoWind = true; p.damageMultiplier += 0.35; }
+      });
+    }
+    if (p.elementCounts.gourmet >= 2 && !p.hasEvoGourmet && (pLevels['evo_gourmet'] || 0) < 1) {
+      availablePool.unshift({
+        id: 'evo_gourmet',
+        elem: 'evolution',
+        name: '🌟 [각성] 전설의 특제 라멘 극의',
+        icon: '🍜',
+        tier: '🌟 궁극 진화',
+        maxLevel: 1,
+        effect: '라멘 화염 피해 초당 180으로 대폭 증폭 & 화염 범위 확대 & 공격력 +35%',
+        apply: () => { p.hasEvoGourmet = true; p.damageMultiplier += 0.35; }
       });
     }
 
@@ -6268,6 +6588,10 @@ class Game {
       const dist = Math.hypot(item.x - this.player.x, item.y - this.player.y);
       if (dist < item.radius + this.player.radius) {
         Sound.playPickup();
+        if (this.player.hasSugarRush) {
+          this.player.sugarRushTimer = 6.0;
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 35, '🍭 슈가 러시 폭주 (6초)!', '#f472b6', true));
+        }
         if (item.itemType === 'pudding') {
           this.player.hp = Math.min(this.player.maxHp, this.player.hp + 40);
           this.damageTexts.push(new DamageText(this.player.x, this.player.y - 20, '+40 HP', '#10b981', true));
@@ -6368,6 +6692,18 @@ class Game {
               });
             }
 
+            // Prism Refraction perk
+            if (this.player.hasPrismRefract && Math.random() < 0.35) {
+              for (let pa of [-0.45, 0.45]) {
+                const ra = Math.atan2(p.vy || 1, p.vx || 1) + pa;
+                this.projectiles.push(new Projectile(
+                  p.x, p.y,
+                  Math.cos(ra) * 14, Math.sin(ra) * 14,
+                  finalDmg * 0.65, 1, true, '#c084fc', 8, true, 'star'
+                ));
+              }
+            }
+
             if (this.settings.damageText) {
               this.damageTexts.push(new DamageText(enemy.x, enemy.y, Math.round(finalDmg), isCrit ? '#f59e0b' : p.color, isCrit));
             }
@@ -6413,11 +6749,34 @@ class Game {
             continue;
           }
 
-          this.player.hp -= p.damage;
+          if (this.player.hasCrossCounter && Math.random() < 0.45) {
+            Sound.playCritHit();
+            this.player.invulnerableTimer = 0.6;
+            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, '⚔️ 반격의 검술 (350)!', '#38bdf8', true));
+            for (let ca = 0; ca < 4; ca++) {
+              this.slashWaves.push(new SlashWave(this.player.x, this.player.y, ca * Math.PI / 2, 240, '#38bdf8'));
+            }
+            this.enemies.forEach(e => {
+              if (Math.hypot(e.x - this.player.x, e.y - this.player.y) < 240) {
+                e.hp -= 350 * this.player.damageMultiplier;
+                e.hitTimer = 0.15;
+                e.applyKnockback(this.player.x, this.player.y, 8.0);
+              }
+            });
+            this.projectiles.splice(i, 1);
+            continue;
+          }
+
+          let incDmg = p.damage;
+          if (this.player.hasFriendshipLink && this.player.hp <= this.player.maxHp * 0.5) {
+            incDmg = Math.max(1, Math.round(incDmg * 0.65));
+          }
+
+          this.player.hp -= incDmg;
           this.player.invulnerableTimer = 0.3;
           this.screenShake = 6;
           Sound.playHit();
-          this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${p.damage}`, '#ef4444', true));
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${incDmg}`, '#ef4444', true));
           const hitQuote = this.player.charType === 'usagi' ? "우뺘-!!" : (this.player.charType === 'hachiware' ? "으앗... 조심해!" : (this.player.charType === 'kurimanju' ? "끄으윽...!" : (this.player.charType === 'momonga' ? "아얏! 아프잖아!" : "후에에엥-!!")));
           this.player.say(hitQuote, true);
 
@@ -6490,12 +6849,31 @@ class Game {
         } else if (this.player.hasShield) {
           this.player.hasShield = false;
           this.damageTexts.push(new DamageText(this.player.x, this.player.y, `🛡️ 보호막 방어!`, '#38bdf8', true));
+        } else if (this.player.hasCrossCounter && Math.random() < 0.45) {
+          Sound.playCritHit();
+          this.player.invulnerableTimer = 0.6;
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y - 40, '⚔️ 반격의 검술 (350)!', '#38bdf8', true));
+          for (let ca = 0; ca < 4; ca++) {
+            this.slashWaves.push(new SlashWave(this.player.x, this.player.y, ca * Math.PI / 2, 240, '#38bdf8'));
+          }
+          this.enemies.forEach(e => {
+            if (Math.hypot(e.x - this.player.x, e.y - this.player.y) < 240) {
+              e.hp -= 350 * this.player.damageMultiplier;
+              e.hitTimer = 0.15;
+              e.applyKnockback(this.player.x, this.player.y, 8.0);
+            }
+          });
         } else {
-          this.player.hp -= enemy.damage;
+          let incDmg = enemy.damage;
+          if (this.player.hasFriendshipLink && this.player.hp <= this.player.maxHp * 0.5) {
+            incDmg = Math.max(1, Math.round(incDmg * 0.65));
+          }
+
+          this.player.hp -= incDmg;
           this.player.invulnerableTimer = 0.35;
           this.screenShake = 6;
           Sound.playHit();
-          this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${enemy.damage}`, '#ef4444', true));
+          this.damageTexts.push(new DamageText(this.player.x, this.player.y, `-${incDmg}`, '#ef4444', true));
           const contactQuote = this.player.charType === 'usagi' ? "하아?!" : (this.player.charType === 'hachiware' ? "으앗! 치이카와, 뒤로 물러서!" : (this.player.charType === 'kurimanju' ? "크으윽...!" : (this.player.charType === 'momonga' ? "으앙! 저리 가!" : "후에에에-!!")));
           this.player.say(contactQuote, true);
 
@@ -6636,6 +7014,14 @@ class Game {
       if (dist < gem.radius + this.player.radius) {
         this.addExp(gem.value);
         Sound.playPickup();
+        if (this.player.hasSweetPancake) {
+          this.player.gemPancakeCounter = (this.player.gemPancakeCounter || 0) + 1;
+          if (this.player.gemPancakeCounter >= 12) {
+            this.player.gemPancakeCounter = 0;
+            this.player.hp = Math.min(this.player.maxHp, this.player.hp + 10);
+            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 25, '🥞 핫케이크 +10 HP!', '#f59e0b', true));
+          }
+        }
         this.expGems.splice(i, 1);
       } else if (gem.life <= 0) {
         this.expGems.splice(i, 1);

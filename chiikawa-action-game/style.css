@@ -1221,6 +1221,9 @@ input:checked + .slider:before {
 .synergy-pill.elem-fire { border-color: #ef4444; color: #fca5a5; }
 .synergy-pill.elem-ice { border-color: #38bdf8; color: #bae6fd; }
 .synergy-pill.elem-poison { border-color: #a855f7; color: #e9d5ff; }
+.synergy-pill.elem-wind { border-color: #10b981; color: #a7f3d0; }
+.synergy-pill.elem-gourmet { border-color: #f97316; color: #fed7aa; }
+.synergy-pill.elem-magic { border-color: #8b5cf6; color: #ddd6fe; }
 .synergy-pill.elem-orbit { border-color: #f59e0b; color: #fef3c7; }
 .synergy-pill.elem-crit { border-color: #ec4899; color: #fbcfe8; }
 .synergy-pill.elem-evolution { border-color: #facc15; color: #fef08a; background: linear-gradient(135deg, #7c3aed, #db2777); }
@@ -1230,6 +1233,9 @@ input:checked + .slider:before {
 .card-item[data-elem="fire"] { border-color: #f87171; background: #fff5f5; }
 .card-item[data-elem="ice"] { border-color: #7dd3fc; background: #f0f9ff; }
 .card-item[data-elem="poison"] { border-color: #c084fc; background: #faf5ff; }
+.card-item[data-elem="wind"] { border-color: #34d399; background: #f0fdf4; }
+.card-item[data-elem="gourmet"] { border-color: #fb923c; background: #fff7ed; }
+.card-item[data-elem="magic"] { border-color: #a78bfa; background: #f5f3ff; }
 .card-item[data-elem="orbit"] { border-color: #fbbf24; background: #fffbeb; }
 .card-item[data-elem="crit"] { border-color: #f472b6; background: #fdf2f8; }
 .card-item[data-elem="evolution"] { 
