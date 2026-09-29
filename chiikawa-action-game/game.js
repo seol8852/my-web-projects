@@ -2561,7 +2561,7 @@ class Enemy {
       this.speed = (4.0 + Math.random() * 0.5) * diffConfig.spdMult;
       this.damage = Math.round(16 * diffConfig.dmgMult);
       this.color = '#fbbf24';
-      this.xp = 140 + wave * 25;
+      this.xp = 800 + wave * 150;
       this.name = '황금 도굴 고블린 🪙';
       this.shootCooldown = 2.6;
     } else if (type === 'ancient_sentinel') {
@@ -7134,7 +7134,14 @@ class Game {
         }
 
         if (enemy.type === 'golden_goblin') {
-          this.damageTexts.push(new DamageText(enemy.x, enemy.y - 25, `+${finalCoins} 🪙 도굴꾼 처치!`, '#facc15', true));
+          this.damageTexts.push(new DamageText(enemy.x, enemy.y - 30, `✨ +${finalCoins}🪙 & +${Math.round(enemy.xp * xpMult)} EXP [대량 경험치!]`, '#facc15', true));
+          // Burst of extra glowing golden EXP gems
+          for (let k = 0; k < 3; k++) {
+            this.expGems.push(new ExpGem(enemy.x, enemy.y, Math.round((enemy.xp * 0.35) * xpMult)));
+          }
+          if (Math.random() < 0.35) {
+            this.fieldItems.push(new FieldItem(enemy.x, enemy.y, 'pudding'));
+          }
         } else if (enemy.type === 'ancient_golem') {
           this.damageTexts.push(new DamageText(enemy.x, enemy.y - 35, `🏛️ 고대 수호 골렘 토벌! +${finalCoins} 🪙`, '#c084fc', true));
           this.fieldItems.push(new FieldItem(enemy.x, enemy.y, 'pudding'));
