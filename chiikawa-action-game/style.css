@@ -943,6 +943,87 @@ kbd {
   opacity: 0.9;
 }
 
+/* --- Dynamic Random Field Event HUD --- */
+.event-hud-container {
+  position: absolute;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 440px;
+  max-width: 90vw;
+  background: rgba(15, 23, 42, 0.92);
+  border: 2px solid #f472b6;
+  border-radius: 16px;
+  padding: 8px 14px;
+  box-shadow: 0 0 25px rgba(244, 114, 182, 0.45), inset 0 0 15px rgba(251, 191, 36, 0.2);
+  backdrop-filter: blur(8px);
+  z-index: 106;
+  pointer-events: none;
+  animation: eventPulse 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes eventPulse {
+  0% { box-shadow: 0 0 15px rgba(244, 114, 182, 0.35); transform: translateX(-50%) scale(1.0); }
+  100% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.7); transform: translateX(-50%) scale(1.02); }
+}
+
+.event-hud-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.event-icon {
+  font-size: 18px;
+  animation: floatBounce 0.8s infinite alternate ease-in-out;
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: #fbcfe8;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 8px rgba(244, 114, 182, 0.8);
+}
+
+.event-timer {
+  font-size: 14px;
+  font-weight: 900;
+  color: #fde047;
+  font-family: monospace;
+}
+
+.event-progress-track {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(244, 114, 182, 0.4);
+}
+
+.event-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ec4899, #f43f5e, #eab308);
+  box-shadow: 0 0 12px rgba(244, 114, 182, 0.8);
+  transition: width 0.1s linear;
+}
+
+.event-desc {
+  margin-top: 4px;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #fef08a;
+  text-align: center;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
 /* --- Cinematic Danger Warning Banner --- */
 .danger-banner {
   position: absolute;

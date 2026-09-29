@@ -1523,6 +1523,210 @@ class FieldItem {
   }
 }
 
+// --- 🎁 Event Entities (Random Field Events) ---
+class AirdropCrate {
+  constructor(x, y) {
+    this.targetX = x;
+    this.targetY = y;
+    this.x = x;
+    this.y = y - 350;
+    this.radius = 24;
+    this.progress = 0;
+    this.landed = false;
+    this.opened = false;
+    this.life = 40.0;
+    this.bob = 0;
+  }
+
+  update(dt, player, game) {
+    if (!this.landed) {
+      this.progress += dt * 0.85;
+      this.y = (this.targetY - 350) + 350 * Math.min(1.0, this.progress);
+      if (this.progress >= 1.0) {
+        this.landed = true;
+        this.y = this.targetY;
+        Sound.playExplosion();
+        for (let i = 0; i < 16; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const spd = 2 + Math.random() * 5;
+          game.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 6, '#facc15', 0.4, 'star'));
+        }
+      }
+    } else {
+      this.life -= dt;
+      this.bob += dt * 3;
+      const d = Math.hypot(player.x - this.x, player.y - this.y);
+      if (d < this.radius + player.radius && !this.opened) {
+        this.open(player, game);
+      }
+    }
+  }
+
+  open(player, game) {
+    this.opened = true;
+    Sound.playRelicFanfare();
+    player.hp = player.maxHp;
+    player.isTearShieldActive = true;
+    player.tearShieldTimer = 8.0;
+    player.hasShield = true;
+    game.addSessionCoins(100);
+
+    // 3 Large Rainbow XP gems
+    for (let i = -1; i <= 1; i++) {
+      game.expGems.push(new ExpGem(this.x + i * 35, this.y + (Math.random() - 0.5) * 20, 150));
+    }
+    game.damageTexts.push(new DamageText(this.x, this.y - 45, '🎁 특급 디저트 보급함 개방! (완치 & 별빛무적 & 100🪙)', '#facc15', true));
+
+    for (let i = 0; i < 28; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const spd = 3 + Math.random() * 7;
+      game.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 7, '#f472b6', 0.6, 'heart'));
+      game.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd * 0.8, Math.sin(a) * spd * 0.8, 6, '#facc15', 0.5, 'star'));
+    }
+  }
+
+  draw(ctx) {
+    if (this.opened) return;
+    ctx.save();
+
+    // Beacon Beam
+    if (this.landed) {
+      const beaconGrad = ctx.createLinearGradient(this.x, this.y - 500, this.x, this.y);
+      beaconGrad.addColorStop(0, 'rgba(250, 204, 21, 0)');
+      beaconGrad.addColorStop(0.7, 'rgba(250, 204, 21, 0.12)');
+      beaconGrad.addColorStop(1, 'rgba(250, 204, 21, 0.35)');
+      ctx.fillStyle = beaconGrad;
+      ctx.fillRect(this.x - 16, this.y - 500, 32, 500);
+
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.radius + 10 + Math.sin(this.bob) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.translate(this.x, this.y);
+
+    // Parachute
+    if (!this.landed) {
+      ctx.fillStyle = 'rgba(244, 114, 182, 0.85)';
+      ctx.beginPath();
+      ctx.arc(0, -32, 26, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-22, -32); ctx.lineTo(0, -4);
+      ctx.moveTo(0, -58); ctx.lineTo(0, -4);
+      ctx.moveTo(22, -32); ctx.lineTo(0, -4);
+      ctx.stroke();
+    }
+
+    // Gift Crate
+    ctx.shadowColor = '#facc15';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(-this.radius, -3.5, this.radius * 2, 7);
+    ctx.fillRect(-3.5, -this.radius, 7, this.radius * 2);
+
+    ctx.font = '22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🎁', 0, 0);
+
+    ctx.restore();
+  }
+}
+
+class FestivalBalloon {
+  constructor(x, y, colorIndex = 0) {
+    this.x = x;
+    this.y = y;
+    this.radius = 20;
+    this.colors = ['#f472b6', '#38bdf8', '#facc15', '#a855f7', '#4ade80', '#fb923c', '#e879f9'];
+    this.color = this.colors[colorIndex % this.colors.length];
+    this.vx = (Math.random() - 0.5) * 1.8;
+    this.vy = -0.6 - Math.random() * 0.8;
+    this.bob = Math.random() * Math.PI * 2;
+    this.popped = false;
+    this.life = 25.0;
+  }
+
+  update(dt, player, projectiles, game) {
+    this.life -= dt;
+    this.bob += dt * 3;
+    this.x += (this.vx + Math.sin(this.bob) * 0.8) * dt * 60;
+    this.y += this.vy * dt * 60;
+
+    // Check collision with player
+    const pd = Math.hypot(player.x - this.x, player.y - this.y);
+    if (pd < this.radius + player.radius) {
+      this.pop(game);
+      return;
+    }
+
+    // Check collision with projectiles
+    for (let p of projectiles) {
+      if (!p.fromPlayer) continue;
+      const d = Math.hypot(p.x - this.x, p.y - this.y);
+      if (d < this.radius + p.size) {
+        this.pop(game);
+        return;
+      }
+    }
+  }
+
+  pop(game) {
+    if (this.popped) return;
+    this.popped = true;
+    Sound.playHit();
+    game.addSessionCoins(10 + Math.floor(Math.random() * 15));
+    game.expGems.push(new ExpGem(this.x, this.y, 60));
+    game.damageTexts.push(new DamageText(this.x, this.y - 25, '🎈 팡! +EXP & 🪙', this.color, true));
+
+    for (let i = 0; i < 14; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const spd = 2 + Math.random() * 5;
+      game.particles.push(new Particle(this.x, this.y, Math.cos(a) * spd, Math.sin(a) * spd, 6, this.color, 0.45, 'star'));
+    }
+  }
+
+  draw(ctx) {
+    if (this.popped) return;
+    ctx.save();
+    ctx.translate(this.x, this.y);
+
+    // String
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(0, this.radius);
+    ctx.quadraticCurveTo(Math.sin(this.bob) * 5, this.radius + 8, 0, this.radius + 18);
+    ctx.stroke();
+
+    // Balloon Body
+    ctx.fillStyle = this.color;
+    ctx.shadowColor = this.color;
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, this.radius, this.radius * 1.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.arc(-this.radius * 0.35, -this.radius * 0.4, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
 // --- 🌟 World Landmark Entities (Stage 3) ---
 
 // 1. 🍜 Ramen Shop "Ro (郎)" Stall
@@ -2282,6 +2486,16 @@ class Enemy {
       this.xp = 550 + wave * 50;
       this.shootCooldown = 1.6;
       this.name = '🏛️ 고대 지하 수호 골렘';
+    } else if (type === 'elite_bounty') {
+      this.radius = 45;
+      this.hp = (1100 + wave * 220) * diffConfig.hpMult;
+      this.maxHp = this.hp;
+      this.speed = 1.6 * diffConfig.spdMult;
+      this.damage = Math.round(30 * diffConfig.dmgMult);
+      this.color = '#c084fc';
+      this.xp = 600 + wave * 60;
+      this.name = '👑 [현상수배] 악명 높은 돌연변이 키메라';
+      this.isElite = true;
     }
   }
 
@@ -2566,7 +2780,7 @@ class Enemy {
     else if (this.type === 'goblin') sprite = sprites.goblin;
     else if (this.type === 'golden_goblin') sprite = sprites.goblin;
     else if (this.type === 'ancient_golem') sprite = sprites.iron_chimera || sprites.midboss;
-    else if (this.type === 'chimera') sprite = sprites.chimera;
+    else if (this.type === 'chimera' || this.type === 'elite_bounty') sprite = sprites.chimera;
     else if (this.type === 'dark_swarm') sprite = sprites.dark_swarm;
     else if (this.type === 'lightning_beetle') sprite = sprites.bug;
     else if (this.type === 'iron_chimera') sprite = sprites.iron_chimera;
@@ -2583,11 +2797,11 @@ class Enemy {
       ctx.save();
       const auraPulse = Math.sin(Date.now() / 140) * 3;
       ctx.strokeStyle = this.color;
-      ctx.lineWidth = (this.type === 'boss' || this.type.includes('boss')) ? 4 : 2;
+      ctx.lineWidth = (this.type === 'boss' || this.type.includes('boss') || this.isElite) ? 4 : 2;
       ctx.shadowColor = this.color;
-      ctx.shadowBlur = (this.type === 'boss' || this.type.includes('boss')) ? 20 : 8;
+      ctx.shadowBlur = (this.type === 'boss' || this.type.includes('boss') || this.isElite) ? 20 : 8;
       ctx.beginPath();
-      ctx.arc(0, 0, this.radius + 3 + (this.type === 'boss' ? auraPulse : 0), 0, Math.PI * 2);
+      ctx.arc(0, 0, this.radius + 3 + (this.type === 'boss' || this.isElite ? auraPulse : 0), 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.beginPath();
@@ -2600,6 +2814,14 @@ class Enemy {
       ctx.beginPath();
       ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    if (this.isElite) {
+      ctx.save();
+      ctx.font = 'bold 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('👑', 0, -this.radius - 16);
+      ctx.restore();
     }
 
     // Status aura indicators
@@ -4117,6 +4339,21 @@ class Game {
     this.shockwaves = [];
     this.lightningBolts = [];
     this.slashWaves = [];
+    this.airdropCrates = [];
+    this.festivalBalloons = [];
+
+    // Dynamic Field Random Event System
+    this.eventTimer = 0;
+    this.nextEventInterval = 32;
+    this.activeEvent = null;
+    this.activeEventTimer = 0;
+    this.activeEventDuration = 0;
+    this.activeEventName = '';
+    this.activeEventIcon = '';
+    this.activeEventDesc = '';
+    this.lastEventIndex = -1;
+    this.thunderstormStrikeTimer = 0;
+    this.activeBountyEnemy = null;
 
     this.keys = {};
     this.mouse = { x: 0, y: 0, isDown: false };
@@ -4749,7 +4986,19 @@ class Game {
     this.shockwaves = [];
     this.lightningBolts = [];
     this.slashWaves = [];
+    this.airdropCrates = [];
+    this.festivalBalloons = [];
     this.weedPatches = [];
+
+    // Reset Random Field Events
+    this.eventTimer = 0;
+    this.nextEventInterval = 32;
+    this.activeEvent = null;
+    this.activeEventTimer = 0;
+    this.activeEventDuration = 0;
+    this.activeBountyEnemy = null;
+    const eHud = document.getElementById('event-hud');
+    if (eHud) eHud.style.display = 'none';
 
     // Reset Underground Dungeon
     this.dungeonPortals = [];
@@ -5500,6 +5749,93 @@ class Game {
       if (this.ramenShop) this.ramenShop.update(dt, this.particles);
       if (this.hotSpring) this.hotSpring.update(dt, this.player, this.damageTexts, this.particles);
       if (this.gachaMachines) this.gachaMachines.forEach(g => g.update(dt, this.particles));
+
+      // 🎲 Dynamic Field Random Events Progression
+      if (!this.activeEvent) {
+        this.eventTimer += dt;
+        if (this.eventTimer >= this.nextEventInterval) {
+          this.eventTimer = 0;
+          this.triggerRandomEvent();
+        }
+      } else {
+        this.activeEventTimer -= dt;
+        const eHud = document.getElementById('event-hud');
+        const timerEl = document.getElementById('event-timer-text');
+        const fillEl = document.getElementById('event-progress-fill');
+        if (timerEl) timerEl.textContent = `⏳ ${Math.max(0, this.activeEventTimer).toFixed(1)}s`;
+        if (fillEl) fillEl.style.width = `${Math.max(0, Math.min(100, (this.activeEventTimer / this.activeEventDuration) * 100))}%`;
+
+        // Event Continuous Effects
+        if (this.activeEvent === 'sakura_fever') {
+          if (Math.random() < 0.35) {
+            const a = Math.random() * Math.PI * 2;
+            const r = 20 + Math.random() * 80;
+            this.particles.push(new Particle(this.player.x + Math.cos(a) * r, this.player.y + Math.sin(a) * r, 0, -1.2, 7, '#f472b6', 0.5, 'star'));
+          }
+          // Whole-screen super magnet
+          this.expGems.forEach(g => {
+            const dx = this.player.x - g.x;
+            const dy = this.player.y - g.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            g.x += (dx / dist) * 14 * dt * 60;
+            g.y += (dy / dist) * 14 * dt * 60;
+          });
+        } else if (this.activeEvent === 'thunderstorm') {
+          this.thunderstormStrikeTimer += dt;
+          if (this.thunderstormStrikeTimer >= 1.4 && this.enemies.length > 0) {
+            this.thunderstormStrikeTimer = 0;
+            for (let k = 0; k < 2; k++) {
+              const target = this.enemies[Math.floor(Math.random() * this.enemies.length)];
+              if (target) {
+                Sound.playLightning();
+                target.hp -= 320;
+                target.hitTimer = 0.15;
+                target.blindTimer = 1.5;
+                this.lightningBolts.push(new LightningBolt(target.x + (Math.random() - 0.5) * 60, target.y - 500, target.x, target.y, '#facc15', 7));
+                this.damageTexts.push(new DamageText(target.x, target.y - 30, '⚡ 320 [천둥벼락!]', '#facc15', true));
+              }
+            }
+          }
+        } else if (this.activeEvent === 'elite_bounty') {
+          if (this.activeBountyEnemy && this.activeBountyEnemy.hp <= 0) {
+            Sound.playRelicFanfare();
+            this.addSessionCoins(150);
+            this.player.damageMultiplier += 0.10;
+            this.player.maxHp += 25;
+            this.player.hp = this.player.maxHp;
+            this.damageTexts.push(new DamageText(this.player.x, this.player.y - 55, '👑 현상수배 완수! +150🪙 & 전스탯 +10% 각성!', '#facc15', true));
+            this.showDangerBanner('👑 [현상수배 완수] 정예 키메라를 토벌했습니다!');
+            this.activeBountyEnemy = null;
+            this.activeEventTimer = 0;
+          }
+        }
+
+        if (this.activeEventTimer <= 0) {
+          this.activeEvent = null;
+          this.activeBountyEnemy = null;
+          if (eHud) eHud.style.display = 'none';
+          this.eventTimer = 0;
+          this.nextEventInterval = 36 + Math.random() * 12;
+        }
+      }
+
+      // Update Airdrop Crates
+      for (let i = this.airdropCrates.length - 1; i >= 0; i--) {
+        const c = this.airdropCrates[i];
+        c.update(dt, this.player, this);
+        if (c.opened || c.life <= 0) {
+          this.airdropCrates.splice(i, 1);
+        }
+      }
+
+      // Update Festival Balloons
+      for (let i = this.festivalBalloons.length - 1; i >= 0; i--) {
+        const b = this.festivalBalloons[i];
+        b.update(dt, this.player, this.projectiles, this);
+        if (b.popped || b.life <= 0) {
+          this.festivalBalloons.splice(i, 1);
+        }
+      }
     }
 
     // Landmark & Portal Proximity Prompt Check
@@ -6109,6 +6445,8 @@ class Game {
     this.expGems.forEach((gem) => { if (inView(gem)) gem.draw(this.ctx); });
     this.fieldItems.forEach((item) => { if (inView(item)) item.draw(this.ctx); });
     this.fireMines.forEach((mine) => { if (inView(mine)) mine.draw(this.ctx); });
+    this.airdropCrates.forEach((crate) => { if (inView(crate)) crate.draw(this.ctx); });
+    this.festivalBalloons.forEach((balloon) => { if (inView(balloon)) balloon.draw(this.ctx); });
     this.shockwaves.forEach((sw) => { if (inView(sw)) sw.draw(this.ctx); });
     this.enemies.forEach((enemy) => { if (inView(enemy)) enemy.draw(this.ctx); });
     this.grenades.forEach((g) => { if (inView(g)) g.draw(this.ctx); });
@@ -6357,6 +6695,123 @@ class Game {
     this.ctx.restore();
   }
 
+  // --- 🎲 Dynamic Random Field Events System ---
+  triggerRandomEvent() {
+    if (this.inDungeon || !this.player || this.activeEvent) return;
+
+    const eventList = [
+      {
+        id: 'sakura_fever',
+        name: '만개한 벚꽃 피버 타임!',
+        icon: '🌸',
+        desc: '전체 젬 자석 흡수 & 폭풍 공격력 증가!',
+        duration: 15.0,
+        banner: '🌸 [돌발 이벤트] 만개한 벚꽃 피버 타임 개막!'
+      },
+      {
+        id: 'golden_rush',
+        name: '황금 도굴꾼 대탈출 러시!',
+        icon: '💰',
+        desc: '도망치는 황금 고블린 떼를 소탕하여 코인 대박 획득!',
+        duration: 20.0,
+        banner: '💰 [돌발 이벤트] 황금 도굴꾼 무리가 보물자루를 메고 출현했습니다!'
+      },
+      {
+        id: 'sweets_airdrop',
+        name: '특급 디저트 보급품 투하!',
+        icon: '🎁',
+        desc: '포셰트 갑옷씨의 보급품이 낙하했습니다! 찾아가 개방하세요!',
+        duration: 30.0,
+        banner: '🎁 [돌발 이벤트] 특급 디저트 보급품이 투하되었습니다!'
+      },
+      {
+        id: 'thunderstorm',
+        name: '자연의 벼락 폭풍우 기상 이변!',
+        icon: '⛈️',
+        desc: '하늘에서 몬스터들을 향해 강력한 벼락 폭격 지원!',
+        duration: 16.0,
+        banner: '⛈️ [돌발 이벤트] 뇌운 강림! 몬스터들에게 벼락이 내리꽂힙니다!'
+      },
+      {
+        id: 'elite_bounty',
+        name: '현상수배: 정예 키메라 토벌!',
+        icon: '👑',
+        desc: '제한시간 내에 현상수배 정예 키메라를 토벌하여 전설 보상 획득!',
+        duration: 35.0,
+        banner: '👹 [현상수배] 악명 높은 돌연변이 정예 키메라 출현!'
+      },
+      {
+        id: 'balloon_carnival',
+        name: '판초 요정의 무지개 풍선 축제!',
+        icon: '🎈',
+        desc: '필드에 떠오른 무지개 풍선들을 터뜨려 코인 & EXP 획득!',
+        duration: 25.0,
+        banner: '🎈 [돌발 이벤트] 판초 요정들의 무지개 풍선 축제 개막!'
+      }
+    ];
+
+    let idx = Math.floor(Math.random() * eventList.length);
+    if (idx === this.lastEventIndex) {
+      idx = (idx + 1) % eventList.length;
+    }
+    this.lastEventIndex = idx;
+    const evt = eventList[idx];
+
+    this.activeEvent = evt.id;
+    this.activeEventDuration = evt.duration;
+    this.activeEventTimer = evt.duration;
+    this.activeEventName = evt.name;
+    this.activeEventIcon = evt.icon;
+    this.activeEventDesc = evt.desc;
+
+    // Show Danger/Event Banner
+    this.showDangerBanner(evt.banner);
+    Sound.playRelicFanfare();
+    this.damageTexts.push(new DamageText(this.player.x, this.player.y - 50, `${evt.icon} ${evt.name}`, '#facc15', true));
+
+    // Show Event HUD
+    const eHud = document.getElementById('event-hud');
+    if (eHud) {
+      const eIcon = document.getElementById('event-icon');
+      const eTitle = document.getElementById('event-title');
+      const eTimer = document.getElementById('event-timer-text');
+      const eDesc = document.getElementById('event-desc-text');
+      if (eIcon) eIcon.textContent = evt.icon;
+      if (eTitle) eTitle.textContent = evt.name;
+      if (eTimer) eTimer.textContent = `⏳ ${evt.duration.toFixed(1)}s`;
+      if (eDesc) eDesc.textContent = evt.desc;
+      eHud.style.display = 'block';
+    }
+
+    // Execute Immediate Event Spawns
+    if (evt.id === 'golden_rush') {
+      for (let i = 0; i < 7; i++) {
+        const a = (i / 7) * Math.PI * 2;
+        const gx = this.player.x + Math.cos(a) * (260 + Math.random() * 80);
+        const gy = this.player.y + Math.sin(a) * (260 + Math.random() * 80);
+        this.enemies.push(new Enemy(gx, gy, 'golden_goblin', this.wave, this.getDiffConfig()));
+      }
+    } else if (evt.id === 'sweets_airdrop') {
+      const a = Math.random() * Math.PI * 2;
+      const dropX = Math.max(150, Math.min(this.worldWidth - 150, this.player.x + Math.cos(a) * 200));
+      const dropY = Math.max(150, Math.min(this.worldHeight - 150, this.player.y + Math.sin(a) * 200));
+      this.airdropCrates.push(new AirdropCrate(dropX, dropY));
+    } else if (evt.id === 'balloon_carnival') {
+      for (let i = 0; i < 8; i++) {
+        const bx = Math.max(150, Math.min(this.worldWidth - 150, this.player.x + (Math.random() - 0.5) * 450));
+        const by = Math.max(150, Math.min(this.worldHeight - 150, this.player.y + (Math.random() - 0.5) * 450));
+        this.festivalBalloons.push(new FestivalBalloon(bx, by, i));
+      }
+    } else if (evt.id === 'elite_bounty') {
+      const a = Math.random() * Math.PI * 2;
+      const bx = Math.max(150, Math.min(this.worldWidth - 150, this.player.x + Math.cos(a) * 320));
+      const by = Math.max(150, Math.min(this.worldHeight - 150, this.player.y + Math.sin(a) * 320));
+      const bountyMob = new Enemy(bx, by, 'elite_bounty', this.wave, this.getDiffConfig());
+      this.enemies.push(bountyMob);
+      this.activeBountyEnemy = bountyMob;
+    }
+  }
+
   // --- 🏛️ Ancient Underground Dungeon Methods ---
   spawnDungeonPortal() {
     if (!this.player || this.inDungeon) return;
@@ -6388,6 +6843,8 @@ class Game {
       fieldItems: [...this.fieldItems],
       lightningBolts: [...this.lightningBolts],
       slashWaves: [...this.slashWaves],
+      airdropCrates: [...this.airdropCrates],
+      festivalBalloons: [...this.festivalBalloons],
       portal: portal
     };
 
@@ -6398,6 +6855,8 @@ class Game {
     this.fieldItems = [];
     this.lightningBolts = [];
     this.slashWaves = [];
+    this.airdropCrates = [];
+    this.festivalBalloons = [];
 
     // Teleport player to dungeon center
     this.player.x = 2500;
@@ -6449,6 +6908,8 @@ class Game {
       this.fieldItems = this.savedSurface.fieldItems;
       this.lightningBolts = this.savedSurface.lightningBolts || [];
       this.slashWaves = this.savedSurface.slashWaves || [];
+      this.airdropCrates = this.savedSurface.airdropCrates || [];
+      this.festivalBalloons = this.savedSurface.festivalBalloons || [];
 
       if (this.savedSurface.portal) {
         const idx = this.dungeonPortals.indexOf(this.savedSurface.portal);
