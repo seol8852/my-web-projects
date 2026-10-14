@@ -2042,12 +2042,13 @@ function evaluatePracticalScore() {
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-            <button class="btn-secondary" onclick="window.print()">🖨️ 성적표 인쇄 / PDF 저장</button>
+            <button class="btn-secondary" onclick="printScorecard()">🖨️ 성적표 인쇄 / PDF 저장</button>
             <button class="btn-primary" onclick="closeScorecardModal()">닫기</button>
         </div>
     `;
 
     modalWrapper.style.display = "flex";
+    document.body.classList.add("modal-open");
 }
 
 function renderExamPaper(exam) {
@@ -2292,6 +2293,67 @@ window.switchMockExam = function(examId) {
         window.switchWrittenMockExam(examId);
     }
 };
+
+// 시험지 전용 인쇄 및 PDF 저장 함수
+function printExamPaper() {
+    // 1. 좌측 뷰가 문제지가 아닐 경우 문제지 모드로 전환
+    if (typeof switchLeftColumnView === "function") {
+        switchLeftColumnView("paper");
+    }
+
+    // 2. 시험지 내용이 비어있다면 현재 선택된 모의고사로 렌더링
+    const paperContainer = document.getElementById("practical-exam-paper-container");
+    if (paperContainer && (!paperContainer.innerHTML || paperContainer.innerHTML.trim() === "")) {
+        const exam = (typeof MOCK_EXAMS_DATA !== "undefined" && MOCK_EXAMS_DATA[currentMockExamId]) || 
+                     (typeof MOCK_EXAMS_DATA !== "undefined" && MOCK_EXAMS_DATA["exam1"]);
+        if (exam && typeof renderExamPaper === "function") {
+            renderExamPaper(exam);
+        }
+    }
+
+    // 3. 인쇄 전용 클래스 적용
+    document.body.classList.add("printing-exam-paper");
+    document.body.classList.remove("printing-scorecard", "modal-open");
+
+    // 4. 인쇄 다이얼로그 호출
+    window.print();
+
+    // 5. 인쇄 종료 후 클래스 복구
+    const cleanup = () => {
+        document.body.classList.remove("printing-exam-paper");
+        window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    setTimeout(cleanup, 2000);
+}
+
+// 성적표 전용 인쇄 및 PDF 저장 함수
+function printScorecard() {
+    document.body.classList.add("printing-scorecard");
+    document.body.classList.remove("printing-exam-paper");
+
+    window.print();
+
+    const cleanup = () => {
+        document.body.classList.remove("printing-scorecard");
+        window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    setTimeout(cleanup, 2000);
+}
+
+// 성적표 모달 닫기
+function closeScorecardModal() {
+    const modalWrapper = document.getElementById("scorecard-modal-wrapper");
+    if (modalWrapper) {
+        modalWrapper.style.display = "none";
+    }
+    document.body.classList.remove("modal-open", "printing-scorecard");
+}
+
+window.printExamPaper = printExamPaper;
+window.printScorecard = printScorecard;
+window.closeScorecardModal = closeScorecardModal;
 
 // DOM 준비 시 자동 초기화
 document.addEventListener("DOMContentLoaded", () => {

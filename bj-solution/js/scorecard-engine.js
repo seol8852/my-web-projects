@@ -123,12 +123,13 @@ function generateScorecard() {
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-            <button class="btn-secondary" onclick="window.print()">🖨️ 성적표 인쇄 / PDF 저장</button>
+            <button class="btn-secondary" onclick="printScorecard()">🖨️ 성적표 인쇄 / PDF 저장</button>
             <button class="btn-primary" onclick="closeScorecardModal()">닫기</button>
         </div>
     `;
 
     modalWrapper.style.display = "flex";
+    document.body.classList.add("modal-open");
 }
 
 function closeScorecardModal() {
@@ -136,4 +137,5 @@ function closeScorecardModal() {
     if (modalWrapper) {
         modalWrapper.style.display = "none";
     }
+    document.body.classList.remove("modal-open", "printing-scorecard");
 }
