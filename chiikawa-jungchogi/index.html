@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>치이카와 정처기 실기 코딩 마스터 100제 | Chiikawa Jungchogi</title>
+  <!-- Pretendard & JetBrains Mono Fonts -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 상단 헤더 & 내비게이션 바 -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-area" onclick="switchTab('practice')">
+        <div class="brand-avatar-group">
+          <img src="assets/chiikawa.png" alt="치이카와" class="brand-avatar" onerror="this.style.display='none'">
+          <img src="assets/hachiware.png" alt="하치와레" class="brand-avatar" onerror="this.style.display='none'">
+          <img src="assets/usagi.png" alt="우사기" class="brand-avatar" onerror="this.style.display='none'">
+        </div>
+        <div class="brand-text">
+          <h1>🌸 치이카와 정처기 실기</h1>
+          <p>정보처리기사 코딩 기출 100제 완전정복</p>
+        </div>
+      </div>
+
+      <!-- 상단 탭 메뉴 -->
+      <nav class="nav-tabs">
+        <button type="button" class="nav-tab-btn active" data-tab="practice" onclick="switchTab('practice')">
+          🎯 100제 기출
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="exam" onclick="switchTab('exam')">
+          ⏱️ 모의고사 (CBT)
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="wrong" onclick="switchTab('wrong')">
+          📝 오답노트
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="dashboard" onclick="switchTab('dashboard')">
+          📊 학습현황
+        </button>
+      </nav>
+
+      <!-- 우측 액션 버튼들 -->
+      <div class="header-actions">
+        <button type="button" class="btn-sound-toggle" id="btn-sound">
+          🔊 사운드 ON
+        </button>
+        <a href="../index.html" class="btn-portal-back">
+          🌐 포털 홈
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 치이카와 캐릭터 응원 히어로 배너 -->
+  <section class="hero-banner">
+    <div class="hero-inner">
+      <div class="hero-speech-box">
+        <img src="assets/chiikawa.png" 
+             alt="치이카와" 
+             class="hero-char-img" 
+             id="hero-character-img"
+             title="캐릭터를 클릭하면 대사가 바뀌어요!">
+        <div class="speech-bubble">
+          <div class="speech-name" id="hero-speech-name">치이카와</div>
+          <div class="speech-text" id="hero-speech-text">
+            와앗... 합격하고 싶어! 열심히 풀면 꼭 붙을 수 있을 거야...!
+          </div>
+        </div>
+      </div>
+
+      <!-- 실시간 학습 상태 레일 -->
+      <div class="hero-stats-rail">
+        <div class="stat-pill">
+          <span class="stat-pill-label">달성 칭호</span>
+          <span class="rank-badge" id="stat-rank-badge">🌸 새싹 제초 견습생</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">정답 수</span>
+          <span class="stat-pill-value" id="stat-correct-count">0</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">진행도</span>
+          <span class="stat-pill-value" id="stat-total-solved" style="font-size: 1rem; color: #0284c7;">0 / 100</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">정답률</span>
+          <span class="stat-pill-value" id="stat-rate" style="color: #10b981;">0%</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 메인 콘텐츠 영역 -->
+  <main class="main-container">
+
+    <!-- 1. 100제 기출 정복 탭 & 오답노트 탭 공용 뷰 -->
+    <div class="tab-pane active" id="tab-practice">
+      <!-- 툴바 (언어 필터, 학습 상태 필터, 실시간 검색) -->
+      <div class="toolbar">
+        <div class="filter-row">
+          <div class="filter-group">
+            <span class="filter-label">언어별:</span>
+            <button type="button" class="filter-btn active" data-lang="all">전체 (100)</button>
+            <button type="button" class="filter-btn filter-btn-c" data-lang="c">C언어 (35)</button>
+            <button type="button" class="filter-btn filter-btn-java" data-lang="java">Java (40)</button>
+            <button type="button" class="filter-btn filter-btn-python" data-lang="python">Python (20)</button>
+            <button type="button" class="filter-btn filter-btn-sql" data-lang="sql">SQL/기타 (5)</button>
+          </div>
+
+          <!-- 검색창 -->
+          <div class="search-input-wrap">
+            <span class="search-icon">🔍</span>
+            <input type="text" 
+                   id="search-questions" 
+                   class="search-input" 
+                   placeholder="문제 번호, 키워드, 함수명 검색...">
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-group">
+            <span class="filter-label">상태별:</span>
+            <button type="button" class="filter-btn active" data-status="all">전체 보기</button>
+            <button type="button" class="filter-btn" data-status="unsolved">미완료</button>
+            <button type="button" class="filter-btn" data-status="correct">맞힌 문제 ⭕</button>
+            <button type="button" class="filter-btn" data-status="wrong">오답 문제 ❌</button>
+            <button type="button" class="filter-btn" data-status="bookmarked">즐겨찾기 ⭐</button>
+          </div>
+
+          <div class="status-counts-bar">
+            <span>총 <strong class="count-badge" id="filter-cnt-total">100</strong>개</span>
+            <span>정답 <strong class="count-badge" id="filter-cnt-correct">0</strong>개</span>
+            <span>오답 <strong class="count-badge" id="filter-cnt-wrong" style="color:#ef4444;">0</strong>개</span>
+            <span>북마크 <strong class="count-badge" id="filter-cnt-bm" style="color:#f59e0b;">0</strong>개</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 문제 카드 그리드 -->
+      <div class="questions-grid" id="questions-grid-container">
+        <!-- JS로 동적 렌더링 -->
+      </div>
+    </div>
+
+    <!-- 2. 실전 모의고사 (CBT) 탭 -->
+    <div class="tab-pane" id="tab-exam">
+      <!-- 2-1. 모의고사 시작 전 인트로 카드 -->
+      <div class="exam-intro-card" id="exam-intro-view">
+        <img src="assets/trio_banner.jpg" 
+             alt="치이카와 3총사" 
+             style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 14px; margin-bottom: 20px;"
+             onerror="this.style.display='none'">
+        <h2>⏱️ 치이카와 실전 CBT 모의고사</h2>
+        <p>
+          실제 정보처리기사 실기 프로그래밍 시험과 동일한 조건으로 무작위 추출된 문제를 풀고 실시간 자동 채점 및 <strong>치이카와 합격증</strong>을 받아보세요!
+        </p>
+
+        <div class="exam-options-grid">
+          <div class="exam-opt-card selected" data-count="10" onclick="selectExamCourse(10)">
+            <div class="exam-opt-title">⚡ 10문항 스피드 코스</div>
+            <div class="exam-opt-desc">제한시간 15분 | C, Java, Python 균형 추출 | 빠른 실력 점검</div>
+          </div>
+          <div class="exam-opt-card" data-count="20" onclick="selectExamCourse(20)">
+            <div class="exam-opt-title">🎯 20문항 실전 코스</div>
+            <div class="exam-opt-desc">제한시간 30분 | 기출 전 범위 풀세트 | 60점 이상 합격증 발급</div>
+          </div>
+        </div>
+
+        <button type="button" class="btn-start-exam" onclick="startExam()">
+          🚀 모의고사 시험 시작!
+        </button>
+      </div>
+
+      <!-- 2-2. 시험 진행 뷰 (문제 스크롤 + 우측 타이머 & OMR) -->
+      <div class="exam-active-layout" id="exam-active-view" style="display: none;">
+        <div class="exam-main-panel" id="exam-questions-list">
+          <!-- JS 렌더링 -->
+        </div>
+
+        <aside class="exam-sidebar">
+          <div class="timer-box">
+            <div class="timer-label">남은 시험 시간</div>
+            <div class="timer-value" id="exam-timer-clock">15:00</div>
+          </div>
+
+          <div class="omr-sheet-title">
+            <span>OMR 답안 마킹 시트</span>
+            <span style="font-size:0.75rem; color:#64748b;">번호 클릭 시 이동</span>
+          </div>
+
+          <div class="omr-grid" id="exam-omr-grid">
+            <!-- JS 렌더링 -->
+          </div>
+
+          <button type="button" class="btn-finish-exam" onclick="finishExam()">
+            ✍️ 답안 최종 제출 및 채점
+          </button>
+        </aside>
+      </div>
+    </div>
+
+    <!-- 3. 오답노트 탭 (Practice 탭의 wrong 필터와 자동 연동) -->
+    <div class="tab-pane" id="tab-wrong">
+      <div class="toolbar" style="margin-bottom: 20px;">
+        <h3 style="font-size: 1.15rem; color: #ef4444; margin-bottom: 4px;">📝 나의 치이카와 오답 노트</h3>
+        <p style="font-size: 0.85rem; color: var(--text-sub);">
+          틀렸던 문제들을 모아 완벽하게 이해할 때까지 반복 복습하세요! 해설의 변수 추적표를 꼼꼼히 확인하면 실력이 쑥쑥 늘어납니다.
+        </p>
+      </div>
+      <!-- 연습 그리드로 재사용 -->
+    </div>
+
+    <!-- 4. 학습 현황 탭 -->
+    <div class="tab-pane" id="tab-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-icon">📚</div>
+          <div class="stat-card-info">
+            <h4>총 학습 진행</h4>
+            <div class="stat-num" id="dash-total-solved">0 / 100</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-icon">⭕</div>
+          <div class="stat-card-info">
+            <h4>정답 문항 수</h4>
+            <div class="stat-num" id="dash-correct" style="color: #ff4d6d;">0</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-icon">🎯</div>
+          <div class="stat-card-info">
+            <h4>정답 성공률</h4>
+            <div class="stat-num" id="dash-rate" style="color: #10b981;">0%</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-card-icon">👑</div>
+          <div class="stat-card-info">
+            <h4>현재 수험 등급</h4>
+            <div class="stat-num" id="dash-rank-name" style="font-size: 1.15rem; color: #f59e0b;">새싹 제초 견습생</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 과목별 성취도 프로그레스 바 -->
+      <div class="progress-section">
+        <h3>📊 언어별 정답 달성도</h3>
+        <div id="dash-lang-bars">
+          <!-- JS 렌더링 -->
+        </div>
+      </div>
+
+      <!-- 리셋 구역 -->
+      <div style="background: #fff; border-radius: 14px; padding: 20px; border: 1px dashed #cbd5e1; text-align: center;">
+        <h4 style="font-size: 0.95rem; color: #64748b; margin-bottom: 8px;">데이터 관리</h4>
+        <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 14px;">기록을 초기화하여 처음부터 다시 도전할 수 있습니다.</p>
+        <button type="button" 
+                onclick="resetProgress()" 
+                style="background: #f8fafc; border: 1px solid #cbd5e1; color: #ef4444; font-weight: 700; padding: 8px 18px; border-radius: 9999px; cursor: pointer;">
+          🗑️ 학습 진행도 전체 초기화
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 모의고사 성적표 & 치이카와 합격증 모달 -->
+  <div class="modal-overlay" id="exam-result-modal">
+    <div class="modal-card">
+      <img src="assets/chiikawa.png" alt="캐릭터" class="modal-char-banner" id="modal-char-banner">
+      <h3 id="modal-result-title">모의고사 성적 결과</h3>
+      <div id="modal-pass-status" style="font-size: 1.15rem; font-weight: 800; margin-bottom: 12px;"></div>
+
+      <div class="score-display-box">
+        <div class="score-item">
+          <span class="score-lbl">최종 점수</span>
+          <span class="score-val" id="modal-score-val">0점</span>
+        </div>
+        <div class="score-item">
+          <span class="score-lbl">정답 문항</span>
+          <span class="score-val" id="modal-count-val" style="color: #0284c7;">0 / 10</span>
+        </div>
+      </div>
+
+      <!-- 합격증 캔버스 영역 -->
+      <div id="cert-canvas-container" style="display: none;">
+        <div class="cert-canvas-wrap">
+          <canvas id="certCanvas"></canvas>
+        </div>
+        <button type="button" class="btn-cert-download" onclick="downloadCertificate()">
+          📜 치이카와 공인 합격증 이미지 저장 (PNG)
+        </button>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-close" onclick="closeExamResultModal()">
+          확인 (연습 모드로 돌아가기)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 푸터 -->
+  <footer class="site-footer">
+    <p>🌸 <strong>치이카와 정보처리기사 실기 코딩 마스터 100제</strong> | 제작: 설범준 (Bumjun Seol)</p>
+    <p>본 사이트는 정보처리기사 실기 프로그래밍 기출문제와 먼작귀(Chiikawa) 캐릭터 일러스트를 활용한 비영리 에듀테크 플랫폼입니다.</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/questions-data.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/exam.js"></script>
+</body>
+</html>
