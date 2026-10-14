@@ -364,11 +364,14 @@ function renderCertificate(score) {
   ctx.font = 'bold 21px "Pretendard", sans-serif';
   ctx.fillText('치이카와 제초 & 정보처리 검정위원회', 400, 465);
 
-  // 8. 치이카와 삼총사 일러스트 캐릭터 캔버스에 그리기
+  // 8. 치이카와 6총사 일러스트 캐릭터 캔버스에 그리기 (치이카와, 하치와레, 쿠리만쥬, 모몽가, 랏코, 우사기)
   const charImgs = [
-    { src: 'assets/chiikawa.png', x: 60, y: 380, w: 90, h: 90 },
-    { src: 'assets/hachiware.png', x: 150, y: 390, w: 85, h: 85 },
-    { src: 'assets/usagi.png', x: 650, y: 380, w: 90, h: 90 }
+    { src: 'assets/chiikawa.png', x: 40, y: 390, w: 75, h: 75 },
+    { src: 'assets/hachiware.png', x: 115, y: 400, w: 70, h: 70 },
+    { src: 'assets/kurimanju.png', x: 185, y: 410, w: 65, h: 65 },
+    { src: 'assets/momonga.png', x: 535, y: 410, w: 65, h: 65 },
+    { src: 'assets/rakko.png', x: 600, y: 395, w: 70, h: 70 },
+    { src: 'assets/usagi.png', x: 675, y: 385, w: 75, h: 75 }
   ];
 
   charImgs.forEach(item => {

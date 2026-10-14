@@ -18,9 +18,12 @@
     <div class="header-inner">
       <div class="brand-area" onclick="switchTab('practice')">
         <div class="brand-avatar-group">
-          <img src="assets/chiikawa.png" alt="치이카와" class="brand-avatar" onerror="this.style.display='none'">
-          <img src="assets/hachiware.png" alt="하치와레" class="brand-avatar" onerror="this.style.display='none'">
-          <img src="assets/usagi.png" alt="우사기" class="brand-avatar" onerror="this.style.display='none'">
+          <img src="assets/chiikawa.png" alt="치이카와" class="brand-avatar" title="치이카와">
+          <img src="assets/hachiware.png" alt="하치와레" class="brand-avatar" title="하치와레">
+          <img src="assets/usagi.png" alt="우사기" class="brand-avatar" title="우사기">
+          <img src="assets/kurimanju.png" alt="쿠리만쥬" class="brand-avatar" title="쿠리만쥬">
+          <img src="assets/momonga.png" alt="모몽가" class="brand-avatar" title="모몽가">
+          <img src="assets/rakko.png" alt="랏코" class="brand-avatar" title="랏코">
         </div>
         <div class="brand-text">
           <h1>🌸 치이카와 정처기 실기</h1>
@@ -63,15 +66,41 @@
   <section class="hero-banner">
     <div class="hero-inner">
       <div class="hero-speech-box">
-        <img src="assets/chiikawa.png" 
-             alt="치이카와" 
-             class="hero-char-img" 
-             id="hero-character-img"
-             title="캐릭터를 클릭하면 대사가 바뀌어요!">
-        <div class="speech-bubble">
-          <div class="speech-name" id="hero-speech-name">치이카와</div>
-          <div class="speech-text" id="hero-speech-text">
-            와앗... 합격하고 싶어! 열심히 풀면 꼭 붙을 수 있을 거야...!
+        <div class="hero-char-wrap">
+          <img src="assets/chiikawa.png" 
+               alt="치이카와" 
+               class="hero-char-img" 
+               id="hero-character-img"
+               title="캐릭터를 클릭하면 대사가 바뀌어요!">
+        </div>
+        <div class="speech-bubble-col">
+          <div class="speech-bubble">
+            <div class="speech-name" id="hero-speech-name">치이카와</div>
+            <div class="speech-text" id="hero-speech-text">
+              와앗... 합격하고 싶어! 열심히 풀면 꼭 붙을 수 있을 거야...!
+            </div>
+          </div>
+          <!-- 6총사 파트너 선택 바 -->
+          <div class="char-partner-bar">
+            <span class="partner-bar-label">응원 파트너:</span>
+            <button type="button" class="char-partner-btn active" data-char="chiikawa" title="치이카와">
+              <img src="assets/chiikawa.png" alt="치이카와">
+            </button>
+            <button type="button" class="char-partner-btn" data-char="hachiware" title="하치와레">
+              <img src="assets/hachiware.png" alt="하치와레">
+            </button>
+            <button type="button" class="char-partner-btn" data-char="usagi" title="우사기">
+              <img src="assets/usagi.png" alt="우사기">
+            </button>
+            <button type="button" class="char-partner-btn" data-char="kurimanju" title="쿠리만쥬">
+              <img src="assets/kurimanju.png" alt="쿠리만쥬">
+            </button>
+            <button type="button" class="char-partner-btn" data-char="momonga" title="모몽가">
+              <img src="assets/momonga.png" alt="모몽가">
+            </button>
+            <button type="button" class="char-partner-btn" data-char="rakko" title="랏코 사부">
+              <img src="assets/rakko.png" alt="랏코">
+            </button>
           </div>
         </div>
       </div>
@@ -260,11 +289,32 @@
             </div>
           </div>
 
+          <!-- 토벌 파이터 선택 바 -->
+          <div class="slayer-fighter-select-bar">
+            <span style="font-size: 0.8rem; font-weight: 800; color: #64748b; margin-right: 4px;">출전 파이터:</span>
+            <button type="button" class="fighter-select-btn active" data-fighter="chiikawa" onclick="selectSlayerFighter('chiikawa')">
+              <img src="assets/chiikawa.png" alt="치이카와">
+              <span>치이카와</span>
+            </button>
+            <button type="button" class="fighter-select-btn" data-fighter="hachiware" onclick="selectSlayerFighter('hachiware')">
+              <img src="assets/hachiware.png" alt="하치와레">
+              <span>하치와레</span>
+            </button>
+            <button type="button" class="fighter-select-btn" data-fighter="usagi" onclick="selectSlayerFighter('usagi')">
+              <img src="assets/usagi.png" alt="우사기">
+              <span>우사기</span>
+            </button>
+            <button type="button" class="fighter-select-btn" data-fighter="rakko" onclick="selectSlayerFighter('rakko')">
+              <img src="assets/rakko.png" alt="랏코">
+              <span>랏코 사부</span>
+            </button>
+          </div>
+
           <!-- 배틀 스테이지 (아바타 & 몬스터) -->
           <div class="battle-stage">
             <div class="hero-fighter">
               <img src="assets/chiikawa.png" alt="치이카와" class="hero-avatar" id="slayer-hero-avatar">
-              <span style="font-size: 0.8rem; font-weight: 800; color: #ff4d6d; margin-top: 6px;">치이카와</span>
+              <span style="font-size: 0.8rem; font-weight: 800; color: #ff4d6d; margin-top: 6px;" id="slayer-hero-name">치이카와</span>
             </div>
 
             <div style="font-size: 1.8rem; font-weight: 900; color: #cbd5e1;">VS</div>
@@ -339,6 +389,17 @@
 
     <!-- 5. 학습 현황 탭 -->
     <div class="tab-pane" id="tab-dashboard">
+      <!-- 등급 대표 캐릭터 명예의 전당 카드 -->
+      <div class="dash-rank-char-hero">
+        <img src="assets/chiikawa.png" alt="대표 캐릭터" class="dash-rank-char-img" id="dash-rank-char-img">
+        <div class="dash-rank-char-info">
+          <div class="dash-rank-char-title">🌸 나의 치이카와 정처기 등급 파트너</div>
+          <div class="dash-rank-char-quote" id="dash-rank-char-quote">
+            "와앗... 시작이 반이야! 하나씩 풀어보자!"
+          </div>
+        </div>
+      </div>
+
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-card-icon">📚</div>

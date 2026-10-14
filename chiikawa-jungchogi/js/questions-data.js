@@ -147,8 +147,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "2차원 배열에서 `*(*(a + i) + j)`는 `a[i][j]`와 정확히 일치합니다. 따라서 `*(*(a + 1) + 2)`는 `a[1][2]`를 의미하므로 값은 6입니다.",
-    "tip": "하치와레: 공식 하나만 외우자! `*(*(a + i) + j) == a[i][j]`! i행 j열 원소를 뜻해!",
-    "character": "hachiware"
+    "tip": "랏코: 침착해라. 공식 하나만 외우자! `*(*(a + i) + j) == a[i][j]`! i행 j열 원소를 뜻해! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 5,
@@ -176,8 +176,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`int (*p)[3]`은 열의 개수가 3개인 배열을 가리키는 포인터입니다. 따라서 `p[1][1]`은 2차원 배열의 1행 1열 원소인 50을 가리킵니다.",
-    "tip": "우사기: 이얏하-! (*p)[3]은 괄호가 있어서 배열 포인터고, *p[3]은 포인터 배열이야! 헷갈리지 마!",
-    "character": "usagi"
+    "tip": "모몽가: 이얏하-! (*p)[3]은 괄호가 있어서 배열 포인터고, *p[3]은 포인터 배열이야! 헷갈리지 마! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 6,
@@ -472,8 +472,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "재귀 호출 `toBin(n / 2)`가 `printf`보다 먼저 실행되므로, 스택에 쌓였다가 가장 깊은 곳부터 거꾸로 빠져나오며 출력됩니다. 13의 2진수인 `1101`이 출력됩니다.",
-    "tip": "하치와레: printf가 재귀 호출 뒤에 있으면 스택의 역순(LIFO)으로 출력된다는 점이 중요해!",
-    "character": "hachiware"
+    "tip": "랏코: 침착해라. printf가 재귀 호출 뒤에 있으면 스택의 역순(LIFO)으로 출력된다는 점이 중요해! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 14,
@@ -511,8 +511,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`fn(1) = 2`, `fn(2) = 5`, `fn(3) = 8`, `fn(4) = 11`로 공차가 3인 등차수열 형태의 재귀식입니다. 결과는 11입니다.",
-    "tip": "우사기: 이얏하-! 하나씩 단계별로 적어 내려가면 절대 틀리지 않아!",
-    "character": "usagi"
+    "tip": "모몽가: 이얏하-! 하나씩 단계별로 적어 내려가면 절대 틀리지 않아! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 15,
@@ -625,8 +625,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "자기 참조 구조체를 이용한 연결 리스트 순회 코드입니다. a -> b -> c 노드를 순서대로 방문하며 10 + 20 + 30을 누적하여 60을 출력합니다.",
-    "tip": "하치와레: next 포인터를 타고 기차놀이 하듯 다음 노드로 쭉 이동하는 거야!",
-    "character": "hachiware"
+    "tip": "랏코: 침착해라. next 포인터를 타고 기차놀이 하듯 다음 노드로 쭉 이동하는 거야! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 18,
@@ -761,8 +761,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "switch문에서 `break`가 없으면 일치하는 case부터 시작하여 아래에 있는 모든 case와 default까지 연쇄적으로 실행(fall-through)됩니다. 따라서 20 + 30 + 40 = 90이 됩니다.",
-    "tip": "하치와레: break가 없으면 멈추지 않고 아래로 쏟아져 내려가! 정처기 실기 단골 함정이야!",
-    "character": "hachiware"
+    "tip": "쿠리만쥬: 크으-! break가 없으면 멈추지 않고 아래로 쏟아져 내려가! 정처기 실기 단골 함정이야! 한 모금 마시고 집중해서 풀자구.",
+    "character": "kurimanju"
   },
   {
     "id": 22,
@@ -838,8 +838,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`++x`는 먼저 1 증가되어 6이 됩니다. `x++`는 현재 값인 6을 덧셈에 제공하고 나서 7로 증가합니다. 따라서 `y = 6 + 6 = 12`, 연산 후 `x = 7`이 됩니다.",
-    "tip": "우사기: 하-앗! 앞++는 먼저 올리고, 뒤++는 나중에 올린다!",
-    "character": "usagi"
+    "tip": "모몽가: 하-앗! 앞++는 먼저 올리고, 뒤++는 나중에 올린다! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 24,
@@ -906,8 +906,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "매크로는 괄호 없이 단순 문자열 치환됩니다. `(2 + 3) * (2 + 3) = 25`가 아니라, `2 + 3 * 2 + 3`으로 전개되어 연산자 우선순위에 의해 `2 + 6 + 3 = 11`이 됩니다.",
-    "tip": "쿠리만쥬: 크으-! 매크로에 괄호가 없으면 단순 치환돼서 25가 아니라 11이 나오는 레전드 함정이지!",
-    "character": "kurimanju"
+    "tip": "랏코: 침착해라. 크으-! 매크로에 괄호가 없으면 단순 치환돼서 25가 아니라 11이 나오는 레전드 함정이지! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 26,
@@ -1097,8 +1097,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "AND(`&&`) 연산에서 앞의 피연산자가 거짓(0)이면 뒤의 식은 계산조차 하지 않는 '단락 평가'가 발생합니다. 따라서 `++b`가 실행되지 않아 b는 5 그대로 유지됩니다.",
-    "tip": "하치와레: 앞이 0(거짓)이면 뒤는 쳐다보지도 않아! ++b가 실행 안 되는 게 포인트!",
-    "character": "hachiware"
+    "tip": "랏코: 침착해라. 앞이 0(거짓)이면 뒤는 쳐다보지도 않아! ++b가 실행 안 되는 게 포인트! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 32,
@@ -1141,8 +1141,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "i=1일 때 sum에 1 더함, i=2는 continue, i=3일 때 sum에 3 더함 (sum=4), i=4는 continue, i=5는 `i > 3`에 걸려 break로 루프 탈출. 최종 sum은 4입니다.",
-    "tip": "우사기: continue는 다음 바퀴로 점프! break는 루프 탈출!",
-    "character": "usagi"
+    "tip": "모몽가: continue는 다음 바퀴로 점프! break는 루프 탈출! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 33,
@@ -1175,8 +1175,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "함수 포인터 `fp`가 `add`를 가리킬 때는 7을 반환하고, `mul`을 가리킬 때는 12를 반환합니다. 둘의 합은 7 + 12 = 19입니다.",
-    "tip": "하치와레: 포인터가 함수도 가리킬 수 있어! fp(3,4)가 add였다가 mul로 바뀌는 걸 확인해봐!",
-    "character": "hachiware"
+    "tip": "랏코: 침착해라. 포인터가 함수도 가리킬 수 있어! fp(3,4)가 add였다가 mul로 바뀌는 걸 확인해봐! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 34,
@@ -1244,8 +1244,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "공용체(`union`)는 모든 멤버가 동일한 메모리 공간을 공유합니다. `d.c`에 `0x56`을 대입했으므로 `d.c`를 16진수로 출력하면 56이 출력됩니다.",
-    "tip": "우사기: 구조체는 따로따로 방을 쓰지만, 공용체는 한 방을 같이 써!",
-    "character": "usagi"
+    "tip": "쿠리만쥬: 크으-! 구조체는 따로따로 방을 쓰지만, 공용체는 한 방을 같이 써! 한 모금 마시고 집중해서 풀자구.",
+    "character": "kurimanju"
   },
   {
     "id": 36,
@@ -1413,8 +1413,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`static` 블록은 클래스가 메모리에 처음 로딩될 때 딱 1번만 실행됩니다. 이후 인스턴스를 생성할 때마다 [인스턴스 초기화 블록 ➡️ 생성자] 순서로 실행되므로 `S I C I C `가 됩니다.",
-    "tip": "쿠리만쥬: static 블록(1번만) ➡️ 인스턴스 블록 ➡️ 생성자! 순서를 외워둬!",
-    "character": "kurimanju"
+    "tip": "랏코: 침착해라. static 블록(1번만) ➡️ 인스턴스 블록 ➡️ 생성자! 순서를 외워둬! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 41,
@@ -1478,8 +1478,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "Java 8부터 인터페이스에 `default` 키워드를 사용하면 기본 구현을 가진 메서드를 정의할 수 있습니다. 자식 클래스에서 오버라이딩하지 않아도 그대로 호출되어 'Fly '가 출력됩니다.",
-    "tip": "우사기: default 메서드는 인터페이스에서도 기본 코드를 선물해주는 기능이야!",
-    "character": "usagi"
+    "tip": "모몽가: default 메서드는 인터페이스에서도 기본 코드를 선물해주는 기능이야! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 43,
@@ -1757,8 +1757,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`t.start()`가 아니라 `t.run()`을 직접 호출하면 새 스레드가 생성되지 않고 일반 동기 메서드 호출처럼 작동합니다. 따라서 순서대로 `R M `이 출력됩니다.",
-    "tip": "하치와레: start()가 새 일꾼을 부르는 거고, run()을 그냥 부르면 내가 직접 일하는 거야!",
-    "character": "hachiware"
+    "tip": "랏코: 침착해라. start()가 새 일꾼을 부르는 거고, run()을 그냥 부르면 내가 직접 일하는 거야! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 51,
@@ -1791,8 +1791,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "람다식을 통해 `operate` 메서드를 각각 덧셈과 곱셈으로 구현했습니다. 7 + 10 = 17이 됩니다.",
-    "tip": "우사기: (a, b) -> 식! 간결하게 함수를 넘겨주는 마법의 화살표 람다!",
-    "character": "usagi"
+    "tip": "모몽가: (a, b) -> 식! 간결하게 함수를 넘겨주는 마법의 화살표 람다! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 52,
@@ -1952,8 +1952,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`final` 변수는 값을 변경할 수 없는 상수입니다. $3.14 \\times 10 \\times 10 = 314.0$이며 `(int)`로 정수 변환하여 314가 됩니다.",
-    "tip": "치이카와: final이 붙으면 절대로 바꿀 수 없는 상수가 돼!",
-    "character": "chiikawa"
+    "tip": "쿠리만쥬: 크으-! final이 붙으면 절대로 바꿀 수 없는 상수가 돼! 한 모금 마시고 집중해서 풀자구.",
+    "character": "kurimanju"
   },
   {
     "id": 57,
@@ -2085,8 +2085,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "자바에서는 기본형과 래퍼 클래스 간의 변환이 자동으로 일어납니다 (Auto-boxing & Unboxing). 100 + 50 = 150입니다.",
-    "tip": "치이카와: 상자에 자동으로 넣었다가(박싱) 쏙 꺼내주는(언박싱) 편리한 기능이야!",
-    "character": "chiikawa"
+    "tip": "모몽가: 상자에 자동으로 넣었다가(박싱) 쏙 꺼내주는(언박싱) 편리한 기능이야! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 61,
@@ -2114,8 +2114,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "열거형 상수는 switch-case의 조건으로 직접 사용될 수 있습니다. `Season.SUMMER`와 매칭되는 case에서 2가 출력됩니다.",
-    "tip": "우사기: enum 상수를 switch문에 쏙 넣으면 case 이름만 적어주면 돼!",
-    "character": "usagi"
+    "tip": "쿠리만쥬: 크으-! enum 상수를 switch문에 쏙 넣으면 case 이름만 적어주면 돼! 한 모금 마시고 집중해서 풀자구.",
+    "character": "kurimanju"
   },
   {
     "id": 62,
@@ -2216,8 +2216,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "자바는 값에 의한 호출(Call by Value)로 참조값의 복사본이 넘어갑니다. `b.val = 20`은 원본 객체의 필드를 바꾸지만, `b = new Box()`로 참조 주소 자체를 바꾸는 것은 원본 `myBox`에 영향을 주지 못합니다.",
-    "tip": "쿠리만쥬: 크으-! 객체 내부 값을 건드리는 건 반영되지만, 새 객체를 대입하는 건 함수 안에서만 끝나는 함정이야!",
-    "character": "kurimanju"
+    "tip": "랏코: 침착해라. 크으-! 객체 내부 값을 건드리는 건 반영되지만, 새 객체를 대입하는 건 함수 안에서만 끝나는 함정이야! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 65,
@@ -2287,8 +2287,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "자바에서 멤버 변수(필드)는 다형성이 적용되지 않고 선언된 참조 타입(`Super`)의 변수를 가져오지만, 메서드는 실제 객체(`Sub`)의 오버라이딩 메서드가 동적 바인딩됩니다. 따라서 `10 B20 `이 출력됩니다.",
-    "tip": "하치와레: ★초특급 킬러 문제★ 변수는 껍데기(Super)를 보고, 메서드는 알맹이(Sub)를 봐!",
-    "character": "hachiware"
+    "tip": "랏코: 침착해라. ★초특급 킬러 문제★ 변수는 껍데기(Super)를 보고, 메서드는 알맹이(Sub)를 봐! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 67,
@@ -2350,8 +2350,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "배열은 괄호 없는 속성 `length`(=4)를 사용하고, 문자열은 괄호 있는 메서드 `length()`(=5)를 사용합니다. 4 + 5 = 9입니다.",
-    "tip": "우사기: 배열은 그냥 length! 문자열은 괄호 붙은 length()! 더하면 9!",
-    "character": "usagi"
+    "tip": "모몽가: 배열은 그냥 length! 문자열은 괄호 붙은 length()! 더하면 9! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 69,
@@ -2501,8 +2501,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`static` 중첩 클래스는 외부 클래스의 인스턴스를 생성하지 않고도 `new Outer.Inner()` 형태로 독립적으로 객체를 생성할 수 있습니다.",
-    "tip": "쿠리만쥬: static이 붙은 이너 클래스는 부모 인스턴스 없이 바로 만들 수 있지!",
-    "character": "kurimanju"
+    "tip": "랏코: 침착해라. static이 붙은 이너 클래스는 부모 인스턴스 없이 바로 만들 수 있지! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 74,
@@ -2530,8 +2530,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`compareTo`는 두 문자열을 사전순으로 비교하여 다른 첫 문자의 아스키 코드 차이를 반환합니다. 't'(116) - 'r'(114) = 2입니다.",
-    "tip": "하치와레: ca까지는 똑같고, t와 r의 아스키코드 차이(116 - 114)는 2야!",
-    "character": "hachiware"
+    "tip": "쿠리만쥬: 크으-! ca까지는 똑같고, t와 r의 아스키코드 차이(116 - 114)는 2야! 한 모금 마시고 집중해서 풀자구.",
+    "character": "kurimanju"
   },
   {
     "id": 75,
@@ -2635,8 +2635,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`[::-1]`은 문자열을 뒤집어 'AWAKIIHC'가 되고, `[::2]`는 0번째(C), 2번째(I), 4번째(K), 6번째(W)를 추출하여 'CIKW'입니다.",
-    "tip": "우사기: [::-1]은 거꾸로 휙! [::2]는 두 칸씩 깡총깡총!",
-    "character": "usagi"
+    "tip": "모몽가: [::-1]은 거꾸로 휙! [::2]는 두 칸씩 깡총깡총! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 78,
@@ -2739,8 +2739,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`dict.get(key, default)`는 키가 존재하면 해당 값을, 없으면 지정된 기본값을 반환합니다. 90 + 50 = 140입니다.",
-    "tip": "우사기: get을 쓰면 에러 없이 안전하게 기본값을 챙길 수 있어!",
-    "character": "usagi"
+    "tip": "쿠리만쥬: 크으-! get을 쓰면 에러 없이 안전하게 기본값을 챙길 수 있어! 한 모금 마시고 집중해서 풀자구.",
+    "character": "kurimanju"
   },
   {
     "id": 81,
@@ -2932,8 +2932,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "객체 지향 클래스 메서드 호출로 `self.hp`에서 30이 감산되어 70이 출력됩니다.",
-    "tip": "치이카와: 100에서 30 데미지를 받으면 체력 70이 남아...!",
-    "character": "chiikawa"
+    "tip": "모몽가: 100에서 30 데미지를 받으면 체력 70이 남아...! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 87,
@@ -3000,8 +3000,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "`*args`는 위치 인자들을 튜플로, `**kwargs`는 키워드 인자들을 딕셔너리로 받습니다. 60 + 5 = 65입니다.",
-    "tip": "우사기: *는 튜플 보따리! **는 키워드 딕셔너리 보따리!",
-    "character": "usagi"
+    "tip": "쿠리만쥬: 크으-! *는 튜플 보따리! **는 키워드 딕셔너리 보따리! 한 모금 마시고 집중해서 풀자구.",
+    "character": "kurimanju"
   },
   {
     "id": 89,
@@ -3186,8 +3186,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "'banana'에서 'a'는 3개이고, 세 번째 인자 2로 인해 앞의 2개 'a'만 'o'로 바뀌어 `bonona`가 됩니다.",
-    "tip": "우사기: replace의 세 번째 숫자는 교체할 최대 개수라구!",
-    "character": "usagi"
+    "tip": "모몽가: replace의 세 번째 숫자는 교체할 최대 개수라구! 이 몸을 칭찬해라!",
+    "character": "momonga"
   },
   {
     "id": 95,
@@ -3215,8 +3215,8 @@ const QUESTIONS_DATA = [
       }
     ],
     "explanation": "딕셔너리를 캐시로 활용하여 피보나치 수를 구하는 메모이제이션 코드입니다. 6번째 피보나치 수는 8입니다.",
-    "tip": "하치와레: 한 번 계산한 건 memo 딕셔너리에 적어둬서 엄청 빠르게 찾아내!",
-    "character": "hachiware"
+    "tip": "랏코: 침착해라. 한 번 계산한 건 memo 딕셔너리에 적어둬서 엄청 빠르게 찾아내! 기본기에 충실하면 벨 수 있다.",
+    "character": "rakko"
   },
   {
     "id": 96,

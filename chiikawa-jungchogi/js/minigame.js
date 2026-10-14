@@ -8,6 +8,7 @@ const MINIGAME_STATE = {
   // 토벌전 상태
   slayer: {
     isRunning: false,
+    fighter: 'chiikawa',
     timer: 60,
     interval: null,
     score: 0,
@@ -38,9 +39,35 @@ const MINIGAME_STATE = {
 const MONSTER_POOL = [
   { name: "딱정벌레 괴물", img: "assets/monster_bug.png", maxHp: 100 },
   { name: "키메라 몬스터", img: "assets/monster_chimera.png", maxHp: 120 },
-  { name: "고블린 토벌 대상", img: "assets/monster_goblin.png", maxHp: 140 },
-  { name: "거대 괴물 아노코", img: "assets/anoko.png", maxHp: 180 }
+  { name: "고블린 토벌 대상", img: "assets/monster_goblin.png", maxHp: 130 },
+  { name: "어둠의 군단", img: "assets/monster_dark_swarm.png", maxHp: 140 },
+  { name: "강철 키메라", img: "assets/monster_iron_chimera.png", maxHp: 160 },
+  { name: "중간 보스 수호자", img: "assets/midboss.png", maxHp: 180 },
+  { name: "거대 괴물 아노코", img: "assets/anoko.png", maxHp: 200 }
 ];
+
+// 파이터 캐릭터 선택 (치이카와, 하치와레, 우사기, 랏코)
+function selectSlayerFighter(fighterKey) {
+  sound.playClick();
+  MINIGAME_STATE.slayer.fighter = fighterKey;
+  const heroImg = document.getElementById('slayer-hero-avatar');
+  const heroName = document.getElementById('slayer-hero-name');
+  if (heroImg) {
+    heroImg.src = `assets/${fighterKey}.png`;
+  }
+  const names = {
+    chiikawa: '치이카와',
+    hachiware: '하치와레',
+    usagi: '우사기',
+    rakko: '랏코 사부'
+  };
+  if (heroName) {
+    heroName.innerText = names[fighterKey] || '치이카와';
+  }
+  document.querySelectorAll('.fighter-select-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.fighter === fighterKey);
+  });
+}
 
 // ==========================================
 // 1. 몬스터 토벌 스피드 퀴즈 로직
@@ -332,16 +359,19 @@ function initCardGame() {
 
   // 70개 단어 중 무작위 8개 단어 선정 (= 16장 카드)
   const shuffledWords = [...JUNGCHOGI_WORDS].sort(() => Math.random() - 0.5).slice(0, 8);
+  const charPool = ['chiikawa', 'hachiware', 'usagi', 'kurimanju', 'momonga', 'rakko'];
 
   const cardList = [];
-  shuffledWords.forEach(w => {
+  shuffledWords.forEach((w, wIdx) => {
+    const cardChar = charPool[wIdx % charPool.length];
     // 1) 용어 카드
     cardList.push({
       id: `${w.id}-term`,
       pairId: w.id,
       type: 'term',
       content: w.term,
-      sub: w.category
+      sub: w.category,
+      char: cardChar
     });
     // 2) 설명 카드
     cardList.push({
@@ -349,7 +379,8 @@ function initCardGame() {
       pairId: w.id,
       type: 'desc',
       content: w.desc,
-      sub: "개념 정의"
+      sub: "개념 정의",
+      char: cardChar
     });
   });
 
@@ -373,11 +404,14 @@ function renderCardBoard() {
     <div class="flip-card" id="card-${idx}" onclick="flipCard(${idx})">
       <div class="flip-card-inner">
         <div class="flip-card-front">
-          <span style="font-size: 1.8rem;">🌸</span>
-          <span style="font-size: 0.72rem; font-weight:700; color:#ff758f; margin-top:4px;">정처기</span>
+          <img src="assets/${c.char}.png" alt="치이카와" style="width:42px; height:42px; object-fit:contain; filter:drop-shadow(0 2px 5px rgba(0,0,0,0.12));">
+          <span style="font-size: 0.72rem; font-weight:800; color:#ff4d6d; margin-top:2px;">정처기</span>
         </div>
         <div class="flip-card-back ${c.type}">
-          <span class="card-back-badge">${c.sub}</span>
+          <div style="display:flex; align-items:center; justify-content:space-between; width:100%; margin-bottom:4px;">
+            <span class="card-back-badge">${c.sub}</span>
+            <img src="assets/${c.char}.png" style="width:18px; height:18px; object-fit:contain;">
+          </div>
           <div class="card-back-content">${c.content}</div>
         </div>
       </div>

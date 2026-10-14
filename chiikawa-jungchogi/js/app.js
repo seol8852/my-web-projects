@@ -143,6 +143,18 @@ const CHAR_QUOTES = {
     "크으-! 정답의 이 짜릿한 손맛! 한 잔 들이켜는 기분이구만!",
     "합격은 집중과 끈기에서 나오는 법이지. 천천히 정확하게 풀어봐.",
     "실수했던 코드가 진짜 실력으로 이어지는 법이다. 다시 짚어봐."
+  ],
+  momonga: [
+    "어이! 거기 너! 이 몸이 친히 코딩 팁을 전수해 주지! 귀엽지? 칭찬해라!",
+    "흥! 이 정도 문제는 내게 아무것도 아니라고! 어서 나를 찬양해라!",
+    "틀렸다고 징징대지 마라! 이 몸의 귀여움을 보면서 힘을 내란 말이다!",
+    "만점 받아서 이 몸에게 맛있는 걸 바쳐라!"
+  ],
+  rakko: [
+    "침착해라. 코드의 흐름을 날카롭게 베어내면 답은 드러난다.",
+    "훌륭하다! 강인한 집중력이 승리를 가져오는 법이지.",
+    "실패는 더 단단한 칼날을 벼리는 망치질과 같다. 다시 일어서라.",
+    "자신을 믿어라. 너의 실력은 이미 기사 마스터의 경지에 다다르고 있다."
   ]
 };
 
@@ -175,18 +187,18 @@ function saveUserData() {
   }
 }
 
-// 사용자 등급 계산
+// 사용자 등급 계산 (등급별 대표 캐릭터 매핑)
 function getRankInfo(correctCount) {
   if (correctCount >= 100) {
-    return { name: "👑 기사 마스터 랑커", color: "#e11d48", next: 100 };
+    return { name: "👑 기사 마스터 랑커", color: "#e11d48", next: 100, character: "rakko", quote: "훌륭하다. 네 칼날은 이제 완벽하다!" };
   } else if (correctCount >= 80) {
-    return { name: "🏆 정보처리기사 달인", color: "#9333ea", next: 100 };
+    return { name: "🏆 정보처리기사 달인", color: "#9333ea", next: 100, character: "kurimanju", quote: "크으-! 이 정도면 합격증은 이미 네 주머니에 있구만!" };
   } else if (correctCount >= 50) {
-    return { name: "⚔️ 토벌 3급 용사", color: "#0284c7", next: 80 };
+    return { name: "⚔️ 토벌 3급 용사", color: "#0284c7", next: 80, character: "usagi", quote: "이얏하-! 우라! 고난도 알고리즘도 맹렬하게 격파!" };
   } else if (correctCount >= 20) {
-    return { name: "🌿 제초 5급 합격자", color: "#16a34a", next: 50 };
+    return { name: "🌿 제초 5급 합격자", color: "#16a34a", next: 50, character: "hachiware", quote: "풀뽑기 5급 달성! 합격까지 한 걸음씩 같이 가자!" };
   } else {
-    return { name: "🌸 새싹 제초 견습생", color: "#f59e0b", next: 20 };
+    return { name: "🌸 새싹 제초 견습생", color: "#f59e0b", next: 20, character: "chiikawa", quote: "와앗... 시작이 반이야! 하나씩 풀어보자!" };
   }
 }
 
@@ -243,12 +255,24 @@ function setCharacterSpeech(charName, msgIndex = null) {
     imgEl.onerror = () => { imgEl.src = 'assets/chiikawa.png'; };
   }
   if (nameEl) {
-    const names = { chiikawa: '치이카와', hachiware: '하치와레', usagi: '우사기', kurimanju: '쿠리만쥬' };
+    const names = {
+      chiikawa: '치이카와',
+      hachiware: '하치와레',
+      usagi: '우사기',
+      kurimanju: '쿠리만쥬',
+      momonga: '모몽가',
+      rakko: '랏코 사부'
+    };
     nameEl.innerText = names[charName] || '치이카와';
   }
   if (textEl) {
     textEl.innerText = text;
   }
+
+  // 상단 캐릭터 선택 바 활성화 상태 갱신
+  document.querySelectorAll('.char-partner-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.char === charName);
+  });
 }
 
 // 정답 판정 정규화 함수
@@ -324,18 +348,33 @@ function renderQuestionsList() {
     return;
   }
 
+  const charNames = {
+    chiikawa: '치이카와',
+    hachiware: '하치와레',
+    usagi: '우사기',
+    kurimanju: '쿠리만쥬',
+    momonga: '모몽가',
+    rakko: '랏코 사부'
+  };
+
   container.innerHTML = list.map(q => {
     const solved = APP_STATE.solvedData[q.id];
     const isBookmarked = APP_STATE.bookmarks.has(q.id);
     let statusClass = '';
     let statusFeedback = '';
 
+    const charKey = q.character || 'chiikawa';
+    const charName = charNames[charKey] || '치이카와';
+
     if (solved) {
       if (solved.isCorrect) {
         statusClass = 'status-correct';
         statusFeedback = `
           <div class="feedback-box correct" style="display: flex;">
-            <span>✨ 정답입니다! (${solved.userAnswer})</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <img src="assets/${charKey}.png" style="width:26px; height:26px; object-fit:contain;">
+              <span>✨ 정답입니다! (${escapeHtml(solved.userAnswer)})</span>
+            </div>
             <span>⭕</span>
           </div>
         `;
@@ -343,7 +382,10 @@ function renderQuestionsList() {
         statusClass = 'status-wrong';
         statusFeedback = `
           <div class="feedback-box wrong" style="display: flex;">
-            <span>❌ 오답 (내 답: ${solved.userAnswer})</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <img src="assets/${charKey}.png" style="width:26px; height:26px; object-fit:contain; filter:grayscale(40%);">
+              <span>❌ 오답 (내 답: ${escapeHtml(solved.userAnswer)})</span>
+            </div>
             <span style="font-size:0.75rem; color:#dc2626;">다시 도전해보세요!</span>
           </div>
         `;
@@ -371,11 +413,17 @@ function renderQuestionsList() {
             <span class="year-badge">${q.year}</span>
             <span class="diff-badge" title="난이도 ${q.difficulty}">${stars}</span>
           </div>
-          <button class="btn-bookmark ${isBookmarked ? 'bookmarked' : ''}" 
-                  onclick="toggleBookmark(${q.id})" 
-                  title="${isBookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
-            ${isBookmarked ? '⭐' : '☆'}
-          </button>
+          <div class="q-header-right" style="display:flex; align-items:center; gap:8px;">
+            <div class="q-char-pill" title="${charName}의 팁 문제">
+              <img src="assets/${charKey}.png" alt="${charName}" class="q-char-pill-img">
+              <span>${charName}</span>
+            </div>
+            <button class="btn-bookmark ${isBookmarked ? 'bookmarked' : ''}" 
+                    onclick="toggleBookmark(${q.id})" 
+                    title="${isBookmarked ? '즐겨찾기 해제' : '즐겨찾기 추가'}">
+              ${isBookmarked ? '⭐' : '☆'}
+            </button>
+          </div>
         </div>
 
         <h3 class="q-card-title">${q.title}</h3>
@@ -553,6 +601,15 @@ function renderDashboard() {
   if (elDashRate) elDashRate.innerText = `${rate}%`;
   if (elDashRank) elDashRank.innerText = rank.name;
 
+  const elDashCharImg = document.getElementById('dash-rank-char-img');
+  const elDashCharQuote = document.getElementById('dash-rank-char-quote');
+  if (elDashCharImg) {
+    elDashCharImg.src = `assets/${rank.character}.png`;
+  }
+  if (elDashCharQuote) {
+    elDashCharQuote.innerText = rank.quote;
+  }
+
   // 언어별 진행도 바
   const langs = ['c', 'java', 'python', 'sql'];
   const langLabels = { c: 'C언어 (35문항)', java: 'Java (40문항)', python: 'Python (20문항)', sql: 'SQL/자료구조 (5문항)' };
@@ -642,10 +699,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 캐릭터 클릭 시 대사 변경
+  // 캐릭터 클릭 시 대사 변경 (6총사 순환)
   const heroChar = document.getElementById('hero-character-img');
   if (heroChar) {
-    const chars = ['chiikawa', 'hachiware', 'usagi', 'kurimanju'];
+    const chars = ['chiikawa', 'hachiware', 'usagi', 'kurimanju', 'momonga', 'rakko'];
     heroChar.addEventListener('click', () => {
       sound.playClick();
       const currentIdx = chars.indexOf(APP_STATE.currentSpeechChar);
@@ -653,4 +710,13 @@ document.addEventListener('DOMContentLoaded', () => {
       setCharacterSpeech(nextChar);
     });
   }
+
+  // 캐릭터 파트너 직접 선택 버튼 바
+  document.querySelectorAll('.char-partner-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      sound.playClick();
+      const targetChar = e.currentTarget.dataset.char;
+      setCharacterSpeech(targetChar);
+    });
+  });
 });

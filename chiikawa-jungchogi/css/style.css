@@ -1709,3 +1709,175 @@ body {
   margin-bottom: 8px;
   text-align: left;
 }
+
+/* ==========================================
+   Multi-Character Enhancements
+   ========================================== */
+.brand-avatar:nth-child(4) { margin-left: -14px; }
+.brand-avatar:nth-child(5) { margin-left: -14px; }
+.brand-avatar:nth-child(6) { margin-left: -14px; }
+
+.speech-bubble-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Hero Character Partner Selector Bar */
+.char-partner-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 182, 193, 0.4);
+  width: fit-content;
+}
+
+.partner-bar-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-sub);
+  margin-right: 2px;
+}
+
+.char-partner-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: #fff;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.char-partner-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.char-partner-btn:hover {
+  transform: scale(1.15);
+  border-color: var(--primary-pink);
+}
+
+.char-partner-btn.active {
+  border-color: #ff4d6d;
+  background: #fff0f3;
+  transform: scale(1.18);
+  box-shadow: 0 2px 8px rgba(255, 77, 109, 0.35);
+}
+
+/* Question Card Character Badge Pill */
+.q-char-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  border: 1.5px solid rgba(255, 117, 143, 0.3);
+  padding: 2px 8px 2px 4px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ff4d6d;
+  box-shadow: 0 1px 4px rgba(255, 117, 143, 0.1);
+}
+
+.q-char-pill-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+/* Slayer Fighter Selector */
+.slayer-fighter-select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.fighter-select-btn {
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: var(--radius-full);
+  padding: 4px 12px 4px 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.fighter-select-btn img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.fighter-select-btn:hover {
+  border-color: var(--primary-pink);
+  background: var(--primary-pink-light);
+}
+
+.fighter-select-btn.active {
+  background: #fff0f3;
+  border-color: #ff4d6d;
+  color: #ff4d6d;
+  box-shadow: 0 2px 8px rgba(255, 77, 109, 0.25);
+}
+
+/* Dashboard Rank Character Banner */
+.dash-rank-char-hero {
+  background: linear-gradient(135deg, #fff0f5 0%, #ffffff 50%, #f0fdf4 100%);
+  border: 2px solid rgba(255, 182, 193, 0.5);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.dash-rank-char-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1));
+  animation: floatBounce 3s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.dash-rank-char-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dash-rank-char-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #0284c7;
+}
+
+.dash-rank-char-quote {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--text-main);
+  line-height: 1.4;
+}
