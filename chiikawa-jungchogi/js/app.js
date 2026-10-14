@@ -528,6 +528,8 @@ function switchTab(tabId) {
       btn.classList.toggle('active', btn.dataset.status === 'wrong');
     });
     renderQuestionsList();
+  } else if (tabId === 'minigame') {
+    setCharacterSpeech('usagi', 0);
   }
 }
 

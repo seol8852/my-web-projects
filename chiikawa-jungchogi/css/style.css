@@ -1288,3 +1288,424 @@ body {
   font-size: 3rem;
   margin-bottom: 12px;
 }
+
+/* ==========================================
+   Minigame Styles (Monster Slayer & Card Match)
+   ========================================== */
+.mini-header-box {
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 18px 24px;
+  border: 1px solid rgba(255, 182, 193, 0.4);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.mini-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.mini-tab-btn {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mini-tab-btn:hover {
+  background: var(--primary-pink-light);
+  color: var(--primary-pink);
+}
+
+.mini-tab-btn.active {
+  background: linear-gradient(135deg, #ff758f, #ff4d6d);
+  color: #fff;
+  border-color: #ff4d6d;
+  box-shadow: 0 4px 12px rgba(255, 77, 109, 0.3);
+}
+
+/* Slayer Arena */
+.slayer-arena {
+  background: linear-gradient(180deg, #fff5f7 0%, #ffffff 100%);
+  border: 2px solid rgba(255, 182, 193, 0.6);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.slayer-hud-bar {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  border: 1px solid rgba(255, 182, 193, 0.4);
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.slayer-hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.slayer-hud-lbl {
+  font-size: 0.72rem;
+  color: var(--text-sub);
+  font-weight: 700;
+}
+
+.slayer-hud-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #ff4d6d;
+}
+
+/* Battle Stage */
+.battle-stage {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  min-height: 200px;
+  padding: 20px 0;
+  position: relative;
+}
+
+.hero-fighter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.hero-avatar {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hero-avatar.attack-anim {
+  transform: translateX(40px) scale(1.15) rotate(10deg);
+}
+
+.monster-fighter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.monster-avatar {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.18));
+  transition: all 0.2s;
+}
+
+.monster-avatar.hit-anim {
+  transform: translateX(15px) scale(0.92);
+  filter: drop-shadow(0 0 16px rgba(239, 68, 68, 0.8)) hue-rotate(320deg);
+}
+
+.monster-avatar.dead {
+  transform: scale(0.1) rotate(720deg);
+  opacity: 0;
+}
+
+.monster-avatar.spawn-anim {
+  transform: scale(0.5);
+  opacity: 0;
+  animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes popIn {
+  to { transform: scale(1); opacity: 1; }
+}
+
+.monster-hp-container {
+  width: 140px;
+  margin-top: 8px;
+}
+
+.monster-hp-bar {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.monster-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ef4444, #f59e0b);
+  border-radius: var(--radius-full);
+  transition: width 0.25s ease;
+}
+
+/* Monster Question Speech Bubble */
+.monster-speech-wrap {
+  position: relative;
+  background: #fff;
+  border: 2px solid #38bdf8;
+  border-radius: 18px;
+  padding: 16px 20px;
+  margin: 10px auto 20px auto;
+  max-width: 680px;
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+  text-align: center;
+}
+
+.monster-speech-category {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #0284c7;
+  margin-bottom: 4px;
+}
+
+.monster-speech-desc {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.45;
+  margin-bottom: 6px;
+}
+
+.monster-speech-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* 4 Options Grid */
+.slayer-opts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+@media (max-width: 520px) {
+  .slayer-opts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.slayer-opt-btn {
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  transition: all 0.15s;
+  box-shadow: var(--shadow-sm);
+}
+
+.slayer-opt-btn:hover {
+  border-color: #ff4d6d;
+  background: #fff0f3;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.slayer-opt-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 900;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.slayer-opt-btn:hover .slayer-opt-num {
+  background: #ff4d6d;
+  color: #fff;
+}
+
+/* Combo Toast */
+.combo-toast {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  opacity: 0;
+  pointer-events: none;
+  font-size: 1.4rem;
+  font-weight: 900;
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.combo-toast.show {
+  transform: translate(-50%, -50%) scale(1.1);
+  opacity: 1;
+}
+
+.combo-toast.combo-high {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+}
+
+.combo-toast.combo-miss {
+  background: #ef4444;
+  color: #fff;
+}
+
+.wrong-shake {
+  animation: arenaShake 0.4s ease;
+}
+
+@keyframes arenaShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  50% { transform: translateX(8px); }
+  75% { transform: translateX(-6px); }
+}
+
+/* ==========================================
+   Memory Card Game 3D Flip Styles
+   ========================================== */
+.card-board-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+@media (max-width: 600px) {
+  .card-board-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.flip-card {
+  perspective: 1000px;
+  height: 125px;
+  cursor: pointer;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+  border-radius: 12px;
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card.matched .flip-card-inner {
+  transform: rotateY(180deg) scale(0.96);
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.flip-card.matched .flip-card-back {
+  border-color: #10b981 !important;
+  background: #ecfdf5 !important;
+}
+
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.flip-card-front {
+  background: linear-gradient(135deg, #fff0f3 0%, #fed7aa 100%);
+  border: 2px solid rgba(255, 117, 143, 0.5);
+}
+
+.flip-card-front:hover {
+  transform: translateY(-2px);
+  border-color: #ff4d6d;
+}
+
+.flip-card-back {
+  background: #fff;
+  border: 2px solid var(--primary-pink);
+  transform: rotateY(180deg);
+}
+
+.flip-card-back.term {
+  border-color: #0284c7;
+}
+
+.card-back-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.card-back-content {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.35;
+  word-break: keep-all;
+}
+
+.wrong-word-item {
+  background: #f8fafc;
+  border-left: 4px solid #ef4444;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  text-align: left;
+}

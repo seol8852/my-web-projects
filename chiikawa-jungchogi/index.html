@@ -36,6 +36,9 @@
         <button type="button" class="nav-tab-btn" data-tab="exam" onclick="switchTab('exam')">
           ⏱️ 모의고사 (CBT)
         </button>
+        <button type="button" class="nav-tab-btn" data-tab="minigame" onclick="switchTab('minigame')">
+          🎮 단어 미니게임
+        </button>
         <button type="button" class="nav-tab-btn" data-tab="wrong" onclick="switchTab('wrong')">
           📝 오답노트
         </button>
@@ -204,7 +207,126 @@
       </div>
     </div>
 
-    <!-- 3. 오답노트 탭 (Practice 탭의 wrong 필터와 자동 연동) -->
+    <!-- 3. 단어 암기 미니게임 탭 -->
+    <div class="tab-pane" id="tab-minigame">
+      <div class="mini-header-box">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 900; color: #ff4d6d; margin-bottom: 4px;">🎮 치이카와 단어 암기 아케이드</h2>
+          <p style="font-size: 0.82rem; color: var(--text-sub);">정처기 필수 단어 70제를 재미있는 미니게임으로 순식간에 암기해보세요!</p>
+        </div>
+        <div class="mini-tabs">
+          <button type="button" class="mini-tab-btn active" data-mode="slayer" onclick="switchMinigameMode('slayer')">
+            ⚔️ 몬스터 토벌 스피드 퀴즈
+          </button>
+          <button type="button" class="mini-tab-btn" data-mode="card" onclick="switchMinigameMode('card')">
+            🎴 단어 짝맞추기 메모리
+          </button>
+        </div>
+      </div>
+
+      <!-- 모드 1: 몬스터 토벌전 -->
+      <div id="mini-slayer-pane">
+        <!-- 인트로 시작 박스 -->
+        <div id="slayer-intro-box" class="exam-intro-card" style="margin: 20px auto;">
+          <img src="assets/trio_banner.jpg" alt="치이카와 3총사" style="width: 100%; max-height: 180px; object-fit: cover; border-radius: 12px; margin-bottom: 16px;">
+          <h3 style="font-size: 1.4rem; font-weight: 900; color: #ff4d6d; margin-bottom: 8px;">⚔️ 몬스터 단어 토벌 작전 (60초 타임어택)</h3>
+          <p style="font-size: 0.9rem; color: var(--text-sub); line-height: 1.5; margin-bottom: 20px;">
+            몬스터가 들고 오는 정처기 개념 설명을 보고 올바른 단어를 빠르게 골라 격퇴하세요!<br>
+            연속 정답 시 <strong>치이카와 연속 콤보</strong> 발동! 60초 동안 최대한 많은 몬스터를 토벌해보세요!
+          </p>
+          <button type="button" class="btn-start-exam" onclick="startSlayerGame()">
+            ⚔️ 토벌 작전 개시!
+          </button>
+        </div>
+
+        <!-- 실시간 토벌 배틀 아레나 -->
+        <div id="slayer-game-arena" class="slayer-arena" style="display: none;">
+          <div class="slayer-hud-bar">
+            <div class="slayer-hud-item">
+              <span class="slayer-hud-lbl">남은 시간</span>
+              <span class="slayer-hud-val" id="slayer-timer-val" style="color:#0284c7;">60초</span>
+            </div>
+            <div class="slayer-hud-item">
+              <span class="slayer-hud-lbl">토벌 점수</span>
+              <span class="slayer-hud-val" id="slayer-score-val">0점</span>
+            </div>
+            <div class="slayer-hud-item">
+              <span class="slayer-hud-lbl">연속 콤보</span>
+              <span class="slayer-hud-val" id="slayer-combo-val" style="color:#f59e0b;">0</span>
+            </div>
+            <div class="slayer-hud-item">
+              <span class="slayer-hud-lbl">처치 몬스터</span>
+              <span class="slayer-hud-val" id="slayer-kills-val" style="color:#10b981;">0마리</span>
+            </div>
+          </div>
+
+          <!-- 배틀 스테이지 (아바타 & 몬스터) -->
+          <div class="battle-stage">
+            <div class="hero-fighter">
+              <img src="assets/chiikawa.png" alt="치이카와" class="hero-avatar" id="slayer-hero-avatar">
+              <span style="font-size: 0.8rem; font-weight: 800; color: #ff4d6d; margin-top: 6px;">치이카와</span>
+            </div>
+
+            <div style="font-size: 1.8rem; font-weight: 900; color: #cbd5e1;">VS</div>
+
+            <div class="monster-fighter">
+              <img src="assets/monster_chimera.png" alt="몬스터" class="monster-avatar" id="slayer-monster-img">
+              <span style="font-size: 0.8rem; font-weight: 800; color: #64748b; margin-top: 6px;" id="slayer-monster-name">키메라 몬스터</span>
+              <div class="monster-hp-container">
+                <div class="monster-hp-bar">
+                  <div class="monster-hp-fill" id="slayer-monster-hp-fill" style="width: 100%;"></div>
+                </div>
+                <div style="font-size:0.7rem; font-weight:700; color:#ef4444; text-align:center; margin-top:2px;" id="slayer-monster-hp-text">100 / 100</div>
+              </div>
+            </div>
+
+            <div class="combo-toast" id="slayer-combo-toast">🔥 3 콤보!</div>
+          </div>
+
+          <!-- 몬스터의 문제 말풍선 -->
+          <div class="monster-speech-wrap">
+            <div class="monster-speech-category" id="slayer-word-category">[디자인 패턴]</div>
+            <div class="monster-speech-desc" id="slayer-word-desc">문제가 여기에 표시됩니다...</div>
+            <div class="monster-speech-hint" id="slayer-word-hint">💡 힌트: ...</div>
+          </div>
+
+          <!-- 4개 선택지 보기 버튼 -->
+          <div class="slayer-opts-grid" id="slayer-options-grid">
+            <!-- JS 렌더링 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 모드 2: 단어 짝맞추기 메모리 게임 -->
+      <div id="mini-card-pane" style="display: none;">
+        <div class="slayer-hud-bar" style="max-width: 760px; margin: 0 auto 20px auto;">
+          <div class="slayer-hud-item">
+            <span class="slayer-hud-lbl">소요 시간</span>
+            <span class="slayer-hud-val" id="card-timer-val" style="color:#0284c7;">00:00</span>
+          </div>
+          <div class="slayer-hud-item">
+            <span class="slayer-hud-lbl">맞춘 쌍</span>
+            <span class="slayer-hud-val" id="card-matched-val">0 / 8쌍</span>
+          </div>
+          <div class="slayer-hud-item">
+            <span class="slayer-hud-lbl">시도 횟수</span>
+            <span class="slayer-hud-val" id="card-moves-val" style="color:#f59e0b;">0회</span>
+          </div>
+          <div>
+            <button type="button" class="filter-btn" onclick="initCardGame()" style="background:#fff;">
+              🔁 카드 다시 섞기
+            </button>
+          </div>
+        </div>
+
+        <!-- 4x4 카드 보드 -->
+        <div class="card-board-grid" id="card-game-board">
+          <!-- JS 동적 렌더링 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 오답노트 탭 (Practice 탭의 wrong 필터와 자동 연동) -->
     <div class="tab-pane" id="tab-wrong">
       <div class="toolbar" style="margin-bottom: 20px;">
         <h3 style="font-size: 1.15rem; color: #ef4444; margin-bottom: 4px;">📝 나의 치이카와 오답 노트</h3>
@@ -215,7 +337,7 @@
       <!-- 연습 그리드로 재사용 -->
     </div>
 
-    <!-- 4. 학습 현황 탭 -->
+    <!-- 5. 학습 현황 탭 -->
     <div class="tab-pane" id="tab-dashboard">
       <div class="stats-grid">
         <div class="stat-card">
@@ -309,6 +431,75 @@
     </div>
   </div>
 
+  <!-- 토벌전 결과 모달 -->
+  <div class="modal-overlay" id="slayer-result-modal" style="display: none;">
+    <div class="modal-card">
+      <img src="assets/usagi.png" alt="우사기" class="modal-char-banner">
+      <h3 style="color: #ff4d6d;">⚔️ 몬스터 단어 토벌 결과</h3>
+      <div id="res-slayer-rank" style="font-size: 1.25rem; font-weight: 900; color: #f59e0b; margin-bottom: 12px;">👑 S급 마스터 랑커</div>
+
+      <div class="score-display-box">
+        <div class="score-item">
+          <span class="score-lbl">최종 점수</span>
+          <span class="score-val" id="res-slayer-score" style="color: #ff4d6d;">0점</span>
+        </div>
+        <div class="score-item">
+          <span class="score-lbl">처치 몬스터</span>
+          <span class="score-val" id="res-slayer-kills" style="color: #10b981;">0마리</span>
+        </div>
+        <div class="score-item">
+          <span class="score-lbl">최대 콤보</span>
+          <span class="score-val" id="res-slayer-combo" style="color: #0284c7;">0회</span>
+        </div>
+      </div>
+
+      <div style="text-align: left; margin: 16px 0;">
+        <h4 style="font-size: 0.9rem; font-weight: 800; color: var(--text-sub); margin-bottom: 8px;">📝 이번 판 오답 단어 복습</h4>
+        <div id="res-slayer-wrong-list" style="max-height: 180px; overflow-y: auto;">
+          <!-- JS 렌더링 -->
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cert-download" style="background: linear-gradient(135deg, #ff758f, #ff4d6d);" onclick="closeSlayerResult(); startSlayerGame();">
+          🔁 다시 도전하기
+        </button>
+        <button type="button" class="btn-modal-close" onclick="closeSlayerResult()">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 카드 짝맞추기 클리어 모달 -->
+  <div class="modal-overlay" id="card-clear-modal" style="display: none;">
+    <div class="modal-card">
+      <img src="assets/hachiware.png" alt="하치와레" class="modal-char-banner">
+      <h3 style="color: #10b981;">🎉 단어 짝맞추기 완성!</h3>
+      <p style="color: var(--text-sub); margin-bottom: 16px;">모든 정처기 단어와 개념 쌍을 완벽하게 맞추셨습니다!</p>
+
+      <div class="score-display-box">
+        <div class="score-item">
+          <span class="score-lbl">클리어 시간</span>
+          <span class="score-val" id="res-card-time" style="color: #0284c7;">00:00</span>
+        </div>
+        <div class="score-item">
+          <span class="score-lbl">총 시도 횟수</span>
+          <span class="score-val" id="res-card-moves" style="color: #f59e0b;">0회</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cert-download" style="background: linear-gradient(135deg, #10b981, #059669);" onclick="closeCardClearModal()">
+          🔁 새 카드로 다시 하기
+        </button>
+        <button type="button" class="btn-modal-close" onclick="document.getElementById('card-clear-modal').style.display='none'">
+          닫기
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 푸터 -->
   <footer class="site-footer">
     <p>🌸 <strong>치이카와 정보처리기사 실기 코딩 마스터 100제</strong> | 제작: 설범준 (Bumjun Seol)</p>
@@ -317,7 +508,9 @@
 
   <!-- Scripts -->
   <script src="js/questions-data.js"></script>
+  <script src="js/words-data.js"></script>
   <script src="js/app.js"></script>
   <script src="js/exam.js"></script>
+  <script src="js/minigame.js"></script>
 </body>
 </html>
