@@ -219,7 +219,7 @@ function updateHeaderStats() {
   const elTotalSolved = document.getElementById('stat-total-solved');
 
   if (elCorrect) elCorrect.innerText = correctCount;
-  if (elTotalSolved) elTotalSolved.innerText = `${solvedKeys.length} / ${total}`;
+  if (elTotalSolved) elTotalSolved.innerText = `${correctCount} / ${total}`;
   if (elRate) elRate.innerText = `${rate}%`;
   if (elRank) {
     elRank.innerText = rank.name;
@@ -277,30 +277,43 @@ function setCharacterSpeech(charName, msgIndex = null) {
 
 // 정답 판정 정규화 함수
 function normalizeAnswer(str) {
-  if (!str) return '';
-  return str
+  if (str === null || str === undefined) return '';
+  return String(str)
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .trim()
-    .replace(/\s+/g, ' ') // 여러 공백은 하나로
-    .toLowerCase();
+    .replace(/\s+/g, ' '); // 다중 공백은 단일 공백으로 치환
 }
 
 function checkUserAnswer(userAns, officialAns, altAnswers = []) {
-  const normUser = normalizeAnswer(userAns);
-  const normOfficial = normalizeAnswer(officialAns);
-
-  if (normUser === normOfficial) return true;
-
-  // 대체 답안 목록 대조
-  for (const alt of altAnswers) {
-    if (normUser === normalizeAnswer(alt)) return true;
+  if (!userAns || typeof userAns !== 'string' || !userAns.trim()) {
+    return false;
   }
 
-  // 쉼표 / 공백 구분 유연 처리
-  const stripUser = normUser.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
-  const stripOfficial = normOfficial.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
-  if (stripUser === stripOfficial) return true;
+  const rawUser = userAns.trim();
+  const rawOfficial = String(officialAns).trim();
+
+  // 1. 대소문자 무시 완전 일치
+  const normUser = normalizeAnswer(rawUser).toLowerCase();
+  const normOfficial = normalizeAnswer(rawOfficial).toLowerCase();
+  if (normUser === normOfficial) return true;
+
+  // 2. 대체 답안 목록 대조
+  if (Array.isArray(altAnswers)) {
+    for (const alt of altAnswers) {
+      if (alt && normUser === normalizeAnswer(alt).toLowerCase()) return true;
+    }
+  }
+
+  // 3. 쉼표(,) / 세미콜론(;) / 공백 구분 유연 처리
+  const stripUser = normUser.replace(/[,;]/g, ' ').replace(/\s+/g, ' ').trim();
+  const stripOfficial = normOfficial.replace(/[,;]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (stripUser && stripOfficial && stripUser === stripOfficial) return true;
+
+  // 4. 대괄호/소괄호/따옴표 제거 후 비교 (예: [1, 2, 3] vs 1 2 3, "HELLO" vs HELLO)
+  const cleanUser = stripUser.replace(/[\[\]\(\)\{\}'"]/g, '').replace(/\s+/g, ' ').trim();
+  const cleanOfficial = stripOfficial.replace(/[\[\]\(\)\{\}'"]/g, '').replace(/\s+/g, ' ').trim();
+  if (cleanUser && cleanOfficial && cleanUser === cleanOfficial) return true;
 
   return false;
 }
@@ -499,7 +512,8 @@ function submitAnswer(qId) {
   const userAns = inputEl.value.trim();
 
   if (!userAns) {
-    alert("출력값을 입력해주세요!");
+    inputEl.classList.add('shake');
+    setTimeout(() => inputEl.classList.remove('shake'), 400);
     inputEl.focus();
     return;
   }
@@ -518,16 +532,70 @@ function submitAnswer(qId) {
   saveUserData();
   updateHeaderStats();
 
+  const card = document.getElementById(`card-q-${qId}`);
+  const charKey = q.character || 'chiikawa';
+
   if (isCorrect) {
     sound.playCorrect();
-    setCharacterSpeech(q.character || 'chiikawa', 1);
+    setCharacterSpeech(charKey, 1);
+    if (card) {
+      card.classList.remove('status-wrong');
+      card.classList.add('status-correct');
+    }
   } else {
     sound.playWrong();
     setCharacterSpeech('hachiware', 2);
+    if (card) {
+      card.classList.remove('status-correct');
+      card.classList.add('status-wrong');
+    }
+    inputEl.classList.add('shake');
+    setTimeout(() => inputEl.classList.remove('shake'), 400);
   }
 
-  // 카드 즉시 리렌더링
-  renderQuestionsList();
+  renderSingleCardFeedback(qId);
+}
+
+// 개별 카드 피드백 UI 갱신 (전체 리스트 깜빡임 및 스크롤 튐 방지)
+function renderSingleCardFeedback(qId) {
+  const card = document.getElementById(`card-q-${qId}`);
+  if (!card) return;
+  const q = QUESTIONS_DATA.find(item => item.id === qId);
+  if (!q) return;
+  const solved = APP_STATE.solvedData[qId];
+  if (!solved) return;
+
+  const charKey = q.character || 'chiikawa';
+  let fbEl = card.querySelector('.feedback-box');
+  if (!fbEl) {
+    fbEl = document.createElement('div');
+    const inputRow = card.querySelector('.input-row');
+    if (inputRow && inputRow.parentNode) {
+      inputRow.parentNode.insertBefore(fbEl, inputRow.nextSibling);
+    }
+  }
+
+  if (solved.isCorrect) {
+    fbEl.className = 'feedback-box correct';
+    fbEl.style.display = 'flex';
+    fbEl.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="assets/${charKey}.png" style="width:26px; height:26px; object-fit:contain;">
+        <span>✨ 정답입니다! (${escapeHtml(solved.userAnswer)})</span>
+      </div>
+      <span>⭕</span>
+    `;
+  } else {
+    fbEl.className = 'feedback-box wrong';
+    fbEl.style.display = 'flex';
+    fbEl.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <img src="assets/${charKey}.png" style="width:26px; height:26px; object-fit:contain; filter:grayscale(40%);">
+        <span>❌ 오답입니다! (내 답: ${escapeHtml(solved.userAnswer)})</span>
+      </div>
+      <span style="font-size:0.75rem; color:#dc2626;">다시 도전해보세요!</span>
+    `;
+  }
 }
 
 // 해설 토글

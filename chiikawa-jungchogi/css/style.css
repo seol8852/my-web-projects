@@ -738,6 +738,18 @@ body {
   color: #991b1b;
 }
 
+@keyframes shakeInput {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.shake {
+  animation: shakeInput 0.4s ease-in-out !important;
+  border-color: #ef4444 !important;
+}
+
+
 .btn-toggle-explain {
   background: transparent;
   border: 1px solid #cbd5e1;
