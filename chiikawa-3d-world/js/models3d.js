@@ -920,9 +920,23 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
         dx -= bx * stretch * 0.45 * bellyMask;
       }
 
-      // 4) 캐릭터별 고유 공격 체형 변형 (Live2D 버텍스 애니메이션)
+      // 4) 캐릭터별 고유 공격 & 궁극기(comboStep === 99) 체형 변형 (Live2D 버텍스 애니메이션)
       if (attackTimer > 0) {
-        if (charKey === 'chiikawa') {
+        if (comboStep === 99) {
+          // ✨ [궁극기 Q] 전신 초각성 파동 & 캐릭터별 특화 텐션 변형!
+          const ultPulse = Math.sin(p * Math.PI * 6) * 0.28;
+          const ultRise = Math.sin(p * Math.PI);
+          if (charKey === 'kurimanju') {
+            // 쿠리만쥬 궁극기: 전신이 1.28배로 거대하게 부풀어 오르며 대지 분쇄!
+            dx += bx * ultRise * 0.28;
+            dy += by * ultRise * 0.25;
+            dz += ultRise * 0.55 * bellyMask;
+          } else {
+            dx += bx * ultPulse * 0.25 + Math.sin(p * Math.PI * 4) * 0.28 * v;
+            dy += ultRise * 0.42 * v;
+            dz += ultRise * 0.45 * bellyMask;
+          }
+        } else if (charKey === 'chiikawa') {
           // 치이카와: 용기 내어 부들부들 떨며 앞으로 몸을 쭉 뻗어 찌르기!
           const thrust = Math.sin(p * Math.PI);
           const tremble = comboStep === 2 ? Math.sin(p * 45) * 0.09 * v : 0;
@@ -976,11 +990,12 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     hatSlot.position.y = 4.4 + (breath - jellyWave * 0.25) * 3.2;
     hatSlot.rotation.z = isMoving ? Math.sin(walkTime) * 0.06 : 0;
 
-    // 랏코 사범의 하얀 망토 나부낌 모션 (공격 시 더욱 역동적으로 휘날림!)
+    // 랏코 사범의 하얀 망토 나부낌 모션 (공격/궁극기 시 더욱 역동적으로 휘날림!)
     if (rakkoCapePivot) {
       if (attackTimer > 0) {
-        rakkoCapePivot.rotation.x = 0.65 + Math.sin(p * Math.PI) * 0.45;
-        rakkoCapePivot.rotation.z = (comboStep === 2 ? -1 : 1) * Math.sin(p * Math.PI) * 0.38;
+        const mult = comboStep === 99 ? 1.6 : 1.0;
+        rakkoCapePivot.rotation.x = 0.65 + Math.sin(p * Math.PI * (comboStep === 99 ? 3 : 1)) * 0.45 * mult;
+        rakkoCapePivot.rotation.z = (comboStep === 2 ? -1 : 1) * Math.sin(p * Math.PI * (comboStep === 99 ? 4 : 1)) * 0.38 * mult;
       } else {
         rakkoCapePivot.rotation.x = isMoving
           ? 0.28 + Math.abs(Math.sin(walkTime)) * 0.22
@@ -990,10 +1005,98 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     }
 
     // ======================================================================
-    // 5) 6인 캐릭터별 고유 3연격 3D 전신 & 무기 공격 모션 안무
+    // 5) 6인 캐릭터별 고유 3연격 & 화려한 궁극기(comboStep === 99) 3D 안무
     // ======================================================================
     if (attackTimer > 0) {
-      if (charKey === 'chiikawa') {
+      if (comboStep === 99) {
+        // 🌟 [Key Q] 6인 캐릭터별 초화려 궁극기 전신 3D 모션 안무!!
+        if (charKey === 'chiikawa') {
+          // 치이카와 궁극기: 하늘로 부양하며 포쉐트 별빛 소환 3회전 스핀 후 대지 강타!
+          if (p < 0.65) {
+            const u = p / 0.65;
+            standeeGroup.position.y = Math.sin(u * Math.PI) * 2.6;
+            standeeGroup.rotation.y = u * Math.PI * 6;
+            rightArmPivot.position.set(1.3, 2.85, 0.5);
+            rightArmPivot.rotation.set(-0.6, 0, 0.8);
+            weaponMesh.rotation.set(0, 0, u * Math.PI * 8);
+            leftArmPivot.position.set(-1.3, 2.85, 0.5);
+          } else {
+            const s = (p - 0.65) / 0.35;
+            standeeGroup.position.y = (1 - s) * 0.5;
+            standeeGroup.rotation.x = Math.sin(s * Math.PI) * 0.38;
+            rightArmPivot.position.set(0.95, 2.5 - s * 1.4, 0.95);
+            rightArmPivot.rotation.set(1.45, 0, -0.9);
+            leftArmPivot.position.set(-0.95, 2.3 - s * 1.1, 0.85);
+          }
+        } else if (charKey === 'hachiware') {
+          // 하치와레 궁극기: 초고속 1080도(3바퀴) 창공 용오름 회전베기 후 전방 일섬!
+          standeeGroup.position.y = Math.sin(p * Math.PI) * 2.2;
+          standeeGroup.rotation.y = p * Math.PI * 8;
+          standeeGroup.rotation.z = Math.sin(p * Math.PI * 2) * 0.25;
+          rightArmPivot.position.set(1.85, 2.05, 0.6);
+          rightArmPivot.rotation.set(0.25, 0, -1.52);
+          weaponMesh.rotation.set(Math.PI / 6, 0, p * Math.PI * 6);
+          leftArmPivot.position.set(-1.75, 2.15, 0.45);
+        } else if (charKey === 'usagi') {
+          // 우사기 궁극기: 우라야하!! 공중 3연속 백플립 & 옆돌기 아크로바틱 폭격!
+          standeeGroup.position.y = Math.abs(Math.sin(p * Math.PI * 2)) * 2.8;
+          standeeGroup.rotation.x = p * Math.PI * 6;
+          standeeGroup.rotation.z = Math.sin(p * Math.PI * 4) * 0.45;
+          rightArmPivot.position.set(1.35, 2.45, 0.9);
+          rightArmPivot.rotation.set(0.6, 0, 0);
+          weaponMesh.rotation.set(0.2, 0, p * Math.PI * 14);
+          leftArmPivot.position.set(-1.35, 2.45, 0.9);
+        } else if (charKey === 'momonga') {
+          // 모몽가 궁극기: 샤랄라~ 공중 부양 5회전 은하수 발레 피루엣!
+          standeeGroup.position.y = Math.sin(p * Math.PI) * 2.1;
+          standeeGroup.rotation.y = -p * Math.PI * 10;
+          standeeGroup.rotation.z = Math.sin(p * Math.PI * 4) * 0.28;
+          rightArmPivot.position.set(1.65, 2.6, 0.55);
+          rightArmPivot.rotation.set(0.3, 0, -1.1);
+          weaponMesh.rotation.set(Math.PI / 6, 0, p * Math.PI * 8);
+          leftArmPivot.position.set(-1.65, 2.6, 0.55);
+        } else if (charKey === 'kurimanju') {
+          // 쿠리만쥬 궁극기: 캬하-! 거대화 기합 축적 후 대지를 쪼개는 메테오 볼케이노 강타!
+          if (p < 0.42) {
+            const c = p / 0.42;
+            standeeGroup.position.y = c * 1.8;
+            standeeGroup.rotation.x = -c * 0.35;
+            rightArmPivot.position.set(1.1, 2.6 + c * 0.8, 0.1);
+            rightArmPivot.rotation.set(-1.1 * c, 0, 0.75);
+            leftArmPivot.position.set(-1.1, 2.6 + c * 0.8, 0.1);
+          } else {
+            const s = (p - 0.42) / 0.58;
+            standeeGroup.position.y = Math.max(0, (1 - s * 2.2) * 1.8);
+            standeeGroup.rotation.x = -0.35 + Math.min(1, s * 1.8) * 0.72;
+            rightArmPivot.position.set(1.0, 3.4 - Math.min(1, s * 1.6) * 2.1, 0.2 + Math.min(1, s * 1.6) * 1.3);
+            rightArmPivot.rotation.set(-1.1 + Math.min(1, s * 1.6) * 2.6, 0, 0.75 - Math.min(1, s * 1.6) * 2.2);
+            leftArmPivot.position.set(-1.15, 2.9 - Math.min(1, s * 1.6) * 1.4, 0.6);
+          }
+          weaponMesh.rotation.set(Math.PI / 6, 0, -0.15);
+        } else if (charKey === 'rakko') {
+          // 랏코 사부 궁극기: 랭킹 1위의 비기 [천검 일섬] - 초고속 발도 8연참 검무 후 납도 포즈!
+          if (p < 0.75) {
+            const u = p / 0.75;
+            standeeGroup.position.y = Math.sin(u * Math.PI) * 1.35;
+            standeeGroup.rotation.y = u * Math.PI * 6;
+            standeeGroup.rotation.x = 0.28;
+            const slashOsc = Math.sin(u * Math.PI * 8);
+            rightArmPivot.position.set(0.6 + slashOsc * 1.25, 1.85 + Math.abs(slashOsc) * 0.6, 0.85);
+            rightArmPivot.rotation.set(0.55, slashOsc * 1.45, slashOsc * 1.65);
+            weaponMesh.rotation.set(Math.PI / 5, 0, slashOsc * 0.5);
+            leftArmPivot.position.set(-1.35, 1.95, 0.55);
+          } else {
+            // 피니시 납도 자세!
+            standeeGroup.position.y = 0;
+            standeeGroup.rotation.y = -0.35;
+            standeeGroup.rotation.x = 0.24;
+            rightArmPivot.position.set(-0.55, 1.55, 0.72);
+            rightArmPivot.rotation.set(0.3, 1.45, -1.35);
+            weaponMesh.rotation.set(Math.PI / 5, 0, -0.15);
+            leftArmPivot.position.set(-1.15, 1.62, 0.65);
+          }
+        }
+      } else if (charKey === 'chiikawa') {
         // [치이카와] 1타: 용기 내어 앞으로 콕 찌르기 / 2타: 다다닥 연속 2회 찌르기 / 3타: 폴짝 양손 내려찍기!
         if (comboStep === 1) {
           const thrust = Math.sin(p * Math.PI);
@@ -2255,75 +2358,137 @@ function createSubjugationPortalGate3D() {
   return group;
 }
 
-// 🏟️ 전투 스테이지(1~20단계) & 성장 던전 전용 3D 콜로세움 배틀 아레나 (광장과 완전 분리!)
+// 🏟️ 전진 돌파형 토벌 대장정 가도 & 최심부 보스 성소 (총 길이 250m 진행형 배틀 코스!)
 function createBattleColosseumArena3D() {
   const group = new THREE.Group();
   const gradientMap = getToonGradientMap();
 
   const floorMat = new THREE.MeshToonMaterial({ color: 0x334155, gradientMap });
-  const trimMat = new THREE.MeshToonMaterial({ color: 0x475569, gradientMap });
+  const roadMat = new THREE.MeshToonMaterial({ color: 0x475569, gradientMap });
+  const wallMat = new THREE.MeshToonMaterial({ color: 0x64748b, gradientMap });
   const pillarMat = new THREE.MeshToonMaterial({ color: 0x94a3b8, gradientMap });
+  const redArchMat = new THREE.MeshToonMaterial({ color: 0xb91c1c, gradientMap });
   const goldMat = new THREE.MeshBasicMaterial({
     color: 0xfacc15,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.65
+    opacity: 0.72
   });
+
+  // 1) 250m 전진형 석조 대장정 바닥 (Local Z: +22 ~ -228, 폭 38m)
+  const mainCorridor = new THREE.Mesh(new THREE.BoxGeometry(38, 0.6, 250), floorMat);
+  mainCorridor.position.set(0, -0.25, -103);
+  mainCorridor.receiveShadow = true;
+  group.add(mainCorridor);
+
+  // 중앙 진격 로드 카펫/석판 (폭 16m)
+  const centerPath = new THREE.Mesh(new THREE.BoxGeometry(16, 0.64, 246), roadMat);
+  centerPath.position.set(0, -0.23, -103);
+  centerPath.receiveShadow = true;
+  group.add(centerPath);
+
+  // 바닥 전진 유도 화살표(Chevron ▲) 20개 배치
+  for (let i = 0; i < 20; i++) {
+    const cz = 10 - i * 11.2;
+    const chevGroup = new THREE.Group();
+    const barGeo = new THREE.BoxGeometry(3.2, 0.06, 0.55);
+    const leftBar = new THREE.Mesh(barGeo, goldMat);
+    leftBar.position.set(-1.1, 0.1, 0);
+    leftBar.rotation.y = Math.PI * 0.22;
+    const rightBar = new THREE.Mesh(barGeo, goldMat);
+    rightBar.position.set(1.1, 0.1, 0);
+    rightBar.rotation.y = -Math.PI * 0.22;
+    chevGroup.add(leftBar, rightBar);
+    chevGroup.position.set(0, 0, cz);
+    group.add(chevGroup);
+  }
+
+  // 좌우 성벽 난간 & 횃불 기둥 (24쌍 = 48개 기둥)
+  const flameMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+  [-18.2, 18.2].forEach(wx => {
+    const sideWall = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.6, 248), wallMat);
+    sideWall.position.set(wx, 1.3, -103);
+    sideWall.castShadow = true;
+    addCartoonOutline(sideWall, 0.025);
+    group.add(sideWall);
+  });
+
+  for (let i = 0; i < 18; i++) {
+    const pz = 16 - i * 13.5;
+    [-17.8, 17.8].forEach(px => {
+      const col = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.15, 8.2, 10), pillarMat);
+      col.position.set(px, 4.1, pz);
+      col.castShadow = true;
+      addCartoonOutline(col, 0.03);
+      group.add(col);
+
+      const brazier = new THREE.Mesh(new THREE.SphereGeometry(0.72, 8, 8), flameMat);
+      brazier.position.set(px, 8.6, pz);
+      group.add(brazier);
+    });
+  }
+
+  // 5개 전진 구역(Sector 1~5) 관문 아치 & 바닥 마법진 배치
+  const sectorLocalZs = [-18, -62, -108, -154, -200];
+  sectorLocalZs.forEach((sz, idx) => {
+    // 구역 바닥 마법진 링
+    const rune = new THREE.Mesh(new THREE.RingGeometry(10.5, 11.4, 36), goldMat);
+    rune.rotation.x = -Math.PI / 2;
+    rune.position.set(0, 0.08, sz);
+    group.add(rune);
+
+    // 구역 경계 대형 아치 게이트
+    const archZ = sz - 18;
+    if (idx < 4) {
+      [-14.5, 14.5].forEach(ax => {
+        const archPillar = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 11.5, 12), redArchMat);
+        archPillar.position.set(ax, 5.75, archZ);
+        addCartoonOutline(archPillar, 0.035);
+        group.add(archPillar);
+      });
+      const topBeam = new THREE.Mesh(new THREE.BoxGeometry(33, 1.2, 1.6), redArchMat);
+      topBeam.position.set(0, 11.4, archZ);
+      addCartoonOutline(topBeam, 0.03);
+      group.add(topBeam);
+    }
+  });
+
+  // 최북단 제 5구역: 보스 결전 원형 성소 (Local Z = -202, 반경 26m)
+  const bossSanctum = new THREE.Mesh(new THREE.CylinderGeometry(26, 28, 0.7, 40), floorMat);
+  bossSanctum.position.set(0, -0.22, -202);
+  bossSanctum.receiveShadow = true;
+  group.add(bossSanctum);
+
+  const bossRune = new THREE.Mesh(new THREE.RingGeometry(18.5, 19.8, 44), goldMat);
+  bossRune.rotation.x = -Math.PI / 2;
+  bossRune.position.set(0, 0.12, -202);
+  group.add(bossRune);
+
+  // 🔒 구역 클리어 전까지 전진을 막는 3D 붉은 결계 에너지 월 (Sector Barrier Gate)
+  const barrierGroup = new THREE.Group();
   const barrierMat = new THREE.MeshBasicMaterial({
-    color: 0x38bdf8,
+    color: 0xef4444,
     side: THREE.DoubleSide,
     transparent: true,
-    opacity: 0.16,
+    opacity: 0.38,
     depthWrite: false
   });
+  const barrierWall = new THREE.Mesh(new THREE.PlaneGeometry(35, 7.5), barrierMat);
+  barrierWall.position.y = 3.75;
+  barrierGroup.add(barrierWall);
 
-  // 1) 원형 석조 결투장 바닥 (반경 42m)
-  const arenaFloor = new THREE.Mesh(new THREE.CylinderGeometry(42, 44, 0.6, 48), floorMat);
-  arenaFloor.position.y = -0.25;
-  arenaFloor.receiveShadow = true;
-  group.add(arenaFloor);
+  const topLineMat = new THREE.MeshBasicMaterial({ color: 0xfacc15 });
+  const topLine = new THREE.Mesh(new THREE.BoxGeometry(35.4, 0.35, 0.35), topLineMat);
+  topLine.position.y = 7.5;
+  barrierGroup.add(topLine);
 
-  // 외곽 석조 테두리 링
-  const rimRing = new THREE.Mesh(new THREE.TorusGeometry(41.5, 1.2, 12, 48), trimMat);
-  rimRing.rotation.x = Math.PI / 2;
-  rimRing.position.y = 0.2;
-  group.add(rimRing);
-
-  // 바닥 황금 마법진 링
-  const runeRing1 = new THREE.Mesh(new THREE.RingGeometry(14.5, 15.2, 40), goldMat);
-  runeRing1.rotation.x = -Math.PI / 2;
-  runeRing1.position.y = 0.08;
-  group.add(runeRing1);
-
-  const runeRing2 = new THREE.Mesh(new THREE.RingGeometry(28.5, 29.3, 48), goldMat);
-  runeRing2.rotation.x = -Math.PI / 2;
-  runeRing2.position.y = 0.08;
-  group.add(runeRing2);
-
-  // 결계 빛기둥 벽
-  const barrierWall = new THREE.Mesh(new THREE.CylinderGeometry(40.5, 40.5, 6.5, 48, 1, true), barrierMat);
-  barrierWall.position.y = 3.25;
-  group.add(barrierWall);
-
-  // 2) 결투장 둘레 12개의 고대 석조 기둥 & 횃불
-  const flameMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
-  for (let i = 0; i < 12; i++) {
-    const ang = (i / 12) * Math.PI * 2;
-    const px = Math.cos(ang) * 40.8;
-    const pz = Math.sin(ang) * 40.8;
-
-    const col = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.35, 9.5, 12), pillarMat);
-    col.position.set(px, 4.75, pz);
-    col.castShadow = true;
-    addCartoonOutline(col, 0.03);
-    group.add(col);
-
-    const brazier = new THREE.Mesh(new THREE.SphereGeometry(0.85, 10, 10), flameMat);
-    brazier.position.set(px, 10.1, pz);
-    group.add(brazier);
-  }
+  barrierGroup.position.set(0, 0, -36);
+  group.add(barrierGroup);
+  group.userData.sectorBarrier = barrierGroup;
+  group.userData.barrierMat = barrierMat;
 
   return group;
 }
+
 
 

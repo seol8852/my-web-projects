@@ -83,14 +83,25 @@
         </div>
       </div>
 
-      <!-- 중앙 상단: 전투 스테이지 / 스페셜 던전 진행 상황 & 보스 HP 바 (전투 중에만 표시) -->
+      <!-- 중앙 상단: 전진 돌파형 전투 스테이지 / 스페셜 던전 진행 상황 & 보스 HP 바 (전투 중에만 표시) -->
       <div class="battle-stage-hud" id="battle-stage-hud">
         <div class="battle-stage-top-row">
           <div class="battle-stage-badge" id="battle-stage-title">⚔️ 제 1 스테이지</div>
-          <span class="battle-remain-pill" id="battle-stage-remain">남은 괴수: 0 / 0</span>
+          <span class="battle-remain-pill" id="battle-stage-timer" style="background:rgba(15,23,42,0.85); color:#38bdf8; border-color:#38bdf8;">⏱️ 00:00</span>
+          <span class="battle-remain-pill" id="battle-stage-remain">남은 적군: 0 / 0</span>
           <button type="button" class="btn-return-town-mini" onclick="gameApp.returnToTown()">
             🏳️ 광장 귀환
           </button>
+        </div>
+        <!-- 전진 돌파 진행도 바 (제 1구역 ~ 제 5보스구역) -->
+        <div class="stage-boss-bar-wrap active" id="battle-progress-wrap" style="background:rgba(15,23,42,0.88); border-color:#38bdf8;">
+          <div class="stage-boss-label-row" style="color:#bae6fd;">
+            <span id="battle-sector-txt">🏃 전진 진격도: 제 1 / 5 구역 (앞으로 돌파하세요!)</span>
+            <span id="battle-dist-txt">0%</span>
+          </div>
+          <div class="stage-boss-track" style="height:10px;">
+            <div id="battle-progress-fill" style="width: 10%; height:100%; background:linear-gradient(90deg, #38bdf8, #818cf8, #facc15); border-radius:999px; transition:width 0.25s;"></div>
+          </div>
         </div>
         <div class="stage-boss-bar-wrap" id="stage-boss-bar-wrap">
           <div class="stage-boss-label-row">
@@ -199,7 +210,7 @@
           <span class="skill-icon">✨</span>
           <div class="skill-text-col">
             <span class="skill-name" id="hud-skill-name">분홍 포쉐트 별빛 대폭발</span>
-            <span class="skill-hotkey">Key [K] 필살기</span>
+            <span class="skill-hotkey" id="hud-skill-hotkey">Key [Q] 궁극기</span>
           </div>
         </button>
 
@@ -229,7 +240,7 @@
       </div>
 
       <div class="controls-hint-bar">
-        🎮 이동: <strong>WASD</strong> · 부위 타격: <strong>좌클릭/J</strong> (1타:🦵하단둔화 / 2·3타·점프공격:🎯머리약점 1.5x / 청록링:⚡후방백어택 1.35x) · 예고장판 회피: <strong>우클릭/Shift(저스트회피) · Space(하단점프회피)</strong>
+        🎮 이동: <strong>WASD</strong> · 공격: <strong>좌클릭/J</strong> · 🌟초화려 궁극기: <strong>[Q]</strong> · 회피대시: <strong>우클릭/Shift</strong> · 점프: <strong>Space</strong> · 스테이지 출격: <strong>[M]</strong>
       </div>
     </footer>
   </div>
