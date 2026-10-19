@@ -36,11 +36,13 @@ const CHAR_CONFIGS = {
     key: 'chiikawa',
     name: '치이카와',
     title: '💖 핑크 사스마타 & 분홍 곰돌이 포쉐트',
-    desc: '작고 귀여운 주인공! 균형 잡힌 이동속도와 넓은 사스마타 베기 범위를 지녔습니다.',
+    desc: '용기 내어 앞으로 콕콕 찌르는 직선 스피어 창술과 폴짝 내려찍기 모션을 구사합니다!',
     bodyColor: 0xffffff,
     accentColor: 0xff85a2,
     weaponType: 'sasumata_pink',
     weaponName: '핑크 사스마타',
+    attackStyleName: '용기의 콕콕 찌르기 & 점프 찍기',
+    comboNames: ['🩷 에잇! 용기 찌르기!', '🩷🩷 다다닥 연속 찌르기!', '💖 폴짝! 사스마타 내려찍기!'],
     speed: 20,
     atk: 32,
     skillName: '분홍 포쉐트 별빛 대폭발',
@@ -55,11 +57,13 @@ const CHAR_CONFIGS = {
     key: 'hachiware',
     name: '하치와레',
     title: '💙 제초 5급 합격자 & 파란 사스마타',
-    desc: '제초 5급 자격증 보유자! 풀뽑기 코인 보너스가 높고 연타 속도가 빠릅니다.',
+    desc: '넓은 수평 가로베기, 날렵한 대각선 어퍼 슬래시, 360도 회오리 스핀으로 이어지는 정석 창술!',
     bodyColor: 0xffffff,
     accentColor: 0x38bdf8,
     weaponType: 'sasumata_blue',
     weaponName: '블루 사스마타',
+    attackStyleName: '정석 가로베기 & 회오리 스핀',
+    comboNames: ['💙 와이드 가로베기!', '💎 어퍼 올려베기!', '🌪️ 난또까나레 회오리 스핀!'],
     speed: 21,
     atk: 35,
     skillName: '난또까나레! 희망의 파란 회오리',
@@ -74,11 +78,13 @@ const CHAR_CONFIGS = {
     key: 'usagi',
     name: '우사기',
     title: '💛 제초 3급 에이스 & 양끝 토벌봉',
-    desc: '압도적인 기동력과 폭발적인 화력을 자랑하는 천재 텐션 에이스!',
+    desc: '초고속 프로펠러 봉 돌리기, 360도 옆돌기 아크로바틱, 앞공중제비 폭약 스매시를 퍼붓는 천재 에이스!',
     bodyColor: 0xfff3c4,
     accentColor: 0xfacc15,
     weaponType: 'wand_yellow',
     weaponName: '폭약 토벌봉',
+    attackStyleName: '프로펠러 봉술 & 공중제비 폭격',
+    comboNames: ['💛 우라! 프로펠러 봉돌리기!', '⚡ 야하! 360도 옆돌기 타격!', '💥 이얏하!! 공중제비 대폭발!'],
     speed: 24,
     atk: 42,
     skillName: '우라야하-!! 초음속 황금 번개 스매시',
@@ -93,11 +99,13 @@ const CHAR_CONFIGS = {
     key: 'momonga',
     name: '모몽가',
     title: '💜 치명적인 귀여움 어필 & 복실 꼬리',
-    desc: '빠른 회피 기동과 넓은 범위의 회오리 애교 파동으로 적들을 제압합니다.',
+    desc: '건방진 백핸드 후리기, 방방 뛰며 양팔 떼쓰기 난타, 샤랄라 2회전 피루엣 스핀으로 적을 현혹합니다!',
     bodyColor: 0xffffff,
     accentColor: 0xa855f7,
     weaponType: 'sasumata_purple',
     weaponName: '보라 사스마타',
+    attackStyleName: '떼쓰기 난타 & 샤랄라 피루엣',
+    comboNames: ['💜 흥! 백핸드 휙 치기!', '💢 방방 뛰며 떼쓰기 난타!', '✨ 봐라! 샤랄라 2회전 피루엣!'],
     speed: 22.5,
     atk: 34,
     skillName: '귀여운 척하기! 보랏빛 매혹 폭풍',
@@ -112,11 +120,13 @@ const CHAR_CONFIGS = {
     key: 'kurimanju',
     name: '쿠리만쥬',
     title: '🧡 낭만 안주 마스터 & 묵직한 타격',
-    desc: '한 방 한 방이 묵직하고 체력 회복 효율이 뛰어난 어른의 여유!',
+    desc: '묵직한 어깨 대각선 강타, 호쾌한 배치기 충격파, 전신 기합 모아치기 대지분쇄를 구사하는 중량급 달인!',
     bodyColor: 0xfef3c7,
     accentColor: 0xd97706,
     weaponType: 'sasumata_amber',
     weaponName: '호박빛 사스마타',
+    attackStyleName: '묵직한 배치기 & 모아치기 분쇄',
+    comboNames: ['🧡 묵직한 어깨 내려베기!', '🍺 호쾌한 배치기 진동타!', '🌋 크으으!! 대지분쇄 모아치기!'],
     speed: 19.5,
     atk: 38,
     skillName: '크으으-!! 시원한 황금 안주 오라',
@@ -131,15 +141,17 @@ const CHAR_CONFIGS = {
     key: 'rakko',
     name: '랏코 사부',
     title: '⚔️ 토벌 랭킹 1위 상위 랭커 & 하얀 망토·명검',
-    desc: '오른쪽 눈 위의 십자 흉터와 하얀 망토가 트레이드마크인 토벌 랭킹 1위 달인! 달콤한 파르페를 좋아합니다.',
+    desc: '오른쪽 눈 위의 십자 흉터와 하얀 망토, 등 뒤의 칼집 보자기가 트레이드마크! 초고속 발도술과 십자 일섬을 구사합니다.',
     bodyColor: 0x1c1917,
     accentColor: 0xfacc15,
     weaponType: 'rakko_sword',
     weaponName: '상위 랭커의 토벌검',
+    attackStyleName: '초고속 발도술 & 십자(十) 일섬',
+    comboNames: ['⚔️ 발도: 전광석화 수평일섬!', '⚡ 역수 2연참: 쌍검섬!', '🌟 비기: 질풍 십자(十) 일섬!!'],
     speed: 22.5,
     atk: 46,
     skillName: '상위 랭커의 비기: 일섬 십자베기',
-    portrait: 'assets/rakko.png?v=2',
+    portrait: 'assets/rakko.png?v=3',
     quotes: [
       '토벌 랭킹 1위의 검술을 보여주마. 나를 믿고 따라와라!',
       '전투가 끝난 뒤 딸기 파르페와 달콤한 생크림을 먹는 게 진짜 보람이지...',
@@ -836,7 +848,7 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
   // ========================================================================
   root.userData.jellySpring = 0; // 착지/공격 시 말랑거리는 젤리 스프링 진폭
 
-  root.userData.updateMotion = (time, walkTime, isMoving, isGrounded, velY, attackTimer, comboStep) => {
+  root.userData.updateMotion = (time, walkTime, isMoving, isGrounded, velY, attackTimer, comboStep, maxAttackTime = 0.28) => {
     const arr = posAttr.array;
     const count = posAttr.count;
 
@@ -849,6 +861,8 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
 
     const jellyWave = Math.sin(time * 28) * root.userData.jellySpring;
     const breath = Math.sin(time * 3.6) * 0.028;
+    const atkDur = maxAttackTime || (comboStep === 3 ? 0.36 : 0.26);
+    const p = attackTimer > 0 ? 1.0 - Math.min(1, Math.max(0, attackTimer / atkDur)) : 0;
 
     for (let i = 0; i < count; i++) {
       const idx = i * 3;
@@ -872,7 +886,6 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
       if (isMoving && isGrounded) {
         if (v < 0.30) {
           const legWeight = 1.0 - (v / 0.30);
-          // 왼쪽 다리(bx < -0.15)와 오른쪽 다리(bx > 0.15)가 정반대 위상으로 스텝!
           if (Math.abs(bx) > 0.12) {
             const sideSign = bx > 0 ? 1 : -1;
             const stridePhase = walkTime + (sideSign > 0 ? 0 : Math.PI);
@@ -885,18 +898,15 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
           }
         }
 
-        // 상체/귀(v > 0.45)는 달리는 리듬에 맞춰 좌우로 귀엽게 스윙 + 귀 끝 관성 흔들림
         if (v > 0.45) {
           const upperWeight = (v - 0.45) / 0.55;
           dx += Math.sin(walkTime) * 0.22 * upperWeight;
-          // 귀 끝(v > 0.78)은 약간의 위상차(Phase Lag)를 두고 쫑긋거림
           if (v > 0.75) {
             const earWeight = (v - 0.75) / 0.25;
             dy += Math.sin(walkTime * 2 - Math.abs(bx)) * 0.12 * earWeight;
           }
         }
       } else if (isGrounded) {
-        // 대기(Idle) 상태에서도 귀 끝이 살랑살랑 움직임
         if (v > 0.75) {
           const earWeight = (v - 0.75) / 0.25;
           dx += Math.sin(time * 2.8 + bx) * 0.06 * earWeight;
@@ -910,12 +920,49 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
         dx -= bx * stretch * 0.45 * bellyMask;
       }
 
-      // 4) 공격 시 역동적인 상체 스냅 & 전진 베기 텐션
+      // 4) 캐릭터별 고유 공격 체형 변형 (Live2D 버텍스 애니메이션)
       if (attackTimer > 0) {
-        const atkPhase = attackTimer * 18;
-        const lungeShear = Math.sin(atkPhase) * 0.35 * v;
-        dx += lungeShear;
-        dz += Math.sin(atkPhase) * 0.25 * bellyMask;
+        if (charKey === 'chiikawa') {
+          // 치이카와: 용기 내어 부들부들 떨며 앞으로 몸을 쭉 뻗어 찌르기!
+          const thrust = Math.sin(p * Math.PI);
+          const tremble = comboStep === 2 ? Math.sin(p * 45) * 0.09 * v : 0;
+          dx += thrust * 0.32 * v + tremble;
+          dz += thrust * 0.42 * bellyMask;
+          dy -= thrust * 0.12 * v;
+        } else if (charKey === 'hachiware') {
+          // 하치와레: 좌우로 시원하게 비틀며 베는 날렵한 상체 스냅
+          const sweep = Math.sin(p * Math.PI * 2);
+          dx += sweep * 0.38 * v;
+          dz += Math.sin(p * Math.PI) * 0.28 * bellyMask;
+        } else if (charKey === 'usagi') {
+          // 우사기: 탄력 넘치는 스프링 텐션 스트레치
+          const bounce = Math.sin(p * Math.PI * 2);
+          dy += bounce * 0.36 * v;
+          dx -= bx * bounce * 0.22 * bellyMask;
+        } else if (charKey === 'momonga') {
+          // 모몽가: 엉덩이와 복실 꼬리를 좌우로 씰룩거리며 떼쓰기 바운스
+          const hipSway = Math.sin(p * Math.PI * 3) * 0.36 * (1.0 - v * 0.5);
+          dx += hipSway;
+          dy += Math.abs(Math.sin(p * Math.PI * 2)) * 0.25 * bellyMask;
+        } else if (charKey === 'kurimanju') {
+          // 쿠리만쥬: 묵직하게 힘을 모았다가 배를 내밀며 터뜨리는 중량감
+          if (comboStep === 2) {
+            // 배치기!
+            const bellyBump = Math.sin(p * Math.PI);
+            dx += bx * bellyBump * 0.36 * bellyMask;
+            dz += bellyBump * 0.58 * bellyMask;
+          } else {
+            const heavy = p < 0.35 ? -0.22 : Math.sin((p - 0.35) * 1.5 * Math.PI) * 0.38;
+            dy += heavy * v;
+            dx -= bx * heavy * 0.3 * bellyMask;
+          }
+        } else if (charKey === 'rakko') {
+          // 랏코 사부: 낮게 깔리는 발도술 자세와 날카로운 전경 린(Lean)
+          const slashLean = Math.sin(p * Math.PI);
+          dx += slashLean * 0.46 * v;
+          dy -= slashLean * 0.18 * v;
+          dz += slashLean * 0.32 * v;
+        }
       }
 
       arr[idx] = bx + dx;
@@ -929,48 +976,226 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     hatSlot.position.y = 4.4 + (breath - jellyWave * 0.25) * 3.2;
     hatSlot.rotation.z = isMoving ? Math.sin(walkTime) * 0.06 : 0;
 
-    // 랏코 사범의 하얀 망토 나부낌 모션
+    // 랏코 사범의 하얀 망토 나부낌 모션 (공격 시 더욱 역동적으로 휘날림!)
     if (rakkoCapePivot) {
-      rakkoCapePivot.rotation.x = isMoving
-        ? 0.28 + Math.abs(Math.sin(walkTime)) * 0.22
-        : 0.1 + Math.sin(time * 2.5) * 0.04;
-      rakkoCapePivot.rotation.z = isMoving ? Math.sin(walkTime) * 0.12 : 0;
+      if (attackTimer > 0) {
+        rakkoCapePivot.rotation.x = 0.65 + Math.sin(p * Math.PI) * 0.45;
+        rakkoCapePivot.rotation.z = (comboStep === 2 ? -1 : 1) * Math.sin(p * Math.PI) * 0.38;
+      } else {
+        rakkoCapePivot.rotation.x = isMoving
+          ? 0.28 + Math.abs(Math.sin(walkTime)) * 0.22
+          : 0.1 + Math.sin(time * 2.5) * 0.04;
+        rakkoCapePivot.rotation.z = isMoving ? Math.sin(walkTime) * 0.12 : 0;
+      }
     }
 
-    // 3D 왼손 스윙 & 오른손 무기 3연격 역동적 모션
+    // ======================================================================
+    // 5) 6인 캐릭터별 고유 3연격 3D 전신 & 무기 공격 모션 안무
+    // ======================================================================
     if (attackTimer > 0) {
-      const p = 1.0 - Math.min(1, attackTimer / 0.26);
-      if (comboStep === 1) {
-        // 1타: 시원한 대각선 내려베기
-        rightArmPivot.rotation.z = 0.8 - p * 2.6;
-        rightArmPivot.rotation.x = 0.5 + Math.sin(p * Math.PI) * 0.9;
-        rightArmPivot.position.x = 1.45 - Math.sin(p * Math.PI) * 0.6;
-      } else if (comboStep === 2) {
-        // 2타: 아래에서 위로 강하게 올려베기
-        rightArmPivot.rotation.z = -1.8 + p * 2.8;
-        rightArmPivot.rotation.x = 0.7;
-        rightArmPivot.position.x = 1.2 + Math.sin(p * Math.PI) * 0.5;
-      } else {
-        // 3타: 풀스윙 대회전 강타!
-        rightArmPivot.rotation.z = -1.4;
-        rightArmPivot.rotation.y = p * Math.PI * 2;
-        rightArmPivot.rotation.x = 0.9;
+      if (charKey === 'chiikawa') {
+        // [치이카와] 1타: 용기 내어 앞으로 콕 찌르기 / 2타: 다다닥 연속 2회 찌르기 / 3타: 폴짝 양손 내려찍기!
+        if (comboStep === 1) {
+          const thrust = Math.sin(p * Math.PI);
+          standeeGroup.rotation.x = thrust * 0.18;
+          standeeGroup.rotation.y = -thrust * 0.15;
+          rightArmPivot.position.set(1.15 - thrust * 0.35, 1.72, 0.45 + thrust * 2.15);
+          rightArmPivot.rotation.set(1.25, 0, -0.35);
+          weaponMesh.rotation.set(Math.PI * 0.32, 0, -0.1);
+          leftArmPivot.position.set(-1.35, 2.05 + thrust * 0.35, 0.55);
+        } else if (comboStep === 2) {
+          // 2타: 다다닥! 빠르게 두 번 콕콕 찌르기
+          const doubleJab = Math.abs(Math.sin(p * Math.PI * 2));
+          const sideAlt = Math.sin(p * Math.PI * 2) * 0.25;
+          standeeGroup.rotation.x = 0.15;
+          standeeGroup.rotation.z = sideAlt * 0.4;
+          rightArmPivot.position.set(1.05 + sideAlt, 1.75 + doubleJab * 0.45, 0.45 + doubleJab * 2.25);
+          rightArmPivot.rotation.set(1.18, sideAlt, -0.3);
+          weaponMesh.rotation.set(Math.PI * 0.34, 0, 0);
+          leftArmPivot.position.set(-1.35, 1.9 + Math.sin(p * Math.PI * 4) * 0.45, 0.5);
+        } else {
+          // 3타: 눈 질끈 감고 머리 위에서 전방으로 크게 내려찍기!
+          const slam = p < 0.35 ? -(p / 0.35) * 0.9 : -0.9 + ((p - 0.35) / 0.65) * 2.6;
+          standeeGroup.rotation.x = p < 0.35 ? -0.15 : 0.28;
+          standeeGroup.rotation.y = 0;
+          rightArmPivot.position.set(0.85, 2.2 - Math.max(0, slam) * 0.5, 0.65 + Math.max(0, slam) * 0.7);
+          rightArmPivot.rotation.set(0.4 + Math.max(0, slam) * 1.1, 0, 0.5 - slam * 1.4);
+          weaponMesh.rotation.set(Math.PI / 5, 0, -0.2);
+          leftArmPivot.position.set(-0.95, 2.2 - Math.max(0, slam) * 0.4, 0.65);
+        }
+      } else if (charKey === 'hachiware') {
+        // [하치와레] 1타: 와이드 수평 가로베기 / 2타: 대각선 어퍼 올려베기 / 3타: 360도 전신 토네이도 스핀!
+        if (comboStep === 1) {
+          standeeGroup.rotation.y = -0.35 + p * 0.7;
+          rightArmPivot.position.set(1.4 - p * 0.8, 1.75, 0.65);
+          rightArmPivot.rotation.set(0.35, 1.35 - p * 2.7, -1.35);
+          weaponMesh.rotation.set(Math.PI / 6, 0, -0.2);
+          leftArmPivot.position.set(-1.4, 1.85, 0.4);
+        } else if (comboStep === 2) {
+          standeeGroup.rotation.z = -0.18 + p * 0.36;
+          standeeGroup.position.y = Math.sin(p * Math.PI) * 0.45;
+          rightArmPivot.position.set(1.15 + Math.sin(p * Math.PI) * 0.4, 1.25 + p * 1.35, 0.6);
+          rightArmPivot.rotation.set(0.65, -0.4 + p * 0.8, -2.0 + p * 3.2);
+          weaponMesh.rotation.set(Math.PI / 7, 0, -0.22);
+          leftArmPivot.position.set(-1.35, 2.15, 0.45);
+        } else {
+          // 3타: 전신 360도 회오리 스핀!
+          standeeGroup.rotation.y = p * Math.PI * 2;
+          rightArmPivot.position.set(1.75, 1.85, 0.45);
+          rightArmPivot.rotation.set(0.2, 0, -1.48);
+          weaponMesh.rotation.set(Math.PI / 6, 0, -0.15);
+          leftArmPivot.position.set(-1.65, 1.95, 0.35);
+        }
+      } else if (charKey === 'usagi') {
+        // [우사기] 1타: 초고속 프로펠러 봉 돌리기 / 2타: 360도 옆돌기 아크로바틱 / 3타: 점프 앞공중제비 폭약 스매시!
+        if (comboStep === 1) {
+          standeeGroup.rotation.x = 0.14;
+          rightArmPivot.position.set(0.75, 1.95, 1.25);
+          rightArmPivot.rotation.set(0.45, 0, 0);
+          // 토벌봉을 프로펠러처럼 초고속 회전!
+          weaponMesh.rotation.set(0.2, 0, p * Math.PI * 6);
+          leftArmPivot.position.set(-1.4, 2.25 + Math.sin(p * Math.PI * 4) * 0.35, 0.5);
+        } else if (comboStep === 2) {
+          // 2타: 우사기 전신 360도 옆돌기(Cartwheel) 아크로바틱!
+          standeeGroup.position.y = Math.sin(p * Math.PI) * 1.15;
+          standeeGroup.rotation.z = -p * Math.PI * 2;
+          rightArmPivot.position.set(1.65, 2.1, 0.5);
+          rightArmPivot.rotation.set(0.3, 0, -1.2);
+          weaponMesh.rotation.set(Math.PI / 6, 0, p * Math.PI * 2);
+          leftArmPivot.position.set(-1.65, 2.1, 0.4);
+        } else {
+          // 3타: 우라야하!! 전신 360도 앞공중제비(Front Somersault) 대폭발 강타!
+          standeeGroup.rotation.x = p * Math.PI * 2;
+          rightArmPivot.position.set(1.1, 2.35, 0.75);
+          rightArmPivot.rotation.set(1.1, 0, -0.8);
+          weaponMesh.rotation.set(Math.PI / 4, 0, 0);
+          leftArmPivot.position.set(-1.1, 2.35, 0.75);
+        }
+      } else if (charKey === 'momonga') {
+        // [모몽가] 1타: 건방진 백핸드 휙 치기 / 2타: 방방 뛰며 양팔 떼쓰기 난타 / 3타: 샤랄라 720도 고속 피루엣!
+        if (comboStep === 1) {
+          standeeGroup.rotation.y = 0.35 - p * 0.75;
+          standeeGroup.rotation.z = Math.sin(p * Math.PI) * 0.22;
+          rightArmPivot.position.set(-0.2 + p * 2.1, 1.85, 0.65);
+          rightArmPivot.rotation.set(0.4, -1.2 + p * 2.5, -1.1);
+          weaponMesh.rotation.set(Math.PI / 7, 0, -0.22);
+          leftArmPivot.position.set(-1.45, 2.1, 0.4);
+        } else if (comboStep === 2) {
+          // 2타: 제자리에서 방방 뛰며 양팔로 사스마타 마구 휘두르기!
+          const hop = Math.abs(Math.sin(p * Math.PI * 2));
+          const wave = Math.sin(p * Math.PI * 4);
+          standeeGroup.position.y = hop * 0.82;
+          standeeGroup.rotation.z = wave * 0.25;
+          rightArmPivot.position.set(1.25 + wave * 0.45, 1.95 + hop * 0.3, 0.65);
+          rightArmPivot.rotation.set(0.55, wave * 0.8, wave * 1.35);
+          weaponMesh.rotation.set(Math.PI / 6, 0, wave * 0.4);
+          leftArmPivot.position.set(-1.25 - wave * 0.35, 1.95 + (1 - hop) * 0.45, 0.6);
+        } else {
+          // 3타: 샤랄라~ 2회전(720도) 피루엣 트월링!
+          standeeGroup.rotation.y = -p * Math.PI * 4;
+          standeeGroup.rotation.z = Math.sin(p * Math.PI * 2) * 0.2;
+          rightArmPivot.position.set(1.55, 2.35, 0.45);
+          rightArmPivot.rotation.set(0.3, 0, -0.95);
+          weaponMesh.rotation.set(Math.PI / 6, 0, p * Math.PI * 2);
+          leftArmPivot.position.set(-1.55, 2.25, 0.45);
+        }
+      } else if (charKey === 'kurimanju') {
+        // [쿠리만쥬] 1타: 묵직한 어깨 대각선 강타 / 2타: 호쾌한 배치기 & 수평 후리기 / 3타: 기합 모아치기 대지분쇄!
+        if (comboStep === 1) {
+          const heavyCurve = p < 0.28 ? -(p / 0.28) * 0.35 : Math.pow((p - 0.28) / 0.72, 1.4);
+          standeeGroup.rotation.x = heavyCurve * 0.25;
+          standeeGroup.rotation.z = -heavyCurve * 0.18;
+          rightArmPivot.position.set(1.45 - Math.max(0, heavyCurve) * 0.55, 2.05 - Math.max(0, heavyCurve) * 0.45, 0.55);
+          rightArmPivot.rotation.set(0.45 + Math.max(0, heavyCurve) * 0.95, 0, 1.15 - Math.max(-0.3, heavyCurve) * 2.8);
+          weaponMesh.rotation.set(Math.PI / 7, 0, -0.22);
+          leftArmPivot.position.set(-1.35, 1.85, 0.45);
+        } else if (comboStep === 2) {
+          // 2타: 배를 내밀며 묵직하게 밀고 들어가는 배치기 + 수평 스윙!
+          const bump = Math.sin(p * Math.PI);
+          standeeGroup.rotation.x = -bump * 0.22;
+          standeeGroup.position.y = bump * 0.25;
+          rightArmPivot.position.set(1.55 - p * 1.2, 1.65, 0.55 + bump * 0.5);
+          rightArmPivot.rotation.set(0.35, 1.1 - p * 2.4, -1.4);
+          weaponMesh.rotation.set(Math.PI / 6, 0, -0.2);
+          leftArmPivot.position.set(-1.45, 1.95, 0.5 + bump * 0.4);
+        } else {
+          // 3타: 머리 뒤로 무기를 깊게 모았다가 대지를 가르는 건곤일척 강타!
+          if (p < 0.38) {
+            const charge = p / 0.38;
+            standeeGroup.rotation.x = -charge * 0.26;
+            standeeGroup.position.y = -charge * 0.22;
+            rightArmPivot.position.set(0.95, 2.45 + charge * 0.55, 0.2 - charge * 0.3);
+            rightArmPivot.rotation.set(-0.85 * charge, 0, 0.65);
+            leftArmPivot.position.set(-0.95, 2.35 + charge * 0.5, 0.2);
+          } else {
+            const smash = Math.min(1, (p - 0.38) / 0.35);
+            standeeGroup.rotation.x = -0.26 + smash * 0.58;
+            standeeGroup.position.y = 0;
+            rightArmPivot.position.set(0.95, 3.0 - smash * 1.65, 0.1 + smash * 1.15);
+            rightArmPivot.rotation.set(-0.85 + smash * 2.35, 0, 0.65 - smash * 2.1);
+            leftArmPivot.position.set(-1.15, 2.85 - smash * 1.1, 0.4 + smash * 0.5);
+          }
+          weaponMesh.rotation.set(Math.PI / 6, 0, -0.15);
+        }
+      } else if (charKey === 'rakko') {
+        // [랏코 사부] 1타: 초고속 발도술(居合) 수평일섬 / 2타: 역수 X자 2연참 / 3타: 공중 스핀 십자(十) 일섬!
+        if (comboStep === 1) {
+          // 1타: 왼쪽 허리춤에서 전광석화처럼 뽑아 베는 발도 일섬!
+          const snap = Math.pow(p, 0.42);
+          standeeGroup.rotation.x = 0.22;
+          standeeGroup.rotation.y = 0.45 - snap * 0.95;
+          rightArmPivot.position.set(-0.65 + snap * 2.45, 1.58, 0.68);
+          rightArmPivot.rotation.set(0.25, 1.65 - snap * 3.1, -1.42);
+          weaponMesh.rotation.set(Math.PI / 5, 0, -0.15);
+          leftArmPivot.position.set(-1.25, 1.65, 0.55);
+        } else if (comboStep === 2) {
+          // 2타: 한 번의 공격에 우상단 베기 + 좌하단 역수 베기가 연속으로 터지는 초고속 X자 2연참!
+          if (p < 0.5) {
+            const s1 = p * 2;
+            standeeGroup.rotation.z = -0.15 + s1 * 0.3;
+            rightArmPivot.position.set(-0.3 + s1 * 1.9, 1.35 + s1 * 1.1, 0.65);
+            rightArmPivot.rotation.set(0.55, 0.9 - s1 * 1.8, -1.9 + s1 * 2.9);
+          } else {
+            const s2 = (p - 0.5) * 2;
+            standeeGroup.rotation.z = 0.15 - s2 * 0.3;
+            rightArmPivot.position.set(1.6 - s2 * 1.9, 2.45 - s2 * 1.1, 0.72);
+            rightArmPivot.rotation.set(0.65, -0.9 + s2 * 1.8, 1.0 - s2 * 2.8);
+          }
+          weaponMesh.rotation.set(Math.PI / 6, 0, -0.2);
+          leftArmPivot.position.set(-1.35, 2.0, 0.45);
+        } else {
+          // 3타: 질풍 공중 회전 후 십자(十) 베기 피니시!
+          const spinPhase = Math.min(1, p / 0.65);
+          standeeGroup.rotation.y = spinPhase * Math.PI * 2;
+          standeeGroup.rotation.x = 0.24;
+          rightArmPivot.position.set(1.55 - Math.max(0, p - 0.65) * 1.2, 2.15, 0.75);
+          rightArmPivot.rotation.set(0.85, 0, 0.9 - p * 2.6);
+          weaponMesh.rotation.set(Math.PI / 5, 0, -0.2);
+          leftArmPivot.position.set(-1.45, 2.1, 0.5);
+        }
       }
-      leftArmPivot.position.y = 1.95;
     } else {
+      // 비공격 시 기본 자세 및 달리기 팔 스윙 복귀
+      standeeGroup.rotation.x = 0;
+      standeeGroup.rotation.y = 0;
+      standeeGroup.position.y = 0;
       rightArmPivot.rotation.y = 0;
-      rightArmPivot.position.x = 1.45;
+      rightArmPivot.position.set(1.45, 1.85, 0.42);
+      weaponMesh.rotation.set(Math.PI / 7, 0, -0.22);
+
       if (isMoving) {
         const armSwing = Math.sin(walkTime) * 0.45;
         rightArmPivot.rotation.z = -0.22 + armSwing * 0.5;
         rightArmPivot.rotation.x = armSwing * 0.4;
-        leftArmPivot.position.y = 1.75 + Math.sin(walkTime + Math.PI) * 0.25;
-        leftArmPivot.position.z = 0.32 + Math.cos(walkTime + Math.PI) * 0.25;
+        leftArmPivot.position.set(
+          -1.35,
+          1.75 + Math.sin(walkTime + Math.PI) * 0.25,
+          0.32 + Math.cos(walkTime + Math.PI) * 0.25
+        );
       } else {
         rightArmPivot.rotation.z = -0.22 + Math.sin(time * 3) * 0.06;
         rightArmPivot.rotation.x = 0;
-        leftArmPivot.position.y = 1.75 + Math.sin(time * 3) * 0.06;
-        leftArmPivot.position.z = 0.32;
+        leftArmPivot.position.set(-1.35, 1.75 + Math.sin(time * 3) * 0.06, 0.32);
       }
     }
   };

@@ -211,6 +211,7 @@ class Chiikawa3DWorldApp {
             <span>⚔️ 공격력 ${c.atk}</span>
             <span>🏃 속도 ${c.speed}</span>
             <span>🔱 ${c.weaponName}</span>
+            <span style="background:#fff0f6; color:#db2777; border-color:#fbcfe8;">🎯 모션: ${c.attackStyleName || '고유 3연격'}</span>
           </div>
         </div>
       `;
@@ -1194,13 +1195,24 @@ class Chiikawa3DWorldApp {
     this.spawnSlashRing(hitWorldPos.clone(), colorHex, isCrit ? 3.8 : 2.5);
   }
 
-  // ⚔️ 정밀 타격 범위(Sector/Height) & 부위별 타격 판정 공격
+  // ⚔️ 캐릭터별 고유 3연격 모션 & 정밀 타격 범위(Sector/Height) + 부위별 타격 판정 공격
   triggerAttack(aimWorldPoint = null) {
     if (this.attackTimer > 0) return;
 
+    const charKey = this.activeCharKey;
+    const cfg = CHAR_CONFIGS[charKey];
     this.comboStep = (this.comboStep % 3) + 1;
-    this.comboResetTimer = 1.25;
-    this.attackTimer = this.comboStep === 3 ? 0.34 : 0.24;
+    this.comboResetTimer = 1.35;
+
+    // 캐릭터별 공격 템포(듀레이션) 차별화
+    let atkDur = this.comboStep === 3 ? 0.36 : 0.25;
+    if (charKey === 'chiikawa') atkDur = this.comboStep === 3 ? 0.34 : 0.22;
+    else if (charKey === 'usagi') atkDur = this.comboStep === 3 ? 0.38 : this.comboStep === 2 ? 0.28 : 0.22;
+    else if (charKey === 'kurimanju') atkDur = this.comboStep === 3 ? 0.42 : 0.29;
+    else if (charKey === 'rakko') atkDur = this.comboStep === 3 ? 0.35 : this.comboStep === 2 ? 0.26 : 0.21;
+
+    this.maxAttackTime = atkDur;
+    this.attackTimer = atkDur;
     soundFx.playAttack();
 
     // 1) 스마트 타겟 조준 또는 마우스 커서 조준
@@ -1251,27 +1263,84 @@ class Chiikawa3DWorldApp {
     }
 
     const forward = new THREE.Vector3(Math.sin(this.playerYaw), 0, Math.cos(this.playerYaw)).normalize();
-    this.playerPos.addScaledVector(forward, this.comboStep === 3 ? 1.35 : 0.72);
 
-    // 3타 피니시 공격 시 살짝 점프하여 상단(머리 약점) 회전 강타!
+    // 캐릭터별 전진 스텝(Lunge) 및 점프 도약 물리 차별화!
     const wasAirborne = !this.isGrounded || this.playerPos.y > 0.6;
-    if (this.comboStep === 3 && this.isGrounded) {
-      this.playerVelY = 8.5;
-      this.isGrounded = false;
+    let lungeDist = this.comboStep === 3 ? 1.25 : 0.72;
+
+    if (charKey === 'chiikawa') {
+      // 치이카와: 1,2타는 용기 있게 앞으로 콕 찌르고 3타에 폴짝 점프 찍기!
+      lungeDist = this.comboStep === 2 ? 0.95 : 0.75;
+      if (this.comboStep === 3 && this.isGrounded) {
+        this.playerVelY = 7.8;
+        this.isGrounded = false;
+      }
+    } else if (charKey === 'hachiware') {
+      // 하치와레: 2타 어퍼 슬래시 시 가볍게 도약, 3타 회오리 스핀 전진!
+      lungeDist = this.comboStep === 3 ? 1.45 : 0.8;
+      if (this.comboStep === 2 && this.isGrounded) {
+        this.playerVelY = 5.2;
+        this.isGrounded = false;
+      }
+    } else if (charKey === 'usagi') {
+      // 우사기: 압도적인 기동력! 2타 옆돌기 점프 + 3타 고점프 앞공중제비 폭격!
+      lungeDist = this.comboStep === 3 ? 1.75 : 1.15;
+      if (this.comboStep === 2 && this.isGrounded) {
+        this.playerVelY = 6.5;
+        this.isGrounded = false;
+      } else if (this.comboStep === 3 && this.isGrounded) {
+        this.playerVelY = 10.8;
+        this.isGrounded = false;
+      }
+    } else if (charKey === 'momonga') {
+      // 모몽가: 2타 방방 뛰기 + 3타 2회전 피루엣 스텝!
+      lungeDist = this.comboStep === 3 ? 1.3 : 0.65;
+      if (this.comboStep === 3 && this.isGrounded) {
+        this.playerVelY = 6.8;
+        this.isGrounded = false;
+      }
+    } else if (charKey === 'kurimanju') {
+      // 쿠리만쥬: 묵직한 지상 배치기와 3타 대지분쇄 강타!
+      lungeDist = this.comboStep === 2 ? 1.15 : 0.65;
+      if (this.comboStep === 3 && this.isGrounded) {
+        this.playerVelY = 5.8;
+        this.isGrounded = false;
+      }
+    } else if (charKey === 'rakko') {
+      // 랏코 사부: 초고속 발도 대시(잔상 생성!) + 3타 질풍 공중 십자 일섬!
+      lungeDist = this.comboStep === 1 ? 1.55 : this.comboStep === 3 ? 1.85 : 0.95;
+      this.spawnAfterimage();
+      if (this.comboStep === 3 && this.isGrounded) {
+        this.playerVelY = 8.4;
+        this.isGrounded = false;
+      }
     }
+
+    this.playerPos.addScaledVector(forward, lungeDist);
 
     if (this.playerMesh && this.playerMesh.userData.setExpression) {
       this.playerMesh.userData.setExpression('attack');
     }
 
-    // 2) 콤보별 타격 범위(Reach & Sector Angle) 정의
-    const reach = this.comboStep === 1 ? 5.4 : this.comboStep === 2 ? 5.8 : 6.0;
-    const halfArc = this.comboStep === 1 ? Math.PI * 0.38 : this.comboStep === 2 ? Math.PI * 0.27 : Math.PI;
+    // 2) 캐릭터별 타격 리치(Reach) & 부채꼴 각도(Sector Angle) 정의
+    let reach = this.comboStep === 1 ? 5.5 : this.comboStep === 2 ? 5.9 : 6.3;
+    let halfArc = this.comboStep === 1 ? Math.PI * 0.4 : this.comboStep === 2 ? Math.PI * 0.35 : Math.PI;
 
-    const cfg = CHAR_CONFIGS[this.activeCharKey];
-    const slashColor = this.comboStep === 3 ? 0xfacc15 : this.comboStep === 2 ? 0x38bdf8 : cfg.accentColor;
-    const atkCenter = this.playerPos.clone().add(forward.clone().multiplyScalar(2.4));
-    this.spawnCrescentSlash(atkCenter, this.playerYaw, slashColor, this.comboStep);
+    if (charKey === 'chiikawa' && this.comboStep < 3) {
+      // 사스마타 직선 찌르기: 전방 사거리가 더 길다!
+      reach = 6.2;
+      halfArc = Math.PI * 0.32;
+    } else if (charKey === 'kurimanju' && this.comboStep === 3) {
+      // 대지분쇄: 넓은 충격파 반경!
+      reach = 6.8;
+    } else if (charKey === 'rakko') {
+      // 토벌 랭킹 1위의 검기 리치!
+      reach = this.comboStep === 3 ? 6.8 : 6.2;
+      halfArc = this.comboStep === 3 ? Math.PI : Math.PI * 0.48;
+    }
+
+    const atkCenter = this.playerPos.clone().add(forward.clone().multiplyScalar(2.45));
+    this.spawnCharacterAttackEffect3D(charKey, this.comboStep, atkCenter, this.playerYaw, cfg.accentColor);
 
     // 3) 부채꼴 범위 내 잡초 수확 & 보물상자 타격 개봉
     let hitAnything = false;
@@ -1280,7 +1349,7 @@ class Chiikawa3DWorldApp {
       const toWeed = w.pos.clone().sub(this.playerPos);
       const dist = Math.hypot(toWeed.x, toWeed.z);
       const ang = Math.abs(this.angleDifference(Math.atan2(toWeed.x, toWeed.z), this.playerYaw));
-      if (dist <= reach && ang <= halfArc + 0.2) {
+      if (dist <= reach && ang <= halfArc + 0.22) {
         this.harvestWeed(w);
         this.spawnHitImpactEffect3D(w.pos.clone().add(new THREE.Vector3(0, 0.9, 0)), w.isGolden ? 0xfacc15 : 0x4ade80, w.isGolden);
         hitAnything = true;
@@ -1302,7 +1371,8 @@ class Chiikawa3DWorldApp {
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.35 : 1.0;
     const weaponBonus = (this.stats.weaponLv - 1) * 9;
     const certBonus = this.stats.certLevel * 6;
-    const baseDmg = (cfg.atk + this.stats.level * 4 + weaponBonus + certBonus) * buffMult;
+    const comboMult = this.comboStep === 3 ? 1.25 : this.comboStep === 2 ? 1.1 : 1.0;
+    const baseDmg = (cfg.atk + this.stats.level * 4 + weaponBonus + certBonus) * buffMult * comboMult;
 
     this.monsters.forEach(m => {
       if (!m.alive) return;
@@ -1312,7 +1382,7 @@ class Chiikawa3DWorldApp {
       const angleToMon = Math.atan2(toMon.x, toMon.z);
       const angDiff = Math.abs(this.angleDifference(angleToMon, this.playerYaw));
 
-      if (effectiveDist <= reach && (angDiff <= halfArc || dist2D < m.bodyRadius + 1.2)) {
+      if (effectiveDist <= reach && (angDiff <= halfArc || dist2D < m.bodyRadius + 1.3)) {
         const attackFromAngle = Math.atan2(this.playerPos.x - m.pos.x, this.playerPos.z - m.pos.z);
         const angleFromMonsterFront = Math.abs(this.angleDifference(attackFromAngle, m.facingYaw));
         const isBackAttack = angleFromMonsterFront > Math.PI * 0.62;
@@ -1432,7 +1502,131 @@ class Chiikawa3DWorldApp {
     }
   }
 
-  spawnCrescentSlash(center, yaw, colorHex, comboStep) {
+  // 🌟 6인 캐릭터별 고유 3D 검기 / 찌르기 창기 / 회오리 / 대폭발 / 십자 일섬 이펙트 생성기
+  spawnCharacterAttackEffect3D(charKey, comboStep, center, yaw, accentColor) {
+    if (charKey === 'chiikawa') {
+      // [치이카와] 1타: 핑크 스피어 찌르기 콘 / 2타: 연속 쌍찌르기 스피어 / 3타: 핑크 스타 내려찍기 충격파!
+      if (comboStep === 1 || comboStep === 2) {
+        const count = comboStep === 2 ? 2 : 1;
+        for (let i = 0; i < count; i++) {
+          const spearGroup = new THREE.Group();
+          const coneGeo = new THREE.ConeGeometry(0.95 - i * 0.15, 4.2, 12, 1, true);
+          coneGeo.rotateX(Math.PI / 2);
+          const coneMat = new THREE.MeshBasicMaterial({
+            color: i === 0 ? 0xff85a2 : 0xfef08a,
+            transparent: true,
+            opacity: 0.88,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          });
+          const cone = new THREE.Mesh(coneGeo, coneMat);
+          spearGroup.add(cone);
+
+          const coreGeo = new THREE.ConeGeometry(0.45, 4.6, 8);
+          coreGeo.rotateX(Math.PI / 2);
+          const core = new THREE.Mesh(coreGeo, new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.9,
+            depthWrite: false
+          }));
+          spearGroup.add(core);
+
+          spearGroup.position.copy(center);
+          spearGroup.position.y = 1.6 + i * 0.45;
+          spearGroup.rotation.y = yaw + (i === 1 ? 0.14 : -0.06);
+          this.scene.add(spearGroup);
+          this.slashArcs.push({ mesh: spearGroup, material: coneMat, life: 0.20, maxLife: 0.20, spin: 0 });
+        }
+      } else {
+        // 3타: 수직 핑크 내려찍기 슬래시 + 핑크 하트 링 폭발!
+        this.spawnCrescentSlash(center, yaw, 0xff4d6d, 3, Math.PI * 0.48, 0);
+        this.spawnSlashRing(center.clone(), 0xff85a2, 4.8);
+      }
+      return;
+    }
+
+    if (charKey === 'hachiware') {
+      // [하치와레] 1타: 와이드 수평 파란 베기 / 2타: 어퍼 대각선 올려베기 / 3타: 이중 파란 토네이도 회오리!
+      if (comboStep === 1) {
+        this.spawnCrescentSlash(center, yaw, 0x38bdf8, 1, 0, 0);
+      } else if (comboStep === 2) {
+        this.spawnCrescentSlash(center, yaw, 0x60a5fa, 2, -0.65, 0.55);
+      } else {
+        // 3타: 플레이어 중심 이중 파란 회오리 스핀!
+        this.spawnCrescentSlash(this.playerPos.clone(), yaw, 0x38bdf8, 3, 0.15, 0);
+        this.spawnCrescentSlash(this.playerPos.clone().add(new THREE.Vector3(0, 1.2, 0)), yaw + Math.PI, 0xfef08a, 3, -0.15, 0);
+        this.spawnSlashRing(this.playerPos.clone(), 0x38bdf8, 5.2);
+      }
+      return;
+    }
+
+    if (charKey === 'usagi') {
+      // [우사기] 1타: 초고속 프로펠러 원반 / 2타: 수직 옆돌기 휠 슬래시 / 3타: 공중제비 황금 대폭발!
+      if (comboStep === 1) {
+        this.spawnCrescentSlash(center, yaw, 0xfacc15, 3, 0.25, 0);
+      } else if (comboStep === 2) {
+        // 옆돌기 수직 휠!
+        this.spawnCrescentSlash(center, yaw, 0xf59e0b, 3, 0, Math.PI * 0.45);
+      } else {
+        // 3타: 앞공중제비 폭약 대폭발!
+        this.spawnCrescentSlash(center, yaw, 0xfacc15, 3, Math.PI * 0.5, 0);
+        this.spawnHitImpactEffect3D(center.clone().add(new THREE.Vector3(0, 1.2, 0)), 0xfacc15, true);
+        this.spawnSlashRing(center.clone(), 0xf43f5e, 6.2);
+        this.spawnBurstParticles(center.clone().add(new THREE.Vector3(0, 1.2, 0)), 0xfacc15, 18);
+      }
+      return;
+    }
+
+    if (charKey === 'momonga') {
+      // [모몽가] 1타: 백핸드 보랏빛 리본 / 2타: 양손 X자 떼쓰기 난타 / 3타: 샤랄라 이중 피루엣 오라!
+      if (comboStep === 1) {
+        this.spawnCrescentSlash(center, yaw + Math.PI, 0xa855f7, 1, -0.2, 0.25);
+      } else if (comboStep === 2) {
+        this.spawnCrescentSlash(center, yaw, 0xc084fc, 2, 0, 0.55);
+        this.spawnCrescentSlash(center, yaw, 0xf472b6, 2, 0, -0.55);
+      } else {
+        this.spawnCrescentSlash(this.playerPos.clone(), yaw, 0xa855f7, 3, 0.3, 0.2);
+        this.spawnCrescentSlash(this.playerPos.clone().add(new THREE.Vector3(0, 1.1, 0)), yaw + Math.PI * 0.5, 0xf472b6, 3, -0.3, -0.2);
+        this.spawnSlashRing(this.playerPos.clone(), 0xc084fc, 4.8);
+      }
+      return;
+    }
+
+    if (charKey === 'kurimanju') {
+      // [쿠리만쥬] 1타: 묵직한 호박빛 대각선 강타 / 2타: 배치기 충격파 링 / 3타: 대지분쇄 이중 크레이터!
+      if (comboStep === 1) {
+        this.spawnCrescentSlash(center, yaw, 0xd97706, 1, 0.35, -0.35);
+      } else if (comboStep === 2) {
+        this.spawnCrescentSlash(center, yaw, 0xf59e0b, 1, 0, 0);
+        this.spawnSlashRing(center.clone(), 0xfacc15, 4.6);
+      } else {
+        this.spawnCrescentSlash(center, yaw, 0xd97706, 3, Math.PI * 0.46, 0);
+        this.spawnSlashRing(center.clone(), 0xf59e0b, 6.8);
+        this.spawnSlashRing(center.clone(), 0xfef08a, 4.5);
+        this.spawnBurstParticles(center.clone().add(new THREE.Vector3(0, 0.8, 0)), 0xf59e0b, 20);
+      }
+      return;
+    }
+
+    // [랏코 사부 (rakko)] 1타: 초고속 수평 발도 일섬 / 2타: X자 쌍검섬 / 3타: 비기 십자(十) 일섬!
+    if (comboStep === 1) {
+      this.spawnCrescentSlash(center, yaw, 0xf8fafc, 1, 0, 0.08);
+      this.spawnSlashRing(center.clone(), 0xfacc15, 3.8);
+    } else if (comboStep === 2) {
+      // X자 2연참!
+      this.spawnCrescentSlash(center, yaw, 0xfacc15, 2, 0, 0.62);
+      this.spawnCrescentSlash(center, yaw, 0xf8fafc, 2, 0, -0.62);
+    } else {
+      // 3타: 거대한 황금·은백 십자(十) 일섬 이펙트!
+      this.spawnCrescentSlash(center, yaw, 0xfacc15, 3, 0, 0);
+      this.spawnCrescentSlash(center, yaw, 0xf8fafc, 2, Math.PI * 0.48, 0);
+      this.spawnHitImpactEffect3D(center.clone().add(new THREE.Vector3(0, 1.6, 0)), 0xfacc15, true);
+      this.spawnSlashRing(center.clone(), 0xfacc15, 6.2);
+    }
+  }
+
+  spawnCrescentSlash(center, yaw, colorHex, comboStep, tiltX = 0, tiltZ = 0) {
     const radius = comboStep === 3 ? 5.0 : 3.8;
     const geo = new THREE.RingGeometry(radius * 0.48, radius, 28, 1, -Math.PI * 0.72, Math.PI * 1.44);
     geo.rotateX(-Math.PI / 2);
@@ -1440,13 +1634,15 @@ class Chiikawa3DWorldApp {
       color: colorHex,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.92
+      opacity: 0.92,
+      depthWrite: false
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(center);
-    mesh.position.y = comboStep === 2 ? 2.4 : 1.2;
+    mesh.position.y = comboStep === 2 ? 2.1 : 1.3;
     mesh.rotation.y = yaw;
-    if (comboStep === 2) mesh.rotation.z = 0.28;
+    mesh.rotation.x = tiltX;
+    mesh.rotation.z = tiltZ || (comboStep === 2 ? 0.28 : 0);
     this.scene.add(mesh);
 
     // 외곽 흰색 코어 검기 트레일 추가 (이중 레이어 슬래시 이펙트)
@@ -1456,13 +1652,15 @@ class Chiikawa3DWorldApp {
       color: 0xffffff,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.85,
+      depthWrite: false
     });
     const innerMesh = new THREE.Mesh(innerGeo, innerMat);
     mesh.add(innerMesh);
 
     this.slashArcs.push({
       mesh,
+      material: mat,
       life: 0.24,
       maxLife: 0.24,
       spin: comboStep === 3 ? 16 : 7
@@ -1811,6 +2009,10 @@ class Chiikawa3DWorldApp {
     document.getElementById('hud-coins-val').innerText = this.stats.coins.toLocaleString();
     document.getElementById('hud-weeds-val').innerText = `${this.stats.weedsPulled}포기`;
     document.getElementById('hud-skill-name').innerText = cfg.skillName;
+    const atkBtnLabel = document.querySelector('.primary-atk .skill-name');
+    if (atkBtnLabel && cfg.attackStyleName) {
+      atkBtnLabel.innerText = cfg.attackStyleName;
+    }
 
     this.renderQuestBoard();
   }
@@ -2132,19 +2334,14 @@ class Chiikawa3DWorldApp {
       const hopY = isMoving && this.isGrounded ? Math.abs(Math.sin(this.walkTime)) * 0.28 : 0;
       this.playerMesh.position.set(this.playerPos.x, this.playerPos.y + hopY, this.playerPos.z);
 
-      let spinOffset = 0;
-      if (this.attackTimer > 0 && this.comboStep === 3) {
-        spinOffset = (1.0 - this.attackTimer / 0.34) * Math.PI * 2;
-      }
-
-      this.playerMesh.rotation.y = this.camYaw + spinOffset;
+      this.playerMesh.rotation.y = this.camYaw;
       this.playerMesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 12);
 
       this.currentFlipScale = THREE.MathUtils.lerp(this.currentFlipScale, this.facingFlip, dt * 16);
 
       const parts = this.playerMesh.userData.parts;
       if (parts && parts.standeeGroup) {
-        const waddleTilt = isMoving ? Math.sin(this.walkTime) * 0.08 : 0;
+        const waddleTilt = isMoving && this.attackTimer <= 0 ? Math.sin(this.walkTime) * 0.08 : 0;
         parts.standeeGroup.rotation.z = waddleTilt;
         parts.standeeGroup.scale.x = this.currentFlipScale;
       }
@@ -2157,7 +2354,8 @@ class Chiikawa3DWorldApp {
           this.isGrounded,
           this.playerVelY,
           this.attackTimer,
-          this.comboStep
+          this.comboStep,
+          this.maxAttackTime || 0.28
         );
       }
     }
@@ -2401,7 +2599,9 @@ class Chiikawa3DWorldApp {
       sa.life -= dt;
       sa.mesh.rotation.y += dt * sa.spin;
       sa.mesh.scale.addScalar(dt * 2.5);
-      sa.mesh.material.opacity = Math.max(0, sa.life / sa.maxLife);
+      const op = Math.max(0, sa.life / sa.maxLife);
+      if (sa.material) sa.material.opacity = op;
+      if (sa.mesh.material) sa.mesh.material.opacity = op;
       if (sa.life <= 0) {
         this.scene.remove(sa.mesh);
         this.slashArcs.splice(i, 1);
