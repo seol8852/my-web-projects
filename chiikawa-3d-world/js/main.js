@@ -178,11 +178,12 @@ class Chiikawa3DWorldApp {
       'weed-exam-modal',
       'npc-dialog-modal',
       'stage-select-modal',
-      'stage-result-modal'
+      'stage-result-modal',
+      'auth-modal'
     ];
     for (const id of modals) {
       const el = document.getElementById(id);
-      if (el && (el.classList.contains('open') || el.classList.contains('active'))) return true;
+      if (el && (el.classList.contains('open') || el.classList.contains('active') || el.classList.contains('visible'))) return true;
     }
     return false;
   }
@@ -218,6 +219,9 @@ class Chiikawa3DWorldApp {
     try {
       localStorage.setItem('chiikawa_3d_world_save', JSON.stringify(this.stats));
       localStorage.setItem('chiikawa_3d_selected_char', this.activeCharKey);
+      if (window.firebaseManager) {
+        window.firebaseManager.saveUserDataToCloud();
+      }
     } catch (e) {}
   }
 

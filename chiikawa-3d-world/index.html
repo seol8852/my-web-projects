@@ -114,8 +114,14 @@
         </div>
       </div>
 
-      <!-- 우측: 토벌 스테이지/던전, 캐릭터 재선택, 의상실/강화, 포토 스냅샷, 낮/밤 전환, 사운드, 포털 홈 -->
+      <!-- 우측: 클라우드 계정, 토벌 스테이지/던전, 캐릭터 재선택, 의상실/강화, 포토 스냅샷, 낮/밤 전환, 사운드, 포털 홈 -->
       <div class="top-right-controls hud-interactive">
+        <button type="button" class="hud-pill-btn" id="hud-btn-auth" style="background:linear-gradient(135deg,#3b82f6,#6366f1); color:#fff; border-color:#93c5fd;" onclick="window.firebaseManager && window.firebaseManager.openAuthModal()">
+          🔑 로그인 / 백업
+        </button>
+        <div id="hud-auth-status" style="font-size:11px; font-weight:800; background:rgba(15,23,42,0.75); padding:4px 8px; border-radius:12px; border:1px solid rgba(255,255,255,0.2); color:#fff; display:flex; align-items:center;">
+          💾 <span style="color:#f59e0b; margin-left:3px;">로컬 게스트</span>
+        </div>
         <button type="button" class="hud-pill-btn" style="background:linear-gradient(135deg,#ef4444,#f97316); color:#fff; border-color:#fde047;" onclick="openStageSelectModal()">
           ⚔️ 토벌 스테이지 & 던전 [M]
         </button>
@@ -478,6 +484,106 @@
     </div>
   </div>
 
+  <!-- ========================================================================
+       모달 7: 🔑 Firebase 클라우드 계정 연동 / 로그인 / 리더보드 모달
+       ======================================================================== -->
+  <div class="modal-backdrop" id="auth-modal">
+    <div class="modal-window" style="max-width: 440px; text-align:center;">
+      <div class="modal-close-btn" onclick="window.firebaseManager && window.firebaseManager.closeAuthModal()">✕</div>
+      <div style="font-size:38px; margin-bottom:4px;">☁️</div>
+      <h2 style="font-size:22px; font-weight:900; color:#0f172a; margin-bottom:4px;">치이카와 클라우드 계정</h2>
+      <p style="font-size:13px; color:#64748b; margin-bottom:18px;">
+        계정을 연동하면 다른 기기에서도 레벨, 코인, 클리어 기록이 100% 보존됩니다!
+      </p>
+
+      <!-- 1) 로그인된 상태 UI -->
+      <div id="auth-modal-profile" style="display:none;">
+        <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:16px; padding:16px; margin-bottom:16px;">
+          <div style="font-size:12px; color:#15803d; font-weight:800;">현재 동기화 중인 계정</div>
+          <div style="font-size:18px; font-weight:900; color:#166534; margin:4px 0;" id="profile-name">치이카와 유저</div>
+          <div style="font-size:12px; color:#64748b;" id="profile-email">user@gmail.com</div>
+        </div>
+
+        <button type="button" class="choice-btn" style="background:#fef08a; border-color:#facc15; justify-content:center; color:#854d0e; font-weight:900;" onclick="window.firebaseManager && window.firebaseManager.saveUserDataToCloud(); showToast('☁️ 클라우드에 최신 데이터가 즉시 저장되었습니다!');">
+          ☁️ 지금 즉시 클라우드에 백업하기
+        </button>
+        <button type="button" class="choice-btn" style="background:#f8fafc; border-color:#cbd5e1; justify-content:center; color:#ef4444; margin-top:8px;" onclick="window.firebaseManager && window.firebaseManager.logout()">
+          🚪 로그아웃
+        </button>
+      </div>
+
+      <!-- 2) 미로그인 상태 (로그인/회원가입 폼) -->
+      <div id="auth-modal-forms">
+        <!-- Google 1초 간편 로그인 -->
+        <button type="button" class="choice-btn" style="background:#ffffff; border:2px solid #e2e8f0; color:#1e293b; justify-content:center; font-weight:800; font-size:15px; box-shadow:0 3px 6px rgba(0,0,0,0.06);" onclick="window.firebaseManager && window.firebaseManager.loginWithGoogle()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px; height:18px; margin-right:8px;" alt="Google">
+          Google 계정으로 1초 로그인
+        </button>
+
+        <div style="display:flex; align-items:center; margin:16px 0; color:#94a3b8; font-size:12px;">
+          <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+          <span style="padding:0 8px;">또는 이메일 로그인</span>
+          <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px; text-align:left;">
+          <input type="text" id="auth-nickname-input" placeholder="닉네임 (신규 가입 시에만 입력)" style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13.5px;">
+          <input type="email" id="auth-email-input" placeholder="이메일 주소" style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13.5px;">
+          <input type="password" id="auth-password-input" placeholder="비밀번호 (6자리 이상)" style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13.5px;">
+
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <button type="button" class="choice-btn" style="flex:1; background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; border:none; justify-content:center;" onclick="
+              const email = document.getElementById('auth-email-input').value.trim();
+              const pw = document.getElementById('auth-password-input').value;
+              if (!email || !pw) return alert('이메일과 비밀번호를 입력해주세요.');
+              window.firebaseManager && window.firebaseManager.loginWithEmail(email, pw);
+            ">
+              로그인
+            </button>
+            <button type="button" class="choice-btn" style="flex:1; background:#f1f5f9; border-color:#cbd5e1; justify-content:center; color:#334155;" onclick="
+              const email = document.getElementById('auth-email-input').value.trim();
+              const pw = document.getElementById('auth-password-input').value;
+              const nick = document.getElementById('auth-nickname-input').value.trim() || '치이카와';
+              if (!email || pw.length < 6) return alert('유효한 이메일과 6자리 이상 비밀번호를 입력해주세요.');
+              window.firebaseManager && window.firebaseManager.registerWithEmail(email, pw, nick);
+            ">
+              회원가입
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 리더보드 버튼 -->
+      <div style="margin-top:16px; border-top:1px dashed #e2e8f0; padding-top:12px;">
+        <button type="button" class="hud-pill-btn" style="width:100%; justify-content:center; background:#fefce8; border-color:#fde047; color:#854d0e; font-size:12.5px;" onclick="
+          const rList = document.getElementById('auth-ranking-box');
+          if (rList.style.display === 'none') {
+            rList.style.display = 'block';
+            window.firebaseManager && window.firebaseManager.fetchLeaderboard().then(ranks => {
+              if (ranks.length === 0) {
+                rList.innerHTML = '<div style=\'padding:10px; color:#94a3b8; font-size:12px;\'>아직 랭킹 데이터가 없습니다.</div>';
+              } else {
+                rList.innerHTML = ranks.map((r, i) => `
+                  <div style='display:flex; justify-content:space-between; padding:6px 8px; border-bottom:1px solid #f1f5f9; font-size:12px;'>
+                    <span>${i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)+'.'} <b>${r.name}</b> (Lv.${r.level})</span>
+                    <span style='color:#ef4444; font-weight:800;'>Stage ${r.stage}</span>
+                  </div>
+                `).join('');
+              }
+            });
+          } else {
+            rList.style.display = 'none';
+          }
+        ">
+          🏆 전체 유저 토벌 랭킹 TOP 10 보기
+        </button>
+        <div id="auth-ranking-box" style="display:none; max-height:160px; overflow-y:auto; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; margin-top:8px; text-align:left;">
+          <div style="padding:10px; text-align:center; font-size:12px; color:#64748b;">랭킹 불러오는 중...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Three.js r128 & Official Post-Processing (UnrealBloomPass) & Game Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
@@ -486,9 +592,17 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-  <script src="js/sound.js?v=20261019_6"></script>
-  <script src="js/models3d.js?v=20261019_6"></script>
-  <script src="js/minigames.js?v=20261019_6"></script>
-  <script src="js/main.js?v=20261019_6"></script>
+  <script src="js/sound.js?v=20261019_7"></script>
+  <script src="js/models3d.js?v=20261019_7"></script>
+  <script src="js/minigames.js?v=20261019_7"></script>
+  <script src="js/main.js?v=20261019_7"></script>
+
+  <!-- Firebase Auth Module -->
+  <script type="module">
+    import { FirebaseManager } from './js/auth.js?v=20261019_7';
+    window.addEventListener('load', () => {
+      window.firebaseManager = new FirebaseManager(window.gameApp);
+    });
+  </script>
 </body>
 </html>
