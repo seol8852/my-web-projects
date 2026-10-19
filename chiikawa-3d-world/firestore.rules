@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// ==========================================================================
+// 치이카와 3D 월드 - Firestore 보안 규칙
+// Firebase 콘솔 > Firestore Database > 규칙(Rules) 탭에 전체 붙여넣고 [게시]하세요.
+//  · users/{uid}       : 본인만 읽기/쓰기 (전체 세이브, 이메일 저장 안 함)
+//  · leaderboard/{uid} : 누구나 읽기, 본인만 쓰기 (users 문서와 값이 일치해야 함)
+//  · 스테이지는 한 번 저장할 때 최대 +1, 레벨은 최대 +30까지만 오를 수 있음
+// ==========================================================================
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validStats(s) {
+      return s is map
+        && s.maxUnlockedStage is int && s.maxUnlockedStage >= 1 && s.maxUnlockedStage <= 20
+        && s.level is int && s.level >= 1 && s.level <= 99999
+        && s.coins is number && s.coins >= 0 && s.coins <= 100000000
+        && s.get('weaponLv', 1) is int && s.get('weaponLv', 1) >= 1 && s.get('weaponLv', 1) <= 10
+        && s.get('certLevel', 0) is int && s.get('certLevel', 0) >= 0 && s.get('certLevel', 0) <= 3;
+    }
+
+    function validName(n) {
+      return n is string && n.size() >= 1 && n.size() <= 12 && n.matches('^[^<>&"\'`\\\\]+$');
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn(uid);
+
+      allow create: if signedIn(uid)
+        && request.resource.data.uid == uid
+        && validName(request.resource.data.displayName)
+        && validStats(request.resource.data.stats);
+
+      allow update: if signedIn(uid)
+        && request.resource.data.uid == uid
+        && validName(request.resource.data.displayName)
+        && validStats(request.resource.data.stats)
+        && request.resource.data.stats.maxUnlockedStage <= resource.data.stats.get('maxUnlockedStage', 1) + 1
+        && request.resource.data.stats.level <= resource.data.stats.get('level', 1) + 30;
+
+      allow delete: if false;
+    }
+
+    match /leaderboard/{uid} {
+      allow read: if true;
+
+      allow create, update: if signedIn(uid)
+        && request.resource.data.keys().hasOnly(['name', 'charKey', 'level', 'stage', 'monsters', 'rankScore', 'updatedAt'])
+        && validName(request.resource.data.name)
+        && request.resource.data.charKey is string && request.resource.data.charKey.size() <= 20
+        && request.resource.data.monsters is int
+        && request.resource.data.stage == getAfter(/databases/$(database)/documents/users/$(uid)).data.stats.maxUnlockedStage
+        && request.resource.data.level == getAfter(/databases/$(database)/documents/users/$(uid)).data.stats.level
+        && request.resource.data.rankScore == request.resource.data.stage * 100000 + request.resource.data.level;
+
+      allow delete: if signedIn(uid);
+    }
+  }
+}

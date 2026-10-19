@@ -75,6 +75,7 @@ class Chiikawa3DWorldApp {
       maxUnlockedStage: 1,
       highestClearedStage: 0
     };
+    this.defaultStats = JSON.parse(JSON.stringify(this.stats));
 
     // 전투 스테이지 & 스페셜 던전 전용 상태 (메인 광장과 완전 분리!)
     this.arenaCenter = new THREE.Vector3(0, 0, -340);
@@ -142,6 +143,11 @@ class Chiikawa3DWorldApp {
     this.loadSavedData();
     this.initThreeScene();
     this.buildEnvironment();
+    if (typeof FXHQ !== 'undefined') FXHQ.init(this.scene, this.camera);
+    if (typeof POLISH !== 'undefined') {
+      POLISH.applyQuality(this);
+      POLISH.initHud();
+    }
     this.initCombatRangeIndicators();
     this.initWeatherParticles();
     this.spawnPlayer(this.activeCharKey);
@@ -215,14 +221,41 @@ class Chiikawa3DWorldApp {
     } catch (e) {}
   }
 
-  saveData() {
+  // 로컬 저장은 즉시, 클라우드 저장은 FirebaseManager가 30초 단위로 묶어서 처리 (force=true면 즉시)
+  saveData(force = false) {
     try {
+      this.stats.savedAt = Date.now();
       localStorage.setItem('chiikawa_3d_world_save', JSON.stringify(this.stats));
       localStorage.setItem('chiikawa_3d_selected_char', this.activeCharKey);
-      if (window.firebaseManager) {
-        window.firebaseManager.saveUserDataToCloud();
+      if (!localStorage.getItem('chiikawa_3d_save_owner')) {
+        localStorage.setItem('chiikawa_3d_save_owner', 'guest');
       }
     } catch (e) {}
+    if (window.firebaseManager && typeof window.firebaseManager.requestSave === 'function') {
+      window.firebaseManager.requestSave(force);
+    }
+  }
+
+  // 클라우드/백업 세이브 전체를 적용 (기본값 위에 덮어써서 누락 필드 보정)
+  applyStats(newStats) {
+    const base = JSON.parse(JSON.stringify(this.defaultStats || {}));
+    this.stats = Object.assign(base, newStats || {});
+    if (!Array.isArray(this.stats.unlockedHats)) this.stats.unlockedHats = ['none'];
+    if (!this.stats.weaponLv) this.stats.weaponLv = 1;
+    if (!this.stats.maxUnlockedStage || this.stats.maxUnlockedStage < 1) this.stats.maxUnlockedStage = 1;
+    if (typeof this.stats.highestClearedStage !== 'number') this.stats.highestClearedStage = 0;
+    this.stats.hp = Math.min(this.stats.hp || this.stats.maxHp, this.stats.maxHp);
+    try {
+      localStorage.setItem('chiikawa_3d_world_save', JSON.stringify(this.stats));
+    } catch (e) {}
+    if (this.playerMesh && this.playerMesh.userData.equipHat) {
+      this.playerMesh.userData.equipHat(this.stats.equippedHat || 'none');
+    }
+    this.updateHud();
+  }
+
+  resetStatsToDefault() {
+    this.applyStats(JSON.parse(JSON.stringify(this.defaultStats)));
   }
 
   // ========================================================================
@@ -299,13 +332,14 @@ class Chiikawa3DWorldApp {
     const canvas = document.getElementById('webgl-canvas');
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x7dd3fc);
-    this.scene.fog = new THREE.FogExp2(0xbfdbfe, 0.0042);
+    // 🏔️ 원경 산맥이 대기 원근감(Aerial Perspective)으로 지평선에 자연스럽게 녹아들도록 하늘 지평선색과 일치
+    this.scene.fog = new THREE.FogExp2(0xcfe4f7, 0.0021);
 
     this.camera = new THREE.PerspectiveCamera(
       46,
       window.innerWidth / window.innerHeight,
       0.5,
-      900
+      1100
     );
 
     this.renderer = new THREE.WebGLRenderer({
@@ -410,8 +444,11 @@ class Chiikawa3DWorldApp {
     this.dirLight = new THREE.DirectionalLight(0xfef3c7, 0.72);
     this.dirLight.position.copy(this.sunOffset);
     this.dirLight.castShadow = true;
-    this.dirLight.shadow.mapSize.width = 2048;
-    this.dirLight.shadow.mapSize.height = 2048;
+    // 고사양 데스크톱은 4096 그림자맵 (모바일/저사양은 2048 유지)
+    const isMobileDevice = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    const shadowRes = (!isMobileDevice && this.renderer.capabilities.maxTextureSize >= 8192) ? 4096 : 2048;
+    this.dirLight.shadow.mapSize.width = shadowRes;
+    this.dirLight.shadow.mapSize.height = shadowRes;
     this.dirLight.shadow.camera.near = 5;
     this.dirLight.shadow.camera.far = 260;
     const d = 62;
@@ -556,7 +593,7 @@ class Chiikawa3DWorldApp {
 
     if (this.timeOfDay === 'day') {
       this.scene.background.setHex(0x7dd3fc);
-      this.scene.fog.color.setHex(0x93c5fd);
+      this.scene.fog.color.setHex(0xcfe4f7);
       this.hemiLight.intensity = 0.64;
       this.dirLight.color.setHex(0xfef3c7);
       this.dirLight.intensity = 0.72;
@@ -585,9 +622,10 @@ class Chiikawa3DWorldApp {
         motesUniforms.uIntensity.value = 0.55;
       }
       if (btn) btn.innerText = '☀️ 낮 (벚꽃초원)';
+      if (typeof fxSetStandeeTint === 'function') fxSetStandeeTint(0xffffff);
     } else if (this.timeOfDay === 'sunset') {
       this.scene.background.setHex(0xfb7185);
-      this.scene.fog.color.setHex(0xfda4af);
+      this.scene.fog.color.setHex(0xf6b39a);
       this.hemiLight.intensity = 0.56;
       this.dirLight.color.setHex(0xfb923c);
       this.dirLight.intensity = 0.68;
@@ -616,9 +654,10 @@ class Chiikawa3DWorldApp {
         motesUniforms.uIntensity.value = 0.7;
       }
       if (btn) btn.innerText = '🌅 노을 (황혼)';
+      if (typeof fxSetStandeeTint === 'function') fxSetStandeeTint(0xffe2cf);
     } else {
       this.scene.background.setHex(0x0a1024);
-      this.scene.fog.color.setHex(0x0f172a);
+      this.scene.fog.color.setHex(0x1c1a45);
       this.hemiLight.intensity = 0.44;
       this.dirLight.color.setHex(0x818cf8);
       this.dirLight.intensity = 0.54;
@@ -647,6 +686,7 @@ class Chiikawa3DWorldApp {
         motesUniforms.uIntensity.value = 0.95;
       }
       if (btn) btn.innerText = '🌙 밤 (반딧불이)';
+      if (typeof fxSetStandeeTint === 'function') fxSetStandeeTint(0xbcc5f0);
     }
 
     this.updateWeatherParticleColors();
@@ -681,9 +721,29 @@ class Chiikawa3DWorldApp {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
+    // 🏔️ [HQ] 섬을 감싸는 구릉·원경 설산·전투 협곡 지형 + 언덕을 뒤덮는 숲 / 바위 / 덤불
+    this.waterTexture = createWaterCanvasTexture();
+    if (this.maxAnisotropy) this.waterTexture.anisotropy = this.maxAnisotropy;
+    if (typeof createOuterTerrain3D === 'function') {
+      this.outerTerrain = createOuterTerrain3D(this.waterTexture);
+      this.scene.add(this.outerTerrain);
+    }
+    if (typeof createInstancedForest3D === 'function') {
+      this.forestGroup = createInstancedForest3D();
+      this.scene.add(this.forestGroup);
+    }
+    if (typeof createScatterDetails3D === 'function') {
+      this.scene.add(createScatterDetails3D());
+    }
+
     if (typeof createInstancedGrassField3D === 'function') {
       this.instancedGrass = createInstancedGrassField3D();
       this.scene.add(this.instancedGrass);
+    }
+    if (typeof POLISH !== 'undefined') {
+      // 🌿 카메라 주변 60m를 따라다니는 촘촘한 풀숲
+      this.nearGrass = POLISH.createNearGrass(9000);
+      this.scene.add(this.nearGrass);
     }
 
     const plazaTex = createPlazaCanvasTexture();
@@ -721,10 +781,15 @@ class Chiikawa3DWorldApp {
       this.scene.add(s3);
     }
 
-    this.waterTexture = createWaterCanvasTexture();
-    if (this.maxAnisotropy) this.waterTexture.anisotropy = this.maxAnisotropy;
     const riverBridge = createRiverAndBridge3D(this.waterTexture);
     this.scene.add(riverBridge);
+    if (typeof POLISH !== 'undefined') {
+      // 💧 시냇물 + 협곡 강을 반짝이는 물결 셰이더로 교체
+      const wm = POLISH.getWaterMaterial();
+      [riverBridge, this.outerTerrain].forEach(g => g && g.traverse(o => {
+        if (o.isMesh && o.material && o.material.map === this.waterTexture) o.material = wm;
+      }));
+    }
 
     // 1) 중앙 치이카와 하우스
     const house = createChiikawaHouse3D();
@@ -888,6 +953,7 @@ class Chiikawa3DWorldApp {
         const s = 0.65 + Math.random() * 0.75;
         mush.scale.setScalar(s);
         this.scene.add(mush);
+        if (typeof POLISH !== 'undefined') POLISH.registerOccluder(mush, 2.4, 2.8);
       }
     }
 
@@ -908,15 +974,31 @@ class Chiikawa3DWorldApp {
     ];
     treePositions.forEach(([tx, tz], idx) => {
       const isSakura = idx % 2 === 0;
-      const tree = this.createTree3D(isSakura);
+      const tree = this.createTree3D(isSakura, idx + 1);
       tree.position.set(tx, 0, tz);
       const scale = 0.88 + (idx % 4) * 0.12;
       tree.scale.setScalar(scale);
+      tree.rotation.y = idx * 1.37;
       this.scene.add(tree);
+      if (typeof POLISH !== 'undefined') POLISH.registerOccluder(tree, 4.8, 3.6);
     });
 
     this.spawnMeadowFlowers();
 
+    if (typeof createHQCloud3D === 'function') {
+      // ☁️ [HQ] 그라데이션 입체 뭉게구름 34개 (원경 산맥 위로 높게 흐름)
+      for (let i = 0; i < 34; i++) {
+        const cg = createHQCloud3D(i + 1);
+        const a = Math.random() * Math.PI * 2;
+        const r = 40 + Math.sqrt(Math.random()) * 420;
+        cg.position.set(Math.cos(a) * r, 52 + Math.random() * 46, -120 + Math.sin(a) * r);
+        cg.scale.setScalar(1.3 + Math.random() * 1.4);
+        cg.rotation.y = (Math.random() - 0.5) * 0.6;
+        this.scene.add(cg);
+        this.clouds.push(cg);
+      }
+      return;
+    }
     const cloudMat = new THREE.MeshToonMaterial({ color: 0xe2e8f0, gradientMap });
     for (let i = 0; i < 24; i++) {
       const cg = new THREE.Group();
@@ -979,6 +1061,11 @@ class Chiikawa3DWorldApp {
   }
 
   spawnMeadowFlowers() {
+    if (typeof createInstancedFlowerField3D === 'function') {
+      this.flowerGroup = createInstancedFlowerField3D();
+      this.scene.add(this.flowerGroup);
+      return;
+    }
     const flowerColors = [0xff85a2, 0xfacc15, 0xe2e8f0, 0xc084fc, 0x60a5fa];
     const stemMat = new THREE.MeshBasicMaterial({ color: 0x15803d });
 
@@ -1035,7 +1122,8 @@ class Chiikawa3DWorldApp {
     });
   }
 
-  createTree3D(isSakura = false) {
+  createTree3D(isSakura = false, seed = 1) {
+    if (typeof createHQTree3D === 'function') return createHQTree3D(isSakura, seed);
     const tree = new THREE.Group();
     const gradientMap = getToonGradientMap();
     const trunkMat = new THREE.MeshToonMaterial({ color: 0x78350f, gradientMap });
@@ -1246,15 +1334,38 @@ class Chiikawa3DWorldApp {
   // ========================================================================
   clearStageMonsters() {
     this.monsters.forEach(m => {
-      if (m.mesh) this.scene.remove(m.mesh);
+      if (m.mesh) {
+        this.scene.remove(m.mesh);
+        this.disposeObject3D(m.mesh);
+      }
       if (m.labelEl) m.labelEl.remove();
     });
     this.monsters = [];
 
     this.telegraphs.forEach(tg => {
-      if (tg.mesh) this.scene.remove(tg.mesh);
+      if (tg.mesh) {
+        this.scene.remove(tg.mesh);
+        this.disposeObject3D(tg.mesh);
+      }
     });
     this.telegraphs = [];
+  }
+
+  // 지오메트리/재질 GPU 메모리 해제 (일러스트 텍스처는 캐시 공유라 유지)
+  disposeObject3D(obj) {
+    if (!obj) return;
+    const geos = new Set();
+    const mats = new Set();
+    obj.traverse(o => {
+      if (o.isSprite) return;
+      if (o.geometry) geos.add(o.geometry);
+      if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(mm => mats.add(mm));
+    });
+    geos.forEach(g => g.dispose());
+    mats.forEach(mm => {
+      if (typeof FX_STANDEE_MATS !== 'undefined') FX_STANDEE_MATS.delete(mm);
+      mm.dispose();
+    });
   }
 
   // 현재 구역(Sector)의 특정 웨이브 몬스터들을 전방 진격로에 스폰 (기존 살아있는 몬스터 유지 가능!)
@@ -1676,7 +1787,7 @@ class Chiikawa3DWorldApp {
 
     this.addReward(coinReward, expReward, 'stage_clear');
     this.stats.hp = this.stats.maxHp;
-    this.saveData();
+    this.saveData(true);
     this.updateHud();
 
     // 클리어 결과 모달 표시
@@ -1760,8 +1871,9 @@ class Chiikawa3DWorldApp {
     if (this.playerMesh) {
       this.playerMesh.scale.set(1.28, 0.75, 1.28);
     }
-    this.spawnSlashRing(this.playerPos.clone(), 0x38bdf8, 3.4);
-    this.spawnFootstepDust(this.playerPos, 8);
+    if (typeof POLISH !== 'undefined') POLISH.dashBurst(this.playerPos, this.dashDir, CHAR_CONFIGS[this.activeCharKey].accentColor);
+    else this.spawnSlashRing(this.playerPos.clone(), 0x38bdf8, 3.4);
+    this.spawnFootstepDust(this.playerPos, 5);
   }
 
   spawnDashAfterimage() {
@@ -1795,6 +1907,10 @@ class Chiikawa3DWorldApp {
 
   // 💥 3D 입체 타격 임팩트 이펙트 스폰 (십자 스타버스트 + X자 슬래시 + 경사 충격파 링)
   spawnHitImpactEffect3D(hitWorldPos, colorHex = 0xfacc15, isCrit = false) {
+    if (typeof FXHQ !== 'undefined') {
+      FXHQ.hitSpark(hitWorldPos, colorHex, isCrit);
+      return;
+    }
     if (typeof createHitImpactBurst3D === 'function') {
       const burst = createHitImpactBurst3D(colorHex, isCrit);
       burst.position.copy(hitWorldPos);
@@ -2025,6 +2141,7 @@ class Chiikawa3DWorldApp {
     });
 
     if (hitAnything) {
+      if (this.comboStep === 3 && typeof FXHQ !== 'undefined') FXHQ.fovPunch(2.6, 0.28);
       this.hitStopTimer = 0.042;
       this.camShake = this.comboStep === 3 ? 0.52 : 0.28;
     }
@@ -2091,11 +2208,21 @@ class Chiikawa3DWorldApp {
     const exactHitWorldPos = m.pos.clone().add(new THREE.Vector3(0, hitHeightY, 0));
     this.spawnHitImpactEffect3D(exactHitWorldPos, sparkColor, isCrit);
     this.spawnBurstParticles(exactHitWorldPos, sparkColor, isCrit ? 22 : 14);
-    this.spawnFloatingText(
-      exactHitWorldPos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 0.6, 0)),
-      `${sfxWord} ${badgeText} -${finalDmg}`,
-      textColor
-    );
+    if (typeof POLISH !== 'undefined') {
+      // 숫자는 크게, 부위는 작은 아이콘으로 (머리 🎯 · 백어택 ⚡ · 다리 🦵 · 장갑 🛡️)
+      const isArmorBody = hitPart === 'body' && m.isArmored;
+      const partKey = isArmorBody ? 'armor' : (isBackAttack && hitPart !== 'head' ? 'back' : hitPart);
+      const numColor = partKey === 'back' ? '#7dd3fc' : partKey === 'legs' ? '#bbf7d0' : null;
+      POLISH.damageNumber(this.camera, exactHitWorldPos.clone().add(new THREE.Vector3(0, 0.8, 0)), finalDmg, {
+        crit: isCrit, part: partKey, color: numColor, weak: isArmorBody
+      });
+    } else {
+      this.spawnFloatingText(
+        exactHitWorldPos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 0.6, 0)),
+        `${sfxWord} ${badgeText} -${finalDmg}`,
+        textColor
+      );
+    }
 
     const bs = m.baseScale || 1;
     m.mesh.scale.set(bs * 1.24, bs * 0.8, bs * 1.24);
@@ -2106,9 +2233,16 @@ class Chiikawa3DWorldApp {
       m.isWindingUp = false;
       m.mesh.visible = false;
       m.labelEl.style.display = 'none';
+      if (typeof FXHQ !== 'undefined') FXHQ.deathPoof(m.pos.clone().add(new THREE.Vector3(0, 2.4, 0)), 0xfacc15);
       m.respawnTimer = this.battleState.active ? 9999 : (m.type === 'anoko' ? 15 : 8);
 
-      soundFx.playFanfare();
+      const nowMs = performance.now();
+      if (!this.lastKillFanfareAt || nowMs - this.lastKillFanfareAt > 700) {
+        soundFx.playFanfare();
+        this.lastKillFanfareAt = nowMs;
+      } else {
+        soundFx.playCoin();
+      }
       this.stats.monstersDefeated++;
       if (this.battleState.active) {
         this.battleState.killedMonsters = (this.battleState.killedMonsters || 0) + 1;
@@ -2165,6 +2299,9 @@ class Chiikawa3DWorldApp {
           spearGroup.rotation.y = yaw + (i === 1 ? 0.14 : -0.06);
           this.scene.add(spearGroup);
           this.slashArcs.push({ mesh: spearGroup, material: coneMat, life: 0.20, maxLife: 0.20, spin: 0 });
+          if (typeof FXHQ !== 'undefined') {
+            FXHQ.thrust(this.playerPos, yaw + (i === 1 ? 0.14 : -0.06), i === 0 ? 0xff85a2 : 0xfef08a, 7.2, 1.6 + i * 0.45);
+          }
         }
       } else {
         // 3타: 수직 핑크 내려찍기 슬래시 + 핑크 하트 링 폭발!
@@ -2255,6 +2392,16 @@ class Chiikawa3DWorldApp {
   }
 
   spawnCrescentSlash(center, yaw, colorHex, comboStep, tiltX = 0, tiltZ = 0) {
+    if (typeof FXHQ !== 'undefined') {
+      // 기존 '수직 내려찍기' 틸트(≈PI/2)는 새 검기 좌표계에서 전방-상하 평면 슬래시로 변환
+      if (Math.abs(tiltX) > 1.0) {
+        FXHQ.slash(center, yaw, colorHex, comboStep, 0, Math.PI / 2, { span: Math.PI * 1.05, y: 2.6, dir: 1 });
+      } else {
+        const spin = comboStep === 3 && Math.abs(tiltZ) < 0.3 && Math.abs(tiltX) < 0.5;
+        FXHQ.slash(center, yaw, colorHex, comboStep, tiltX, tiltZ, spin ? {} : { span: Math.PI * 1.0 });
+      }
+      return;
+    }
     const radius = comboStep === 3 ? 5.0 : 3.8;
     const geo = new THREE.RingGeometry(radius * 0.48, radius, 28, 1, -Math.PI * 0.72, Math.PI * 1.44);
     geo.rotateX(-Math.PI / 2);
@@ -2409,6 +2556,18 @@ class Chiikawa3DWorldApp {
     }
 
     this.spawnUltimateEffect3D(charKey);
+    if (typeof FXHQ !== 'undefined') {
+      // 🎬 궁극기 컷인: 화면 플래시 + 집중선 + 캐릭터 컷인 배너 + 오라 기둥 + 마법진 + 카메라 줌
+      FXHQ.ultimate({
+        getPos: () => this.playerPos,
+        color: cfg.accentColor,
+        duration: 1.25,
+        portrait: cfg.portrait,
+        portraitTex: typeof loadCleanCharacterTexture === 'function' ? loadCleanCharacterTexture(cfg.portrait) : null,
+        name: cfg.name,
+        skill: cfg.skillName
+      });
+    }
     this.spawnFloatingText(
       this.playerPos.clone().add(new THREE.Vector3(0, 5.0, 0)),
       `🌟궁극기 [Q] : ${cfg.skillName}!!`,
@@ -2455,6 +2614,7 @@ class Chiikawa3DWorldApp {
         const pCenter = this.playerPos.clone();
         soundFx.playAttack();
         this.camShake = Math.max(this.camShake, waveIdx === hitTimings.length - 1 ? 0.85 : 0.5);
+        if (typeof FXHQ !== 'undefined') FXHQ.screenFlash(cfg.accentColor, waveIdx === hitTimings.length - 1 ? 0.42 : 0.2, 180);
 
         if (charKey === 'chiikawa' && waveIdx === 0) {
           const impactPos = pCenter.clone().add(this.ultForward.clone().multiplyScalar(3.2));
@@ -2568,7 +2728,14 @@ class Chiikawa3DWorldApp {
       mesh.position.y = 0.16;
     }
 
-    mesh.scale.set(0.15, 1, 0.15);
+    if (typeof POLISH !== 'undefined') {
+      // ⚠️ 차오르는 경고 장판 + 발동 직전 점멸
+      mesh.material.dispose();
+      mesh.material = POLISH.telegraphMaterial(patternType, reach, patternType === 'line' ? 0xf97316 : 0xef4444);
+      mesh.userData.tele = true;
+    } else {
+      mesh.scale.set(0.15, 1, 0.15);
+    }
     this.scene.add(mesh);
 
     this.telegraphs.push({
@@ -2645,20 +2812,33 @@ class Chiikawa3DWorldApp {
       return;
     }
 
+    // 피격 직후 무적 시간(0.75초) 동안은 연속 피격 없음
+    if (this.invulnTimer > 0) return;
+
     // 3) 범위 끝자락에 살짝 걸친 경우 -> 🛡️ 스침 피격 (피해량 50% 경감)!
     const actualDmg = isEdgeGraze ? Math.max(1, Math.round(tg.dmg * 0.5)) : tg.dmg;
     this.stats.hp = Math.max(this.battleState.active ? 0 : 15, this.stats.hp - actualDmg);
     this.camShake = isEdgeGraze ? 0.2 : 0.42;
+    this.invulnTimer = 0.75;
+    this.hitStopTimer = Math.max(this.hitStopTimer, isEdgeGraze ? 0.03 : 0.06);
+    const knockDir = toPlayer.clone().setY(0);
+    if (knockDir.lengthSq() < 0.01) knockDir.set(Math.sin(this.playerYaw + Math.PI), 0, Math.cos(this.playerYaw + Math.PI));
+    this.playerKnock = knockDir.normalize().multiplyScalar(isEdgeGraze ? 6 : 12);
 
     if (this.playerMesh && this.playerMesh.userData.triggerJellyBounce) {
       this.playerMesh.userData.triggerJellyBounce(0.42);
     }
 
-    this.spawnFloatingText(
-      this.playerPos.clone().add(new THREE.Vector3(0, 3.2, 0)),
-      isEdgeGraze ? `🛡️스침 피격 -${actualDmg}` : `💥정면 피격 -${actualDmg}`,
-      isEdgeGraze ? '#fb923c' : '#ef4444'
-    );
+    if (typeof POLISH !== 'undefined') {
+      POLISH.playerHurt(isEdgeGraze ? 0.55 : 1);
+      POLISH.damageNumber(this.camera, this.playerPos.clone().add(new THREE.Vector3(0, 3.4, 0)), actualDmg, { player: true, part: isEdgeGraze ? 'armor' : null });
+    } else {
+      this.spawnFloatingText(
+        this.playerPos.clone().add(new THREE.Vector3(0, 3.2, 0)),
+        isEdgeGraze ? `🛡️스침 피격 -${actualDmg}` : `💥정면 피격 -${actualDmg}`,
+        isEdgeGraze ? '#fb923c' : '#ef4444'
+      );
+    }
     this.updateHud();
 
     // 전투 스테이지/던전에서 HP가 0이 되면 광장으로 긴급 후퇴 및 체력 100% 회복!
@@ -2685,6 +2865,13 @@ class Chiikawa3DWorldApp {
       openCostumeShopModal();
     } else if (item.type === 'weed_exam') {
       this.clearAllInputKeys();
+      const cooldownMs = 180000;
+      const since = Date.now() - (this.stats.lastWeedExamAt || 0);
+      if (this.stats.certLevel >= 3 && since < cooldownMs) {
+        const remain = Math.ceil((cooldownMs - since) / 1000);
+        showToast(`⏳ 1급 마스터 연습 시험은 ${Math.floor(remain / 60)}분 ${remain % 60}초 후에 다시 볼 수 있어요.`);
+        return;
+      }
       openWeedExamModal();
     } else if (item.type === 'onsen') {
       soundFx.playFanfare();
@@ -2774,9 +2961,13 @@ class Chiikawa3DWorldApp {
 
   promoteWeedingCert(examScore) {
     const ranks = ['🌱 제초 견습생', '🌿 제초 5급', '🍀 제초 3급', '👑 제초 1급 마스터'];
-    if (this.stats.certLevel < 3) {
-      this.stats.certLevel++;
+    if (this.stats.certLevel >= 3) {
+      // 이미 1급 마스터: 연습 시험은 소액 보상만 (무한 코인 파밍 방지)
+      this.addReward(40, 20, 'exam');
+      showToast('👑 1급 마스터의 연습 시험 합격! (+40 코인 · 다음 시험까지 3분)');
+      return;
     }
+    this.stats.certLevel++;
     this.addReward(150, 90, 'exam');
     showToast(`🏅 축하합니다! [${ranks[this.stats.certLevel]}] 자격증 승급에 합격했습니다! (+150 코인)`);
   }
@@ -2836,6 +3027,7 @@ class Chiikawa3DWorldApp {
   // 7. 3D 파티클, 발걸음 먼지, 충격파 링, 플로팅 텍스트 이펙트
   // ========================================================================
   spawnFootstepDust(pos, count = 2) {
+    if (typeof POLISH !== 'undefined' && POLISH.dust(pos, count, 1)) return;
     const geo = new THREE.SphereGeometry(0.18, 8, 8);
     const mat = new THREE.MeshBasicMaterial({
       color: 0xe2e8f0,
@@ -2861,6 +3053,10 @@ class Chiikawa3DWorldApp {
   }
 
   spawnSlashRing(center, colorHex, maxRadius) {
+    if (typeof FXHQ !== 'undefined') {
+      FXHQ.shockwave(center, colorHex, maxRadius);
+      return;
+    }
     const geo = new THREE.RingGeometry(0.4, 0.95, 32);
     geo.rotateX(-Math.PI / 2);
     const mat = new THREE.MeshBasicMaterial({
@@ -2883,6 +3079,10 @@ class Chiikawa3DWorldApp {
   }
 
   spawnBurstParticles(pos, colorHex, count = 14) {
+    if (typeof FXHQ !== 'undefined') {
+      FXHQ.burst(pos, colorHex, count);
+      return;
+    }
     const geo = new THREE.OctahedronGeometry(0.26, 0);
     const mat = new THREE.MeshBasicMaterial({ color: colorHex });
 
@@ -3129,6 +3329,13 @@ class Chiikawa3DWorldApp {
       this.walkTime = 0;
     }
 
+    // 피격 넉백 & 무적 시간
+    if (this.invulnTimer > 0) this.invulnTimer -= dt;
+    if (this.playerKnock && this.playerKnock.lengthSq() > 0.01) {
+      this.playerPos.addScaledVector(this.playerKnock, dt);
+      this.playerKnock.multiplyScalar(Math.exp(-dt * 9));
+    }
+
     // ⚔️ 전진 돌파형 토벌 가도(250m) 경계 제한 & 실시간 웨이브 증원 / 다음 구역 진격 트리거
     if (this.battleState.active && this.battleState.sectors) {
       const prevSec = Math.floor(this.battleState.elapsedTime || 0);
@@ -3237,7 +3444,8 @@ class Chiikawa3DWorldApp {
 
       if (!wasGrounded && this.playerMesh && this.playerMesh.userData.triggerJellyBounce) {
         this.playerMesh.userData.triggerJellyBounce(0.38);
-        this.spawnFootstepDust(this.playerPos, 4);
+        if (typeof POLISH !== 'undefined') POLISH.landing(this.playerPos, 1);
+        else this.spawnFootstepDust(this.playerPos, 4);
       }
     }
 
@@ -3268,6 +3476,16 @@ class Chiikawa3DWorldApp {
           this.comboStep,
           this.maxAttackTime || 0.28
         );
+      }
+
+      // 무적 시간 동안 캐릭터 깜빡임
+      if (parts && parts.standeeGroup) {
+        parts.standeeGroup.visible = !(this.invulnTimer > 0 && Math.floor(this.clock.elapsedTime * 18) % 2 === 0);
+      }
+      // 카메라 반대쪽(앞쪽)으로 걸어가면 뒷모습
+      if (this.playerMesh.userData.setBackView) {
+        const walkingAway = isMoving && iz < -0.55 && this.attackTimer <= 0 && !(this.ultTimer > 0) && this.dashTimer <= 0;
+        this.playerMesh.userData.setBackView(walkingAway);
       }
     }
   }
@@ -3338,7 +3556,7 @@ class Chiikawa3DWorldApp {
 
     this.clouds.forEach(c => {
       c.position.x += dt * 1.2;
-      if (c.position.x > 180) c.position.x = -180;
+      if (c.position.x > 470) c.position.x = -470;
     });
 
     this.weatherParticles.forEach(wp => {
@@ -3493,6 +3711,8 @@ class Chiikawa3DWorldApp {
   }
 
   updateEffects(dt) {
+    if (typeof FXHQ !== 'undefined') FXHQ.update(dt);
+    if (typeof POLISH !== 'undefined') POLISH.update(this, dt);
     // 💥 3D 입체 타격 임팩트 스타버스트 애니메이션
     for (let i = this.hitBursts.length - 1; i >= 0; i--) {
       const hb = this.hitBursts[i];
@@ -3541,8 +3761,13 @@ class Chiikawa3DWorldApp {
       const tg = this.telegraphs[i];
       tg.progress += dt;
       const ratio = Math.min(1, tg.progress / tg.duration);
-      tg.mesh.scale.set(ratio, 1, ratio);
-      tg.mesh.material.opacity = 0.3 + ratio * 0.5;
+      if (tg.mesh.userData.tele) {
+        tg.mesh.material.uniforms.uProg.value = ratio;
+        tg.mesh.material.uniforms.uTime.value = this.clock.elapsedTime;
+      } else {
+        tg.mesh.scale.set(ratio, 1, ratio);
+        tg.mesh.material.opacity = 0.3 + ratio * 0.5;
+      }
 
       if (tg.progress >= tg.duration) {
         this.scene.remove(tg.mesh);

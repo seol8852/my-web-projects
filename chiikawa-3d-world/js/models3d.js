@@ -275,7 +275,10 @@ function createInstancedGrassField3D() {
     -bw * 0.3, bh * 0.8, 0,   bw * 0.3, bh * 0.8, 0,   0, bh, 0
   ]);
   bladeGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
-  bladeGeo.computeVertexNormals();
+  // [HQ] 풀잎 노멀을 위로 고정 → 뒷면이 시커멓게 보이던 삼각형 현상 제거, 땅과 자연스럽게 섞임
+  const upNormals = new Float32Array(verts.length);
+  for (let i = 0; i < upNormals.length; i += 3) upNormals[i + 1] = 1;
+  bladeGeo.setAttribute('normal', new THREE.BufferAttribute(upNormals, 3));
 
   const gradientMap = getToonGradientMap();
   const bladeMat = new THREE.MeshToonMaterial({
@@ -305,11 +308,13 @@ function createInstancedGrassField3D() {
         transformed.z += sway * 0.55 * bend;`
       );
     shader.fragmentShader = shader.fragmentShader
+      // 양면 풀잎 뒷면 노멀 뒤집힘 방지 → 시커먼 삼각형 제거
+      .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\n  normal = normalize(vNormal);')
       .replace('#include <common>', '#include <common>\nvarying float vBladeH;')
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
-        diffuseColor.rgb *= mix(0.48, 1.18, vBladeH);`
+        diffuseColor.rgb *= mix(0.7, 1.12, vBladeH);`
       );
   };
 
@@ -319,7 +324,7 @@ function createInstancedGrassField3D() {
 
   const dummy = new THREE.Object3D();
   const color = new THREE.Color();
-  const palette = [0x4d7c0f, 0x65a30d, 0x3f6212, 0x15803d, 0x5a8f1c, 0x77a832];
+  const palette = [0x5a9126, 0x65a30d, 0x4f8a24, 0x6aa832, 0x5f9a2c, 0x77a832];
 
   let idx = 0;
   let guard = 0;
@@ -578,24 +583,27 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
     return cleanTextureCache[imageUrl];
   }
 
+  // [HQ] 1024px 고해상도 일러스트 텍스처 + 밉맵/이방성 필터 (먼 거리에서도 또렷하게)
   const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = 512;
-  tempCanvas.height = 512;
+  tempCanvas.width = 1024;
+  tempCanvas.height = 1024;
   const texture = new THREE.CanvasTexture(tempCanvas);
-  texture.minFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = 8;
+  if (!texture.userData) texture.userData = {};
   cleanTextureCache[imageUrl] = texture;
 
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
-    const size = 512;
+    const size = 1024;
     const c = document.createElement('canvas');
     c.width = size;
     c.height = size;
     const ctx = c.getContext('2d');
 
-    const pad = 18;
+    const pad = 36;
     const drawW = size - pad * 2;
     const drawH = size - pad * 2;
     ctx.drawImage(img, pad, pad, drawW, drawH);
@@ -619,7 +627,7 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
         }
       }
 
-      const sealRadius = 12;
+      const sealRadius = 24;
       const sealedBarrier = new Uint8Array(N);
       const horizTemp = new Uint8Array(N);
 
@@ -732,11 +740,12 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
     finalCtx.clearRect(0, 0, size, size);
     finalCtx.save();
     finalCtx.shadowColor = 'rgba(255, 255, 255, 0.96)';
-    finalCtx.shadowBlur = 4;
+    finalCtx.shadowBlur = 8;
     finalCtx.drawImage(c, 0, 0);
     finalCtx.restore();
     finalCtx.drawImage(c, 0, 0);
 
+    texture.userData.cleanReady = true;
     texture.needsUpdate = true;
     if (onReady) onReady(texture);
   };
@@ -946,7 +955,7 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
 
   const planeW = 4.6;
   const planeH = 4.8;
-  const sharedDeformGeo = new THREE.PlaneGeometry(planeW, planeH, 14, 18);
+  const sharedDeformGeo = new THREE.PlaneGeometry(planeW, planeH, 20, 24);
   sharedDeformGeo.translate(0, planeH * 0.5, 0);
 
   const posAttr = sharedDeformGeo.attributes.position;
@@ -967,10 +976,13 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
       color: isFrontOrBack ? 0xffffff : 0xe2e8f0
     });
     standeeMaterials.push(mat);
+    // [HQ] 반투명 슬라이스 겹침 대신 앞/뒷면 2장 + 실루엣 두께 테두리(Rim)로 꽉 찬 입체감
+    if (!isFrontOrBack) continue;
+    if (typeof fxRegisterStandeeMat === 'function') fxRegisterStandeeMat(mat);
 
     const slice = new THREE.Mesh(sharedDeformGeo, mat);
     slice.position.z = ((i / (layerCount - 1)) - 0.5) * totalThickness;
-    slice.castShadow = i === Math.floor(layerCount / 2);
+    slice.castShadow = i === 0;
     standeeGroup.add(slice);
   }
   root.add(standeeGroup);
@@ -1449,6 +1461,15 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     }
 
     posAttr.needsUpdate = true;
+
+    // [HQ] 일러스트 실루엣을 따라가는 말랑 입체 테두리 (텍스처 로드 완료 후 1회 생성, 매 프레임 변형 추종)
+    if (!root.userData.rimUpdate && !root.userData.rimFailed && charTex.userData && charTex.userData.cleanReady && typeof fxAttachStandeeRim === 'function') {
+      root.userData.rimUpdate = fxAttachStandeeRim(standeeGroup, charTex, {
+        gridGeo: sharedDeformGeo, baseCoords, ws: 20, hs: 24, planeW, planeH, yMin: 0, thickness: totalThickness, color: cfg.bodyColor
+      });
+      if (!root.userData.rimUpdate) root.userData.rimFailed = true;
+    }
+    if (root.userData.rimUpdate) root.userData.rimUpdate();
 
     // 3D 모자 슬롯 위치도 정수리 변형에 맞춰 자연스럽게 바운스
     hatSlot.position.y = 4.4 + (breath - jellyWave * 0.25) * 3.2;
@@ -1968,6 +1989,9 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     }
   };
 
+  // [HQ] 카메라 반대쪽으로 걸어갈 때 '뒷모습' 일러스트로 전환
+  if (typeof POLISH !== 'undefined') POLISH.attachBackView(root, charTex);
+
   return root;
 }
 
@@ -2048,7 +2072,7 @@ function createMonster3D(type = 'chimera') {
 
   // 몬스터 10x12 서브디비전 메쉬 (부위별 피격 흔들림 지원!)
   const bodyWrap = new THREE.Group();
-  const sharedGeo = new THREE.PlaneGeometry(sizeW, sizeH, 10, 12);
+  const sharedGeo = new THREE.PlaneGeometry(sizeW, sizeH, 14, 16);
   sharedGeo.translate(0, sizeH * 0.48, 0);
   const posAttr = sharedGeo.attributes.position;
   const baseCoords = new Float32Array(posAttr.array.length);
@@ -2065,10 +2089,14 @@ function createMonster3D(type = 'chimera') {
       alphaTest: 0.15,
       side: THREE.DoubleSide
     });
+    // [HQ] 앞/뒷면 2장 + 실루엣 테두리, 시간대 틴트, 하얀 피격 플래시 셰이더
+    if (i !== 0 && i !== layers - 1) continue;
     mats.push(mat);
+    if (typeof fxRegisterStandeeMat === 'function') fxRegisterStandeeMat(mat);
+    if (typeof fxApplyFlashShader === 'function') fxApplyFlashShader(mat);
     const mesh = new THREE.Mesh(sharedGeo, mat);
     mesh.position.z = ((i / (layers - 1)) - 0.5) * thickness;
-    mesh.castShadow = i === Math.floor(layers / 2);
+    mesh.castShadow = i === 0;
     bodyWrap.add(mesh);
   }
 
@@ -2087,6 +2115,13 @@ function createMonster3D(type = 'chimera') {
   bodyWrap.add(weakPointMarker);
 
   group.add(bodyWrap);
+
+  // [HQ] 보스급 몬스터 발밑 마력 오라 (회전 룬 + 떠오르는 불씨)
+  let bossAura = null;
+  if ((isArmored || type === 'anoko') && typeof fxCreateBossAura === 'function') {
+    bossAura = fxCreateBossAura(bodyRadius * 1.25, type === 'anoko' ? 0xef4444 : 0xa855f7);
+    group.add(bossAura);
+  }
 
   // 3D 부위별 피격 판정 데이터 (머리 약점 / 몸통 장갑 / 다리 하단)
   group.userData.bodyWrap = bodyWrap;
@@ -2162,6 +2197,18 @@ function createMonster3D(type = 'chimera') {
     }
     posAttr.needsUpdate = true;
 
+    if (!group.userData.rimUpdate && !group.userData.rimFailed && tex.userData && tex.userData.cleanReady && typeof fxAttachStandeeRim === 'function') {
+      group.userData.rimUpdate = fxAttachStandeeRim(bodyWrap, tex, {
+        gridGeo: sharedGeo, baseCoords, ws: 14, hs: 16, planeW: sizeW, planeH: sizeH, yMin: -sizeH * 0.02, thickness
+      });
+      if (!group.userData.rimUpdate) group.userData.rimFailed = true;
+    }
+    if (group.userData.rimUpdate) group.userData.rimUpdate();
+    mats.forEach(mm => {
+      if (mm.userData.fxFlash && mm.userData.fxFlash.uFlash.value > 0.001) mm.userData.fxFlash.uFlash.value *= 0.8;
+    });
+    if (bossAura) bossAura.userData.update(time);
+
     if (weakPointMarker.visible) {
       weakPointMarker.rotation.z = time * 3.5;
       const s = 1.0 + Math.sin(time * 8) * 0.15;
@@ -2173,9 +2220,20 @@ function createMonster3D(type = 'chimera') {
     group.userData.lastHitPart = partName;
     group.userData.hitWobble = partName === 'head' ? 0.65 : 0.45;
     const flashColor = partName === 'head' ? 0xfef08a : partName === 'back' ? 0x38bdf8 : 0xff4d6d;
-    mats.forEach(m => m.color.setHex(flashColor));
+    mats.forEach(m => {
+      if (m.userData.fxFlash) {
+        // 애니메 스타일 '하얗게 번쩍' 피격 플래시 + 부위 컬러 림
+        m.userData.fxFlash.uFlash.value = 0.85;
+        m.userData.fxFlash.uFlashColor.value.setHex(partName === 'body' || partName === 'legs' ? 0xffffff : flashColor);
+      } else {
+        m.color.setHex(flashColor);
+      }
+    });
     setTimeout(() => {
-      mats.forEach(m => m.color.setHex(0xffffff));
+      mats.forEach(m => {
+        if (typeof FX_STANDEE_TINT !== 'undefined') m.color.copy(FX_STANDEE_TINT);
+        else m.color.setHex(0xffffff);
+      });
     }, 130);
   };
 

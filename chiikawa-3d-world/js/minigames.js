@@ -254,6 +254,9 @@ function updateWeedExamUI() {
 function finishWeedExam() {
   weedExamState.active = false;
   clearInterval(weedExamState.timer);
+  if (window.gameApp && window.gameApp.stats) {
+    window.gameApp.stats.lastWeedExamAt = Date.now();
+  }
 
   const s = weedExamState.score;
   if (s >= 120) {
