@@ -989,33 +989,63 @@ function createMonster3D(type = 'chimera') {
 
   let sizeW = 5.4;
   let sizeH = 5.4;
+  let bodyRadius = 1.45;
+  let isArmored = false;
   if (type === 'bug') {
     sizeW = 4.0;
     sizeH = 4.0;
+    bodyRadius = 1.15;
   } else if (type === 'goblin') {
     sizeW = 4.8;
     sizeH = 4.8;
+    bodyRadius = 1.3;
   } else if (type === 'iron_chimera' || type === 'midboss') {
     sizeW = 6.2;
     sizeH = 6.2;
+    bodyRadius = 1.75;
+    isArmored = true;
   } else if (type === 'anoko') {
     sizeW = 8.6;
     sizeH = 8.6;
+    bodyRadius = 2.4;
   }
 
-  const shadowGeo = new THREE.CircleGeometry(sizeW * 0.36, 28);
+  // 바닥 피격 반경(Hurtbox Radius) 링 & 전방 시선 화살표(백어택 각도 확인용)
+  const hurtRingGroup = new THREE.Group();
+  const shadowGeo = new THREE.CircleGeometry(bodyRadius, 28);
   shadowGeo.rotateX(-Math.PI / 2);
   const shadowMat = new THREE.MeshBasicMaterial({
     color: type === 'anoko' ? 0x991b1b : 0x0f172a,
     transparent: true,
-    opacity: type === 'anoko' ? 0.45 : 0.28,
+    opacity: type === 'anoko' ? 0.42 : 0.26,
     depthWrite: false
   });
   const shadow = new THREE.Mesh(shadowGeo, shadowMat);
   shadow.position.y = 0.05;
-  group.add(shadow);
+  hurtRingGroup.add(shadow);
 
-  // 몬스터도 10x12 서브디비전 메쉬로 숨쉬기 & 발 구르기 & 피격 찌그러짐 변형!
+  // 피격 테두리 링 (정면: 붉은색, 후방 백어택 존: 보라/하늘색)
+  const frontArcGeo = new THREE.RingGeometry(bodyRadius - 0.1, bodyRadius + 0.06, 24, 1, -Math.PI * 0.6, Math.PI * 1.2);
+  frontArcGeo.rotateX(-Math.PI / 2);
+  const frontArc = new THREE.Mesh(
+    frontArcGeo,
+    new THREE.MeshBasicMaterial({ color: 0xef4444, side: THREE.DoubleSide, transparent: true, opacity: 0.55 })
+  );
+  frontArc.position.y = 0.07;
+  hurtRingGroup.add(frontArc);
+
+  const backArcGeo = new THREE.RingGeometry(bodyRadius - 0.12, bodyRadius + 0.08, 20, 1, Math.PI * 0.6, Math.PI * 0.8);
+  backArcGeo.rotateX(-Math.PI / 2);
+  const backArc = new THREE.Mesh(
+    backArcGeo,
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.65 })
+  );
+  backArc.position.y = 0.07;
+  hurtRingGroup.add(backArc);
+
+  group.add(hurtRingGroup);
+
+  // 몬스터 10x12 서브디비전 메쉬 (부위별 피격 흔들림 지원!)
   const bodyWrap = new THREE.Group();
   const sharedGeo = new THREE.PlaneGeometry(sizeW, sizeH, 10, 12);
   sharedGeo.translate(0, sizeH * 0.48, 0);
@@ -1041,22 +1071,54 @@ function createMonster3D(type = 'chimera') {
     bodyWrap.add(mesh);
   }
 
-  group.add(bodyWrap);
-  group.userData.bodyWrap = bodyWrap;
-  group.userData.mats = mats;
-  group.userData.hitWobble = 0;
+  // 🎯 머리/뿔 약점 부위(Weak Point) 3D 조준 링 마커
+  const wpRingGeo = new THREE.RingGeometry(0.38, 0.54, 20);
+  const wpRingMat = new THREE.MeshBasicMaterial({
+    color: 0xfacc15,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.85,
+    depthTest: false
+  });
+  const weakPointMarker = new THREE.Mesh(wpRingGeo, wpRingMat);
+  weakPointMarker.position.set(0, sizeH * 0.76, thickness * 0.65);
+  weakPointMarker.visible = false;
+  bodyWrap.add(weakPointMarker);
 
-  group.userData.updateMonsterMotion = (time, isChasing, phaseOffset) => {
+  group.add(bodyWrap);
+
+  // 3D 부위별 피격 판정 데이터 (머리 약점 / 몸통 장갑 / 다리 하단)
+  group.userData.bodyWrap = bodyWrap;
+  group.userData.hurtRingGroup = hurtRingGroup;
+  group.userData.weakPointMarker = weakPointMarker;
+  group.userData.mats = mats;
+  group.userData.bodyRadius = bodyRadius;
+  group.userData.sizeH = sizeH;
+  group.userData.isArmored = isArmored;
+  group.userData.hitWobble = 0;
+  group.userData.lastHitPart = 'body'; // 'head' | 'body' | 'legs' | 'back'
+
+  group.userData.hurtParts = {
+    head: { yMin: sizeH * 0.60, yMax: sizeH * 0.98, hitY: sizeH * 0.78, mult: 1.5, label: '🎯머리 약점' },
+    body: { yMin: sizeH * 0.28, yMax: sizeH * 0.60, hitY: sizeH * 0.46, mult: isArmored ? 0.8 : 1.0, label: isArmored ? '🛡️장갑 몸통' : '💥몸통' },
+    legs: { yMin: 0.0, yMax: sizeH * 0.28, hitY: sizeH * 0.18, mult: 1.05, label: '🦵다리(둔화)' }
+  };
+
+  group.userData.updateMonsterMotion = (time, isChasing, phaseOffset, facingYaw = 0) => {
+    // 바닥 시선/백어택 링은 몬스터의 실제 바라보는 방향(facingYaw)으로 회전!
+    hurtRingGroup.rotation.y = facingYaw - group.rotation.y;
+
     const arr = posAttr.array;
     const count = posAttr.count;
     if (group.userData.hitWobble > 0.001) {
-      group.userData.hitWobble *= 0.85;
+      group.userData.hitWobble *= 0.84;
     } else {
       group.userData.hitWobble = 0;
     }
 
     const t = time * (isChasing ? 9.5 : 3.5) + phaseOffset;
-    const wobble = Math.sin(time * 35) * group.userData.hitWobble;
+    const wobble = Math.sin(time * 38) * group.userData.hitWobble;
+    const hitPart = group.userData.lastHitPart;
 
     for (let i = 0; i < count; i++) {
       const idx = i * 3;
@@ -1065,14 +1127,22 @@ function createMonster3D(type = 'chimera') {
       const bz = baseCoords[idx + 2];
       const v = Math.max(0, Math.min(1, by / sizeH));
 
-      let dx = Math.sin(v * Math.PI * 2 + time * 20) * wobble * 0.6;
+      // 피격된 부위(머리 vs 몸통 vs 다리)에 집중적으로 찌그러짐/젖혀짐 반응 적용!
+      let partMask = 1.0;
+      if (hitPart === 'head') {
+        partMask = Math.max(0.1, (v - 0.4) * 2.2); // 머리와 뿔이 크게 뒤로 젖혀짐
+      } else if (hitPart === 'legs') {
+        partMask = Math.max(0.1, (0.5 - v) * 2.4); // 다리가 휘청거림
+      } else {
+        partMask = Math.sin(v * Math.PI) * 1.4; // 몸통 복부가 움찔함
+      }
+
+      let dx = wobble * 0.85 * partMask;
       let dy = 0;
 
       if (type === 'bug') {
-        // 날개 벌레는 위아래 날갯짓 파동
         dy += Math.sin(time * 16 + Math.abs(bx) * 1.5) * 0.18 * v;
       } else if (isChasing) {
-        // 추격 중일 때 좌우 다리 스톰프 & 상체 위협 기울기
         if (v < 0.3) {
           const side = bx >= 0 ? 1 : -1;
           dy += Math.max(0, Math.sin(t + (side > 0 ? 0 : Math.PI))) * 0.35 * (1 - v / 0.3);
@@ -1080,7 +1150,6 @@ function createMonster3D(type = 'chimera') {
           dx += Math.sin(t) * 0.22 * v;
         }
       } else {
-        // 대기 중 위협적인 들숨 날숨
         const b = Math.sin(t) * 0.04;
         dx += bx * b;
         dy += by * b;
@@ -1091,14 +1160,22 @@ function createMonster3D(type = 'chimera') {
       arr[idx + 2] = bz;
     }
     posAttr.needsUpdate = true;
+
+    if (weakPointMarker.visible) {
+      weakPointMarker.rotation.z = time * 3.5;
+      const s = 1.0 + Math.sin(time * 8) * 0.15;
+      weakPointMarker.scale.set(s, s, 1);
+    }
   };
 
-  group.userData.flashHit = () => {
-    group.userData.hitWobble = 0.45;
-    mats.forEach(m => m.color.setHex(0xff4d6d));
+  group.userData.flashHit = (partName = 'body') => {
+    group.userData.lastHitPart = partName;
+    group.userData.hitWobble = partName === 'head' ? 0.65 : 0.45;
+    const flashColor = partName === 'head' ? 0xfef08a : partName === 'back' ? 0x38bdf8 : 0xff4d6d;
+    mats.forEach(m => m.color.setHex(flashColor));
     setTimeout(() => {
       mats.forEach(m => m.color.setHex(0xffffff));
-    }, 120);
+    }, 130);
   };
 
   return group;
