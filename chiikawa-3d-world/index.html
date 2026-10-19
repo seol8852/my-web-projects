@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>치이카와 3D 오픈월드 타운: 제초 & 토벌 빌리지 | Chiikawa 3D World</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 1. 3D WebGL 풀스크린 캔버스 -->
+  <div id="webgl-container">
+    <canvas id="webgl-canvas"></canvas>
+  </div>
+
+  <!-- 2. 3D 공간 투영 라벨 레이어 (이름표, 말풍선, 몬스터 HP바, 구역 간판) -->
+  <div id="world-labels-layer"></div>
+
+  <!-- 3. 상단 토스트 알림 컨테이너 -->
+  <div id="toast-container"></div>
+
+  <!-- 4. 메인 게임 HUD 레이어 -->
+  <div id="hud-layer">
+
+    <!-- 상단 바: 프로필 상태 카드 + 6총사 캐릭터 스위처 + 환경 컨트롤 -->
+    <header class="hud-top-bar">
+
+      <!-- 좌측: 플레이어 상태 카드 -->
+      <div class="player-status-card hud-interactive">
+        <div class="player-avatar-box">
+          <img src="assets/chiikawa.png" alt="치이카와" id="hud-avatar-img">
+          <span class="player-lv-badge" id="hud-lv-badge">Lv.1</span>
+        </div>
+        <div class="player-info-col">
+          <div class="player-name-row">
+            <span class="player-name-txt" id="hud-char-name">치이카와</span>
+            <span class="cert-rank-pill" id="hud-cert-badge">🌱 제초 견습생</span>
+          </div>
+          <div class="bar-row">
+            <span style="width:26px;">HP</span>
+            <div class="bar-track">
+              <div class="hp-bar-fill" id="hud-hp-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+          <div class="bar-row">
+            <span style="width:26px;">EXP</span>
+            <div class="bar-track">
+              <div class="exp-bar-fill" id="hud-exp-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="currency-row">
+            <span class="currency-item">🪙 <strong id="hud-coins-val">150</strong></span>
+            <span class="currency-item">🌿 <strong id="hud-weeds-val">0포기</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 중앙: 실시간 3D 캐릭터 변경 바 (1~6 단축키) -->
+      <div class="char-switcher-panel hud-interactive">
+        <button type="button" class="char-btn active" data-char="chiikawa" onclick="gameApp.switchCharacter('chiikawa')">
+          <img src="assets/chiikawa.png" alt="치이카와">
+          <div class="char-btn-info">
+            <span class="char-btn-key">[1]</span>
+            <span class="char-btn-name">치이카와</span>
+          </div>
+        </button>
+        <button type="button" class="char-btn" data-char="hachiware" onclick="gameApp.switchCharacter('hachiware')">
+          <img src="assets/hachiware.png" alt="하치와레">
+          <div class="char-btn-info">
+            <span class="char-btn-key">[2]</span>
+            <span class="char-btn-name">하치와레</span>
+          </div>
+        </button>
+        <button type="button" class="char-btn" data-char="usagi" onclick="gameApp.switchCharacter('usagi')">
+          <img src="assets/usagi.png" alt="우사기">
+          <div class="char-btn-info">
+            <span class="char-btn-key">[3]</span>
+            <span class="char-btn-name">우사기</span>
+          </div>
+        </button>
+        <button type="button" class="char-btn" data-char="momonga" onclick="gameApp.switchCharacter('momonga')">
+          <img src="assets/momonga.png" alt="모몽가">
+          <div class="char-btn-info">
+            <span class="char-btn-key">[4]</span>
+            <span class="char-btn-name">모몽가</span>
+          </div>
+        </button>
+        <button type="button" class="char-btn" data-char="kurimanju" onclick="gameApp.switchCharacter('kurimanju')">
+          <img src="assets/kurimanju.png" alt="쿠리만쥬">
+          <div class="char-btn-info">
+            <span class="char-btn-key">[5]</span>
+            <span class="char-btn-name">쿠리만쥬</span>
+          </div>
+        </button>
+        <button type="button" class="char-btn" data-char="rakko" onclick="gameApp.switchCharacter('rakko')">
+          <img src="assets/rakko.png" alt="랏코">
+          <div class="char-btn-info">
+            <span class="char-btn-key">[6]</span>
+            <span class="char-btn-name">랏코</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- 우측: 파티 모드, 낮/밤 전환, 사운드, 포털 홈 -->
+      <div class="top-right-controls hud-interactive">
+        <button type="button" class="hud-pill-btn" id="btn-party-mode" onclick="gameApp.togglePartyFollow()">
+          👯 파티 동행 ON
+        </button>
+        <button type="button" class="hud-pill-btn" id="btn-time-toggle" onclick="gameApp.cycleTimeOfDay()">
+          ☀️ 낮 (초원)
+        </button>
+        <button type="button" class="hud-pill-btn" id="btn-sound-toggle" onclick="const on = soundFx.toggleSound(); this.innerText = on ? '🔊 사운드 ON' : '🔇 사운드 OFF';">
+          🔊 사운드 ON
+        </button>
+        <a href="../index.html" class="hud-pill-btn portal-btn">
+          🌐 포털 홈
+        </a>
+      </div>
+    </header>
+
+    <!-- 중단 영역: 좌측 미션/워프 패널 + 우측 실시간 미니맵 -->
+    <div class="hud-mid-area">
+
+      <!-- 좌측: 타운 미션 보드 & 빠른 순간이동 -->
+      <div class="left-side-panels hud-interactive">
+        <div class="quest-panel">
+          <div class="panel-header-title">
+            <span>📜 타운 일일 의뢰</span>
+            <span style="font-size:11px; color:var(--pink-dark);">자동 달성</span>
+          </div>
+          <div class="quest-list" id="hud-quest-list"></div>
+        </div>
+
+        <div class="teleport-panel">
+          <div class="panel-header-title">
+            <span>🚀 구역 빠른 이동 (Warp)</span>
+          </div>
+          <div class="teleport-grid">
+            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('plaza')">🏡 중앙 광장</button>
+            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('weed')">🌱 제초 평원</button>
+            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('ramen')">🍜 라멘 랑</button>
+            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('pudding')">🍮 푸딩 언덕</button>
+            <button type="button" class="warp-btn" style="grid-column: span 2; justify-content:center; background:#fff1f2; border-color:#fda4af;" onclick="gameApp.warpToZone('forest')">
+              ⚔️ 토벌의 숲 (아노코 레이드)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 우측: 실시간 미니맵 -->
+      <div class="minimap-card hud-interactive">
+        <canvas id="minimap-canvas" width="165" height="165"></canvas>
+        <div class="minimap-caption">
+          <span style="color:#ff4d6d;">● 나</span>
+          <span style="color:#22c55e;">● 풀</span>
+          <span style="color:#f97316;">● 라멘</span>
+          <span style="color:#ef4444;">● 몬스터</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단 바: 상호작용 프롬프트 + 액션 스킬 독 + 조작 힌트 -->
+    <footer class="hud-bottom-bar">
+
+      <!-- 근접 상호작용 배너 ([E] 키) -->
+      <div class="interact-prompt-banner hud-interactive" id="interact-prompt" onclick="gameApp.triggerInteract()">
+        <span class="key-cap">E</span>
+        <span id="interact-prompt-text">상호작용하기</span>
+      </div>
+
+      <!-- 스킬 & 액션 버튼 독 -->
+      <div class="action-dock hud-interactive">
+        <button type="button" class="skill-slot-btn primary-atk" onclick="gameApp.triggerAttack()">
+          <span class="skill-icon">⚔️</span>
+          <div class="skill-text-col">
+            <span class="skill-name">사스마타 베기 / 제초</span>
+            <span class="skill-hotkey">Key [J]</span>
+          </div>
+        </button>
+
+        <button type="button" class="skill-slot-btn special-skill" onclick="gameApp.triggerSpecialSkill()">
+          <span class="skill-icon">✨</span>
+          <div class="skill-text-col">
+            <span class="skill-name" id="hud-skill-name">분홍 포쉐트 별빛 파동</span>
+            <span class="skill-hotkey">Key [K] 필살기</span>
+          </div>
+        </button>
+
+        <button type="button" class="skill-slot-btn" onclick="gameApp.triggerJump()">
+          <span class="skill-icon">🦘</span>
+          <div class="skill-text-col">
+            <span class="skill-name">점프</span>
+            <span class="skill-hotkey">[Space]</span>
+          </div>
+        </button>
+
+        <button type="button" class="skill-slot-btn" onclick="gameApp.triggerInteract()">
+          <span class="skill-icon">🖐️</span>
+          <div class="skill-text-col">
+            <span class="skill-name">상호작용 / 대화</span>
+            <span class="skill-hotkey">Key [E]</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="controls-hint-bar">
+        🎮 이동: <strong>WASD / 방향키</strong> · 시점 회전: <strong>마우스 드래그 / 휠 줌</strong> · 점프: <strong>Space</strong> · 베기/풀뽑기: <strong>J</strong> · 필살기: <strong>K</strong> · 상호작용: <strong>E</strong>
+      </div>
+    </footer>
+  </div>
+
+  <!-- 모바일 가상 조이스틱 -->
+  <div class="mobile-joystick-zone" id="mobile-joystick">
+    <div class="joystick-knob" id="joystick-knob"></div>
+  </div>
+
+  <!-- ========================================================================
+       모달 1: 갑옷씨의 라멘 '랑(郎)' 주문 제작 미니게임
+       ======================================================================== -->
+  <div class="modal-backdrop" id="ramen-modal">
+    <div class="modal-window">
+      <button type="button" class="modal-close-btn" onclick="closeRamenMinigame()">✕</button>
+      <h2 style="font-size:21px; font-weight:900; color:#b45309;">🍜 갑옷씨의 라멘 '랑(郎)' 일일 알바</h2>
+      <p style="font-size:13px; color:#64748b; margin-top:4px;">손님이 외친 토핑 주문을 정확히 골라 맛있는 라멘을 대접하세요!</p>
+
+      <div class="ramen-order-card">
+        <img src="assets/usagi.png" alt="손님" class="ramen-guest-img" id="ramen-guest-img">
+        <div style="flex:1;">
+          <div style="font-size:15px; font-weight:900; color:#1e293b;" id="ramen-guest-name">우사기 손님의 주문</div>
+          <div style="font-size:13px; font-weight:700; color:#475569; margin:4px 0 8px;" id="ramen-guest-quote"></div>
+          <div id="ramen-req-tags" style="display:flex; flex-wrap:wrap; gap:5px;"></div>
+        </div>
+      </div>
+
+      <div class="ramen-ingredients-grid" id="ramen-ing-grid"></div>
+
+      <button type="button" class="btn-serve-ramen" onclick="submitRamenOrder()">
+        🍜 정성 가득 라멘 한 그릇 대접하기! (+80 코인 & 버프)
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       모달 2: 스피드 제초 자격증 승급 시험 미니게임
+       ======================================================================== -->
+  <div class="modal-backdrop" id="weed-exam-modal">
+    <div class="modal-window">
+      <button type="button" class="modal-close-btn" onclick="closeWeedExamModal()">✕</button>
+      <h2 style="font-size:21px; font-weight:900; color:#15803d;">🌱 제초 자격증 승급 실기 시험</h2>
+      <p style="font-size:13px; color:#64748b; margin-top:4px;">
+        20초 동안 <strong>가시 독초(🥀💣)</strong>를 피하고 일반 잡초와 황금초를 뽑아 <strong>120점 이상</strong> 달성하세요!
+      </p>
+
+      <div style="display:flex; justify-content:space-between; background:#f0fdf4; border:2px solid #86efac; padding:10px 18px; border-radius:14px; margin-top:12px; font-weight:900;">
+        <span>🏆 현재 점수: <strong id="weed-exam-score" style="color:#15803d; font-size:18px;">0점</strong> / 목표 120점</span>
+        <span>⏱️ 남은 시간: <strong id="weed-exam-time" style="color:#dc2626; font-size:18px;">20초</strong></span>
+      </div>
+
+      <div class="weed-exam-grid" id="weed-exam-grid"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       모달 3: 치이카와 동료 NPC 대화창
+       ======================================================================== -->
+  <div class="modal-backdrop" id="npc-dialog-modal">
+    <div class="modal-window">
+      <button type="button" class="modal-close-btn" onclick="closeNpcDialog()">✕</button>
+      <div class="dialog-speaker-row">
+        <img src="assets/hachiware.png" alt="캐릭터" class="dialog-portrait" id="dialog-portrait-img">
+        <div>
+          <div class="dialog-speaker-name" id="dialog-speaker-name">하치와레</div>
+          <div class="dialog-speaker-role" id="dialog-speaker-role">💙 제초 5급 & 푸른 사스마타</div>
+        </div>
+      </div>
+
+      <div class="dialog-body-box" id="dialog-text-body">
+        어떻게든 될 거야(난또까나레)! 같이 탐험하자!
+      </div>
+
+      <div class="dialog-choices">
+        <button type="button" class="choice-btn" onclick="closeNpcDialog('gift')">
+          💖 반갑게 인사하고 간식 나누기 (+30 코인 & 경험치)
+        </button>
+        <button type="button" class="choice-btn" onclick="closeNpcDialog('party')">
+          👯 파티 동행 대열 모드 전환하기 (함께 따라다니기 / 자유 산책)
+        </button>
+        <button type="button" class="choice-btn" style="background:#f8fafc; border-color:#cbd5e1;" onclick="closeNpcDialog()">
+          👋 다음에 또 이야기하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js r128 & Game Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/models3d.js"></script>
+  <script src="js/minigames.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
