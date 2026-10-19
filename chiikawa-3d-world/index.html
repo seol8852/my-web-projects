@@ -10,6 +10,32 @@
 </head>
 <body>
 
+  <!-- 0. 게임 시작 캐릭터 선택 로비 화면 (단 하나의 캐릭터를 선택하여 플레이) -->
+  <div id="char-select-screen" class="char-select-overlay">
+    <div class="char-select-container">
+      <div class="lobby-header">
+        <span class="lobby-badge">🌿 CHIIKAWA 3D OPEN-WORLD TOWN</span>
+        <h1 class="lobby-title">치이카와 3D 제초 & 토벌 빌리지</h1>
+        <p class="lobby-subtitle">함께 모험을 떠날 주인공 캐릭터 <strong>한 명</strong>을 선택해주세요!</p>
+      </div>
+
+      <!-- 6인 캐릭터 선택 그리드 (main.js에서 자동 렌더링) -->
+      <div class="char-select-grid" id="char-select-grid"></div>
+
+      <div class="lobby-footer">
+        <button type="button" class="btn-start-adventure" onclick="gameApp.startGameWithSelectedChar()">
+          🎮 선택한 캐릭터로 모험 시작하기!
+        </button>
+        <div class="lobby-controls-preview">
+          <span>🖱️ <strong>좌클릭 / [J]</strong> : 스마트 조준 3연격 베기 & 풀뽑기</span>
+          <span>💨 <strong>우클릭 / [Shift]</strong> : 무적 회피 대시</span>
+          <span>✨ <strong>[K]</strong> : 고유 필살기</span>
+          <span>🖐️ <strong>[E]</strong> : 라멘 알바 / 제초 시험 / 대화</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 1. 3D WebGL 풀스크린 캔버스 -->
   <div id="webgl-container">
     <canvas id="webgl-canvas"></canvas>
@@ -24,7 +50,7 @@
   <!-- 4. 메인 게임 HUD 레이어 -->
   <div id="hud-layer">
 
-    <!-- 상단 바: 프로필 상태 카드 + 6총사 캐릭터 스위처 + 환경 컨트롤 -->
+    <!-- 상단 바: 단일 플레이어 상태 카드 + 환경/상점/캐릭터 변경 컨트롤 -->
     <header class="hud-top-bar">
 
       <!-- 좌측: 플레이어 상태 카드 -->
@@ -57,62 +83,16 @@
         </div>
       </div>
 
-      <!-- 중앙: 실시간 3D 캐릭터 변경 바 (1~6 단축키) -->
-      <div class="char-switcher-panel hud-interactive">
-        <button type="button" class="char-btn active" data-char="chiikawa" onclick="gameApp.switchCharacter('chiikawa')">
-          <img src="assets/chiikawa.png" alt="치이카와">
-          <div class="char-btn-info">
-            <span class="char-btn-key">[1]</span>
-            <span class="char-btn-name">치이카와</span>
-          </div>
-        </button>
-        <button type="button" class="char-btn" data-char="hachiware" onclick="gameApp.switchCharacter('hachiware')">
-          <img src="assets/hachiware.png" alt="하치와레">
-          <div class="char-btn-info">
-            <span class="char-btn-key">[2]</span>
-            <span class="char-btn-name">하치와레</span>
-          </div>
-        </button>
-        <button type="button" class="char-btn" data-char="usagi" onclick="gameApp.switchCharacter('usagi')">
-          <img src="assets/usagi.png" alt="우사기">
-          <div class="char-btn-info">
-            <span class="char-btn-key">[3]</span>
-            <span class="char-btn-name">우사기</span>
-          </div>
-        </button>
-        <button type="button" class="char-btn" data-char="momonga" onclick="gameApp.switchCharacter('momonga')">
-          <img src="assets/momonga.png" alt="모몽가">
-          <div class="char-btn-info">
-            <span class="char-btn-key">[4]</span>
-            <span class="char-btn-name">모몽가</span>
-          </div>
-        </button>
-        <button type="button" class="char-btn" data-char="kurimanju" onclick="gameApp.switchCharacter('kurimanju')">
-          <img src="assets/kurimanju.png" alt="쿠리만쥬">
-          <div class="char-btn-info">
-            <span class="char-btn-key">[5]</span>
-            <span class="char-btn-name">쿠리만쥬</span>
-          </div>
-        </button>
-        <button type="button" class="char-btn" data-char="rakko" onclick="gameApp.switchCharacter('rakko')">
-          <img src="assets/rakko.png" alt="랏코">
-          <div class="char-btn-info">
-            <span class="char-btn-key">[6]</span>
-            <span class="char-btn-name">랏코</span>
-          </div>
-        </button>
-      </div>
-
-      <!-- 우측: 의상실/강화, 포토 스튜디오, 파티 모드, 낮/밤 전환, 사운드, 포털 홈 -->
+      <!-- 우측: 캐릭터 재선택, 의상실/강화, 포토 스냅샷, 낮/밤 전환, 사운드, 포털 홈 -->
       <div class="top-right-controls hud-interactive">
+        <button type="button" class="hud-pill-btn" onclick="gameApp.openCharSelectScreen()">
+          🔄 캐릭터 변경
+        </button>
         <button type="button" class="hud-pill-btn shop-highlight-btn" onclick="openCostumeShopModal()">
           🛍️ 의상실 & 강화 [B]
         </button>
         <button type="button" class="hud-pill-btn" onclick="gameApp.takePhotoSnapshot()">
           📸 스냅샷 [P]
-        </button>
-        <button type="button" class="hud-pill-btn" id="btn-party-mode" onclick="gameApp.togglePartyFollow()">
-          👯 파티 동행 ON
         </button>
         <button type="button" class="hud-pill-btn" id="btn-time-toggle" onclick="gameApp.cycleTimeOfDay()">
           ☀️ 낮 (벚꽃초원)
@@ -144,13 +124,13 @@
             <span>🚀 구역 빠른 이동 (Warp)</span>
           </div>
           <div class="teleport-grid">
-            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('plaza')">🏡 중앙 광장</button>
+            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('plaza')">⛲ 중앙 분수광장</button>
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('shop')">🛍️ 의상 & 강화</button>
-            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('weed')">🌱 제초 평원</button>
+            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('weed')">🌱 제초 풍차언덕</button>
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('ramen')">🍜 라멘 랑</button>
-            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('pudding')">🍮 푸딩 언덕</button>
+            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('pudding')">🍮 푸딩 점프대</button>
             <button type="button" class="warp-btn" style="background:#fff1f2; border-color:#fda4af;" onclick="gameApp.warpToZone('forest')">
-              ⚔️ 토벌의 숲
+              ⛩️ 토벌의 숲
             </button>
           </div>
         </div>
@@ -182,15 +162,15 @@
         <button type="button" class="skill-slot-btn primary-atk" onclick="gameApp.triggerAttack()">
           <span class="skill-icon">⚔️</span>
           <div class="skill-text-col">
-            <span class="skill-name">사스마타 베기 / 제초</span>
-            <span class="skill-hotkey">Key [J]</span>
+            <span class="skill-name">3연격 베기 / 제초</span>
+            <span class="skill-hotkey">좌클릭 / [J]</span>
           </div>
         </button>
 
         <button type="button" class="skill-slot-btn special-skill" onclick="gameApp.triggerSpecialSkill()">
           <span class="skill-icon">✨</span>
           <div class="skill-text-col">
-            <span class="skill-name" id="hud-skill-name">분홍 포쉐트 별빛 파동</span>
+            <span class="skill-name" id="hud-skill-name">분홍 포쉐트 별빛 대폭발</span>
             <span class="skill-hotkey">Key [K] 필살기</span>
           </div>
         </button>
@@ -198,8 +178,8 @@
         <button type="button" class="skill-slot-btn" onclick="gameApp.triggerDash()">
           <span class="skill-icon">💨</span>
           <div class="skill-text-col">
-            <span class="skill-name">회피 대시</span>
-            <span class="skill-hotkey">[Shift]</span>
+            <span class="skill-name">무적 회피 대시</span>
+            <span class="skill-hotkey">우클릭 / [Shift]</span>
           </div>
         </button>
 
@@ -221,7 +201,7 @@
       </div>
 
       <div class="controls-hint-bar">
-        🎮 이동: <strong>WASD / 방향키</strong> · 대시: <strong>Shift</strong> · 점프: <strong>Space</strong> · 베기/제초: <strong>J</strong> · 필살기: <strong>K</strong> · 상호작용: <strong>E</strong> · 의상실: <strong>B</strong> · 스냅샷: <strong>P</strong>
+        🎮 이동: <strong>WASD / 방향키</strong> · 공격/풀뽑기: <strong>마우스 좌클릭 / J</strong> · 회피 대시: <strong>마우스 우클릭 / Shift</strong> · 필살기: <strong>K</strong> · 시점 회전: <strong>드래그 / Q</strong> · 상호작용: <strong>E</strong>
       </div>
     </footer>
   </div>
@@ -291,17 +271,15 @@
         풀뽑기와 토벌, 라멘 알바로 모은 코인으로 <strong>사스마타 무기</strong>를 강화하거나 귀여운 <strong>3D 머리 장식</strong>을 착용하세요!
       </p>
 
-      <!-- 무기 강화 섹션 -->
       <div class="shop-weapon-section" id="shop-weapon-box"></div>
 
-      <!-- 3D 모자 코스튬 그리드 -->
       <div style="font-size:14px; font-weight:900; color:#1e293b; margin:14px 0 8px;">👑 3D 입체 머리 장식 컬렉션</div>
       <div class="shop-hat-grid" id="shop-hat-grid"></div>
     </div>
   </div>
 
   <!-- ========================================================================
-       모달 4: 치이카와 동료 NPC 대화창
+       모달 4: 치이카와 마을 친구 NPC 대화창
        ======================================================================== -->
   <div class="modal-backdrop" id="npc-dialog-modal">
     <div class="modal-window">
@@ -321,9 +299,6 @@
       <div class="dialog-choices">
         <button type="button" class="choice-btn" onclick="closeNpcDialog('gift')">
           💖 반갑게 인사하고 간식 나누기 (+35 코인 & 경험치)
-        </button>
-        <button type="button" class="choice-btn" onclick="closeNpcDialog('party')">
-          👯 파티 동행 대열 모드 전환하기 (함께 따라다니기 / 자유 산책)
         </button>
         <button type="button" class="choice-btn" style="background:#f8fafc; border-color:#cbd5e1;" onclick="closeNpcDialog()">
           👋 다음에 또 이야기하기

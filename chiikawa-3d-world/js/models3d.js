@@ -1,697 +1,719 @@
 // ==========================================================================
-// 치이카와 3D 오픈월드 타운 (고퀄리티 리마스터)
-// 3D 셀 애니메이션 툰 쉐이딩 + 외곽선(Outline) + 초정밀 3D 피규어 & 랜드마크 빌더 (models3d.js)
+// 치이카와 3D 오픈월드 타운 - 고품질 3D 캐릭터/몬스터/월드 에셋 빌더 (models3d.js)
+// [Real Chiikawa Artwork 3D Volumetric Standee Rig + 1.5-Head Mochi 3D Mesh
+//  + High-Res Procedural Terrain Textures + Detailed 3D Landmarks]
 // ==========================================================================
 
+let sharedToonGradientMap = null;
+function getToonGradientMap() {
+  if (sharedToonGradientMap) return sharedToonGradientMap;
+  const colors = new Uint8Array([95, 155, 215, 255]);
+  const texture = new THREE.DataTexture(colors, colors.length, 1, THREE.LuminanceFormat);
+  texture.minFilter = THREE.NearestFilter;
+  texture.magFilter = THREE.NearestFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  sharedToonGradientMap = texture;
+  return texture;
+}
+
+function addCartoonOutline(mesh, thickness = 0.045, outlineColor = 0x2b1d19) {
+  if (!mesh || !mesh.geometry) return;
+  const outlineMat = new THREE.MeshBasicMaterial({
+    color: outlineColor,
+    side: THREE.BackSide
+  });
+  const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMat);
+  outlineMesh.scale.setScalar(1 + thickness);
+  mesh.add(outlineMesh);
+}
+
+// ==========================================================================
+// 1. 캐릭터 & 몬스터 공식 설정 데이터
+// ==========================================================================
 const CHAR_CONFIGS = {
   chiikawa: {
-    id: 'chiikawa',
+    key: 'chiikawa',
     name: '치이카와',
-    title: '🌸 곰돌이 포쉐트 제초사',
+    title: '💖 핑크 사스마타 & 분홍 곰돌이 포쉐트',
+    desc: '작고 귀여운 주인공! 균형 잡힌 이동속도와 넓은 사스마타 베기 범위를 지녔습니다.',
     bodyColor: 0xffffff,
-    earType: 'bear',
+    accentColor: 0xff85a2,
     weaponType: 'sasumata_pink',
-    skillName: '분홍 포쉐트 별빛 대폭발',
-    skillColor: 0xff758f,
-    portrait: 'assets/chiikawa.png',
-    speed: 14.5,
+    weaponName: '핑크 사스마타',
+    speed: 20,
     atk: 32,
+    skillName: '분홍 포쉐트 별빛 대폭발',
+    portrait: 'assets/chiikawa.png',
     quotes: [
-      '와앗... 열심히 풀을 뽑아서 5급 합격할 거야!',
-      '우와앙! 하치와레랑 라멘 랑 먹으러 가자!',
-      '에잇-! 사스마타로 나쁜 키메라를 물리치자!',
-      '하치와레가 끓여준 차루메라... 정말 맛있어!'
+      '와아...!! 열심히 풀을 뽑아서 코인을 모아보자!',
+      '에잇-! 무서운 키메라도 용기 내서 사스마타로 찌르자!',
+      '하치와레랑 우사기랑 맛있는 차루메라 먹고 싶어...!'
     ]
   },
   hachiware: {
-    id: 'hachiware',
+    key: 'hachiware',
     name: '하치와레',
-    title: '💙 제초 5급 & 푸른 사스마타',
+    title: '💙 제초 5급 합격자 & 파란 사스마타',
+    desc: '제초 5급 자격증 보유자! 풀뽑기 코인 보너스가 높고 연타 속도가 빠릅니다.',
     bodyColor: 0xffffff,
-    accentColor: 0x5ba4cf,
-    earType: 'cat',
+    accentColor: 0x38bdf8,
     weaponType: 'sasumata_blue',
-    skillName: '난또까나레! 푸른 달빛 회전베기',
-    skillColor: 0x38bdf8,
+    weaponName: '블루 사스마타',
+    speed: 21,
+    atk: 35,
+    skillName: '난또까나레! 희망의 파란 회오리',
     portrait: 'assets/hachiware.png',
-    speed: 15.5,
-    atk: 36,
     quotes: [
-      '어떻게든 될 거야(난또까나레)! 같이 탐험하자!',
-      '차루메라 끓여 먹고 토벌의 숲으로 가볼까?',
-      '푸른 사스마타의 힘을 보여줄게! 에잇-!',
-      '와아-! 자이언트 푸딩 위에서 보는 경치 최고야!'
+      '어떻게든 될 거야(난또까나레)!! 우리가 힘을 합치면 무적이지!',
+      '라멘 랑에서 야사이 마시마시에 마늘 듬뿍 넣어 먹자!',
+      '제초 5급 자격증의 실력을 제대로 보여줄게!'
     ]
   },
   usagi: {
-    id: 'usagi',
+    key: 'usagi',
     name: '우사기',
-    title: '💛 토벌 3급 천재 파이터',
+    title: '💛 제초 3급 에이스 & 양끝 토벌봉',
+    desc: '압도적인 기동력과 폭발적인 화력을 자랑하는 천재 텐션 에이스!',
     bodyColor: 0xfff3c4,
-    earType: 'rabbit',
-    weaponType: 'staff_yellow',
-    skillName: '우라라라! 초고화력 화약 연쇄폭격',
-    skillColor: 0xfacc15,
-    portrait: 'assets/usagi.png',
-    speed: 18.0,
+    accentColor: 0xfacc15,
+    weaponType: 'wand_yellow',
+    weaponName: '폭약 토벌봉',
+    speed: 24,
     atk: 42,
+    skillName: '우라야하-!! 초음속 황금 번개 스매시',
+    portrait: 'assets/usagi.png',
     quotes: [
-      '이얏하-!! 우라라라라-!!',
-      '푸하-! 자이언트 푸딩 위에서 점프하자!',
-      '하아?! 우라! 당근 로켓 발사!',
-      '야하-!! 다 비켜라 우사기님이 나가신다!'
+      '우라-!! 야하-!! 이얏하아아아---!!',
+      '하아~?! 푸딩!! 자이언트 푸딩 위로 점프하자!!',
+      '야하!! 프리-!! (몬스터를 단숨에 날려버릴 기세다!)'
     ]
   },
   momonga: {
-    id: 'momonga',
+    key: 'momonga',
     name: '모몽가',
-    title: '💜 귀여움 강요 하늘다람쥐',
+    title: '💜 치명적인 귀여움 어필 & 복실 꼬리',
+    desc: '빠른 회피 기동과 넓은 범위의 회오리 애교 파동으로 적들을 제압합니다.',
     bodyColor: 0xffffff,
-    accentColor: 0xa3a8c2,
-    earType: 'squirrel',
-    weaponType: 'fan_tail',
-    skillName: '칭찬해라! 복슬 꼬리 회오리 태풍',
-    skillColor: 0xc084fc,
+    accentColor: 0xa855f7,
+    weaponType: 'sasumata_purple',
+    weaponName: '보라 사스마타',
+    speed: 22.5,
+    atk: 34,
+    skillName: '귀여운 척하기! 보랏빛 매혹 폭풍',
     portrait: 'assets/momonga.png',
-    speed: 16.5,
-    atk: 35,
     quotes: [
-      '어이! 이 몸의 3D 입체 귀여움을 어서 찬양해라!',
-      '맛있는 라멘과 푸딩을 이 몸에게 바쳐라!',
-      '떼쓰기 회오리로 몬스터들을 날려버리지!',
-      '보아라! 이 윤기 흐르는 복슬복슬한 꼬리를!'
+      '봐라 봐라! 이 몸의 복실복실한 꼬리를 칭찬해라!',
+      '맛있는 걸 바쳐라! 따끈한 백미 밥이랑 달콤한 푸딩 내놔!',
+      '앙?! 이 몸이 제일 귀엽지 않느냐!'
     ]
   },
   kurimanju: {
-    id: 'kurimanju',
+    key: 'kurimanju',
     name: '쿠리만쥬',
-    title: '🌰 낭만 미식가 선배',
-    bodyColor: 0xfff8e7,
-    accentColor: 0x7c3f10,
-    earType: 'bear_brown',
-    weaponType: 'drink_can',
-    skillName: '크으-! 스태미나 200% 건배 파동',
-    skillColor: 0xf59e0b,
-    portrait: 'assets/kurimanju.png',
-    speed: 14.0,
+    title: '🧡 낭만 안주 마스터 & 묵직한 타격',
+    desc: '한 방 한 방이 묵직하고 체력 회복 효율이 뛰어난 어른의 여유!',
+    bodyColor: 0xfef3c7,
+    accentColor: 0xd97706,
+    weaponType: 'sasumata_amber',
+    weaponName: '호박빛 사스마타',
+    speed: 19.5,
     atk: 38,
+    skillName: '크으으-!! 시원한 황금 안주 오라',
+    portrait: 'assets/kurimanju.png',
     quotes: [
-      '하아ー... 크으-! 일 끝내고 마시는 한 잔이 최고지!',
-      '라멘 랑에 마늘 듬뿍 넣어서 한 그릇 어때?',
-      '천천히 풍경을 즐기면서 풀을 뽑아보자고.',
-      '타코야키에 시원한 음료 한 모금... 캬아-!'
+      '크으으으---!! 일 끝내고 마시는 음료와 안주는 최고지!',
+      '자, 여기 구운 오징어랑 따끈한 어묵 국물 한 입 해!',
+      '하아아~... 라멘 국물에 마늘 듬뿍 넣으면 해장으로 끝내주지.'
     ]
   },
   rakko: {
-    id: 'rakko',
+    key: 'rakko',
     name: '랏코 사부',
-    title: '⚔️ 토벌 랭킹 상위권 마스터',
-    bodyColor: 0xe6ccb2,
-    accentColor: 0x7f5539,
-    earType: 'otter',
-    weaponType: 'greatsword',
-    skillName: '수석 토벌자의 비기: 천공 일섬(一閃)',
-    skillColor: 0xfb7185,
+    title: '⚔️ 토벌 랭킹 1위 상위 랭커 & 명검',
+    desc: '토벌 랭킹 1위의 검술 달인! 가장 강력한 기본 공격력과 필살 검기를 구사합니다.',
+    bodyColor: 0xf5d0a9,
+    accentColor: 0xef4444,
+    weaponType: 'rakko_sword',
+    weaponName: '랭커의 명검',
+    speed: 22.5,
+    atk: 46,
+    skillName: '상위 랭커의 비기: 일섬 십자베기',
     portrait: 'assets/rakko.png',
-    speed: 17.0,
-    atk: 50,
     quotes: [
-      '침착해라. 나를 따라오면 아노코 토벌도 두렵지 않다!',
-      '토벌 후엔 달콤한 파르페와 딸기잼을 먹는 게 최고지...',
-      '날카로운 검기로 숲의 위험을 베어내겠다!',
-      '네 눈빛이 아주 좋아졌군. 일류 토벌자의 자질이 보인다!'
+      '토벌 랭킹 1위의 검술을 보여주마. 나를 믿고 따라와라!',
+      '전투가 끝난 뒤 파르페와 달콤한 딸기 생크림을 먹는 게 진짜 보람이지...',
+      '강해지고 싶다면 두려워하지 말고 정면으로 검을 휘둘러라!'
     ]
   }
 };
 
 // ==========================================================================
-// 0. 셀 애니메이션 툰 그라데이션 & 아웃라인(Inverted Hull) 헬퍼
+// 2. 고해상도 프로시저럴 월드 지형 텍스처 생성기 (Grass, Plaza, Water, Forest)
 // ==========================================================================
-let sharedToonGradient = null;
-function getToonGradientMap() {
-  if (sharedToonGradient) return sharedToonGradient;
-  const data = new Uint8Array([
-    165, 165, 175, 255,
-    210, 210, 220, 255,
-    242, 242, 248, 255,
-    255, 255, 255, 255
-  ]);
-  const tex = new THREE.DataTexture(data, 4, 1, THREE.RGBAFormat);
-  tex.minFilter = THREE.NearestFilter;
-  tex.magFilter = THREE.NearestFilter;
-  tex.needsUpdate = true;
-  sharedToonGradient = tex;
-  return tex;
-}
-
-function createToonMat(colorHex, opts = {}) {
-  return new THREE.MeshToonMaterial({
-    color: colorHex,
-    gradientMap: getToonGradientMap(),
-    ...opts
-  });
-}
-
-// 3D 카툰 외곽선(Outline) 메쉬 추가 헬퍼 (나가노 작가풍 다크 브라운 잉크 라인)
-const OUTLINE_MAT = new THREE.MeshBasicMaterial({
-  color: 0x2b211e,
-  side: THREE.BackSide
-});
-
-function addCartoonOutline(mesh, thickness = 0.045) {
-  const outline = new THREE.Mesh(mesh.geometry, OUTLINE_MAT);
-  outline.scale.set(1 + thickness, 1 + thickness, 1 + thickness);
-  mesh.add(outline);
-  return outline;
-}
-
-// ==========================================================================
-// 1. 고해상도 2D 캔버스 표정 텍스처 생성기 (1024x512 구면 무왜곡 + 눈 깜빡임 지원)
-// ==========================================================================
-function createPlushieFaceTexture(charKey, expression = 'normal') {
+function createGrassCanvasTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 1024;
+  canvas.width = 512;
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  let bgHex = '#ffffff';
-  if (charKey === 'usagi') bgHex = '#fff3c4';
-  if (charKey === 'kurimanju') bgHex = '#fff8e7';
-  if (charKey === 'rakko') bgHex = '#e6ccb2';
+  // 파스텔 초원 베이스 그라데이션
+  ctx.fillStyle = '#84cc16';
+  ctx.fillRect(0, 0, 512, 512);
 
-  ctx.fillStyle = bgHex;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // 쿠리만쥬 머리 위 밤색 그라데이션 뚜껑 무늬
-  if (charKey === 'kurimanju') {
-    const grad = ctx.createLinearGradient(0, 0, 0, 175);
-    grad.addColorStop(0, '#5c2c06');
-    grad.addColorStop(0.85, '#7c3f10');
-    grad.addColorStop(1, bgHex);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvas.width, 175);
-  }
-
-  // 하치와레 파란색 8자(八) 가르마 무늬
-  if (charKey === 'hachiware') {
-    ctx.fillStyle = '#5ba4cf';
-    ctx.fillRect(0, 0, canvas.width, 138);
-
-    // 양옆 파란 앞머리 곡선
+  // 부드러운 잔디 패치 변주
+  for (let i = 0; i < 90; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(163, 230, 53, 0.38)' : 'rgba(101, 163, 13, 0.25)';
     ctx.beginPath();
-    ctx.arc(405, 135, 76, 0, Math.PI * 2);
-    ctx.arc(619, 135, 76, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 이마 중앙 하얀 삼각형 가르마
-    ctx.beginPath();
-    ctx.moveTo(512, 78);
-    ctx.lineTo(418, 220);
-    ctx.lineTo(606, 220);
-    ctx.closePath();
-    ctx.fillStyle = '#ffffff';
+    ctx.arc(Math.random() * 512, Math.random() * 512, 18 + Math.random() * 35, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 모몽가 회색 털 테두리
-  if (charKey === 'momonga') {
-    ctx.fillStyle = '#a3a8c2';
-    ctx.fillRect(0, 0, canvas.width, 98);
+  // 세밀한 풀잎 & 세잎클로버 디테일
+  for (let i = 0; i < 420; i++) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    ctx.strokeStyle = i % 3 === 0 ? '#ecfccb' : '#4d7c0f';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - 3, y - 8);
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 3, y - 7);
+    ctx.stroke();
   }
 
-  const cx = 512;
-  const cy = 266;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(16, 16);
+  return tex;
+}
 
-  // 랏코 사부 이마의 십자 흉터 & 주둥이
-  if (charKey === 'rakko') {
-    ctx.strokeStyle = '#5c3a21';
-    ctx.lineWidth = 5.5;
-    ctx.lineCap = 'round';
+function createPlazaCanvasTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#fef3c7';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // 원형 광장 벽돌 타일 패턴
+  const cx = 256;
+  const cy = 256;
+  for (let r = 24; r < 250; r += 26) {
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(cx - 30, cy - 68);
-    ctx.lineTo(cx + 20, cy - 42);
-    ctx.moveTo(cx - 12, cy - 74);
-    ctx.lineTo(cx - 2, cy - 36);
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = '#fffdf9';
-    ctx.beginPath();
-    ctx.ellipse(cx, cy + 28, 45, 28, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // 발그레한 볼터치 (부드러운 핑크 그라데이션 + 4줄 만화 빗금)
-  [-74, 74].forEach(dx => {
-    const bx = cx + dx;
-    const by = cy + 16;
-    const rGrad = ctx.createRadialGradient(bx, by, 4, bx, by, 32);
-    rGrad.addColorStop(0, 'rgba(255, 105, 145, 0.65)');
-    rGrad.addColorStop(1, 'rgba(255, 105, 145, 0)');
-    ctx.fillStyle = rGrad;
-    ctx.beginPath();
-    ctx.ellipse(bx, by, 32, 20, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.strokeStyle = '#ff4d79';
-    ctx.lineWidth = 2.6;
-    ctx.lineCap = 'round';
-    [-12, -4, 4, 12].forEach(sx => {
+    const spokes = Math.max(8, Math.floor(r / 10));
+    for (let s = 0; s < spokes; s++) {
+      const a = (s / spokes) * Math.PI * 2 + (r % 2) * 0.2;
       ctx.beginPath();
-      ctx.moveTo(bx + sx, by - 5);
-      ctx.lineTo(bx + sx - 5, by + 6);
+      ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      ctx.lineTo(cx + Math.cos(a) * (r + 26), cy + Math.sin(a) * (r + 26));
       ctx.stroke();
-    });
-  });
-
-  // 눈썹
-  ctx.strokeStyle = '#231917';
-  ctx.lineWidth = 5.2;
-  ctx.lineCap = 'round';
-  if (expression === 'attack' || charKey === 'rakko') {
-    ctx.beginPath();
-    ctx.moveTo(cx - 66, cy - 49);
-    ctx.lineTo(cx - 36, cy - 35);
-    ctx.moveTo(cx + 66, cy - 49);
-    ctx.lineTo(cx + 36, cy - 35);
-    ctx.stroke();
-  } else if (expression === 'cry') {
-    ctx.beginPath();
-    ctx.moveTo(cx - 66, cy - 35);
-    ctx.lineTo(cx - 36, cy - 49);
-    ctx.moveTo(cx + 66, cy - 35);
-    ctx.lineTo(cx + 36, cy - 49);
-    ctx.stroke();
-  } else {
-    ctx.beginPath();
-    ctx.arc(cx - 52, cy - 40, 15, Math.PI * 1.15, Math.PI * 1.85);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(cx + 52, cy - 40, 15, Math.PI * 1.15, Math.PI * 1.85);
-    ctx.stroke();
+    }
   }
 
-  // 눈 그리기 (normal, happy, blink, cry, star)
-  if (expression === 'happy') {
-    ctx.strokeStyle = '#231917';
-    ctx.lineWidth = 7;
+  // 외곽 파스텔 핑크 링
+  ctx.strokeStyle = '#fb7185';
+  ctx.lineWidth = 14;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 238, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+}
+
+function createWaterCanvasTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#0ea5e9';
+  ctx.fillRect(0, 0, 512, 512);
+
+  for (let i = 0; i < 65; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(125, 211, 252, 0.45)' : 'rgba(255, 255, 255, 0.35)';
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
     ctx.beginPath();
-    ctx.arc(cx - 52, cy - 8, 17, Math.PI * 1.1, Math.PI * 1.9);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(cx + 52, cy - 8, 17, Math.PI * 1.1, Math.PI * 1.9);
-    ctx.stroke();
-  } else if (expression === 'blink') {
-    ctx.strokeStyle = '#231917';
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(cx - 68, cy - 8);
-    ctx.lineTo(cx - 36, cy - 8);
-    ctx.moveTo(cx + 36, cy - 8);
-    ctx.lineTo(cx + 68, cy - 8);
-    ctx.stroke();
-  } else {
-    [-52, 52].forEach(offsetX => {
-      const ex = cx + offsetX;
-      const ey = cy - 10;
-      const r = charKey === 'momonga' ? 20 : 17.5;
+    ctx.ellipse(x, y, 28 + Math.random() * 30, 6 + Math.random() * 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
-      // 눈동자 본체
-      ctx.fillStyle = '#1f1614';
-      ctx.beginPath();
-      ctx.arc(ex, ey, r, 0, Math.PI * 2);
-      ctx.fill();
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(6, 1);
+  return tex;
+}
 
-      // 상단 큰 화이트 안광
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.ellipse(ex - 3.5, ey - 5.5, r * 0.44, r * 0.36, -0.2, 0, Math.PI * 2);
-      ctx.fill();
+// ==========================================================================
+// 3. 스마트 배경 투명화 & 원작 일러스트 3D 입체 스탠디 생성기
+//    (틈새 막기 모폴로지 Flood-Fill로 흰색 몸통은 보존하고 외부 흰 배경만 완벽 제거!)
+// ==========================================================================
+const cleanTextureCache = {};
 
-      // 하단 반짝이 안광
-      ctx.beginPath();
-      ctx.arc(ex + 4.5, ey + 6.5, r * 0.22, 0, Math.PI * 2);
-      ctx.fill();
+function loadCleanCharacterTexture(imageUrl, onReady) {
+  if (cleanTextureCache[imageUrl]) {
+    if (onReady) onReady(cleanTextureCache[imageUrl]);
+    return cleanTextureCache[imageUrl];
+  }
 
-      if (expression === 'cry') {
-        // 그렁그렁한 눈물
-        ctx.fillStyle = '#38bdf8';
-        ctx.beginPath();
-        ctx.arc(ex + (offsetX < 0 ? -11 : 11), ey + 16, 8.5, 0, Math.PI * 2);
-        ctx.fill();
+  // 로딩 전 임시 투명 텍스처 생성
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = 512;
+  tempCanvas.height = 512;
+  const texture = new THREE.CanvasTexture(tempCanvas);
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  cleanTextureCache[imageUrl] = texture;
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const size = 512;
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext('2d');
+
+    // 여백 16px을 두어 외곽선 테두리가 잘리지 않게 그림
+    const pad = 18;
+    const drawW = size - pad * 2;
+    const drawH = size - pad * 2;
+    ctx.drawImage(img, pad, pad, drawW, drawH);
+
+    const imgData = ctx.getImageData(0, 0, size, size);
+    const data = imgData.data;
+
+    // 1) 이미 투명 배경(WebP 알파)인지 확인: 모서리 (pad+2, pad+2) 픽셀 알파 체크
+    const cornerIdx = ((pad + 2) * size + (pad + 2)) * 4;
+    const hasNativeAlpha = data[cornerIdx + 3] < 50;
+
+    if (!hasNativeAlpha) {
+      // 2) JPEG 흰 배경 제거: 나가노 작가님 특유의 끊어진 외곽선 틈새(약 8~16px)로
+      //    배경 투명화가 캐릭터 흰 얼굴 안으로 새어 들어가는 것을 방지하기 위해
+      //    [어두운 외곽선 팽창(Dilation) -> 외부 BFS Flood-Fill -> 원래 외곽선까지 복원] 수행!
+      const N = size * size;
+      const isDarkLine = new Uint8Array(N);
+      for (let i = 0; i < N; i++) {
+        const r = data[i * 4];
+        const g = data[i * 4 + 1];
+        const b = data[i * 4 + 2];
+        const a = data[i * 4 + 3];
+        // 외곽선 또는 채색 영역 판정
+        if (a > 50 && (r < 238 || g < 238 || b < 238)) {
+          isDarkLine[i] = 1;
+        }
       }
-    });
-  }
 
-  // 코 작은 점
-  ctx.fillStyle = '#231917';
-  ctx.beginPath();
-  ctx.arc(cx, cy + 5, 3.2, 0, Math.PI * 2);
-  ctx.fill();
+      // 틈새 봉합용 팽창 반경 (12px: 귀/어깨 사이 끊어진 선을 완벽히 이어줌)
+      const sealRadius = 12;
+      const sealedBarrier = new Uint8Array(N);
+      const horizTemp = new Uint8Array(N);
 
-  // 입 (ω 모양 + 활짝 웃거나 외치는 입)
-  ctx.strokeStyle = '#231917';
-  ctx.lineWidth = 4.8;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+      // 수평 1D 팽창
+      for (let y = 0; y < size; y++) {
+        const rowOff = y * size;
+        let count = 0;
+        for (let x = 0; x <= sealRadius; x++) count += isDarkLine[rowOff + x];
+        for (let x = 0; x < size; x++) {
+          if (count > 0) horizTemp[rowOff + x] = 1;
+          const removeX = x - sealRadius;
+          const addX = x + sealRadius + 1;
+          if (removeX >= 0) count -= isDarkLine[rowOff + removeX];
+          if (addX < size) count += isDarkLine[rowOff + addX];
+        }
+      }
+      // 수직 1D 팽창
+      for (let x = 0; x < size; x++) {
+        let count = 0;
+        for (let y = 0; y <= sealRadius; y++) count += horizTemp[y * size + x];
+        for (let y = 0; y < size; y++) {
+          if (count > 0) sealedBarrier[y * size + x] = 1;
+          const removeY = y - sealRadius;
+          const addY = y + sealRadius + 1;
+          if (removeY >= 0) count -= horizTemp[removeY * size + x];
+          if (addY < size) count += horizTemp[addY * size + x];
+        }
+      }
 
-  if (expression === 'happy' || expression === 'attack') {
-    ctx.fillStyle = '#ff6b8b';
-    ctx.beginPath();
-    ctx.arc(cx, cy + 21, 16, 0, Math.PI);
-    ctx.fill();
-    ctx.stroke();
+      // 봉합된 장벽 바깥(테두리 (0,0))에서 BFS Flood-Fill로 진짜 외부 배경 탐색
+      const isExteriorCore = new Uint8Array(N);
+      const queue = new Int32Array(N);
+      let head = 0;
+      let tail = 0;
 
-    // 입 안 혀 하이라이트
-    ctx.fillStyle = '#ffb3c6';
-    ctx.beginPath();
-    ctx.arc(cx, cy + 27, 9, 0, Math.PI);
-    ctx.fill();
-  }
+      const pushSeed = ( idx ) => {
+        if (!sealedBarrier[idx] && !isExteriorCore[idx]) {
+          isExteriorCore[idx] = 1;
+          queue[tail++] = idx;
+        }
+      };
 
-  ctx.beginPath();
-  ctx.arc(cx - 10, cy + 15, 10, 0.12 * Math.PI, 0.95 * Math.PI);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx + 10, cy + 15, 10, 0.05 * Math.PI, 0.88 * Math.PI);
-  ctx.stroke();
+      for (let x = 0; x < size; x++) {
+        pushSeed(x);
+        pushSeed((size - 1) * size + x);
+      }
+      for (let y = 0; y < size; y++) {
+        pushSeed(y * size);
+        pushSeed(y * size + (size - 1));
+      }
 
-  // 하치와레 귀여운 외쪽 송곳니
-  if (charKey === 'hachiware') {
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.moveTo(cx + 11, cy + 22);
-    ctx.lineTo(cx + 16, cy + 31);
-    ctx.lineTo(cx + 21, cy + 21);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-  }
+      while (head < tail) {
+        const cur = queue[head++];
+        const cx = cur % size;
+        const cy = (cur / size) | 0;
+        if (cx > 0) pushSeed(cur - 1);
+        if (cx < size - 1) pushSeed(cur + 1);
+        if (cy > 0) pushSeed(cur - size);
+        if (cy < size - 1) pushSeed(cur + size);
+      }
 
-  // 쿠리만쥬 '하아ー' 주름 디테일
-  if (charKey === 'kurimanju' && expression === 'happy') {
-    ctx.strokeStyle = '#7c3f10';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(cx - 24, cy + 32);
-    ctx.lineTo(cx + 24, cy + 32);
-    ctx.stroke();
-  }
+      // 이제 외부 코어 영역을 다시 sealRadius만큼 확장하되, 실제 어두운 외곽선(isDarkLine)에서 멈춤!
+      const isExteriorFinal = new Uint8Array(isExteriorCore);
+      let curWave = [];
+      for (let i = 0; i < N; i++) {
+        if (isExteriorCore[i]) {
+          const cx = i % size;
+          const cy = (i / size) | 0;
+          if (
+            (cx > 0 && !isExteriorCore[i - 1]) ||
+            (cx < size - 1 && !isExteriorCore[i + 1]) ||
+            (cy > 0 && !isExteriorCore[i - size]) ||
+            (cy < size - 1 && !isExteriorCore[i + size])
+          ) {
+            curWave.push(i);
+          }
+        }
+      }
 
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.anisotropy = 4;
-  texture.needsUpdate = true;
+      for (let step = 0; step < sealRadius + 2; step++) {
+        const nextWave = [];
+        for (let k = 0; k < curWave.length; k++) {
+          const idx = curWave[k];
+          const cx = idx % size;
+          const cy = (idx / size) | 0;
+          const neighbors = [];
+          if (cx > 0) neighbors.push(idx - 1);
+          if (cx < size - 1) neighbors.push(idx + 1);
+          if (cy > 0) neighbors.push(idx - size);
+          if (cy < size - 1) neighbors.push(idx + size);
+
+          for (let n = 0; n < neighbors.length; n++) {
+            const nb = neighbors[n];
+            if (!isExteriorFinal[nb] && !isDarkLine[nb]) {
+              isExteriorFinal[nb] = 1;
+              nextWave.push(nb);
+            }
+          }
+        }
+        curWave = nextWave;
+        if (curWave.length === 0) break;
+      }
+
+      // 외부 배경 픽셀 알파를 0으로 설정 & 외곽 경계 부드럽게 안티앨리어싱
+      for (let i = 0; i < N; i++) {
+        if (isExteriorFinal[i]) {
+          data[i * 4 + 3] = 0;
+        }
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+
+    // 최종 캔버스에 깔끔한 화이트 피규어 림(Sticker Rim) 효과를 뒤에 살짝 깔아 입체감 극대화
+    const finalCtx = tempCanvas.getContext('2d');
+    finalCtx.clearRect(0, 0, size, size);
+    finalCtx.save();
+    finalCtx.shadowColor = 'rgba(255, 255, 255, 0.95)';
+    finalCtx.shadowBlur = 4;
+    finalCtx.drawImage(c, 0, 0);
+    finalCtx.restore();
+    finalCtx.drawImage(c, 0, 0);
+
+    texture.needsUpdate = true;
+    if (onReady) onReady(texture);
+  };
+  img.src = imageUrl;
   return texture;
 }
 
 // ==========================================================================
-// 2. 고퀄리티 3D 입체 봉제인형 피규어 빌더 (툰 쉐이딩 + 외곽선 + 코스튬 슬롯)
+// 4. 사스마타 & 전용 무기 3D 메쉬 빌더
 // ==========================================================================
-function createChiikawaPlushie(charKey = 'chiikawa', hatType = 'none') {
+function createWeapon3D(weaponType) {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+
+  if (weaponType === 'rakko_sword') {
+    const hiltMat = new THREE.MeshToonMaterial({ color: 0x1e293b, gradientMap });
+    const goldMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+    const bladeMat = new THREE.MeshToonMaterial({ color: 0xf8fafc, gradientMap });
+
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.0, 10), hiltMat);
+    addCartoonOutline(handle, 0.05);
+    group.add(handle);
+
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.16, 0.35), goldMat);
+    guard.position.y = 0.55;
+    addCartoonOutline(guard, 0.05);
+    group.add(guard);
+
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.24, 2.7, 0.08), bladeMat);
+    blade.position.y = 1.95;
+    blade.castShadow = true;
+    addCartoonOutline(blade, 0.04);
+    group.add(blade);
+    return group;
+  }
+
+  if (weaponType === 'wand_yellow') {
+    const rodMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+    const tipMat = new THREE.MeshToonMaterial({ color: 0xf43f5e, gradientMap });
+
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.4, 12), rodMat);
+    rod.position.y = 1.0;
+    addCartoonOutline(rod, 0.04);
+    group.add(rod);
+
+    const topBall = new THREE.Mesh(new THREE.SphereGeometry(0.34, 14, 14), tipMat);
+    topBall.position.y = 2.75;
+    addCartoonOutline(topBall, 0.05);
+    group.add(topBall);
+
+    const botBall = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 12), tipMat);
+    botBall.position.y = -0.7;
+    addCartoonOutline(botBall, 0.05);
+    group.add(botBall);
+    return group;
+  }
+
+  // 기본: 사스마타 (Sasumata)
+  let colorHex = 0xff85a2;
+  if (weaponType === 'sasumata_blue') colorHex = 0x38bdf8;
+  if (weaponType === 'sasumata_purple') colorHex = 0xc084fc;
+  if (weaponType === 'sasumata_amber') colorHex = 0xf59e0b;
+
+  const mat = new THREE.MeshToonMaterial({ color: colorHex, gradientMap });
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.2, 12), mat);
+  pole.position.y = 1.0;
+  pole.castShadow = true;
+  addCartoonOutline(pole, 0.04);
+  group.add(pole);
+
+  const forkGeo = new THREE.TorusGeometry(0.48, 0.1, 10, 22, Math.PI);
+  const fork = new THREE.Mesh(forkGeo, mat);
+  fork.position.y = 2.65;
+  fork.rotation.z = Math.PI;
+  fork.castShadow = true;
+  addCartoonOutline(fork, 0.04);
+  group.add(fork);
+
+  return group;
+}
+
+// ==========================================================================
+// 5. 3D 머리 코스튬 액세서리 생성기 (왕관, 벚꽃 화관, 왕리본, 천사링)
+// ==========================================================================
+function createHatAccessory3D(hatType) {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+
+  if (hatType === 'crown') {
+    const goldMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+    const gemMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.55, 0.42, 16), goldMat);
+    addCartoonOutline(base, 0.05);
+    group.add(base);
+
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.42, 8), goldMat);
+      spike.position.set(Math.cos(a) * 0.5, 0.36, Math.sin(a) * 0.5);
+      group.add(spike);
+    }
+
+    const ruby = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), gemMat);
+    ruby.position.set(0, 0.05, 0.58);
+    group.add(ruby);
+    return group;
+  }
+
+  if (hatType === 'flower') {
+    const vineMat = new THREE.MeshToonMaterial({ color: 0x4ade80, gradientMap });
+    const torus = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.09, 10, 24), vineMat);
+    torus.rotation.x = Math.PI / 2;
+    group.add(torus);
+
+    const petalColors = [0xff85a2, 0xfef08a, 0xc084fc, 0x60a5fa, 0xfb7185, 0xffffff];
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const fMat = new THREE.MeshToonMaterial({ color: petalColors[i], gradientMap });
+      const flower = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), fMat);
+      flower.position.set(Math.cos(a) * 0.85, 0.08, Math.sin(a) * 0.85);
+      addCartoonOutline(flower, 0.05);
+      group.add(flower);
+    }
+    return group;
+  }
+
+  if (hatType === 'ribbon') {
+    const ribMat = new THREE.MeshToonMaterial({ color: 0xff4d6d, gradientMap });
+    const center = new THREE.Mesh(new THREE.SphereGeometry(0.24, 12, 12), ribMat);
+    addCartoonOutline(center, 0.05);
+    group.add(center);
+
+    const leftWing = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.68, 12), ribMat);
+    leftWing.rotation.z = -Math.PI / 2;
+    leftWing.position.x = -0.38;
+    addCartoonOutline(leftWing, 0.05);
+    group.add(leftWing);
+
+    const rightWing = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.68, 12), ribMat);
+    rightWing.rotation.z = Math.PI / 2;
+    rightWing.position.x = 0.38;
+    addCartoonOutline(rightWing, 0.05);
+    group.add(rightWing);
+    return group;
+  }
+
+  if (hatType === 'halo') {
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.09, 12, 28), haloMat);
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 0.55;
+    group.add(ring);
+    return group;
+  }
+
+  return null;
+}
+
+// ==========================================================================
+// 6. 진짜 치이카와 캐릭터 3D 하이브리드 모델 빌더 (createChiikawaPlushie)
+//    - 기본(Default): 원작 고해상도 일러스트를 다층 3D 볼륨 레이어로 적층한
+//      3D 디오라마 스탠디 리그 (진짜 치이카와 외형 100% 일치!)
+//    - 호환: 팔다리/무기 피벗, 3D 모자 장착, 피격 플래시, 1.5등신 찹쌀떡 3D 메쉬 전환 지원
+// ==========================================================================
+function createChiikawaPlushie(charKey = 'chiikawa') {
   const cfg = CHAR_CONFIGS[charKey] || CHAR_CONFIGS.chiikawa;
   const root = new THREE.Group();
   root.userData.charKey = charKey;
 
-  const skinMat = createToonMat(cfg.bodyColor);
-  const faceTexture = createPlushieFaceTexture(charKey, 'normal');
-  const headMat = new THREE.MeshToonMaterial({
-    map: faceTexture,
-    gradientMap: getToonGradientMap()
-  });
-
-  // 바닥 동그란 그림자 원판 (Drop Shadow Blob)
-  const shadowGeo = new THREE.CircleGeometry(1.15, 24);
+  // 바닥 원형 그림자 디스크
+  const shadowGeo = new THREE.CircleGeometry(1.75, 28);
   shadowGeo.rotateX(-Math.PI / 2);
   const shadowMat = new THREE.MeshBasicMaterial({
-    color: 0x000000,
+    color: 0x0f172a,
     transparent: true,
-    opacity: 0.22
+    opacity: 0.28,
+    depthWrite: false
   });
-  const blobShadow = new THREE.Mesh(shadowGeo, shadowMat);
-  blobShadow.position.y = 0.03;
-  root.add(blobShadow);
+  const shadowDisc = new THREE.Mesh(shadowGeo, shadowMat);
+  shadowDisc.position.y = 0.04;
+  root.add(shadowDisc);
 
-  // 1) 통통한 3D 몸통 + 카툰 외곽선
-  const bodyGeo = new THREE.SphereGeometry(1.14, 32, 28);
-  bodyGeo.scale(1.0, 1.08, 0.92);
-  const bodyMesh = new THREE.Mesh(bodyGeo, skinMat);
-  bodyMesh.position.y = 1.25;
-  bodyMesh.castShadow = true;
-  bodyMesh.receiveShadow = true;
-  addCartoonOutline(bodyMesh, 0.042);
-  root.add(bodyMesh);
+  // ------------------------------------------------------------------------
+  // A. 원작 일러스트 3D 입체 볼륨 스탠디 그룹 (10겹 3D 두께 적층으로 입체 피규어감 구현)
+  // ------------------------------------------------------------------------
+  const standeeGroup = new THREE.Group();
+  const charTex = loadCleanCharacterTexture(cfg.portrait);
 
-  // 치이카와 핑크 곰돌이 포쉐트 가방 (입체 귀 & 코 디테일 포함)
-  if (charKey === 'chiikawa') {
-    const pinkMat = createToonMat(0xff85a2);
-    const strap = new THREE.Mesh(new THREE.TorusGeometry(1.09, 0.055, 12, 36), pinkMat);
-    strap.position.set(0, 1.3, 0.12);
-    strap.rotation.set(0.55, 0.25, 0);
-    root.add(strap);
+  const layerCount = 9;
+  const totalThickness = 0.38;
+  const planeW = 4.6;
+  const planeH = 4.8;
+  const planeGeo = new THREE.PlaneGeometry(planeW, planeH);
 
-    const bagGroup = new THREE.Group();
-    bagGroup.position.set(0.84, 0.94, 0.68);
-    bagGroup.rotation.y = 0.5;
-    const bagBody = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 18), pinkMat);
-    bagBody.scale.set(1.1, 0.95, 0.7);
-    addCartoonOutline(bagBody, 0.06);
-    bagGroup.add(bagBody);
-
-    // 포쉐트 곰돌이 귀 2개
-    [-0.22, 0.22].forEach(bx => {
-      const bEar = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 12), pinkMat);
-      bEar.position.set(bx, 0.26, 0);
-      bagGroup.add(bEar);
+  const standeeMaterials = [];
+  for (let i = 0; i < layerCount; i++) {
+    const isFrontOrBack = i === 0 || i === layerCount - 1;
+    const mat = new THREE.MeshBasicMaterial({
+      map: charTex,
+      transparent: true,
+      alphaTest: 0.15,
+      side: THREE.DoubleSide,
+      color: isFrontOrBack ? 0xffffff : 0xf1f5f9
     });
-    root.add(bagGroup);
+    standeeMaterials.push(mat);
+
+    const slice = new THREE.Mesh(planeGeo, mat);
+    slice.position.y = 2.4;
+    slice.position.z = ((i / (layerCount - 1)) - 0.5) * totalThickness;
+    slice.castShadow = i === Math.floor(layerCount / 2);
+    standeeGroup.add(slice);
   }
+  root.add(standeeGroup);
 
-  // 랏코 사부의 영웅 망토 & 등 뒤 칼집
-  if (charKey === 'rakko') {
-    const capeMat = createToonMat(0x4a3525, { side: THREE.DoubleSide });
-    const cape = new THREE.Mesh(new THREE.ConeGeometry(1.38, 1.95, 24, 1, true), capeMat);
-    cape.position.set(0, 1.35, -0.32);
-    cape.rotation.x = 0.24;
-    root.add(cape);
-
-    const clasp = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 12), createToonMat(0xfacc15));
-    clasp.position.set(0, 1.95, 0.78);
-    root.add(clasp);
-  }
-
-  // 모몽가 복슬복슬 구름 꼬리 & 볼털
-  if (charKey === 'momonga') {
-    const tailGroup = new THREE.Group();
-    tailGroup.position.set(0, 1.15, -1.05);
-    const tailMat = createToonMat(0xa3a8c2);
-
-    const mainPuff = new THREE.Mesh(new THREE.SphereGeometry(0.92, 24, 24), tailMat);
-    mainPuff.scale.set(0.9, 1.35, 1.15);
-    addCartoonOutline(mainPuff, 0.045);
-    tailGroup.add(mainPuff);
-
-    const topPuff = new THREE.Mesh(new THREE.SphereGeometry(0.62, 18, 18), tailMat);
-    topPuff.position.set(0, 0.85, -0.25);
-    tailGroup.add(topPuff);
-
-    root.add(tailGroup);
-    root.userData.tailMesh = tailGroup;
-  } else {
-    const miniTail = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 14), skinMat);
-    miniTail.position.set(0, 0.85, -1.02);
-    addCartoonOutline(miniTail, 0.06);
-    root.add(miniTail);
-  }
-
-  // 2) 커다랗고 둥근 3D 헤드 + 카툰 외곽선
-  const headGroup = new THREE.Group();
-  headGroup.position.y = 2.86;
-  root.add(headGroup);
-
-  const headGeo = new THREE.SphereGeometry(1.42, 36, 32);
-  headGeo.scale(1.06, 0.98, 1.0);
-  const headMesh = new THREE.Mesh(headGeo, headMat);
-  headMesh.rotation.y = -Math.PI / 2;
-  headMesh.castShadow = true;
-  addCartoonOutline(headMesh, 0.038);
-  headGroup.add(headMesh);
-
-  // 모몽가 양볼 복슬 털뭉치
-  if (charKey === 'momonga') {
-    const cheekFurMat = createToonMat(0xffffff);
-    [-1.38, 1.38].forEach(cx => {
-      const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), cheekFurMat);
-      tuft.scale.set(1.1, 0.75, 0.8);
-      tuft.position.set(cx, -0.18, 0.15);
-      addCartoonOutline(tuft, 0.05);
-      headGroup.add(tuft);
-    });
-  }
-
-  // 3) 캐릭터별 고디테일 3D 입체 귀
-  const earsGroup = new THREE.Group();
-  headGroup.add(earsGroup);
-
-  if (cfg.earType === 'rabbit') {
-    const earGeo = new THREE.CylinderGeometry(0.28, 0.32, 1.65, 20);
-    const innerMat = createToonMat(0xffb3c6);
-    [-0.58, 0.58].forEach((ex, i) => {
-      const earPivot = new THREE.Group();
-      earPivot.position.set(ex, 1.22, 0);
-      earPivot.rotation.z = i === 0 ? 0.13 : -0.13;
-
-      const ear = new THREE.Mesh(earGeo, skinMat);
-      ear.position.y = 0.65;
-      ear.castShadow = true;
-      addCartoonOutline(ear, 0.05);
-      earPivot.add(ear);
-
-      const topSphere = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 16), skinMat);
-      topSphere.position.y = 1.47;
-      addCartoonOutline(topSphere, 0.05);
-      earPivot.add(topSphere);
-
-      const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 1.2, 12), innerMat);
-      inner.position.set(0, 0.65, 0.19);
-      earPivot.add(inner);
-
-      earsGroup.add(earPivot);
-    });
-  } else if (cfg.earType === 'cat') {
-    const blueMat = createToonMat(0x5ba4cf);
-    const pinkInner = createToonMat(0xffb3c6);
-    const earGeo = new THREE.ConeGeometry(0.49, 0.98, 20);
-    [-0.86, 0.86].forEach((ex, i) => {
-      const earWrap = new THREE.Group();
-      earWrap.position.set(ex, 1.32, 0);
-      earWrap.rotation.z = i === 0 ? 0.36 : -0.36;
-
-      const ear = new THREE.Mesh(earGeo, blueMat);
-      ear.castShadow = true;
-      addCartoonOutline(ear, 0.05);
-      earWrap.add(ear);
-
-      const inner = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.55, 12), pinkInner);
-      inner.position.set(0, -0.05, 0.22);
-      earWrap.add(inner);
-
-      earsGroup.add(earWrap);
-    });
-  } else if (cfg.earType === 'squirrel') {
-    const sqMat = createToonMat(0xa3a8c2);
-    const innerMat = createToonMat(0xffccd5);
-    [-0.98, 0.98].forEach((ex, i) => {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.46, 20, 20), sqMat);
-      ear.scale.set(0.9, 1.15, 0.6);
-      ear.position.set(ex, 1.18, -0.05);
-      ear.rotation.z = i === 0 ? 0.38 : -0.38;
-      addCartoonOutline(ear, 0.05);
-      earsGroup.add(ear);
-
-      const inner = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 14), innerMat);
-      inner.position.set(ex * 0.96, 1.15, 0.18);
-      earsGroup.add(inner);
-    });
-  } else {
-    const earColorMat = charKey === 'kurimanju' ? createToonMat(0x7c3f10) : skinMat;
-    const innerMat = createToonMat(0xffccd5);
-    [-0.96, 0.96].forEach(ex => {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.43, 20, 20), earColorMat);
-      ear.scale.set(1, 1, 0.65);
-      ear.position.set(ex, 1.18, 0);
-      addCartoonOutline(ear, 0.055);
-      earsGroup.add(ear);
-
-      const inner = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 14), innerMat);
-      inner.scale.set(1, 1, 0.4);
-      inner.position.set(ex, 1.16, 0.22);
-      earsGroup.add(inner);
-    });
-  }
-
-  // 4) 머리 위 장착 코스튬 액세서리 슬롯 (모자/왕관/화관/리본)
-  const hatSlot = new THREE.Group();
-  hatSlot.position.set(0, 1.42, 0.1);
-  headGroup.add(hatSlot);
-  if (hatType && hatType !== 'none') {
-    hatSlot.add(createHatAccessory3D(hatType));
-  }
-
-  // 5) 귀여운 3D 양팔 & 무기 장착
+  // ------------------------------------------------------------------------
+  // B. 3D 무기 & 팔다리 피벗 (3D 사스마타/명검을 옆에 들고 휘두름)
+  // ------------------------------------------------------------------------
+  const leftLegPivot = new THREE.Group();
+  const rightLegPivot = new THREE.Group();
   const leftArmPivot = new THREE.Group();
-  leftArmPivot.position.set(-1.14, 1.65, 0.15);
-  const leftArm = new THREE.Mesh(new THREE.SphereGeometry(0.32, 18, 18), skinMat);
-  leftArm.scale.set(0.85, 1.45, 0.85);
-  leftArm.position.y = -0.32;
-  addCartoonOutline(leftArm, 0.06);
-  leftArmPivot.add(leftArm);
-  root.add(leftArmPivot);
-
   const rightArmPivot = new THREE.Group();
-  rightArmPivot.position.set(1.14, 1.65, 0.15);
-  const rightArm = new THREE.Mesh(new THREE.SphereGeometry(0.32, 18, 18), skinMat);
-  rightArm.scale.set(0.85, 1.45, 0.85);
-  rightArm.position.y = -0.32;
-  addCartoonOutline(rightArm, 0.06);
-  rightArmPivot.add(rightArm);
-  root.add(rightArmPivot);
+  const earsGroup = new THREE.Group();
 
-  const weaponMesh = createWeaponMesh(cfg.weaponType);
-  weaponMesh.position.set(0.1, -0.45, 0.55);
-  weaponMesh.rotation.x = Math.PI / 3;
+  rightArmPivot.position.set(1.65, 1.85, 0.35);
+  const weaponMesh = createWeapon3D(cfg.weaponType);
+  weaponMesh.position.set(0.2, -0.3, 0.2);
+  weaponMesh.rotation.x = Math.PI / 7;
+  weaponMesh.rotation.z = -0.18;
   rightArmPivot.add(weaponMesh);
 
-  // 6) 짧은 3D 다리
-  const leftLegPivot = new THREE.Group();
-  leftLegPivot.position.set(-0.48, 0.45, 0);
-  const leftLeg = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 18), skinMat);
-  leftLeg.scale.set(0.9, 1.3, 1.0);
-  leftLeg.position.y = -0.22;
-  addCartoonOutline(leftLeg, 0.06);
-  leftLegPivot.add(leftLeg);
   root.add(leftLegPivot);
-
-  const rightLegPivot = new THREE.Group();
-  rightLegPivot.position.set(0.48, 0.45, 0);
-  const rightLeg = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 18), skinMat);
-  rightLeg.scale.set(0.9, 1.3, 1.0);
-  rightLeg.position.y = -0.22;
-  addCartoonOutline(rightLeg, 0.06);
-  rightLegPivot.add(rightLeg);
   root.add(rightLegPivot);
+  root.add(leftArmPivot);
+  root.add(rightArmPivot);
+  root.add(earsGroup);
+
+  // 3D 모자 장착 슬롯 (정수리 위)
+  const hatSlot = new THREE.Group();
+  hatSlot.position.set(0, 4.45, 0.1);
+  root.add(hatSlot);
 
   root.userData.parts = {
-    bodyMesh,
-    headGroup,
-    headMesh,
-    earsGroup,
-    hatSlot,
-    leftArmPivot,
-    rightArmPivot,
+    standeeGroup,
+    standeeMaterials,
     leftLegPivot,
     rightLegPivot,
+    leftArmPivot,
+    rightArmPivot,
+    earsGroup,
+    hatSlot,
     weaponMesh
   };
 
-  // 표정 캐시 & 변경 함수
-  root.userData.texCache = { normal: faceTexture };
-  root.userData.currentExpr = 'normal';
-  root.userData.setExpression = (expr) => {
-    if (root.userData.currentExpr === expr) return;
-    root.userData.currentExpr = expr;
-    if (!root.userData.texCache[expr]) {
-      root.userData.texCache[expr] = createPlushieFaceTexture(charKey, expr);
+  // 표정/상태 변화 시 컬러/바운스 연출
+  root.userData.setExpression = expr => {
+    if (expr === 'attack') {
+      standeeGroup.scale.set(1.1, 0.92, 1.1);
+    } else if (expr === 'happy') {
+      standeeGroup.scale.set(1.12, 1.12, 1.12);
+    } else {
+      standeeGroup.scale.set(1, 1, 1);
     }
-    headMesh.material.map = root.userData.texCache[expr];
-    headMesh.material.needsUpdate = true;
   };
 
-  // 코스튬 변경 함수
-  root.userData.equipHat = (newHatType) => {
+  // 3D 모자 장착 메서드
+  root.userData.equipHat = hatType => {
     while (hatSlot.children.length > 0) {
       hatSlot.remove(hatSlot.children[0]);
     }
-    if (newHatType && newHatType !== 'none') {
-      hatSlot.add(createHatAccessory3D(newHatType));
+    if (!hatType || hatType === 'none') return;
+    const hatMesh = createHatAccessory3D(hatType);
+    if (hatMesh) {
+      hatSlot.add(hatMesh);
     }
   };
 
@@ -699,335 +721,283 @@ function createChiikawaPlushie(charKey = 'chiikawa', hatType = 'none') {
 }
 
 // ==========================================================================
-// 2-1. 3D 머리 장식 액세서리 빌더 (황금 왕관, 벚꽃 화관, 파자마 모자, 리본)
+// 7. 진짜 몬스터 일러스트 기반 3D 입체 몬스터 모델 빌더 (createMonster3D)
 // ==========================================================================
-function createHatAccessory3D(hatType) {
-  const group = new THREE.Group();
+const MONSTER_IMAGE_MAP = {
+  bug: 'assets/monster_bug.png',
+  goblin: 'assets/monster_goblin.png',
+  chimera: 'assets/monster_chimera.png',
+  midboss: 'assets/midboss.png',
+  iron_chimera: 'assets/monster_iron_chimera.png',
+  anoko: 'assets/anoko.png'
+};
 
-  if (hatType === 'crown') {
-    const goldMat = createToonMat(0xfacc15);
-    const gemMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.52, 0.42, 16), goldMat);
-    base.position.y = 0.2;
-    addCartoonOutline(base, 0.06);
-    group.add(base);
-
-    for (let i = 0; i < 5; i++) {
-      const a = (i / 5) * Math.PI * 2;
-      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.38, 8), goldMat);
-      spike.position.set(Math.cos(a) * 0.48, 0.52, Math.sin(a) * 0.48);
-      group.add(spike);
-
-      const gem = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), gemMat);
-      gem.position.set(Math.cos(a) * 0.56, 0.22, Math.sin(a) * 0.56);
-      group.add(gem);
-    }
-  } else if (hatType === 'flower') {
-    // 벚꽃 화관
-    const vineMat = createToonMat(0x4ade80);
-    const torus = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.09, 10, 28), vineMat);
-    torus.rotation.x = Math.PI / 2;
-    torus.position.y = -0.15;
-    group.add(torus);
-
-    const colors = [0xff85a2, 0xfef08a, 0x38bdf8, 0xf472b6, 0xffffff];
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2;
-      const fl = new THREE.Mesh(
-        new THREE.SphereGeometry(0.19, 10, 10),
-        createToonMat(colors[i % colors.length])
-      );
-      fl.position.set(Math.cos(a) * 0.85, -0.12, Math.sin(a) * 0.85);
-      addCartoonOutline(fl, 0.07);
-      group.add(fl);
-    }
-  } else if (hatType === 'ribbon') {
-    // 왕리본
-    const ribMat = createToonMat(0xff4d6d);
-    const center = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 12), ribMat);
-    center.position.set(0, 0.15, 0.25);
-    group.add(center);
-
-    [-0.38, 0.38].forEach((rx, i) => {
-      const wing = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.55, 12), ribMat);
-      wing.position.set(rx, 0.18, 0.25);
-      wing.rotation.z = i === 0 ? -Math.PI / 2.2 : Math.PI / 2.2;
-      addCartoonOutline(wing, 0.06);
-      group.add(wing);
-    });
-  } else if (hatType === 'halo') {
-    // 천사 별빛 링
-    const haloMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.08, 12, 32), haloMat);
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = 0.65;
-    group.add(ring);
-  }
-
-  return group;
-}
-
-// ==========================================================================
-// 3. 3D 무기 메쉬 생성기 (사스마타, 우사기 토벌봉, 랏코 대검, 쿠리만쥬 캔)
-// ==========================================================================
-function createWeaponMesh(weaponType) {
-  const group = new THREE.Group();
-
-  if (weaponType === 'sasumata_pink' || weaponType === 'sasumata_blue') {
-    const color = weaponType === 'sasumata_pink' ? 0xff758f : 0x38bdf8;
-    const mat = createToonMat(color);
-
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 2.75, 14), mat);
-    pole.position.y = 0.6;
-    addCartoonOutline(pole, 0.08);
-    group.add(pole);
-
-    const fork = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.095, 12, 24, Math.PI), mat);
-    fork.position.y = 1.98;
-    fork.rotation.z = Math.PI;
-    addCartoonOutline(fork, 0.07);
-    group.add(fork);
-  } else if (weaponType === 'staff_yellow') {
-    const yellowMat = createToonMat(0xfacc15);
-    const darkMat = createToonMat(0x334155);
-    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 2.65, 14), yellowMat);
-    pole.position.y = 0.6;
-    addCartoonOutline(pole, 0.07);
-    group.add(pole);
-
-    const tip1 = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.38, 14), darkMat);
-    tip1.position.y = 1.92;
-    group.add(tip1);
-  } else if (weaponType === 'greatsword') {
-    const bladeMat = createToonMat(0xe2e8f0);
-    const hiltMat = createToonMat(0xf59e0b);
-
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.3, 2.5, 0.09), bladeMat);
-    blade.position.y = 1.15;
-    addCartoonOutline(blade, 0.06);
-    group.add(blade);
-
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.16, 0.22), hiltMat);
-    guard.position.y = -0.05;
-    group.add(guard);
-  } else if (weaponType === 'drink_can') {
-    const canMat = createToonMat(0xf59e0b);
-    const can = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.62, 16), canMat);
-    can.position.y = 0.2;
-    addCartoonOutline(can, 0.06);
-    group.add(can);
-  }
-
-  return group;
-}
-
-// ==========================================================================
-// 4. 고디테일 3D 몬스터 빌더 (초록 딱정벌레, 날개 달린 키메라, 거대 아노코)
-// ==========================================================================
 function createMonster3D(type = 'chimera') {
   const group = new THREE.Group();
+  const imgUrl = MONSTER_IMAGE_MAP[type] || MONSTER_IMAGE_MAP.chimera;
+  const tex = loadCleanCharacterTexture(imgUrl);
 
+  let sizeW = 5.4;
+  let sizeH = 5.4;
   if (type === 'bug') {
-    const shellMat = createToonMat(0x10b981);
-    const bellyMat = createToonMat(0xa7f3d0);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
-
-    const body = new THREE.Mesh(new THREE.SphereGeometry(1.15, 24, 20), shellMat);
-    body.scale.set(1.1, 0.88, 1.32);
-    body.position.y = 0.95;
-    body.castShadow = true;
-    addCartoonOutline(body, 0.045);
-    group.add(body);
-
-    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.24, 1.05, 12), shellMat);
-    horn.position.set(0, 1.55, 1.05);
-    horn.rotation.x = Math.PI / 3.5;
-    addCartoonOutline(horn, 0.06);
-    group.add(horn);
-
-    [-0.42, 0.42].forEach(ex => {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), eyeMat);
-      eye.position.set(ex, 1.2, 1.38);
-      group.add(eye);
-    });
+    sizeW = 4.0;
+    sizeH = 4.0;
+  } else if (type === 'goblin') {
+    sizeW = 4.8;
+    sizeH = 4.8;
+  } else if (type === 'iron_chimera' || type === 'midboss') {
+    sizeW = 6.2;
+    sizeH = 6.2;
   } else if (type === 'anoko') {
-    const whiteMat = createToonMat(0xfff1f2);
-    const hornMat = createToonMat(0xfacc15);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xe11d48 });
+    sizeW = 8.6;
+    sizeH = 8.6;
+  }
 
-    // 거대 몸통 + 헤드
-    const body = new THREE.Mesh(new THREE.SphereGeometry(3.3, 32, 28), whiteMat);
-    body.scale.set(1.12, 1.22, 1.02);
-    body.position.y = 3.3;
-    body.castShadow = true;
-    addCartoonOutline(body, 0.035);
-    group.add(body);
+  // 바닥 위협 그림자 & 붉은 오라 링
+  const shadowGeo = new THREE.CircleGeometry(sizeW * 0.36, 28);
+  shadowGeo.rotateX(-Math.PI / 2);
+  const shadowMat = new THREE.MeshBasicMaterial({
+    color: type === 'anoko' ? 0x991b1b : 0x0f172a,
+    transparent: true,
+    opacity: type === 'anoko' ? 0.45 : 0.28,
+    depthWrite: false
+  });
+  const shadow = new THREE.Mesh(shadowGeo, shadowMat);
+  shadow.position.y = 0.05;
+  group.add(shadow);
 
-    // 거대한 황금 외뿔
-    const horn = new THREE.Mesh(new THREE.ConeGeometry(0.58, 2.4, 18), hornMat);
-    horn.position.set(0, 7.1, 0.85);
-    horn.rotation.x = 0.22;
-    addCartoonOutline(horn, 0.05);
-    group.add(horn);
+  // 다층 3D 입체 몬스터 스탠디
+  const bodyWrap = new THREE.Group();
+  const layers = 7;
+  const thickness = type === 'anoko' ? 0.55 : 0.36;
+  const planeGeo = new THREE.PlaneGeometry(sizeW, sizeH);
 
-    // 귀 2개
-    [-2.4, 2.4].forEach(ex => {
-      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.95, 18, 18), whiteMat);
-      ear.position.set(ex, 6.0, 0);
-      addCartoonOutline(ear, 0.045);
-      group.add(ear);
+  const mats = [];
+  for (let i = 0; i < layers; i++) {
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      alphaTest: 0.15,
+      side: THREE.DoubleSide
     });
+    mats.push(mat);
+    const mesh = new THREE.Mesh(planeGeo, mat);
+    mesh.position.y = sizeH * 0.48;
+    mesh.position.z = ((i / (layers - 1)) - 0.5) * thickness;
+    mesh.castShadow = i === Math.floor(layers / 2);
+    bodyWrap.add(mesh);
+  }
 
-    // 강렬한 붉은 안광 눈
-    [-1.15, 1.15].forEach(ex => {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), eyeMat);
-      eye.position.set(ex, 4.4, 3.0);
-      group.add(eye);
-    });
-  } else {
-    // 붉은 날개 키메라
-    const redMat = createToonMat(0xf43f5e);
-    const maneMat = createToonMat(0xbe123c);
-    const wingMat = createToonMat(0x881337);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+  group.add(bodyWrap);
+  group.userData.bodyWrap = bodyWrap;
+  group.userData.mats = mats;
 
-    const body = new THREE.Mesh(new THREE.SphereGeometry(1.58, 26, 22), redMat);
-    body.position.y = 1.65;
-    body.castShadow = true;
-    addCartoonOutline(body, 0.045);
-    group.add(body);
+  // 피격 시 하얗게/붉게 반짝이는 플래시 효과
+  group.userData.flashHit = () => {
+    mats.forEach(m => m.color.setHex(0xff8fa3));
+    setTimeout(() => {
+      mats.forEach(m => m.color.setHex(0xffffff));
+    }, 110);
+  };
 
-    // 갈기 장식
-    const mane = new THREE.Mesh(new THREE.TorusGeometry(1.35, 0.32, 12, 24), maneMat);
-    mane.position.set(0, 1.85, 0.35);
-    group.add(mane);
+  return group;
+}
 
-    [-0.55, 0.55].forEach(ex => {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), eyeMat);
-      eye.position.set(ex, 2.05, 1.48);
-      group.add(eye);
-    });
+// ==========================================================================
+// 8. 3D 초원 잡초 & 황금 클로버 패치
+// ==========================================================================
+function createWeedPatch3D(isGolden = false) {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+  const color = isGolden ? 0xfacc15 : 0x22c55e;
+  const mat = new THREE.MeshToonMaterial({
+    color,
+    gradientMap,
+    emissive: isGolden ? 0xca8a04 : 0x000000,
+    emissiveIntensity: isGolden ? 0.35 : 0
+  });
 
-    // 박쥐 날개
-    [-1.5, 1.5].forEach((wx, idx) => {
-      const wing = new THREE.Mesh(new THREE.ConeGeometry(0.78, 1.8, 10), wingMat);
-      wing.position.set(wx, 2.3, -0.3);
-      wing.rotation.z = idx === 0 ? 1.15 : -1.15;
-      addCartoonOutline(wing, 0.05);
-      group.add(wing);
-    });
+  // 바닥 흙더미
+  const soilMat = new THREE.MeshToonMaterial({ color: 0x78350f, gradientMap });
+  const soil = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.95, 0.22, 12), soilMat);
+  soil.position.y = 0.11;
+  group.add(soil);
+
+  for (let i = 0; i < 6; i++) {
+    const blade = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.45, 7), mat);
+    const angle = (i / 6) * Math.PI * 2;
+    blade.position.set(Math.cos(angle) * 0.35, 0.72, Math.sin(angle) * 0.35);
+    blade.rotation.z = Math.cos(angle) * 0.32;
+    blade.rotation.x = Math.sin(angle) * 0.32;
+    blade.castShadow = true;
+    addCartoonOutline(blade, 0.055, isGolden ? 0x854d0e : 0x14532d);
+    group.add(blade);
+  }
+
+  if (isGolden) {
+    const starMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+    const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.32, 0), starMat);
+    star.position.y = 1.65;
+    group.add(star);
   }
 
   return group;
 }
 
 // ==========================================================================
-// 5. 3D 타운 랜드마크 빌더 (치이카와 하우스 + 피크닉, 라멘 랑, 자이언트 푸딩, 다리)
+// 9. 고품질 3D 월드 랜드마크 (중앙 분수대, 치이카와 하우스, 라멘 랑, 풍차, 다리, 도리이)
 // ==========================================================================
+
+// ⛲ 중앙 광장 2단 대리석 분수대
+function createPlazaFountain3D() {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+  const stoneMat = new THREE.MeshToonMaterial({ color: 0xf8fafc, gradientMap });
+  const waterMat = new THREE.MeshToonMaterial({ color: 0x38bdf8, gradientMap });
+  const goldMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+
+  // 1단 수조
+  const poolWall = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 4.1, 0.9, 28), stoneMat);
+  poolWall.position.y = 0.45;
+  poolWall.castShadow = true;
+  poolWall.receiveShadow = true;
+  addCartoonOutline(poolWall, 0.03);
+  group.add(poolWall);
+
+  const waterSurface = new THREE.Mesh(new THREE.CylinderGeometry(3.5, 3.5, 0.82, 28), waterMat);
+  waterSurface.position.y = 0.5;
+  group.add(waterSurface);
+
+  // 중앙 기둥 & 2단 수반
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 2.6, 16), stoneMat);
+  pillar.position.y = 1.4;
+  pillar.castShadow = true;
+  addCartoonOutline(pillar, 0.04);
+  group.add(pillar);
+
+  const upperBowl = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.1, 0.55, 20), stoneMat);
+  upperBowl.position.y = 2.6;
+  upperBowl.castShadow = true;
+  addCartoonOutline(upperBowl, 0.04);
+  group.add(upperBowl);
+
+  // 꼭대기 황금 별 조각상
+  const topStar = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 0), goldMat);
+  topStar.position.y = 3.55;
+  addCartoonOutline(topStar, 0.05);
+  group.add(topStar);
+  group.userData.topStar = topStar;
+
+  return group;
+}
+
+// 🏡 치이카와 돔 하우스
 function createChiikawaHouse3D() {
   const house = new THREE.Group();
+  const gradientMap = getToonGradientMap();
 
-  const wallMat = createToonMat(0xfff0f5);
-  const roofMat = createToonMat(0xff85a2);
-  const doorMat = createToonMat(0xd97706);
-  const winMat = createToonMat(0xbae6fd);
-
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(5.6, 6.1, 4.6, 32), wallMat);
-  base.position.y = 2.3;
-  base.castShadow = true;
-  base.receiveShadow = true;
-  addCartoonOutline(base, 0.025);
-  house.add(base);
+  const wallMat = new THREE.MeshToonMaterial({ color: 0xfffbeb, gradientMap });
+  const roofMat = new THREE.MeshToonMaterial({ color: 0xff85a2, gradientMap });
+  const doorMat = new THREE.MeshToonMaterial({ color: 0x92400e, gradientMap });
 
   const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(5.9, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.55),
-    roofMat
+    new THREE.SphereGeometry(5.6, 32, 24, 0, Math.PI * 2, 0, Math.PI * 0.65),
+    wallMat
   );
-  dome.position.y = 4.25;
+  dome.position.y = 0;
   dome.castShadow = true;
+  dome.receiveShadow = true;
   addCartoonOutline(dome, 0.025);
   house.add(dome);
 
-  // 곰돌이 귀 지붕 장식
-  [-3.3, 3.3].forEach(ex => {
-    const ear = new THREE.Mesh(new THREE.SphereGeometry(1.45, 20, 20), roofMat);
-    ear.position.set(ex, 8.7, 0);
-    addCartoonOutline(ear, 0.04);
-    house.add(ear);
-  });
+  const cap = new THREE.Mesh(
+    new THREE.SphereGeometry(5.68, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.28),
+    roofMat
+  );
+  cap.position.y = 0.08;
+  addCartoonOutline(cap, 0.025);
+  house.add(cap);
 
   // 굴뚝
-  const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.75, 2.2, 16), wallMat);
-  chimney.position.set(2.5, 8.2, -2.0);
+  const chimneyMat = new THREE.MeshToonMaterial({ color: 0xe11d48, gradientMap });
+  const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.75, 2.8, 14), chimneyMat);
+  chimney.position.set(2.8, 4.5, -1.5);
+  chimney.castShadow = true;
+  addCartoonOutline(chimney, 0.04);
   house.add(chimney);
 
-  // 아치형 현관문 & 둥근 창문 2개
-  const door = new THREE.Mesh(new THREE.BoxGeometry(2.3, 3.3, 0.6), doorMat);
-  door.position.set(0, 1.65, 5.8);
+  // 아치형 현관문
+  const door = new THREE.Mesh(new THREE.BoxGeometry(2.1, 3.0, 0.6), doorMat);
+  door.position.set(0, 1.5, 5.25);
   addCartoonOutline(door, 0.04);
   house.add(door);
 
-  [-2.8, 2.8].forEach(wx => {
-    const win = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.4, 20), winMat);
-    win.rotation.x = Math.PI / 2;
-    win.position.set(wx, 2.6, 5.2);
-    addCartoonOutline(win, 0.05);
-    house.add(win);
+  // 따뜻한 빛이 나는 창문 2개
+  const winMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+  const frameMat = new THREE.MeshToonMaterial({ color: 0x78350f, gradientMap });
+  [-2.7, 2.7].forEach(wx => {
+    const wFrame = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.3, 18), frameMat);
+    wFrame.rotation.x = Math.PI / 2;
+    wFrame.position.set(wx, 2.5, 4.65);
+    house.add(wFrame);
+
+    const wGlass = new THREE.Mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.34, 18), winMat);
+    wGlass.rotation.x = Math.PI / 2;
+    wGlass.position.set(wx, 2.5, 4.65);
+    house.add(wGlass);
   });
 
-  // 집 앞 돗자리 피크닉 세트 & 오므라이스/핫케이크
-  const matGeo = new THREE.BoxGeometry(6.5, 0.12, 4.5);
-  const picnicMat = new THREE.Mesh(matGeo, createToonMat(0xfda4af));
-  picnicMat.position.set(-7.5, 0.08, 7.5);
-  house.add(picnicMat);
+  // 집 앞 피크닉 돗자리 & 핫케이크
+  const matCarpet = new THREE.Mesh(
+    new THREE.BoxGeometry(4.2, 0.08, 3.2),
+    new THREE.MeshToonMaterial({ color: 0xfb7185, gradientMap })
+  );
+  matCarpet.position.set(-4.6, 0.05, 6.2);
+  house.add(matCarpet);
 
-  // 돗자리 위 3D 핫케이크
-  const cake = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.15, 0.65, 20), createToonMat(0xd97706));
-  cake.position.set(-7.5, 0.45, 7.5);
+  const cake = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.65, 0.7, 0.38, 16),
+    new THREE.MeshToonMaterial({ color: 0xd97706, gradientMap })
+  );
+  cake.position.set(-4.6, 0.25, 6.2);
+  addCartoonOutline(cake, 0.05);
   house.add(cake);
-  const butter = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.22, 0.45), createToonMat(0xfef08a));
-  butter.position.set(-7.5, 0.85, 7.5);
-  house.add(butter);
 
   return house;
 }
 
+// 🍜 갑옷씨의 라멘 '랑(郎)' 포장마차
 function createRamenStall3D() {
   const stall = new THREE.Group();
+  const gradientMap = getToonGradientMap();
 
-  const woodMat = createToonMat(0xb45309);
-  const roofMat = createToonMat(0xdc2626);
-  const yellowMat = createToonMat(0xfacc15);
+  const woodMat = new THREE.MeshToonMaterial({ color: 0xb45309, gradientMap });
+  const redMat = new THREE.MeshToonMaterial({ color: 0xdc2626, gradientMap });
+  const yellowMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
 
-  const counter = new THREE.Mesh(new THREE.BoxGeometry(8.4, 2.2, 3.2), woodMat);
-  counter.position.y = 1.1;
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(8.2, 2.4, 4.2), woodMat);
+  counter.position.y = 1.2;
   counter.castShadow = true;
+  counter.receiveShadow = true;
   addCartoonOutline(counter, 0.03);
   stall.add(counter);
 
-  // 손님용 빨간 동그란 의자 3개
-  [-2.4, 0, 2.4].forEach(sx => {
-    const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.55, 1.1, 16), roofMat);
-    stool.position.set(sx, 0.55, 2.6);
-    addCartoonOutline(stool, 0.05);
-    stall.add(stool);
-
-    // 카운터 위 3D 라멘 그릇
-    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.42, 0.48, 16), roofMat);
-    bowl.position.set(sx, 2.45, 0.8);
-    stall.add(bowl);
-    const soup = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.1, 16), yellowMat);
-    soup.position.set(sx, 2.68, 0.8);
-    stall.add(soup);
+  [-3.6, 3.6].forEach(px => {
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 5.8, 12), woodMat);
+    pillar.position.set(px, 3.2, 1.8);
+    pillar.castShadow = true;
+    addCartoonOutline(pillar, 0.04);
+    stall.add(pillar);
   });
 
-  [[-3.8, -1.2], [3.8, -1.2], [-3.8, 1.2], [3.8, 1.2]].forEach(([px, pz]) => {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 5.6, 12), woodMat);
-    post.position.set(px, 2.8, pz);
-    stall.add(post);
-  });
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(6.8, 2.6, 4), redMat);
+  roof.position.y = 6.8;
+  roof.rotation.y = Math.PI / 4;
+  roof.castShadow = true;
+  addCartoonOutline(roof, 0.03);
+  stall.add(roof);
 
-  // '랑(郎)' 노란 간판 텍스처 지붕
+  // 간판 캔버스 텍스처
   const signCanvas = document.createElement('canvas');
   signCanvas.width = 512;
   signCanvas.height = 128;
@@ -1036,161 +1006,236 @@ function createRamenStall3D() {
   sctx.fillRect(0, 0, 512, 128);
   sctx.strokeStyle = '#dc2626';
   sctx.lineWidth = 10;
-  sctx.strokeRect(8, 8, 496, 112);
-  sctx.fillStyle = '#111827';
-  sctx.font = '900 68px sans-serif';
+  sctx.strokeRect(5, 5, 502, 118);
+  sctx.fillStyle = '#1e293b';
+  sctx.font = '900 62px Pretendard, sans-serif';
   sctx.textAlign = 'center';
   sctx.textBaseline = 'middle';
   sctx.fillText('🍜 라멘 랑 (郎)', 256, 66);
+
   const signTex = new THREE.CanvasTexture(signCanvas);
-
-  const roof = new THREE.Mesh(
-    new THREE.BoxGeometry(9.4, 1.35, 4.5),
-    new THREE.MeshToonMaterial({ map: signTex })
+  const banner = new THREE.Mesh(
+    new THREE.BoxGeometry(6.6, 1.35, 0.25),
+    new THREE.MeshBasicMaterial({ map: signTex })
   );
-  roof.position.y = 5.65;
-  roof.castShadow = true;
-  addCartoonOutline(roof, 0.03);
-  stall.add(roof);
+  banner.position.set(0, 5.1, 2.25);
+  addCartoonOutline(banner, 0.04);
+  stall.add(banner);
 
-  // 붉은 홍등 2개 + 따뜻한 포인트 라이트
-  const lanternMat = new THREE.MeshStandardMaterial({
-    color: 0xef4444,
-    emissive: 0xff4500,
-    emissiveIntensity: 0.75
+  // 의자 4개 & 카운터 위 라멘 그릇
+  const stoolMat = new THREE.MeshToonMaterial({ color: 0xef4444, gradientMap });
+  [-2.7, -0.9, 0.9, 2.7].forEach(sx => {
+    const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.25, 14), stoolMat);
+    seat.position.set(sx, 1.35, 3.2);
+    addCartoonOutline(seat, 0.05);
+    stall.add(seat);
+
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 1.3, 10), woodMat);
+    leg.position.set(sx, 0.65, 3.2);
+    stall.add(leg);
+
+    const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.3, 0.35, 14), yellowMat);
+    bowl.position.set(sx, 2.55, 1.3);
+    addCartoonOutline(bowl, 0.05);
+    stall.add(bowl);
   });
-  [-4.0, 4.0].forEach(lx => {
-    const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.68, 18, 18), lanternMat);
-    lantern.scale.set(0.85, 1.28, 0.85);
-    lantern.position.set(lx, 4.4, 1.9);
+
+  // 붉은 초롱불 2개 & 따뜻한 조명
+  const lanternMat = new THREE.MeshBasicMaterial({ color: 0xff4d6d });
+  [-3.2, 3.2].forEach(lx => {
+    const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.58, 14, 14), lanternMat);
+    lantern.scale.y = 1.35;
+    lantern.position.set(lx, 4.6, 2.3);
     addCartoonOutline(lantern, 0.05);
     stall.add(lantern);
   });
 
-  const stallLight = new THREE.PointLight(0xffedd5, 0.9, 18);
-  stallLight.position.set(0, 4.5, 2.5);
-  stall.add(stallLight);
+  const warmLight = new THREE.PointLight(0xffb703, 1.1, 20);
+  warmLight.position.set(0, 4.5, 3.5);
+  stall.add(warmLight);
 
-  // 라멘 갑옷씨(요로이산) 3D 모델
-  const armorGroup = new THREE.Group();
-  const steelMat = createToonMat(0x94a3b8);
-  const visorMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
-  const armorBody = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.1, 2.5, 18), steelMat);
-  armorBody.position.y = 1.25;
+  // 갑옷씨 (Armor-san)
+  const armorMat = new THREE.MeshToonMaterial({ color: 0x94a3b8, gradientMap });
+  const armorBody = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.25, 2.7, 16), armorMat);
+  armorBody.position.set(0, 2.7, -0.5);
   addCartoonOutline(armorBody, 0.04);
-  armorGroup.add(armorBody);
+  stall.add(armorBody);
 
-  const armorHead = new THREE.Mesh(new THREE.SphereGeometry(0.92, 20, 20), steelMat);
-  armorHead.position.y = 3.0;
+  const armorHead = new THREE.Mesh(new THREE.SphereGeometry(0.98, 16, 16), armorMat);
+  armorHead.position.set(0, 4.4, -0.5);
   addCartoonOutline(armorHead, 0.04);
-  armorGroup.add(armorHead);
-
-  // 투구 눈 슬릿
-  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.16, 0.4), visorMat);
-  visor.position.set(0, 3.05, 0.75);
-  armorGroup.add(visor);
-
-  armorGroup.position.set(0, 0, -0.5);
-  stall.add(armorGroup);
+  stall.add(armorHead);
 
   return stall;
 }
 
+// 🌱 제초 평원 회전 풍차
+function createWindmill3D() {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+
+  const bodyMat = new THREE.MeshToonMaterial({ color: 0xfef3c7, gradientMap });
+  const roofMat = new THREE.MeshToonMaterial({ color: 0x10b981, gradientMap });
+  const woodMat = new THREE.MeshToonMaterial({ color: 0x92400e, gradientMap });
+
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.8, 7.5, 18), bodyMat);
+  tower.position.y = 3.75;
+  tower.castShadow = true;
+  addCartoonOutline(tower, 0.03);
+  group.add(tower);
+
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(2.5, 2.4, 18), roofMat);
+  roof.position.y = 8.6;
+  roof.castShadow = true;
+  addCartoonOutline(roof, 0.035);
+  group.add(roof);
+
+  // 회전 날개 피벗
+  const bladesPivot = new THREE.Group();
+  bladesPivot.position.set(0, 6.2, 2.2);
+
+  const hub = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 12), woodMat);
+  bladesPivot.add(hub);
+
+  const sailMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap });
+  for (let i = 0; i < 4; i++) {
+    const armGroup = new THREE.Group();
+    armGroup.rotation.z = (i / 4) * Math.PI * 2;
+
+    const stick = new THREE.Mesh(new THREE.BoxGeometry(0.2, 4.2, 0.15), woodMat);
+    stick.position.y = 2.1;
+    armGroup.add(stick);
+
+    const sail = new THREE.Mesh(new THREE.BoxGeometry(0.95, 3.2, 0.06), sailMat);
+    sail.position.set(0.45, 2.3, 0.05);
+    addCartoonOutline(sail, 0.03);
+    armGroup.add(sail);
+
+    bladesPivot.add(armGroup);
+  }
+
+  group.add(bladesPivot);
+  group.userData.bladesPivot = bladesPivot;
+  return group;
+}
+
+// 🍮 자이언트 푸딩 언덕
 function createGiantPudding3D() {
-  const pudding = new THREE.Group();
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
 
-  const custardMat = createToonMat(0xfde047);
-  const caramelMat = createToonMat(0x78350f);
-  const creamMat = createToonMat(0xffffff);
-  const cherryMat = createToonMat(0xe11d48);
+  const custardMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+  const caramelMat = new THREE.MeshToonMaterial({ color: 0x78350f, gradientMap });
 
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 7.5, 5.0, 36), custardMat);
-  base.position.y = 2.5;
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 6.4, 4.6, 32), custardMat);
+  base.position.y = 2.3;
   base.castShadow = true;
   base.receiveShadow = true;
   addCartoonOutline(base, 0.025);
-  pudding.add(base);
+  group.add(base);
 
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(5.05, 5.3, 1.25, 36), caramelMat);
-  top.position.y = 5.1;
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.68, 0.9, 32), caramelMat);
+  top.position.y = 4.9;
+  top.receiveShadow = true;
   addCartoonOutline(top, 0.03);
-  pudding.add(top);
+  group.add(top);
 
-  const cream = new THREE.Mesh(new THREE.SphereGeometry(1.45, 20, 20), creamMat);
-  cream.scale.set(1.25, 0.72, 1.25);
-  cream.position.y = 5.95;
+  const creamMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap });
+  const cream = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 16), creamMat);
+  cream.position.set(0, 5.6, 0);
+  cream.scale.y = 0.75;
   addCartoonOutline(cream, 0.04);
-  pudding.add(cream);
+  group.add(cream);
 
-  const cherry = new THREE.Mesh(new THREE.SphereGeometry(0.68, 18, 18), cherryMat);
-  cherry.position.y = 6.7;
+  const cherryMat = new THREE.MeshToonMaterial({ color: 0xe11d48, gradientMap });
+  const cherry = new THREE.Mesh(new THREE.SphereGeometry(0.55, 16, 16), cherryMat);
+  cherry.position.set(0, 6.3, 0);
   addCartoonOutline(cherry, 0.05);
-  pudding.add(cherry);
+  group.add(cherry);
 
-  return pudding;
+  return group;
 }
 
-function createWeedPatch3D(isGolden = false) {
-  const weed = new THREE.Group();
-  const color = isGolden ? 0xfacc15 : 0x22c55e;
-  const mat = createToonMat(color);
-
-  for (let i = 0; i < 6; i++) {
-    const blade = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.4, 10), mat);
-    const angle = (i / 6) * Math.PI * 2;
-    blade.position.set(Math.cos(angle) * 0.28, 0.68, Math.sin(angle) * 0.28);
-    blade.rotation.z = (Math.random() - 0.5) * 0.45;
-    blade.rotation.x = (Math.random() - 0.5) * 0.45;
-    blade.castShadow = true;
-    addCartoonOutline(blade, 0.06);
-    weed.add(blade);
-  }
-
-  return weed;
-}
-
-// 에메랄드 강물 & 나무 아치 다리 빌더
-function createRiverAndBridge3D() {
+// 🌉 에메랄드 시냇물 & 아치형 목조 다리
+function createRiverAndBridge3D(waterTex) {
   const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
 
-  // 강물 바닥
-  const riverGeo = new THREE.BoxGeometry(10, 0.2, 160);
-  const riverMat = new THREE.MeshStandardMaterial({
-    color: 0x38bdf8,
-    roughness: 0.2,
-    metalness: 0.1,
-    transparent: true,
-    opacity: 0.85
+  const waterGeo = new THREE.BoxGeometry(260, 0.25, 7.5);
+  const waterMat = new THREE.MeshBasicMaterial({
+    map: waterTex || createWaterCanvasTexture()
   });
-  const river = new THREE.Mesh(riverGeo, riverMat);
-  river.position.set(22, 0.08, -20);
-  river.rotation.y = Math.PI / 6;
+  const river = new THREE.Mesh(waterGeo, waterMat);
+  river.position.set(0, 0.03, 28);
   group.add(river);
 
-  // 아치형 붉은/나무 다리
+  const bankMat = new THREE.MeshToonMaterial({ color: 0xfde68a, gradientMap });
+  [-4.1, 4.1].forEach(bz => {
+    const bank = new THREE.Mesh(new THREE.BoxGeometry(260, 0.16, 1.4), bankMat);
+    bank.position.set(0, 0.02, 28 + bz);
+    group.add(bank);
+  });
+
+  // 목조 다리
   const bridgeGroup = new THREE.Group();
-  bridgeGroup.position.set(22, 0.2, -16);
-  bridgeGroup.rotation.y = Math.PI / 6;
+  const woodMat = new THREE.MeshToonMaterial({ color: 0xb45309, gradientMap });
+  const redPostMat = new THREE.MeshToonMaterial({ color: 0xe11d48, gradientMap });
 
-  const deck = new THREE.Mesh(
-    new THREE.BoxGeometry(13, 0.5, 5.5),
-    createToonMat(0xd97706)
-  );
-  deck.position.y = 0.6;
-  addCartoonOutline(deck, 0.03);
-  bridgeGroup.add(deck);
+  for (let i = -4; i <= 4; i++) {
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.28, 0.9), woodMat);
+    const archY = Math.cos((i / 4.5) * (Math.PI / 2)) * 0.85;
+    plank.position.set(0, 0.2 + archY, 28 + i * 0.98);
+    plank.castShadow = true;
+    plank.receiveShadow = true;
+    addCartoonOutline(plank, 0.03);
+    bridgeGroup.add(plank);
+  }
 
-  // 다리 난간
-  [-2.4, 2.4].forEach(rz => {
-    const rail = new THREE.Mesh(
-      new THREE.BoxGeometry(13, 1.2, 0.35),
-      createToonMat(0xef4444)
-    );
-    rail.position.set(0, 1.3, rz);
+  [-3.1, 3.1].forEach(rx => {
+    for (let j = -1; j <= 1; j++) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2.2, 10), redPostMat);
+      post.position.set(rx, 1.3, 28 + j * 3.8);
+      addCartoonOutline(post, 0.05);
+      bridgeGroup.add(post);
+    }
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 8.8), redPostMat);
+    rail.position.set(rx, 2.1, 28);
     addCartoonOutline(rail, 0.04);
     bridgeGroup.add(rail);
   });
 
   group.add(bridgeGroup);
+  return group;
+}
+
+// ⛩️ 토벌의 숲 입구 게이트
+function createToriiGate3D() {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+  const redMat = new THREE.MeshToonMaterial({ color: 0xdc2626, gradientMap });
+  const darkMat = new THREE.MeshToonMaterial({ color: 0x1e293b, gradientMap });
+
+  [-3.8, 3.8].forEach(px => {
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 7.5, 14), redMat);
+    pillar.position.set(px, 3.75, 0);
+    pillar.castShadow = true;
+    addCartoonOutline(pillar, 0.04);
+    group.add(pillar);
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.75, 0.8, 14), darkMat);
+    base.position.set(px, 0.4, 0);
+    group.add(base);
+  });
+
+  const topBeam = new THREE.Mesh(new THREE.BoxGeometry(10.5, 0.65, 0.9), darkMat);
+  topBeam.position.y = 7.4;
+  addCartoonOutline(topBeam, 0.03);
+  group.add(topBeam);
+
+  const subBeam = new THREE.Mesh(new THREE.BoxGeometry(8.8, 0.45, 0.6), redMat);
+  subBeam.position.y = 6.0;
+  addCartoonOutline(subBeam, 0.035);
+  group.add(subBeam);
+
   return group;
 }
