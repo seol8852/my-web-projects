@@ -52,6 +52,7 @@ export class FirebaseManager {
   }
 
   initAuthListener() {
+    let isInitialCheck = true;
     onAuthStateChanged(auth, async (user) => {
       this.currentUser = user;
       this.updateAuthUI(user);
@@ -62,9 +63,20 @@ export class FirebaseManager {
           showToast(`☁️ [${user.displayName || user.email.split('@')[0]}]님 계정으로 클라우드에 연결되었습니다!`);
         }
         await this.loadUserDataFromCloud();
+        // 이미 로그인된 유저라면 시작 모달을 자동으로 닫음
+        this.closeAuthModal();
       } else {
         console.log("게스트 모드로 진행 중");
+        // 첫 화면에 로그인 및 회원가입 모달 자동 팝업!
+        if (isInitialCheck) {
+          setTimeout(() => {
+            if (!this.currentUser) {
+              this.openAuthModal();
+            }
+          }, 350);
+        }
       }
+      isInitialCheck = false;
     });
   }
 

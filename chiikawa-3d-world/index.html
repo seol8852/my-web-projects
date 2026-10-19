@@ -485,25 +485,31 @@
   </div>
 
   <!-- ========================================================================
-       모달 7: 🔑 Firebase 클라우드 계정 연동 / 로그인 / 리더보드 모달
+       모달 7: 🔑 시작 화면 로그인 & 회원가입 / 클라우드 연동 모달
        ======================================================================== -->
   <div class="modal-backdrop" id="auth-modal">
-    <div class="modal-window" style="max-width: 440px; text-align:center;">
-      <div class="modal-close-btn" onclick="window.firebaseManager && window.firebaseManager.closeAuthModal()">✕</div>
-      <div style="font-size:38px; margin-bottom:4px;">☁️</div>
-      <h2 style="font-size:22px; font-weight:900; color:#0f172a; margin-bottom:4px;">치이카와 클라우드 계정</h2>
-      <p style="font-size:13px; color:#64748b; margin-bottom:18px;">
-        계정을 연동하면 다른 기기에서도 레벨, 코인, 클리어 기록이 100% 보존됩니다!
+    <div class="modal-window" style="max-width: 460px; text-align:center; padding: 28px 24px; border: 3px solid #fbcfe8; box-shadow: 0 20px 40px rgba(0,0,0,0.25);">
+      <div class="modal-close-btn" id="auth-modal-close-btn" onclick="window.firebaseManager && window.firebaseManager.closeAuthModal()">✕</div>
+      <div style="font-size:46px; margin-bottom:6px; animation: bounce 1.8s infinite;">🌿</div>
+      <div style="display:inline-block; font-size:11px; font-weight:900; background:#fce7f3; color:#db2777; padding:4px 12px; border-radius:12px; margin-bottom:8px; border:1px solid #fbcfe8;">
+        CHIIKAWA 3D CLOUD ADVENTURE
+      </div>
+      <h2 style="font-size:24px; font-weight:900; color:#0f172a; margin-bottom:6px;">치이카와 월드에 오신 것을 환영합니다!</h2>
+      <p style="font-size:13.5px; color:#64748b; margin-bottom:20px; line-height:1.5;">
+        계정을 생성하거나 로그인하면 <strong>레벨, 코인, 해금 스테이지가 클라우드에 영구 보존</strong>되며 어디서든 이어서 플레이할 수 있습니다!
       </p>
 
       <!-- 1) 로그인된 상태 UI -->
       <div id="auth-modal-profile" style="display:none;">
-        <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:16px; padding:16px; margin-bottom:16px;">
-          <div style="font-size:12px; color:#15803d; font-weight:800;">현재 동기화 중인 계정</div>
-          <div style="font-size:18px; font-weight:900; color:#166534; margin:4px 0;" id="profile-name">치이카와 유저</div>
-          <div style="font-size:12px; color:#64748b;" id="profile-email">user@gmail.com</div>
+        <div style="background:#f0fdf4; border:2px solid #86efac; border-radius:16px; padding:18px; margin-bottom:16px;">
+          <div style="font-size:12px; color:#15803d; font-weight:800;">현재 로그인된 계정</div>
+          <div style="font-size:20px; font-weight:900; color:#166534; margin:4px 0;" id="profile-name">치이카와 유저</div>
+          <div style="font-size:12.5px; color:#64748b;" id="profile-email">user@gmail.com</div>
         </div>
 
+        <button type="button" class="btn-start-adventure" style="width:100%; justify-content:center; font-size:16px; margin-bottom:10px;" onclick="window.firebaseManager && window.firebaseManager.closeAuthModal()">
+          🎮 내 계정으로 바로 모험 시작하기!
+        </button>
         <button type="button" class="choice-btn" style="background:#fef08a; border-color:#facc15; justify-content:center; color:#854d0e; font-weight:900;" onclick="window.firebaseManager && window.firebaseManager.saveUserDataToCloud(); showToast('☁️ 클라우드에 최신 데이터가 즉시 저장되었습니다!');">
           ☁️ 지금 즉시 클라우드에 백업하기
         </button>
@@ -512,27 +518,27 @@
         </button>
       </div>
 
-      <!-- 2) 미로그인 상태 (로그인/회원가입 폼) -->
+      <!-- 2) 미로그인 상태 (첫 화면 로그인/회원가입 폼) -->
       <div id="auth-modal-forms">
         <!-- Google 1초 간편 로그인 -->
-        <button type="button" class="choice-btn" style="background:#ffffff; border:2px solid #e2e8f0; color:#1e293b; justify-content:center; font-weight:800; font-size:15px; box-shadow:0 3px 6px rgba(0,0,0,0.06);" onclick="window.firebaseManager && window.firebaseManager.loginWithGoogle()">
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px; height:18px; margin-right:8px;" alt="Google">
-          Google 계정으로 1초 로그인
+        <button type="button" class="choice-btn" style="background:#ffffff; border:2.5px solid #e2e8f0; color:#1e293b; justify-content:center; font-weight:900; font-size:15px; padding:14px; box-shadow:0 4px 10px rgba(0,0,0,0.06); transition: all 0.2s;" onclick="window.firebaseManager && window.firebaseManager.loginWithGoogle()">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:20px; height:20px; margin-right:10px;" alt="Google">
+          Google 계정으로 1초 간편 로그인
         </button>
 
         <div style="display:flex; align-items:center; margin:16px 0; color:#94a3b8; font-size:12px;">
           <div style="flex:1; height:1px; background:#e2e8f0;"></div>
-          <span style="padding:0 8px;">또는 이메일 로그인</span>
+          <span style="padding:0 10px; font-weight:700;">또는 이메일로 시작</span>
           <div style="flex:1; height:1px; background:#e2e8f0;"></div>
         </div>
 
         <div style="display:flex; flex-direction:column; gap:8px; text-align:left;">
-          <input type="text" id="auth-nickname-input" placeholder="닉네임 (신규 가입 시에만 입력)" style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13.5px;">
-          <input type="email" id="auth-email-input" placeholder="이메일 주소" style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13.5px;">
-          <input type="password" id="auth-password-input" placeholder="비밀번호 (6자리 이상)" style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:13.5px;">
+          <input type="text" id="auth-nickname-input" placeholder="닉네임 (신규 가입 시에만 입력)" style="padding:11px 14px; border:1.8px solid #cbd5e1; border-radius:12px; font-size:13.5px; outline:none;">
+          <input type="email" id="auth-email-input" placeholder="이메일 주소" style="padding:11px 14px; border:1.8px solid #cbd5e1; border-radius:12px; font-size:13.5px; outline:none;">
+          <input type="password" id="auth-password-input" placeholder="비밀번호 (6자리 이상)" style="padding:11px 14px; border:1.8px solid #cbd5e1; border-radius:12px; font-size:13.5px; outline:none;">
 
           <div style="display:flex; gap:8px; margin-top:6px;">
-            <button type="button" class="choice-btn" style="flex:1; background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; border:none; justify-content:center;" onclick="
+            <button type="button" class="choice-btn" style="flex:1; background:linear-gradient(135deg,#3b82f6,#2563eb); color:#fff; border:none; justify-content:center; font-size:14.5px; font-weight:800; padding:12px;" onclick="
               const email = document.getElementById('auth-email-input').value.trim();
               const pw = document.getElementById('auth-password-input').value;
               if (!email || !pw) return alert('이메일과 비밀번호를 입력해주세요.');
@@ -540,7 +546,7 @@
             ">
               로그인
             </button>
-            <button type="button" class="choice-btn" style="flex:1; background:#f1f5f9; border-color:#cbd5e1; justify-content:center; color:#334155;" onclick="
+            <button type="button" class="choice-btn" style="flex:1; background:#f1f5f9; border-color:#cbd5e1; justify-content:center; color:#334155; font-size:14.5px; font-weight:800; padding:12px;" onclick="
               const email = document.getElementById('auth-email-input').value.trim();
               const pw = document.getElementById('auth-password-input').value;
               const nick = document.getElementById('auth-nickname-input').value.trim() || '치이카와';
@@ -549,6 +555,16 @@
             ">
               회원가입
             </button>
+          </div>
+        </div>
+
+        <!-- 게스트 모드로 바로 시작하기 버튼 -->
+        <div style="margin-top:14px; border-top:1px dashed #e2e8f0; padding-top:14px;">
+          <button type="button" class="choice-btn" style="width:100%; justify-content:center; background:#f8fafc; border:2px dashed #94a3b8; color:#475569; font-weight:800; font-size:14px; padding:11px;" onclick="window.firebaseManager && window.firebaseManager.closeAuthModal()">
+            🎮 로그인 없이 게스트로 먼저 플레이하기
+          </button>
+          <div style="font-size:11.5px; color:#94a3b8; margin-top:6px;">
+            * 게스트로 플레이하다가도 언제든 상단 [로그인/백업] 버튼으로 계정에 연동할 수 있습니다.
           </div>
         </div>
       </div>
