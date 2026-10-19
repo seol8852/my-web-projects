@@ -161,21 +161,27 @@ const CHAR_CONFIGS = {
 };
 
 // ==========================================================================
-// 2. GLSL 애니메이션 그라데이션 스카이돔 & 4,500개 확장형 Instanced 3D 잔디밭
+// 2. [HQ] GLSL 애니메이션 스카이돔 (태양 글로우 + 절차적 뭉게구름 + 밤하늘 별빛)
+//    & GPU 셰이더 바람 애니메이션 고밀도 Instanced 3D 잔디밭
 // ==========================================================================
 function createAnimeSkyDome3D() {
-  const geo = new THREE.SphereGeometry(560, 32, 24);
+  const geo = new THREE.SphereGeometry(560, 48, 32);
   const mat = new THREE.ShaderMaterial({
     uniforms: {
       topColor: { value: new THREE.Color(0x2563eb) },
       midColor: { value: new THREE.Color(0x7dd3fc) },
-      bottomColor: { value: new THREE.Color(0xdbeafe) }
+      bottomColor: { value: new THREE.Color(0xdbeafe) },
+      sunDir: { value: new THREE.Vector3(0.45, 0.62, 0.38).normalize() },
+      sunColor: { value: new THREE.Color(0xfff1c1) },
+      cloudColor: { value: new THREE.Color(0xffffff) },
+      nightFactor: { value: 0.0 },
+      time: { value: 0.0 }
     },
     vertexShader: `
-      varying vec3 vWorldPos;
+      varying vec3 vWorldDir;
       void main() {
+        vWorldDir = normalize(position);
         vec4 wp = modelMatrix * vec4(position, 1.0);
-        vWorldPos = wp.xyz;
         gl_Position = projectionMatrix * viewMatrix * wp;
       }
     `,
@@ -183,64 +189,165 @@ function createAnimeSkyDome3D() {
       uniform vec3 topColor;
       uniform vec3 midColor;
       uniform vec3 bottomColor;
-      varying vec3 vWorldPos;
+      uniform vec3 sunDir;
+      uniform vec3 sunColor;
+      uniform vec3 cloudColor;
+      uniform float nightFactor;
+      uniform float time;
+      varying vec3 vWorldDir;
+
+      float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p) {
+        vec2 i = floor(p); vec2 f = fract(p);
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x),
+                   mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+      }
+      float fbm(vec2 p) {
+        float v = 0.0; float a = 0.5;
+        for (int i = 0; i < 5; i++) { v += a * noise(p); p *= 2.03; a *= 0.5; }
+        return v;
+      }
+
       void main() {
-        float h = normalize(vWorldPos).y;
-        vec3 col = mix(bottomColor, midColor, smoothstep(-0.05, 0.28, h));
-        col = mix(col, topColor, smoothstep(0.28, 0.88, h));
+        vec3 dir = normalize(vWorldDir);
+        float h = dir.y;
+
+        // 1) 3단 하늘 그라데이션 + 지평선 대기 산란 헤이즈
+        vec3 col = mix(bottomColor, midColor, smoothstep(-0.05, 0.30, h));
+        col = mix(col, topColor, smoothstep(0.30, 0.92, h));
+        col = mix(col, bottomColor * 1.04, pow(1.0 - clamp(abs(h), 0.0, 1.0), 10.0) * 0.45);
+
+        // 2) 태양 디스크 + 부드러운 글로우 (밤에는 은은한 달빛)
+        float sd = max(dot(dir, normalize(sunDir)), 0.0);
+        float sunDisk = smoothstep(0.9975, 0.9988, sd);
+        float sunGlow = pow(sd, 14.0) * 0.28 + pow(sd, 120.0) * 0.35;
+        col += sunColor * (sunDisk * 0.85 + sunGlow) * (1.0 - nightFactor * 0.55);
+
+        // 3) 절차적 애니메이션 뭉게구름 (지평선 위쪽에만)
+        if (h > 0.0) {
+          vec2 uv = dir.xz / (h + 0.22) * 1.25 + vec2(time * 0.012, time * 0.004);
+          float c = fbm(uv);
+          float cloudMask = smoothstep(0.52, 0.82, c) * smoothstep(0.02, 0.22, h);
+          float cloudShade = mix(0.82, 1.0, smoothstep(0.55, 0.9, fbm(uv + 0.35)));
+          vec3 cCol = cloudColor * cloudShade + sunColor * pow(sd, 6.0) * 0.25;
+          col = mix(col, cCol, cloudMask * (0.78 - nightFactor * 0.55));
+        }
+
+        // 4) 밤하늘 반짝이는 별
+        if (nightFactor > 0.01 && h > 0.0) {
+          vec3 p = floor(dir * 260.0);
+          float n = fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+          float star = step(0.9972, n) * smoothstep(0.02, 0.3, h);
+          float tw = 0.55 + 0.45 * sin(time * 2.6 + n * 80.0);
+          col += vec3(0.95, 0.97, 1.0) * star * tw * nightFactor;
+        }
+
         gl_FragColor = vec4(col, 1.0);
       }
     `,
     side: THREE.BackSide,
-    depthWrite: false
+    depthWrite: false,
+    fog: false
   });
-  return new THREE.Mesh(geo, mat);
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.renderOrder = -10;
+  mesh.frustumCulled = false;
+  mesh.userData.update = time => {
+    mat.uniforms.time.value = time;
+  };
+  return mesh;
 }
 
-// 4,500개의 입체 3D 풀잎을 단 1번의 Draw Call로 넓어진 월드 전역에 렌더링하는 InstancedMesh
+// 13,000개의 입체 풀잎을 1회 Draw Call로 렌더링 + 바람 흔들림은 GPU 정점 셰이더에서 처리 (CPU 부하 0)
 function createInstancedGrassField3D() {
-  const count = 4500;
-  const bladeGeo = new THREE.ConeGeometry(0.18, 0.95, 5);
-  bladeGeo.translate(0, 0.45, 0);
+  const count = 13000;
+
+  // 납작한 3단 풀잎 블레이드 (끝으로 갈수록 가늘어짐)
+  const bladeGeo = new THREE.BufferGeometry();
+  const bw = 0.16;
+  const bh = 1.0;
+  const verts = new Float32Array([
+    -bw, 0, 0,   bw, 0, 0,   -bw * 0.7, bh * 0.45, 0,
+     bw, 0, 0,   bw * 0.7, bh * 0.45, 0,   -bw * 0.7, bh * 0.45, 0,
+    -bw * 0.7, bh * 0.45, 0,   bw * 0.7, bh * 0.45, 0,   -bw * 0.3, bh * 0.8, 0,
+     bw * 0.7, bh * 0.45, 0,   bw * 0.3, bh * 0.8, 0,   -bw * 0.3, bh * 0.8, 0,
+    -bw * 0.3, bh * 0.8, 0,   bw * 0.3, bh * 0.8, 0,   0, bh, 0
+  ]);
+  bladeGeo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
+  bladeGeo.computeVertexNormals();
+
   const gradientMap = getToonGradientMap();
   const bladeMat = new THREE.MeshToonMaterial({
-    color: 0x4d7c0f,
-    gradientMap
+    color: 0xffffff,
+    gradientMap,
+    side: THREE.DoubleSide
   });
+
+  const windUniforms = { uTime: { value: 0 } };
+  bladeMat.onBeforeCompile = shader => {
+    shader.uniforms.uTime = windUniforms.uTime;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uTime;\nvarying float vBladeH;')
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+        vBladeH = clamp(position.y, 0.0, 1.0);
+        #ifdef USE_INSTANCING
+          vec2 wpos = instanceMatrix[3].xz;
+        #else
+          vec2 wpos = vec2(0.0);
+        #endif
+        float gust = sin(uTime * 1.3 + wpos.x * 0.045 + wpos.y * 0.03) * 0.5 + 0.5;
+        float sway = sin(uTime * 2.4 + wpos.x * 0.35 + wpos.y * 0.27) * (0.12 + gust * 0.16);
+        float bend = vBladeH * vBladeH;
+        transformed.x += sway * bend;
+        transformed.z += sway * 0.55 * bend;`
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vBladeH;')
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        diffuseColor.rgb *= mix(0.48, 1.18, vBladeH);`
+      );
+  };
 
   const instMesh = new THREE.InstancedMesh(bladeGeo, bladeMat, count);
   instMesh.receiveShadow = true;
+  instMesh.frustumCulled = false;
 
   const dummy = new THREE.Object3D();
-  const baseTransforms = [];
   const color = new THREE.Color();
-  const palette = [0x4d7c0f, 0x65a30d, 0x3f6212, 0x15803d];
+  const palette = [0x4d7c0f, 0x65a30d, 0x3f6212, 0x15803d, 0x5a8f1c, 0x77a832];
 
   let idx = 0;
-  for (let i = 0; i < count; i++) {
+  let guard = 0;
+  while (idx < count && guard < count * 3) {
+    guard++;
+    // 군락(Clump) 분포로 자연스러운 풀숲 패턴
     const angle = Math.random() * Math.PI * 2;
-    const dist = 21 + Math.random() * 195;
-    const x = Math.cos(angle) * dist;
-    const z = Math.sin(angle) * dist;
+    const dist = 21 + Math.sqrt(Math.random()) * 205;
+    const x = Math.cos(angle) * dist + (Math.random() - 0.5) * 2.0;
+    const z = Math.sin(angle) * dist + (Math.random() - 0.5) * 2.0;
 
-    // 시냇물 영역(z: 23~33) 및 온천 호수 영역(x: -100~-64, z: -86~-50)은 제외
+    // 시냇물 영역(z: 23~33) 및 온천 호수 영역 제외
     if (z > 23 && z < 33) continue;
     if (Math.hypot(x - (-82), z - (-68)) < 16) continue;
 
     const rotY = Math.random() * Math.PI * 2;
-    const scaleY = 0.65 + Math.random() * 0.85;
-    const scaleXZ = 0.75 + Math.random() * 0.5;
+    const scaleY = 0.6 + Math.random() * 0.95;
+    const scaleXZ = 0.8 + Math.random() * 0.6;
 
     dummy.position.set(x, 0, z);
-    dummy.rotation.set(0, rotY, 0);
+    dummy.rotation.set((Math.random() - 0.5) * 0.25, rotY, (Math.random() - 0.5) * 0.25);
     dummy.scale.set(scaleXZ, scaleY, scaleXZ);
     dummy.updateMatrix();
     instMesh.setMatrixAt(idx, dummy.matrix);
 
-    color.setHex(palette[idx % palette.length]);
+    color.setHex(palette[Math.floor(Math.random() * palette.length)]);
+    color.offsetHSL(0, 0, (Math.random() - 0.5) * 0.06);
     instMesh.setColorAt(idx, color);
-
-    baseTransforms.push({ x, z, rotY, scaleXZ, scaleY, phase: (x + z) * 0.12 });
     idx++;
   }
 
@@ -248,60 +355,152 @@ function createInstancedGrassField3D() {
   instMesh.instanceMatrix.needsUpdate = true;
   if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
 
-  // 매 프레임 바람에 흔들리는 업데이트 함수 제공
+  // 기존 API 호환: 매 프레임 시간 uniform만 갱신 (GPU에서 바람 애니메이션)
   instMesh.userData.updateWind = time => {
-    for (let i = 0; i < idx; i++) {
-      const bt = baseTransforms[i];
-      const sway = Math.sin(time * 2.6 + bt.phase) * 0.18;
-      dummy.position.set(bt.x, 0, bt.z);
-      dummy.rotation.set(sway * 0.5, bt.rotY, sway);
-      dummy.scale.set(bt.scaleXZ, bt.scaleY, bt.scaleXZ);
-      dummy.updateMatrix();
-      instMesh.setMatrixAt(i, dummy.matrix);
-    }
-    instMesh.instanceMatrix.needsUpdate = true;
+    windUniforms.uTime.value = time;
   };
 
   return instMesh;
 }
 
+// 플레이어 주변을 떠다니는 은은한 빛가루/꽃가루 대기 파티클 (반딧불이 겸용)
+function createAmbientMotes3D(count = 320) {
+  const positions = new Float32Array(count * 3);
+  const seeds = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 70;
+    positions[i * 3 + 1] = 0.5 + Math.random() * 14;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 70;
+    seeds[i] = Math.random() * 100;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
+
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uCenter: { value: new THREE.Vector3() },
+      uColor: { value: new THREE.Color(0xfff7d6) },
+      uIntensity: { value: 0.55 },
+      uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) }
+    },
+    vertexShader: `
+      uniform float uTime;
+      uniform vec3 uCenter;
+      uniform float uPixelRatio;
+      attribute float aSeed;
+      varying float vTw;
+      void main() {
+        vec3 p = position;
+        p.x += sin(uTime * 0.35 + aSeed) * 1.6;
+        p.y += sin(uTime * 0.6 + aSeed * 1.7) * 0.9;
+        p.z += cos(uTime * 0.3 + aSeed * 0.8) * 1.6;
+        // 플레이어 중심 70m 박스 안에서 무한 래핑
+        vec3 rel = p - uCenter;
+        rel.x = mod(rel.x + 35.0, 70.0) - 35.0;
+        rel.z = mod(rel.z + 35.0, 70.0) - 35.0;
+        vec3 world = vec3(uCenter.x + rel.x, p.y, uCenter.z + rel.z);
+        vec4 mv = modelViewMatrix * vec4(world, 1.0);
+        vTw = 0.5 + 0.5 * sin(uTime * 2.2 + aSeed * 13.0);
+        gl_PointSize = (9.0 + vTw * 7.0) * uPixelRatio * (22.0 / -mv.z);
+        gl_Position = projectionMatrix * mv;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uIntensity;
+      varying float vTw;
+      void main() {
+        float d = length(gl_PointCoord - 0.5);
+        float a = smoothstep(0.5, 0.0, d);
+        a *= a;
+        gl_FragColor = vec4(uColor, a * uIntensity * (0.45 + vTw * 0.55));
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  const points = new THREE.Points(geo, mat);
+  points.frustumCulled = false;
+  points.userData.update = (time, center) => {
+    mat.uniforms.uTime.value = time;
+    mat.uniforms.uCenter.value.copy(center);
+  };
+  points.userData.mat = mat;
+  return points;
+}
+
 // ==========================================================================
-// 3. 눈이 편안한 차분한 톤의 프로시저럴 지형 텍스처 생성기
+// 3. [HQ] 1024px 고해상도 프로시저럴 초원 지형 텍스처
 // ==========================================================================
 function createGrassCanvasTexture() {
+  const S = 1024;
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
+  canvas.width = S;
+  canvas.height = S;
   const ctx = canvas.getContext('2d');
 
-  // 눈부심을 줄인 차분하고 깊은 파스텔 초원 그린 베이스
-  ctx.fillStyle = '#5c9427';
-  ctx.fillRect(0, 0, 512, 512);
+  // 차분하고 깊은 파스텔 초원 그린 베이스 + 부드러운 명암 얼룩
+  ctx.fillStyle = '#5a9126';
+  ctx.fillRect(0, 0, S, S);
 
-  for (let i = 0; i < 95; i++) {
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(116, 172, 46, 0.35)' : 'rgba(63, 98, 18, 0.25)';
-    ctx.beginPath();
-    ctx.arc(Math.random() * 512, Math.random() * 512, 18 + Math.random() * 36, 0, Math.PI * 2);
-    ctx.fill();
+  const blob = (x, y, r, color) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, color);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    // 타일링 이음새 없이 4방향 반복 그리기
+    for (const ox of [-S, 0, S]) {
+      for (const oy of [-S, 0, S]) {
+        ctx.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
+      }
+    }
+  };
+
+  for (let i = 0; i < 70; i++) {
+    blob(Math.random() * S, Math.random() * S, 60 + Math.random() * 120,
+      i % 2 === 0 ? 'rgba(128, 182, 52, 0.32)' : 'rgba(52, 86, 16, 0.26)');
+  }
+  for (let i = 0; i < 30; i++) {
+    blob(Math.random() * S, Math.random() * S, 30 + Math.random() * 50, 'rgba(150, 120, 60, 0.10)');
   }
 
-  for (let i = 0; i < 450; i++) {
-    const x = Math.random() * 512;
-    const y = Math.random() * 512;
-    ctx.strokeStyle = i % 3 === 0 ? '#84cc16' : '#3f6212';
-    ctx.lineWidth = 2;
+  // 촘촘한 잔디결 스트로크
+  const strokeColors = ['#8ccf2a', '#3f6212', '#6aa82a', '#2f4f0e', '#a3d94b'];
+  for (let i = 0; i < 3200; i++) {
+    const x = Math.random() * S;
+    const y = Math.random() * S;
+    const len = 6 + Math.random() * 9;
+    ctx.strokeStyle = strokeColors[i % strokeColors.length];
+    ctx.globalAlpha = 0.35 + Math.random() * 0.4;
+    ctx.lineWidth = 1.2 + Math.random() * 1.2;
     ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineTo(x - 3, y - 8);
+    ctx.lineTo(x - 2 - Math.random() * 3, y - len);
     ctx.moveTo(x, y);
-    ctx.lineTo(x + 3, y - 7);
+    ctx.lineTo(x + 2 + Math.random() * 3, y - len * 0.85);
     ctx.stroke();
   }
+
+  // 작은 들꽃 점
+  const flowerColors = ['#fff1f2', '#fde68a', '#fbcfe8', '#e0f2fe'];
+  for (let i = 0; i < 140; i++) {
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = flowerColors[i % flowerColors.length];
+    ctx.beginPath();
+    ctx.arc(Math.random() * S, Math.random() * S, 1.6 + Math.random() * 1.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(28, 28);
+  tex.repeat.set(22, 22);
+  tex.anisotropy = 8;
   return tex;
 }
 

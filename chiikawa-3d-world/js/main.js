@@ -299,13 +299,13 @@ class Chiikawa3DWorldApp {
     const canvas = document.getElementById('webgl-canvas');
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x7dd3fc);
-    this.scene.fog = new THREE.FogExp2(0x93c5fd, 0.0014);
+    this.scene.fog = new THREE.FogExp2(0xbfdbfe, 0.0042);
 
     this.camera = new THREE.PerspectiveCamera(
       46,
       window.innerWidth / window.innerHeight,
       0.5,
-      800
+      900
     );
 
     this.renderer = new THREE.WebGLRenderer({
@@ -314,47 +314,167 @@ class Chiikawa3DWorldApp {
       preserveDrawingBuffer: true,
       powerPreference: 'high-performance'
     });
+    this.maxPixelRatio = Math.min(window.devicePixelRatio, 2);
+    this.currentPixelRatio = this.maxPixelRatio;
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(this.currentPixelRatio);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    // 눈이 피로하지 않도록 노출도를 차분하고 부드러운 0.78로 조정
-    this.renderer.toneMappingExposure = 0.78;
+    // 눈이 피로하지 않도록 노출도를 차분하고 부드러운 0.8로 조정
+    this.renderer.toneMappingExposure = 0.8;
+    this.maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy();
 
     if (typeof THREE.EffectComposer !== 'undefined' && typeof THREE.UnrealBloomPass !== 'undefined') {
-      this.composer = new THREE.EffectComposer(this.renderer);
+      // ✨ EffectComposer는 기본적으로 안티앨리어싱이 꺼지므로, WebGL2 MSAA(4x) 렌더 타겟으로 계단 현상 제거!
+      let composerTarget;
+      const w = window.innerWidth * this.currentPixelRatio;
+      const h = window.innerHeight * this.currentPixelRatio;
+      if (this.renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget) {
+        composerTarget = new THREE.WebGLMultisampleRenderTarget(w, h, {
+          format: THREE.RGBAFormat,
+          minFilter: THREE.LinearFilter,
+          magFilter: THREE.LinearFilter
+        });
+        composerTarget.samples = 4;
+      }
+      this.composer = composerTarget
+        ? new THREE.EffectComposer(this.renderer, composerTarget)
+        : new THREE.EffectComposer(this.renderer);
+      this.composer.setPixelRatio && this.composer.setPixelRatio(this.currentPixelRatio);
+
       const renderPass = new THREE.RenderPass(this.scene, this.camera);
       this.composer.addPass(renderPass);
 
-      // threshold를 0.96으로 높이고 strength를 0.08로 낮추어 일반 지형/캐릭터 눈부심을 완벽 제거!
+      // 눈부심 없는 은은한 Bloom (발광 이펙트·태양만 살짝 빛나도록)
       this.bloomPass = new THREE.UnrealBloomPass(
         new THREE.Vector2(window.innerWidth, window.innerHeight),
-        0.08,
-        0.35,
-        0.96
+        0.14,
+        0.42,
+        0.92
       );
       this.composer.addPass(this.bloomPass);
+
+      // 🎨 애니메이션 감성 컬러 그레이딩 + 부드러운 비네팅 (채도·대비·따뜻한 톤 보정)
+      if (typeof THREE.ShaderPass !== 'undefined') {
+        this.gradePass = new THREE.ShaderPass({
+          uniforms: {
+            tDiffuse: { value: null },
+            uSaturation: { value: 1.12 },
+            uContrast: { value: 1.06 },
+            uWarmth: { value: 0.025 },
+            uVignette: { value: 0.32 },
+            uLift: { value: 0.012 }
+          },
+          vertexShader: `
+            varying vec2 vUv;
+            void main() {
+              vUv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform sampler2D tDiffuse;
+            uniform float uSaturation;
+            uniform float uContrast;
+            uniform float uWarmth;
+            uniform float uVignette;
+            uniform float uLift;
+            varying vec2 vUv;
+            void main() {
+              vec4 tex = texture2D(tDiffuse, vUv);
+              vec3 c = tex.rgb;
+              float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+              c = mix(vec3(l), c, uSaturation);
+              c = (c - 0.5) * uContrast + 0.5;
+              c += vec3(uWarmth, uWarmth * 0.35, -uWarmth * 0.6);
+              c = c * (1.0 - uLift) + uLift;
+              vec2 d = vUv - 0.5;
+              float vig = smoothstep(0.85, 0.2, length(d * vec2(1.15, 1.0)));
+              c *= mix(1.0 - uVignette, 1.0, vig);
+              gl_FragColor = vec4(clamp(c, 0.0, 1.0), tex.a);
+            }
+          `
+        });
+        this.composer.addPass(this.gradePass);
+      }
     }
 
-    this.hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x4d7c0f, 0.62);
+    this.hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x4d7c0f, 0.64);
     this.hemiLight.position.set(0, 110, 0);
     this.scene.add(this.hemiLight);
 
-    this.dirLight = new THREE.DirectionalLight(0xfef3c7, 0.68);
-    this.dirLight.position.set(65, 115, 55);
+    // 🌞 플레이어를 따라다니는 고해상도 타이트 그림자 (그림자 텍셀 밀도 약 4배 ↑ → 선명하고 부드러운 그림자)
+    this.sunOffset = new THREE.Vector3(48, 86, 40);
+    this.dirLight = new THREE.DirectionalLight(0xfef3c7, 0.72);
+    this.dirLight.position.copy(this.sunOffset);
     this.dirLight.castShadow = true;
     this.dirLight.shadow.mapSize.width = 2048;
     this.dirLight.shadow.mapSize.height = 2048;
-    this.dirLight.shadow.camera.near = 10;
-    this.dirLight.shadow.camera.far = 380;
-    const d = 160;
+    this.dirLight.shadow.camera.near = 5;
+    this.dirLight.shadow.camera.far = 260;
+    const d = 62;
     this.dirLight.shadow.camera.left = -d;
     this.dirLight.shadow.camera.right = d;
     this.dirLight.shadow.camera.top = d;
     this.dirLight.shadow.camera.bottom = -d;
+    this.dirLight.shadow.bias = -0.00035;
+    this.dirLight.shadow.normalBias = 0.035;
+    this.dirLight.shadow.radius = 3;
     this.scene.add(this.dirLight);
+    this.scene.add(this.dirLight.target);
+
+    // 캐릭터 실루엣을 살려주는 역광 림 라이트 (그림자 없음)
+    this.rimLight = new THREE.DirectionalLight(0xbfdbfe, 0.28);
+    this.rimLight.position.set(-60, 40, -70);
+    this.scene.add(this.rimLight);
+
+    // 적응형 해상도(프레임 저하 시 자동으로 해상도 조절) 상태
+    this.perfSampleTime = 0;
+    this.perfSampleFrames = 0;
+  }
+
+  // 🖥️ 프레임레이트에 맞춰 렌더 해상도를 자동 조절 (저사양에서도 부드럽게, 고사양은 최고 화질)
+  updateAdaptiveResolution(rawDt) {
+    this.perfSampleTime += rawDt;
+    this.perfSampleFrames++;
+    if (this.perfSampleTime < 2.0) return;
+    const fps = this.perfSampleFrames / this.perfSampleTime;
+    this.perfSampleTime = 0;
+    this.perfSampleFrames = 0;
+
+    let next = this.currentPixelRatio;
+    if (fps < 42 && this.currentPixelRatio > 0.85) next = Math.max(0.85, this.currentPixelRatio - 0.25);
+    else if (fps > 57 && this.currentPixelRatio < this.maxPixelRatio) next = Math.min(this.maxPixelRatio, this.currentPixelRatio + 0.25);
+    if (Math.abs(next - this.currentPixelRatio) > 0.01) {
+      this.currentPixelRatio = next;
+      this.renderer.setPixelRatio(next);
+      if (this.composer) {
+        this.composer.setPixelRatio && this.composer.setPixelRatio(next);
+        this.composer.setSize(window.innerWidth, window.innerHeight);
+      }
+    }
+  }
+
+  // 🌍 매 프레임 환경 갱신: 하늘/그림자/대기 파티클이 플레이어를 따라감 (전투 가도 z=-568까지 하늘 유지)
+  updateEnvironmentFx() {
+    const t = this.clock.elapsedTime;
+    if (this.skyDome) {
+      this.skyDome.position.copy(this.camera.position);
+      if (this.skyDome.userData.update) this.skyDome.userData.update(t);
+    }
+    if (this.dirLight && this.sunOffset) {
+      // 텍셀 단위 스냅으로 그림자 가장자리 지글거림(Shimmering) 방지
+      const snap = 0.5;
+      const px = Math.round(this.playerPos.x / snap) * snap;
+      const pz = Math.round(this.playerPos.z / snap) * snap;
+      this.dirLight.target.position.set(px, 0, pz);
+      this.dirLight.position.set(px + this.sunOffset.x, this.sunOffset.y, pz + this.sunOffset.z);
+    }
+    if (this.ambientMotes && this.ambientMotes.userData.update) {
+      this.ambientMotes.userData.update(t, this.playerPos);
+    }
   }
 
   // ========================================================================
@@ -431,47 +551,100 @@ class Chiikawa3DWorldApp {
 
     const btn = document.getElementById('btn-time-toggle');
     const skyUniforms = this.skyDome ? this.skyDome.material.uniforms : null;
+    const gradeUniforms = this.gradePass ? this.gradePass.uniforms : null;
+    const motesUniforms = this.ambientMotes ? this.ambientMotes.userData.mat.uniforms : null;
 
     if (this.timeOfDay === 'day') {
       this.scene.background.setHex(0x7dd3fc);
       this.scene.fog.color.setHex(0x93c5fd);
-      this.hemiLight.intensity = 0.62;
+      this.hemiLight.intensity = 0.64;
       this.dirLight.color.setHex(0xfef3c7);
-      this.dirLight.intensity = 0.68;
-      this.renderer.toneMappingExposure = 0.78;
-      if (this.bloomPass) this.bloomPass.strength = 0.08;
+      this.dirLight.intensity = 0.72;
+      if (this.rimLight) {
+        this.rimLight.color.setHex(0xbfdbfe);
+        this.rimLight.intensity = 0.28;
+      }
+      this.renderer.toneMappingExposure = 0.8;
+      if (this.bloomPass) this.bloomPass.strength = 0.14;
       if (skyUniforms) {
         skyUniforms.topColor.value.setHex(0x2563eb);
         skyUniforms.midColor.value.setHex(0x7dd3fc);
         skyUniforms.bottomColor.value.setHex(0xdbeafe);
+        skyUniforms.sunColor.value.setHex(0xfff1c1);
+        skyUniforms.cloudColor.value.setHex(0xffffff);
+        skyUniforms.nightFactor.value = 0.0;
+      }
+      if (gradeUniforms) {
+        gradeUniforms.uSaturation.value = 1.12;
+        gradeUniforms.uContrast.value = 1.06;
+        gradeUniforms.uWarmth.value = 0.025;
+        gradeUniforms.uVignette.value = 0.32;
+      }
+      if (motesUniforms) {
+        motesUniforms.uColor.value.setHex(0xfff7d6);
+        motesUniforms.uIntensity.value = 0.55;
       }
       if (btn) btn.innerText = '☀️ 낮 (벚꽃초원)';
     } else if (this.timeOfDay === 'sunset') {
       this.scene.background.setHex(0xfb7185);
       this.scene.fog.color.setHex(0xfda4af);
-      this.hemiLight.intensity = 0.54;
+      this.hemiLight.intensity = 0.56;
       this.dirLight.color.setHex(0xfb923c);
-      this.dirLight.intensity = 0.64;
-      this.renderer.toneMappingExposure = 0.76;
-      if (this.bloomPass) this.bloomPass.strength = 0.12;
+      this.dirLight.intensity = 0.68;
+      if (this.rimLight) {
+        this.rimLight.color.setHex(0xfde68a);
+        this.rimLight.intensity = 0.32;
+      }
+      this.renderer.toneMappingExposure = 0.78;
+      if (this.bloomPass) this.bloomPass.strength = 0.18;
       if (skyUniforms) {
         skyUniforms.topColor.value.setHex(0x581c87);
         skyUniforms.midColor.value.setHex(0xe11d48);
         skyUniforms.bottomColor.value.setHex(0xfdba74);
+        skyUniforms.sunColor.value.setHex(0xfbbf24);
+        skyUniforms.cloudColor.value.setHex(0xfed7aa);
+        skyUniforms.nightFactor.value = 0.15;
+      }
+      if (gradeUniforms) {
+        gradeUniforms.uSaturation.value = 1.2;
+        gradeUniforms.uContrast.value = 1.08;
+        gradeUniforms.uWarmth.value = 0.06;
+        gradeUniforms.uVignette.value = 0.38;
+      }
+      if (motesUniforms) {
+        motesUniforms.uColor.value.setHex(0xfdba74);
+        motesUniforms.uIntensity.value = 0.7;
       }
       if (btn) btn.innerText = '🌅 노을 (황혼)';
     } else {
-      this.scene.background.setHex(0x0f172a);
+      this.scene.background.setHex(0x0a1024);
       this.scene.fog.color.setHex(0x0f172a);
-      this.hemiLight.intensity = 0.42;
+      this.hemiLight.intensity = 0.44;
       this.dirLight.color.setHex(0x818cf8);
-      this.dirLight.intensity = 0.52;
-      this.renderer.toneMappingExposure = 0.74;
-      if (this.bloomPass) this.bloomPass.strength = 0.18;
+      this.dirLight.intensity = 0.54;
+      if (this.rimLight) {
+        this.rimLight.color.setHex(0x38bdf8);
+        this.rimLight.intensity = 0.36;
+      }
+      this.renderer.toneMappingExposure = 0.75;
+      if (this.bloomPass) this.bloomPass.strength = 0.22;
       if (skyUniforms) {
         skyUniforms.topColor.value.setHex(0x020617);
         skyUniforms.midColor.value.setHex(0x1e1b4b);
         skyUniforms.bottomColor.value.setHex(0x312e81);
+        skyUniforms.sunColor.value.setHex(0xa5b4fc);
+        skyUniforms.cloudColor.value.setHex(0x475569);
+        skyUniforms.nightFactor.value = 1.0;
+      }
+      if (gradeUniforms) {
+        gradeUniforms.uSaturation.value = 1.08;
+        gradeUniforms.uContrast.value = 1.05;
+        gradeUniforms.uWarmth.value = -0.02;
+        gradeUniforms.uVignette.value = 0.45;
+      }
+      if (motesUniforms) {
+        motesUniforms.uColor.value.setHex(0x86efac);
+        motesUniforms.uIntensity.value = 0.95;
       }
       if (btn) btn.innerText = '🌙 밤 (반딧불이)';
     }
@@ -490,8 +663,14 @@ class Chiikawa3DWorldApp {
       this.scene.add(this.skyDome);
     }
 
+    if (typeof createAmbientMotes3D === 'function') {
+      this.ambientMotes = createAmbientMotes3D(320);
+      this.scene.add(this.ambientMotes);
+    }
+
     // 기존 반경 150m -> 250m(면적 약 3배 확장!) 초대형 대륙 지형
     const grassTex = createGrassCanvasTexture();
+    if (this.maxAnisotropy) grassTex.anisotropy = this.maxAnisotropy;
     const groundGeo = new THREE.CylinderGeometry(250, 256, 4, 72);
     const groundMat = new THREE.MeshToonMaterial({
       map: grassTex,
@@ -508,6 +687,7 @@ class Chiikawa3DWorldApp {
     }
 
     const plazaTex = createPlazaCanvasTexture();
+    if (this.maxAnisotropy) plazaTex.anisotropy = this.maxAnisotropy;
     const plazaGeo = new THREE.CylinderGeometry(21, 21.5, 0.26, 48);
     const plazaMat = new THREE.MeshToonMaterial({
       map: plazaTex,
@@ -542,6 +722,7 @@ class Chiikawa3DWorldApp {
     }
 
     this.waterTexture = createWaterCanvasTexture();
+    if (this.maxAnisotropy) this.waterTexture.anisotropy = this.maxAnisotropy;
     const riverBridge = createRiverAndBridge3D(this.waterTexture);
     this.scene.add(riverBridge);
 
@@ -2745,7 +2926,11 @@ class Chiikawa3DWorldApp {
   animate() {
     requestAnimationFrame(() => this.animate());
 
-    let dt = Math.min(this.clock.getDelta(), 0.05);
+    const rawDelta = this.clock.getDelta();
+    let dt = Math.min(rawDelta, 0.05);
+
+    this.updateAdaptiveResolution(rawDelta);
+    this.updateEnvironmentFx();
 
     if (this.hitStopTimer > 0) {
       this.hitStopTimer -= dt;
@@ -3691,7 +3876,14 @@ class Chiikawa3DWorldApp {
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       if (this.composer) {
+        this.composer.setPixelRatio && this.composer.setPixelRatio(this.currentPixelRatio);
         this.composer.setSize(window.innerWidth, window.innerHeight);
+      }
+      if (this.bloomPass && this.bloomPass.setSize) {
+        this.bloomPass.setSize(window.innerWidth, window.innerHeight);
+      }
+      if (this.ambientMotes && this.ambientMotes.userData.mat) {
+        this.ambientMotes.userData.mat.uniforms.uPixelRatio.value = this.currentPixelRatio;
       }
     });
 
