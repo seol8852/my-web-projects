@@ -43,7 +43,7 @@ const RAMEN_GUESTS = [
   {
     char: 'rakko',
     name: '랏코 사부',
-    img: 'assets/rakko.png',
+    img: 'assets/rakko.png?v=3',
     quote: '전투 전 체력 보충이다. 채소 듬뿍, 두툼 차슈, 반숙 달걀을 정석으로 부탁한다.',
     required: ['veggie', 'chashu', 'egg']
   }
@@ -437,3 +437,196 @@ function showToast(msg) {
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
+
+// ==========================================================================
+// 5. ⚔️ 20단계 토벌 스테이지 데이터 (5·15단계: 중간보스 / 10·20단계: 대보스)
+// ==========================================================================
+const STAGE_CAMPAIGN_DATA = Array.from({ length: 20 }, (_, i) => {
+  const num = i + 1;
+  const isMainBoss = num === 10 || num === 20;
+  const isMidBoss = num === 5 || num === 15;
+
+  let role = 'normal';
+  let badge = '일반 토벌';
+  let title = `초원 외곽 토벌 ${num}구역`;
+  let bossName = '';
+  let monsters = [];
+
+  if (num === 5) {
+    role = 'midboss';
+    badge = '★ 중간보스';
+    title = '강철 뿔 대장 풍뎅이';
+    bossName = '★중간보스: 강철 뿔 대장 풍뎅이';
+    monsters = [
+      { type: 'midboss', name: '★중간보스: 강철 뿔 대장 풍뎅이', isBoss: true, hp: 620, atk: 20, scale: 1.28, atkPattern: 'circle', reach: 5.8 },
+      { type: 'bug', name: '친위대 독침 벌레 A', hp: 160, atk: 12, scale: 1.0, atkPattern: 'sector', reach: 4.2 },
+      { type: 'bug', name: '친위대 독침 벌레 B', hp: 160, atk: 12, scale: 1.0, atkPattern: 'sector', reach: 4.2 }
+    ];
+  } else if (num === 10) {
+    role = 'mainboss';
+    badge = '👑 10단계 보스';
+    title = '숲의 지배자 각성 아노코';
+    bossName = '👑10단계 보스: 숲의 지배자 각성 아노코';
+    monsters = [
+      { type: 'anoko', name: '👑10단계 보스: 숲의 지배자 각성 아노코', isBoss: true, hp: 1350, atk: 28, scale: 1.25, atkPattern: 'circle', reach: 7.0 },
+      { type: 'chimera', name: '붉은 눈물 키메라 A', hp: 280, atk: 17, scale: 1.05, atkPattern: 'sector', reach: 4.8 },
+      { type: 'chimera', name: '붉은 눈물 키메라 B', hp: 280, atk: 17, scale: 1.05, atkPattern: 'sector', reach: 4.8 }
+    ];
+  } else if (num === 15) {
+    role = 'midboss';
+    badge = '★ 중간보스';
+    title = '심연의 중장갑 대키메라';
+    bossName = '★중간보스: 심연의 중장갑 대키메라';
+    monsters = [
+      { type: 'iron_chimera', name: '★중간보스: 심연의 중장갑 대키메라', isBoss: true, hp: 2100, atk: 34, scale: 1.38, atkPattern: 'sector', reach: 6.4 },
+      { type: 'goblin', name: '유적 저격수 고블린 A', hp: 360, atk: 21, scale: 1.05, atkPattern: 'line', reach: 11.5 },
+      { type: 'goblin', name: '유적 저격수 고블린 B', hp: 360, atk: 21, scale: 1.05, atkPattern: 'line', reach: 11.5 },
+      { type: 'chimera', name: '심연의 그림자 키메라', hp: 440, atk: 23, scale: 1.1, atkPattern: 'sector', reach: 5.0 }
+    ];
+  } else if (num === 20) {
+    role = 'mainboss';
+    badge = '👑 20단계 최종보스';
+    title = '태고의 대괴수 아노코 렉스';
+    bossName = '👑최종보스: 태고의 대괴수 아노코 렉스';
+    monsters = [
+      { type: 'anoko', name: '👑최종보스: 태고의 대괴수 아노코 렉스', isBoss: true, hp: 3600, atk: 44, scale: 1.48, atkPattern: 'circle', reach: 7.8 },
+      { type: 'midboss', name: '🛡️태고의 수호 뿔괴수 좌익', hp: 720, atk: 28, scale: 1.15, atkPattern: 'circle', reach: 5.5 },
+      { type: 'iron_chimera', name: '🛡️태고의 중장갑 수호병 우익', hp: 780, atk: 29, scale: 1.15, atkPattern: 'sector', reach: 5.6 }
+    ];
+  } else {
+    // 일반 스테이지 (1~4, 6~9, 11~14, 16~19)
+    const zoneNames = [
+      '들판 정찰대', '버섯 숲 입구', '바람의 언덕', '안개 낀 숲길', '',
+      '키메라 협곡 초입', '바위산 오솔길', '붉은 억새 평원', '폭풍의 계곡', '',
+      '고대 유적 외곽', '무너진 회랑', '심연의 제단 길', '강철 파수꾼의 방', '',
+      '태고의 신전 입구', '별빛 결계 구역', '심연의 중심부', '최후의 성소 앞'
+    ];
+    title = zoneNames[num - 1] || `토벌 원정 ${num}구역`;
+
+    const count = 3 + Math.floor(num / 4);
+    const pool = num < 5
+      ? ['bug', 'goblin']
+      : num < 10
+        ? ['goblin', 'chimera']
+        : num < 15
+          ? ['chimera', 'iron_chimera', 'goblin']
+          : ['iron_chimera', 'midboss', 'chimera'];
+
+    for (let m = 0; m < count; m++) {
+      const mType = pool[m % pool.length];
+      const baseHp = 95 + num * 38 + m * 15;
+      const baseAtk = 9 + Math.floor(num * 1.4);
+      const typeNames = {
+        bug: `Lv.${num} 숲속 독침 벌레`,
+        goblin: `Lv.${num} 새총 정찰 고블린`,
+        chimera: `Lv.${num} 사나운 발톱 키메라`,
+        iron_chimera: `Lv.${num} 🛡️강철 장갑 괴수`,
+        midboss: `Lv.${num} 🛡️거대 가시 뿔괴수`
+      };
+      monsters.push({
+        type: mType,
+        name: typeNames[mType],
+        hp: baseHp,
+        atk: baseAtk,
+        scale: 1.0,
+        atkPattern: mType === 'goblin' ? 'line' : mType === 'midboss' ? 'circle' : 'sector',
+        reach: mType === 'goblin' ? 10.8 : 4.8
+      });
+    }
+  }
+
+  const rewardCoin = isMainBoss
+    ? num * 85
+    : isMidBoss
+      ? num * 58
+      : 70 + num * 32;
+  const rewardExp = isMainBoss
+    ? num * 75
+    : isMidBoss
+      ? num * 52
+      : 60 + num * 28;
+
+  return {
+    stageNum: num,
+    role,
+    badge,
+    title,
+    bossName,
+    recLv: Math.max(1, Math.ceil(num * 0.75)),
+    rewardCoin,
+    rewardExp,
+    monsters
+  };
+});
+
+function openStageSelectModal() {
+  if (window.gameApp) window.gameApp.clearAllInputKeys();
+  soundFx.playCoin();
+  const modal = document.getElementById('stage-select-modal');
+  if (!modal) return;
+  modal.classList.add('open');
+  renderStageSelectModal();
+}
+
+function closeStageSelectModal() {
+  const modal = document.getElementById('stage-select-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function closeStageResultModal() {
+  const modal = document.getElementById('stage-result-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function renderStageSelectModal() {
+  if (!window.gameApp) return;
+  const maxUnlocked = window.gameApp.stats.maxUnlockedStage || 1;
+  const clearedMax = window.gameApp.stats.highestClearedStage || 0;
+
+  const badgeEl = document.getElementById('stage-progress-badge');
+  if (badgeEl) {
+    badgeEl.innerText = `🏆 최고 클리어: ${clearedMax} / 20 단계 (현재 ${maxUnlocked}단계 개방)`;
+  }
+
+  const grid = document.getElementById('stage-campaign-grid');
+  if (!grid) return;
+
+  grid.innerHTML = STAGE_CAMPAIGN_DATA.map(st => {
+    const isUnlocked = st.stageNum <= maxUnlocked;
+    const isCleared = st.stageNum <= clearedMax;
+
+    let cardClass = 'stage-card';
+    if (st.role === 'midboss') cardClass += ' midboss';
+    if (st.role === 'mainboss') cardClass += ' mainboss';
+    if (isCleared) cardClass += ' cleared';
+    if (!isUnlocked) cardClass += ' locked';
+
+    let tagClass = 'stage-type-tag tag-normal';
+    if (st.role === 'midboss') tagClass = 'stage-type-tag tag-midboss';
+    if (st.role === 'mainboss') tagClass = 'stage-type-tag tag-mainboss';
+
+    const actionTxt = !isUnlocked
+      ? `🔒 ${st.stageNum - 1}단계 클리어 필요`
+      : isCleared
+        ? `✅ 클리어 (재도전)`
+        : `🔥 ${st.stageNum}단계 출격!`;
+
+    return `
+      <div class="${cardClass}" onclick="${isUnlocked ? `gameApp.startBattleStage(${st.stageNum})` : `showToast('🔒 이전 단계인 ${st.stageNum - 1}단계를 먼저 클리어해주세요!')`}">
+        <div class="stage-num-row">
+          <span>STAGE ${st.stageNum}</span>
+          <span class="${tagClass}">${st.badge}</span>
+        </div>
+        <div class="stage-card-title">${st.title}</div>
+        <div style="font-size:11px; color:#64748b; font-weight:700;">
+          권장 Lv.${st.recLv}+ · 괴수 ${st.monsters.length}마리
+        </div>
+        <div class="stage-card-reward">
+          보상: +${st.rewardCoin}🪙 / +${st.rewardExp} EXP
+        </div>
+        <div class="stage-card-action">${actionTxt}</div>
+      </div>
+    `;
+  }).join('');
+}
+

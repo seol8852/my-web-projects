@@ -55,7 +55,7 @@ class Chiikawa3DWorldApp {
     this.afterimages = [];
     this.footstepTimer = 0;
 
-    // 스탯 및 진행도
+    // 스탯 및 진행도 (20단계 토벌 스테이지 진행도 포함!)
     this.stats = {
       level: 1,
       exp: 0,
@@ -71,7 +71,26 @@ class Chiikawa3DWorldApp {
       puddingClimbed: 0,
       weaponLv: 1,
       equippedHat: 'none',
-      unlockedHats: ['none']
+      unlockedHats: ['none'],
+      maxUnlockedStage: 1,
+      highestClearedStage: 0
+    };
+
+    // 전투 스테이지 & 스페셜 던전 전용 상태 (메인 광장과 완전 분리!)
+    this.arenaCenter = new THREE.Vector3(0, 0, -340);
+    this.portalGatePos = new THREE.Vector3(32, 0, -22);
+    this.portalGateMesh = null;
+    this.battleArenaMesh = null;
+    this.battleState = {
+      active: false,
+      mode: 'town', // 'town' | 'stage' | 'dungeon'
+      stageNum: 1,
+      dungeonType: null, // 'exp' | 'gold'
+      dungeonTier: 1,
+      title: '',
+      totalMonsters: 0,
+      rewardCoin: 0,
+      rewardExp: 0
     };
 
     // 쿼터뷰 액션 카메라 궤도 설정
@@ -129,7 +148,7 @@ class Chiikawa3DWorldApp {
     this.spawnTownNpcs();
     this.spawnWeeds();
     this.spawnFieldChests();
-    this.spawnMonsters();
+    // 메인 광장은 평화 구역이므로 시작 시 몬스터를 스폰하지 않음! (전투 스테이지/던전 입장 시 스폰)
     this.bindEvents();
     this.renderCharSelectCards();
     this.updateHud();
@@ -153,10 +172,17 @@ class Chiikawa3DWorldApp {
   isAnyModalOpen() {
     const screen = document.getElementById('char-select-screen');
     if (screen && !screen.classList.contains('hidden')) return true;
-    const modals = ['ramen-modal', 'shop-modal', 'weed-exam-modal', 'npc-dialog-modal'];
+    const modals = [
+      'ramen-modal',
+      'shop-modal',
+      'weed-exam-modal',
+      'npc-dialog-modal',
+      'stage-select-modal',
+      'stage-result-modal'
+    ];
     for (const id of modals) {
       const el = document.getElementById(id);
-      if (el && el.classList.contains('active')) return true;
+      if (el && (el.classList.contains('open') || el.classList.contains('active'))) return true;
     }
     return false;
   }
@@ -172,6 +198,12 @@ class Chiikawa3DWorldApp {
         }
         if (!this.stats.weaponLv) {
           this.stats.weaponLv = 1;
+        }
+        if (!this.stats.maxUnlockedStage || this.stats.maxUnlockedStage < 1) {
+          this.stats.maxUnlockedStage = 1;
+        }
+        if (typeof this.stats.highestClearedStage !== 'number') {
+          this.stats.highestClearedStage = 0;
         }
       }
       const savedChar = localStorage.getItem('chiikawa_3d_selected_char');
@@ -635,29 +667,28 @@ class Chiikawa3DWorldApp {
       this.scene.add(fFloor);
     });
 
-    const toriiGate = createToriiGate3D();
-    toriiGate.position.set(30, 0, -21);
-    toriiGate.rotation.y = -Math.PI / 4;
-    this.scene.add(toriiGate);
-    this.addZoneSign('⛩️ 제1 토벌 구역: 초록 버섯 숲', 30, 8.8, -21);
+    // 8) 북동쪽 전투 스테이지(1~20단계) & 성장 던전 출격 포털 게이트 (광장 평화구역 -> 아레나 이동!)
+    if (typeof createSubjugationPortalGate3D === 'function') {
+      this.portalGateMesh = createSubjugationPortalGate3D();
+      this.portalGateMesh.position.copy(this.portalGatePos);
+      this.portalGateMesh.rotation.y = -Math.PI / 4;
+      this.scene.add(this.portalGateMesh);
+      this.addZoneSign('⛩️ 전투 스테이지(1~20단계) & 성장 던전 출격 포털 [E / M]', 32, 10.6, -22);
+    }
 
-    const toriiGate2 = createToriiGate3D();
-    toriiGate2.position.set(82, 0, -50);
-    toriiGate2.rotation.y = -Math.PI / 3;
-    this.scene.add(toriiGate2);
-    this.addZoneSign('⛩️ 제2 토벌 구역: 심연의 고대 유적지', 82, 8.8, -50);
-
-    const toriiGate3 = createToriiGate3D();
-    toriiGate3.position.set(58, 0, 20);
-    toriiGate3.rotation.y = Math.PI / 5;
-    this.scene.add(toriiGate3);
-    this.addZoneSign('⛩️ 제3 토벌 구역: 남동쪽 키메라 협곡', 58, 8.8, 20);
+    // 9) 메인 광장과 완전히 분리된 3D 전투 스테이지 & 스페셜 던전 전용 콜로세움 아레나 (0, 0, -340)
+    if (typeof createBattleColosseumArena3D === 'function') {
+      this.battleArenaMesh = createBattleColosseumArena3D();
+      this.battleArenaMesh.position.copy(this.arenaCenter);
+      this.scene.add(this.battleArenaMesh);
+      this.addZoneSign('⚔️ 치이카와 토벌 결투장 (Battle Arena)', 0, 11.5, -378);
+    }
 
     if (typeof createAncientRuins3D === 'function') {
       const ruins = createAncientRuins3D();
-      ruins.position.set(128, 0, -76);
+      ruins.position.set(108, 0, -64);
       this.scene.add(ruins);
-      this.addZoneSign('🏛️ 고대 보스 신전: 아노코의 제단', 128, 10.5, -76);
+      this.addZoneSign('🏛️ 고대 유적지 전망대 (평화 탐방 구역)', 108, 10.5, -64);
     }
 
     // 토벌의 숲 곳곳에 대형 판타지 버섯 36개 배치
@@ -1025,41 +1056,55 @@ class Chiikawa3DWorldApp {
     );
   }
 
-  spawnMonsters() {
-    const monsterDefs = [
-      // 1구역: 초록 버섯 숲 (초급~중급)
-      { type: 'bug', name: '보라 날개 벌레', hp: 100, maxHp: 100, atk: 10, coin: 32, exp: 35, pos: [35, -28], atkPattern: 'sector', reach: 4.2 },
-      { type: 'bug', name: '숲속 독침 벌레', hp: 110, maxHp: 110, atk: 11, coin: 35, exp: 38, pos: [28, -42], atkPattern: 'sector', reach: 4.2 },
-      { type: 'goblin', name: '새총 고블린', hp: 140, maxHp: 140, atk: 13, coin: 45, exp: 48, pos: [45, -24], atkPattern: 'line', reach: 10.5 },
-      { type: 'chimera', name: '분홍 눈물 키메라', hp: 185, maxHp: 185, atk: 16, coin: 58, exp: 65, pos: [53, -34], atkPattern: 'sector', reach: 4.8 },
-      { type: 'midboss', name: '🛡️가시 뿔 괴수', hp: 250, maxHp: 250, atk: 19, coin: 80, exp: 85, pos: [38, -48], atkPattern: 'circle', reach: 5.2 },
-      { type: 'iron_chimera', name: '🛡️중장갑 강철 괴수', hp: 310, maxHp: 310, atk: 22, coin: 100, exp: 110, pos: [64, -33], atkPattern: 'sector', reach: 5.4 },
-      { type: 'anoko', name: '👑 숲의 보스 아노코', hp: 560, maxHp: 560, atk: 28, coin: 240, exp: 220, pos: [56, -56], atkPattern: 'circle', reach: 6.6 },
+  // ========================================================================
+  // 4-2. ⚔️ 20단계 토벌 스테이지(5·15 중간보스 / 10·20 보스) & 경험치/재화 던전 시스템
+  // ========================================================================
+  clearStageMonsters() {
+    this.monsters.forEach(m => {
+      if (m.mesh) this.scene.remove(m.mesh);
+      if (m.labelEl) m.labelEl.remove();
+    });
+    this.monsters = [];
 
-      // 2구역: 남동쪽 키메라 협곡 (중급 사냥터)
-      { type: 'bug', name: '협곡 정찰 벌레', hp: 120, maxHp: 120, atk: 12, coin: 38, exp: 40, pos: [66, 26], atkPattern: 'sector', reach: 4.2 },
-      { type: 'goblin', name: '협곡 명사수 고블린', hp: 155, maxHp: 155, atk: 14, coin: 50, exp: 52, pos: [78, 22], atkPattern: 'line', reach: 11.0 },
-      { type: 'chimera', name: '붉은 발톱 키메라', hp: 200, maxHp: 200, atk: 17, coin: 65, exp: 70, pos: [88, 38], atkPattern: 'sector', reach: 4.8 },
-      { type: 'chimera', name: '포효하는 키메라', hp: 210, maxHp: 210, atk: 18, coin: 68, exp: 72, pos: [74, 48], atkPattern: 'sector', reach: 4.8 },
-      { type: 'midboss', name: '🛡️협곡 수호 거대괴수', hp: 280, maxHp: 280, atk: 21, coin: 95, exp: 95, pos: [98, 32], atkPattern: 'circle', reach: 5.4 },
+    this.telegraphs.forEach(tg => {
+      if (tg.mesh) this.scene.remove(tg.mesh);
+    });
+    this.telegraphs = [];
+  }
 
-      // 3구역: 북동쪽 심연의 고대 유적지 (상급 & 레이드 보스 구역)
-      { type: 'goblin', name: '유적 파수꾼 고블린', hp: 170, maxHp: 170, atk: 15, coin: 55, exp: 58, pos: [88, -56], atkPattern: 'line', reach: 11.0 },
-      { type: 'chimera', name: '심연의 그림자 키메라', hp: 230, maxHp: 230, atk: 19, coin: 75, exp: 80, pos: [96, -72], atkPattern: 'sector', reach: 5.0 },
-      { type: 'iron_chimera', name: '🛡️고대 유적 강철병', hp: 350, maxHp: 350, atk: 24, coin: 120, exp: 130, pos: [110, -58], atkPattern: 'sector', reach: 5.5 },
-      { type: 'iron_chimera', name: '🛡️신전 수호 강철괴수', hp: 370, maxHp: 370, atk: 25, coin: 130, exp: 140, pos: [116, -86], atkPattern: 'sector', reach: 5.5 },
-      { type: 'midboss', name: '🛡️유적 파괴자 뿔괴수', hp: 320, maxHp: 320, atk: 23, coin: 110, exp: 115, pos: [104, -42], atkPattern: 'circle', reach: 5.5 },
-      { type: 'anoko', name: '👑 고대 신전 제왕 아노코', hp: 720, maxHp: 720, atk: 32, coin: 350, exp: 320, pos: [128, -76], atkPattern: 'circle', reach: 7.0 }
-    ];
+  spawnArenaMonsterList(monsterDefs) {
+    this.clearStageMonsters();
 
-    monsterDefs.forEach(def => {
+    const cx = this.arenaCenter.x;
+    const cz = this.arenaCenter.z;
+
+    monsterDefs.forEach((def, idx) => {
       const mesh = createMonster3D(def.type);
-      const pos = new THREE.Vector3(def.pos[0], 0, def.pos[1]);
+      const scale = def.scale || 1.0;
+      mesh.scale.setScalar(scale);
+
+      // 보스는 아레나 북쪽 중앙, 일반 몬스터는 반원 형태로 배치
+      let mx = cx;
+      let mz = cz - 14;
+      if (!def.isBoss) {
+        const spreadIdx = def.isBoss ? 0 : idx;
+        const total = Math.max(1, monsterDefs.length);
+        const angle = -Math.PI * 0.65 + (spreadIdx / Math.max(1, total - 1)) * Math.PI * 1.3;
+        const dist = 10 + (idx % 2) * 6;
+        mx = cx + Math.sin(angle) * dist;
+        mz = cz - Math.cos(angle) * dist * 0.65 - 4;
+      }
+
+      const pos = new THREE.Vector3(mx, 0, mz);
       mesh.position.copy(pos);
       this.scene.add(mesh);
 
       const labelEl = document.createElement('div');
       labelEl.className = 'world-label monster-hud-tag';
+      if (def.isBoss) {
+        labelEl.style.borderColor = '#facc15';
+        labelEl.style.background = 'rgba(15, 23, 42, 0.92)';
+      }
       labelEl.innerHTML = `
         <div>${def.name} <span class="monster-status-tag" style="font-size:10px; color:#38bdf8;"></span></div>
         <div class="monster-hp-track"><div class="monster-hp-fill" style="width:100%"></div></div>
@@ -1068,26 +1113,292 @@ class Chiikawa3DWorldApp {
 
       this.monsters.push({
         ...def,
+        maxHp: def.hp,
+        coin: def.coin || 25,
+        exp: def.exp || 30,
         mesh,
         pos,
         homePos: pos.clone(),
+        baseScale: scale,
         facingYaw: 0,
-        bodyRadius: mesh.userData.bodyRadius || 1.5,
-        sizeH: mesh.userData.sizeH || 5.4,
+        bodyRadius: (mesh.userData.bodyRadius || 1.5) * scale,
+        sizeH: (mesh.userData.sizeH || 5.4) * scale,
         isArmored: mesh.userData.isArmored || false,
         knockbackVel: new THREE.Vector3(),
         labelEl,
         statusEl: labelEl.querySelector('.monster-status-tag'),
         hpFillEl: labelEl.querySelector('.monster-hp-fill'),
         alive: true,
-        respawnTimer: 0,
-        atkCooldown: 1.5,
+        respawnTimer: 999999, // 스테이지 몬스터는 리스폰하지 않음
+        atkCooldown: 1.2 + idx * 0.25,
         isWindingUp: false,
         slowTimer: 0,
         stunTimer: 0,
-        heightOffset: def.type === 'anoko' ? 8.8 : 5.4
+        heightOffset: (def.type === 'anoko' ? 8.8 : 5.4) * scale
       });
     });
+  }
+
+  // ⚔️ 1 ~ 20단계 토벌 스테이지 시작!
+  startBattleStage(stageNum) {
+    const maxUnlocked = this.stats.maxUnlockedStage || 1;
+    if (stageNum > maxUnlocked) {
+      showToast(`🔒 이전 단계인 ${stageNum - 1}단계를 먼저 클리어해야 입장할 수 있습니다!`);
+      return;
+    }
+
+    closeStageSelectModal();
+    closeStageResultModal();
+    this.clearAllInputKeys();
+    soundFx.playFanfare();
+
+    const stData = STAGE_CAMPAIGN_DATA[stageNum - 1] || STAGE_CAMPAIGN_DATA[0];
+    this.battleState = {
+      active: true,
+      mode: 'stage',
+      stageNum: stData.stageNum,
+      dungeonType: null,
+      dungeonTier: 1,
+      title: `⚔️ STAGE ${stData.stageNum} [${stData.badge}] ${stData.title}`,
+      bossName: stData.bossName || '',
+      totalMonsters: stData.monsters.length,
+      rewardCoin: stData.rewardCoin,
+      rewardExp: stData.rewardExp
+    };
+
+    // 플레이어를 3D 배틀 콜로세움 아레나 입구로 이동 및 체력 100% 회복
+    this.stats.hp = this.stats.maxHp;
+    this.playerPos.set(this.arenaCenter.x, 0, this.arenaCenter.z + 22);
+    this.playerVel.set(0, 0, 0);
+    this.playerVelY = 0;
+    this.playerYaw = Math.PI;
+    this.camYaw = 0;
+    if (this.playerMesh) {
+      this.playerMesh.position.copy(this.playerPos);
+    }
+
+    this.spawnArenaMonsterList(stData.monsters);
+    this.updateBattleStageHud();
+    this.updateHud();
+    this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0xfacc15, 24);
+
+    if (stData.role === 'mainboss') {
+      showToast(`👑 [제 ${stData.stageNum}단계 대보스전] ${stData.bossName} 출현!! 모든 힘을 쏟아 토벌하세요!`);
+    } else if (stData.role === 'midboss') {
+      showToast(`★ [제 ${stData.stageNum}단계 중간보스전] ${stData.bossName} 등장!! 머리 약점과 백어택을 노리세요!`);
+    } else {
+      showToast(`⚔️ [제 ${stData.stageNum}스테이지: ${stData.title}] 전투 시작! 모든 괴수를 물리치세요!`);
+    }
+  }
+
+  // 💎 스페셜 성장 던전 시작 (경험치 던전 / 재화 골드 던전)
+  startSpecialDungeon(dungeonType = 'exp', tier = 1) {
+    closeStageSelectModal();
+    closeStageResultModal();
+    this.clearAllInputKeys();
+    soundFx.playFanfare();
+
+    const tierNames = ['초급', '중급', '상급'];
+    const tName = tierNames[(tier - 1) % 3];
+    let title = '';
+    let rewardCoin = 0;
+    let rewardExp = 0;
+    const monsters = [];
+
+    if (dungeonType === 'exp') {
+      title = `📘 별사탕 수련의 숲 [${tName} 경험치 던전]`;
+      rewardCoin = 60 * tier;
+      rewardExp = tier === 1 ? 220 : tier === 2 ? 550 : 1200;
+      const count = 4 + tier;
+      for (let i = 0; i < count; i++) {
+        monsters.push({
+          type: i % 2 === 0 ? 'bug' : 'goblin',
+          name: `✨별사탕 경험치 정령 Lv.${tier * 3}`,
+          hp: 80 + tier * 95,
+          atk: 8 + tier * 4,
+          coin: 15 * tier,
+          exp: 45 * tier,
+          scale: 1.05,
+          atkPattern: 'sector',
+          reach: 4.2
+        });
+      }
+    } else {
+      title = `🪙 황금 클로버 보물굴 [${tName} 재화 던전]`;
+      rewardCoin = tier === 1 ? 380 : tier === 2 ? 850 : 1800;
+      rewardExp = 80 * tier;
+      const count = 4 + tier;
+      for (let i = 0; i < count; i++) {
+        monsters.push({
+          type: i === 0 && tier >= 2 ? 'midboss' : 'chimera',
+          name: `💰황금 보물 고블린 괴수 Lv.${tier * 3}`,
+          hp: 90 + tier * 105,
+          atk: 9 + tier * 4,
+          coin: 55 * tier,
+          exp: 20 * tier,
+          scale: 1.08,
+          atkPattern: 'sector',
+          reach: 4.5
+        });
+      }
+    }
+
+    this.battleState = {
+      active: true,
+      mode: 'dungeon',
+      stageNum: this.stats.maxUnlockedStage || 1,
+      dungeonType,
+      dungeonTier: tier,
+      title,
+      bossName: '',
+      totalMonsters: monsters.length,
+      rewardCoin,
+      rewardExp
+    };
+
+    this.stats.hp = this.stats.maxHp;
+    this.playerPos.set(this.arenaCenter.x, 0, this.arenaCenter.z + 22);
+    this.playerVel.set(0, 0, 0);
+    this.playerVelY = 0;
+    this.playerYaw = Math.PI;
+    this.camYaw = 0;
+    if (this.playerMesh) {
+      this.playerMesh.position.copy(this.playerPos);
+    }
+
+    this.spawnArenaMonsterList(monsters);
+    this.updateBattleStageHud();
+    this.updateHud();
+    this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0x38bdf8, 24);
+    showToast(`🌟 [${title}] 입장! 모든 몬스터를 처치하고 대량의 성장 보상을 획득하세요!`);
+  }
+
+  startNextStage() {
+    closeStageResultModal();
+    const nextNum = Math.min(20, (this.battleState.stageNum || 1) + 1);
+    this.startBattleStage(nextNum);
+  }
+
+  retryCurrentStage() {
+    closeStageResultModal();
+    if (this.battleState.mode === 'dungeon') {
+      this.startSpecialDungeon(this.battleState.dungeonType, this.battleState.dungeonTier);
+    } else {
+      this.startBattleStage(this.battleState.stageNum || 1);
+    }
+  }
+
+  // ⛲ 전투 종료 후 평화로운 메인 광장으로 귀환
+  returnToTown(isDefeat = false) {
+    closeStageResultModal();
+    closeStageSelectModal();
+    this.clearStageMonsters();
+    this.clearAllInputKeys();
+
+    this.battleState.active = false;
+    this.battleState.mode = 'town';
+    this.stats.hp = this.stats.maxHp;
+
+    this.playerPos.set(0, 0, 12);
+    this.playerVel.set(0, 0, 0);
+    this.playerVelY = 0;
+    if (this.playerMesh) {
+      this.playerMesh.position.copy(this.playerPos);
+    }
+
+    this.updateBattleStageHud();
+    this.updateHud();
+    this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0xff85a2, 20);
+
+    if (isDefeat) {
+      showToast('🚑 전투에서 쓰러져 평화로운 중앙 광장으로 구출되었습니다! 경험치/재화 던전과 무기 강화로 스펙을 올려보세요!');
+    } else {
+      showToast('⛲ 평화로운 메인 광장으로 귀환했습니다! 라멘 알바, 온천, 의상실 등 다양한 컨텐츠를 즐겨보세요!');
+    }
+  }
+
+  updateBattleStageHud() {
+    const hudEl = document.getElementById('battle-stage-hud');
+    if (!hudEl) return;
+
+    if (!this.battleState.active) {
+      hudEl.classList.remove('active');
+      return;
+    }
+
+    hudEl.classList.add('active');
+    const aliveList = this.monsters.filter(m => m.alive);
+    const titleEl = document.getElementById('battle-stage-title');
+    const remainEl = document.getElementById('battle-stage-remain');
+    if (titleEl) titleEl.innerText = this.battleState.title;
+    if (remainEl) remainEl.innerText = `남은 괴수: ${aliveList.length} / ${this.battleState.totalMonsters}`;
+
+    const bossWrap = document.getElementById('stage-boss-bar-wrap');
+    const bossMon = this.monsters.find(m => m.isBoss && m.alive);
+    if (bossWrap) {
+      if (bossMon) {
+        bossWrap.classList.add('active');
+        const pct = Math.max(0, Math.round((bossMon.hp / bossMon.maxHp) * 100));
+        document.getElementById('stage-boss-name').innerText = bossMon.name;
+        document.getElementById('stage-boss-hp-txt').innerText = `${bossMon.hp} / ${bossMon.maxHp} (${pct}%)`;
+        document.getElementById('stage-boss-fill').style.width = `${pct}%`;
+      } else {
+        bossWrap.classList.remove('active');
+      }
+    }
+  }
+
+  checkStageClearCondition() {
+    if (!this.battleState.active) return;
+    this.updateBattleStageHud();
+
+    const aliveCount = this.monsters.filter(m => m.alive).length;
+    if (aliveCount > 0) return;
+
+    // 모든 몬스터 처치 완료 -> 스테이지 / 던전 클리어!!
+    soundFx.playFanfare();
+    const coinReward = this.battleState.rewardCoin;
+    const expReward = this.battleState.rewardExp;
+
+    if (this.battleState.mode === 'stage') {
+      const curStage = this.battleState.stageNum;
+      this.stats.highestClearedStage = Math.max(this.stats.highestClearedStage || 0, curStage);
+      this.stats.maxUnlockedStage = Math.min(20, Math.max(this.stats.maxUnlockedStage || 1, curStage + 1));
+    }
+
+    this.addReward(coinReward, expReward, 'stage_clear');
+    this.stats.hp = this.stats.maxHp;
+    this.saveData();
+    this.updateHud();
+
+    // 클리어 결과 모달 표시
+    const modal = document.getElementById('stage-result-modal');
+    if (modal) {
+      this.clearAllInputKeys();
+      document.getElementById('stage-result-icon').innerText =
+        this.battleState.stageNum === 20 && this.battleState.mode === 'stage' ? '👑🏆' : '🎉';
+      document.getElementById('stage-result-title').innerText =
+        this.battleState.mode === 'stage'
+          ? `STAGE ${this.battleState.stageNum} 클리어!!`
+          : `스페셜 던전 클리어!!`;
+      document.getElementById('stage-result-desc').innerText =
+        this.battleState.mode === 'stage' && this.battleState.stageNum < 20
+          ? `[${this.battleState.title}] 제압 완료! 다음 단계인 제 ${this.battleState.stageNum + 1}스테이지가 개방되었습니다!`
+          : `[${this.battleState.title}] 완벽 토벌 성공! 대량의 보상을 획득했습니다!`;
+      document.getElementById('stage-result-coin').innerText = `+${coinReward.toLocaleString()} 🪙`;
+      document.getElementById('stage-result-exp').innerText = `+${expReward.toLocaleString()} EXP`;
+
+      const nextBtn = document.getElementById('btn-next-stage');
+      if (nextBtn) {
+        if (this.battleState.mode === 'stage' && this.battleState.stageNum < 20) {
+          nextBtn.style.display = 'flex';
+          nextBtn.innerText = `⏭️ 다음 제 ${this.battleState.stageNum + 1}스테이지 즉시 도전하기!`;
+        } else {
+          nextBtn.style.display = 'none';
+        }
+      }
+      modal.classList.add('open');
+    }
   }
 
   // ========================================================================
@@ -1476,7 +1787,8 @@ class Chiikawa3DWorldApp {
       textColor
     );
 
-    m.mesh.scale.set(1.24, 0.8, 1.24);
+    const bs = m.baseScale || 1;
+    m.mesh.scale.set(bs * 1.24, bs * 0.8, bs * 1.24);
 
     if (m.hp <= 0) {
       m.hp = 0;
@@ -1484,7 +1796,7 @@ class Chiikawa3DWorldApp {
       m.isWindingUp = false;
       m.mesh.visible = false;
       m.labelEl.style.display = 'none';
-      m.respawnTimer = m.type === 'anoko' ? 15 : 8;
+      m.respawnTimer = this.battleState.active ? 9999 : (m.type === 'anoko' ? 15 : 8);
 
       soundFx.playFanfare();
       this.stats.monstersDefeated++;
@@ -1493,12 +1805,15 @@ class Chiikawa3DWorldApp {
       this.spawnBurstParticles(m.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xfacc15, 28);
       this.spawnFloatingText(
         m.pos.clone().add(new THREE.Vector3(0, 4.2, 0)),
-        `🎉 토벌 성공! +${m.coin}🪙`,
+        `🎉 토벌 성공! +${m.coin}🪙 +${m.exp}EXP`,
         '#facc15'
       );
+      this.updateBattleStageHud();
+      this.checkStageClearCondition();
     } else {
       const pct = Math.max(0, (m.hp / m.maxHp) * 100);
       m.hpFillEl.style.width = `${pct}%`;
+      this.updateBattleStageHud();
     }
   }
 
@@ -1870,7 +2185,7 @@ class Chiikawa3DWorldApp {
 
     // 3) 범위 끝자락에 살짝 걸친 경우 -> 🛡️ 스침 피격 (피해량 50% 경감)!
     const actualDmg = isEdgeGraze ? Math.max(1, Math.round(tg.dmg * 0.5)) : tg.dmg;
-    this.stats.hp = Math.max(15, this.stats.hp - actualDmg);
+    this.stats.hp = Math.max(this.battleState.active ? 0 : 15, this.stats.hp - actualDmg);
     this.camShake = isEdgeGraze ? 0.2 : 0.42;
 
     if (this.playerMesh && this.playerMesh.userData.triggerJellyBounce) {
@@ -1883,6 +2198,11 @@ class Chiikawa3DWorldApp {
       isEdgeGraze ? '#fb923c' : '#ef4444'
     );
     this.updateHud();
+
+    // 전투 스테이지/던전에서 HP가 0이 되면 광장으로 긴급 후퇴 및 체력 100% 회복!
+    if (this.battleState.active && this.stats.hp <= 0) {
+      this.returnToTown(true);
+    }
   }
 
   triggerInteract() {
@@ -1892,7 +2212,10 @@ class Chiikawa3DWorldApp {
     }
 
     const item = this.nearestInteractable;
-    if (item.type === 'ramen') {
+    if (item.type === 'stage_gate') {
+      this.clearAllInputKeys();
+      openStageSelectModal();
+    } else if (item.type === 'ramen') {
       this.clearAllInputKeys();
       openRamenMinigame();
     } else if (item.type === 'shop') {
@@ -1928,9 +2251,17 @@ class Chiikawa3DWorldApp {
 
   warpToZone(zoneKey) {
     this.clearAllInputKeys();
+    if (this.battleState.active) {
+      this.battleState.active = false;
+      this.battleState.mode = 'none';
+      this.clearStageMonsters();
+      const stageHud = document.getElementById('battle-stage-hud');
+      if (stageHud) stageHud.classList.add('hidden');
+    }
     soundFx.playSkill();
     const coords = {
       plaza: [0, 0, 10],
+      gate: [26, 0, -18],
       shop: [13, 0, 0],
       weed: [-32, 0, 20],
       ramen: [30, 0, 20],
@@ -2282,12 +2613,23 @@ class Chiikawa3DWorldApp {
       this.walkTime = 0;
     }
 
-    // 확장된 맵 경계(반경 220m) 적용
-    const distFromOrigin = Math.hypot(this.playerPos.x, this.playerPos.z);
-    if (distFromOrigin > 220) {
-      const scale = 220 / distFromOrigin;
-      this.playerPos.x *= scale;
-      this.playerPos.z *= scale;
+    // 전투 콜로세움 아레나 내부일 때는 아레나 반경(38.5m) 내로 제한, 메인 광장일 때는 220m 제한
+    if (this.battleState.active) {
+      const dx = this.playerPos.x - this.arenaCenter.x;
+      const dz = this.playerPos.z - this.arenaCenter.z;
+      const distArena = Math.hypot(dx, dz);
+      if (distArena > 38.5) {
+        const scale = 38.5 / distArena;
+        this.playerPos.x = this.arenaCenter.x + dx * scale;
+        this.playerPos.z = this.arenaCenter.z + dz * scale;
+      }
+    } else {
+      const distFromOrigin = Math.hypot(this.playerPos.x, this.playerPos.z);
+      if (distFromOrigin > 220) {
+        const scale = 220 / distFromOrigin;
+        this.playerPos.x *= scale;
+        this.playerPos.z *= scale;
+      }
     }
 
     const wasGrounded = this.isGrounded;
@@ -2411,6 +2753,9 @@ class Chiikawa3DWorldApp {
     if (this.fountainMesh && this.fountainMesh.userData.topStar) {
       this.fountainMesh.userData.topStar.rotation.y += dt * 1.8;
     }
+    if (this.portalGateMesh && this.portalGateMesh.userData.portalPivot) {
+      this.portalGateMesh.userData.portalPivot.rotation.z += dt * 1.6;
+    }
     if (this.windmillMesh && this.windmillMesh.userData.bladesPivot) {
       this.windmillMesh.userData.bladesPivot.rotation.z -= dt * 1.1;
     }
@@ -2479,18 +2824,20 @@ class Chiikawa3DWorldApp {
 
     this.monsters.forEach((m, idx) => {
       if (!m.alive) {
-        m.respawnTimer -= dt;
-        if (m.respawnTimer <= 0) {
-          m.alive = true;
-          m.hp = m.maxHp;
-          m.pos.copy(m.homePos);
-          m.mesh.position.copy(m.pos);
-          m.mesh.visible = true;
-          m.labelEl.style.display = 'block';
-          m.hpFillEl.style.width = '100%';
-          m.slowTimer = 0;
-          m.stunTimer = 0;
-          m.isWindingUp = false;
+        if (!this.battleState.active) {
+          m.respawnTimer -= dt;
+          if (m.respawnTimer <= 0) {
+            m.alive = true;
+            m.hp = m.maxHp;
+            m.pos.copy(m.homePos);
+            m.mesh.position.copy(m.pos);
+            m.mesh.visible = true;
+            m.labelEl.style.display = 'block';
+            m.hpFillEl.style.width = '100%';
+            m.slowTimer = 0;
+            m.stunTimer = 0;
+            m.isWindingUp = false;
+          }
         }
         return;
       }
@@ -2512,12 +2859,25 @@ class Chiikawa3DWorldApp {
         m.knockbackVel.multiplyScalar(Math.max(0, 1 - dt * 10));
       }
 
-      m.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 9);
+      // 전투 아레나 내부일 때 몬스터도 아레나 외벽(38.0m) 밖으로 밀려나지 않도록 고정
+      if (this.battleState.active) {
+        const mdx = m.pos.x - this.arenaCenter.x;
+        const mdz = m.pos.z - this.arenaCenter.z;
+        const mDist = Math.hypot(mdx, mdz);
+        if (mDist > 38.0) {
+          const s = 38.0 / mDist;
+          m.pos.x = this.arenaCenter.x + mdx * s;
+          m.pos.z = this.arenaCenter.z + mdz * s;
+        }
+      }
+
+      const bs = m.baseScale || 1;
+      m.mesh.scale.lerp(new THREE.Vector3(bs, bs, bs), dt * 9);
       m.mesh.rotation.y = this.camYaw;
       if (m.atkCooldown > 0) m.atkCooldown -= dt;
 
       const distToPlayer = m.pos.distanceTo(this.playerPos);
-      const isChasing = distToPlayer < 19 && m.stunTimer <= 0;
+      const isChasing = (this.battleState.active || distToPlayer < 19) && m.stunTimer <= 0;
 
       if (m.mesh.userData.updateMonsterMotion) {
         m.mesh.userData.updateMonsterMotion(this.clock.elapsedTime, isChasing, idx * 1.7, m.facingYaw);
@@ -2543,11 +2903,11 @@ class Chiikawa3DWorldApp {
         if (dist > triggerDist && !m.isWindingUp) {
           dir.normalize();
           const slowMult = m.slowTimer > 0 ? 0.5 : 1.0;
-          m.pos.addScaledVector(dir, dt * 6.0 * slowMult);
+          m.pos.addScaledVector(dir, dt * 6.4 * slowMult);
           const hop = Math.abs(Math.sin(this.clock.elapsedTime * 7 + idx)) * 0.25;
           m.mesh.position.set(m.pos.x, hop, m.pos.z);
         } else if (m.atkCooldown <= 0 && !m.isWindingUp) {
-          m.atkCooldown = m.type === 'anoko' ? 3.2 : 2.4;
+          m.atkCooldown = m.isMainBoss ? 2.5 : (m.isMidBoss ? 2.8 : 2.3);
           const center = m.pos.clone();
           this.spawnMonsterAttackTelegraph(m, m.atkPattern, center, m.facingYaw, m.reach, m.atk);
         }
@@ -2683,6 +3043,18 @@ class Chiikawa3DWorldApp {
     const promptEl = document.getElementById('interact-prompt');
     const promptTxt = document.getElementById('interact-prompt-text');
 
+    if (this.battleState.active) {
+      promptEl.classList.remove('visible');
+      return;
+    }
+
+    if (this.portalGatePos && this.playerPos.distanceTo(this.portalGatePos) < 8.5) {
+      this.nearestInteractable = { type: 'stage_gate' };
+      promptTxt.innerText = '⛩️ 토벌 스테이지(1~20단계) & 스페셜 성장 던전 출격하기';
+      promptEl.classList.add('visible');
+      return;
+    }
+
     if (this.playerPos.distanceTo(this.ramenPos) < 7.5) {
       this.nearestInteractable = { type: 'ramen' };
       promptTxt.innerText = "🍜 라멘 '랑(郎)' 주문 제작 알바하기";
@@ -2793,9 +3165,47 @@ class Chiikawa3DWorldApp {
     const ctx = canvas.getContext('2d');
     const size = canvas.width;
     const half = size / 2;
-    const scale = size / 320; // 넓어진 320m 스케일 미니맵
 
     ctx.clearRect(0, 0, size, size);
+
+    // ⚔️ 전투 콜로세움 아레나 내부일 때는 아레나 전용 전술 레이더 표시!
+    if (this.battleState.active) {
+      const arenaScale = size / 96;
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(0, 0, size, size);
+
+      ctx.fillStyle = '#e5dccb';
+      ctx.beginPath();
+      ctx.arc(half, half, 40 * arenaScale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      this.monsters.forEach(m => {
+        if (m.alive) {
+          const mx = half + (m.pos.x - this.arenaCenter.x) * arenaScale;
+          const my = half + (m.pos.z - this.arenaCenter.z) * arenaScale;
+          ctx.fillStyle = m.isMainBoss ? '#dc2626' : (m.isMidBoss ? '#9333ea' : '#ef4444');
+          ctx.beginPath();
+          ctx.arc(mx, my, m.isMainBoss ? 6.5 : (m.isMidBoss ? 5.2 : 3.8), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      const px = half + (this.playerPos.x - this.arenaCenter.x) * arenaScale;
+      const py = half + (this.playerPos.z - this.arenaCenter.z) * arenaScale;
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(px, py, 4.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      return;
+    }
+
+    const scale = size / 320; // 넓어진 320m 스케일 미니맵
 
     ctx.fillStyle = '#c7e596';
     ctx.fillRect(0, 0, size, size);
@@ -2834,12 +3244,9 @@ class Chiikawa3DWorldApp {
 
     drawDot(this.ramenPos.x, this.ramenPos.z, '#f97316', 4.2);
     drawDot(this.puddingPos.x, this.puddingPos.z, '#eab308', 4.2);
+    if (this.portalGatePos) drawDot(this.portalGatePos.x, this.portalGatePos.z, '#dc2626', 5.0);
     if (this.campPos) drawDot(this.campPos.x, this.campPos.z, '#fb923c', 4.2);
     if (this.shopPos) drawDot(this.shopPos.x, this.shopPos.z, '#ec4899', 4.0);
-
-    this.monsters.forEach(m => {
-      if (m.alive) drawDot(m.pos.x, m.pos.z, '#ef4444', m.type === 'anoko' ? 4.8 : 3.0);
-    });
 
     this.npcs.forEach(n => drawDot(n.pos.x, n.pos.z, '#38bdf8', 2.6));
 
@@ -2933,6 +3340,9 @@ class Chiikawa3DWorldApp {
         this.triggerSpecialSkill();
       } else if (e.code === 'KeyE' || e.code === 'KeyF') {
         this.triggerInteract();
+      } else if (e.code === 'KeyM') {
+        this.clearAllInputKeys();
+        openStageSelectModal();
       } else if (e.code === 'KeyB') {
         this.clearAllInputKeys();
         openCostumeShopModal();

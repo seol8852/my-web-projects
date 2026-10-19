@@ -2181,3 +2181,149 @@ function createHitImpactBurst3D(colorHex = 0xfacc15, isCrit = false) {
   return group;
 }
 
+// ⛩️ 평화로운 메인 광장 -> 전투 스테이지(1~20단계) & 스페셜 던전 출격 포털 게이트
+function createSubjugationPortalGate3D() {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+
+  const stoneMat = new THREE.MeshToonMaterial({ color: 0xe2e8f0, gradientMap });
+  const redMat = new THREE.MeshToonMaterial({ color: 0xe11d48, gradientMap });
+  const goldMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+
+  // 원형 석조 제단 베이스
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(6.8, 7.6, 0.7, 32), stoneMat);
+  base.position.y = 0.35;
+  base.receiveShadow = true;
+  addCartoonOutline(base, 0.02);
+  group.add(base);
+
+  const innerStep = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.8, 0.45, 28), stoneMat);
+  innerStep.position.y = 0.85;
+  addCartoonOutline(innerStep, 0.025);
+  group.add(innerStep);
+
+  // 좌우 대형 도리이/포털 기둥
+  [-4.2, 4.2].forEach(px => {
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.72, 8.8, 16), redMat);
+    pillar.position.set(px, 4.8, 0);
+    pillar.castShadow = true;
+    addCartoonOutline(pillar, 0.035);
+    group.add(pillar);
+
+    const goldRing = new THREE.Mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.55, 16), goldMat);
+    goldRing.position.set(px, 1.5, 0);
+    group.add(goldRing);
+  });
+
+  // 상단 2단 지붕 크로스빔
+  const topBeam = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.85, 1.25), redMat);
+  topBeam.position.set(0, 9.1, 0);
+  topBeam.castShadow = true;
+  addCartoonOutline(topBeam, 0.03);
+  group.add(topBeam);
+
+  const subBeam = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.55, 0.9), goldMat);
+  subBeam.position.set(0, 7.5, 0);
+  addCartoonOutline(subBeam, 0.03);
+  group.add(subBeam);
+
+  // 중앙 회전 차원 포털 링
+  const portalPivot = new THREE.Group();
+  portalPivot.position.set(0, 4.3, 0);
+
+  const outerRingMat = new THREE.MeshBasicMaterial({
+    color: 0xfacc15,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.88
+  });
+  const outerRing = new THREE.Mesh(new THREE.TorusGeometry(3.0, 0.22, 14, 36), outerRingMat);
+  portalPivot.add(outerRing);
+
+  const vortexMat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.42
+  });
+  const vortexDisc = new THREE.Mesh(new THREE.CircleGeometry(2.85, 32), vortexMat);
+  portalPivot.add(vortexDisc);
+
+  group.add(portalPivot);
+  group.userData.portalPivot = portalPivot;
+
+  return group;
+}
+
+// 🏟️ 전투 스테이지(1~20단계) & 성장 던전 전용 3D 콜로세움 배틀 아레나 (광장과 완전 분리!)
+function createBattleColosseumArena3D() {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+
+  const floorMat = new THREE.MeshToonMaterial({ color: 0x334155, gradientMap });
+  const trimMat = new THREE.MeshToonMaterial({ color: 0x475569, gradientMap });
+  const pillarMat = new THREE.MeshToonMaterial({ color: 0x94a3b8, gradientMap });
+  const goldMat = new THREE.MeshBasicMaterial({
+    color: 0xfacc15,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.65
+  });
+  const barrierMat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.16,
+    depthWrite: false
+  });
+
+  // 1) 원형 석조 결투장 바닥 (반경 42m)
+  const arenaFloor = new THREE.Mesh(new THREE.CylinderGeometry(42, 44, 0.6, 48), floorMat);
+  arenaFloor.position.y = -0.25;
+  arenaFloor.receiveShadow = true;
+  group.add(arenaFloor);
+
+  // 외곽 석조 테두리 링
+  const rimRing = new THREE.Mesh(new THREE.TorusGeometry(41.5, 1.2, 12, 48), trimMat);
+  rimRing.rotation.x = Math.PI / 2;
+  rimRing.position.y = 0.2;
+  group.add(rimRing);
+
+  // 바닥 황금 마법진 링
+  const runeRing1 = new THREE.Mesh(new THREE.RingGeometry(14.5, 15.2, 40), goldMat);
+  runeRing1.rotation.x = -Math.PI / 2;
+  runeRing1.position.y = 0.08;
+  group.add(runeRing1);
+
+  const runeRing2 = new THREE.Mesh(new THREE.RingGeometry(28.5, 29.3, 48), goldMat);
+  runeRing2.rotation.x = -Math.PI / 2;
+  runeRing2.position.y = 0.08;
+  group.add(runeRing2);
+
+  // 결계 빛기둥 벽
+  const barrierWall = new THREE.Mesh(new THREE.CylinderGeometry(40.5, 40.5, 6.5, 48, 1, true), barrierMat);
+  barrierWall.position.y = 3.25;
+  group.add(barrierWall);
+
+  // 2) 결투장 둘레 12개의 고대 석조 기둥 & 횃불
+  const flameMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+  for (let i = 0; i < 12; i++) {
+    const ang = (i / 12) * Math.PI * 2;
+    const px = Math.cos(ang) * 40.8;
+    const pz = Math.sin(ang) * 40.8;
+
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(1.15, 1.35, 9.5, 12), pillarMat);
+    col.position.set(px, 4.75, pz);
+    col.castShadow = true;
+    addCartoonOutline(col, 0.03);
+    group.add(col);
+
+    const brazier = new THREE.Mesh(new THREE.SphereGeometry(0.85, 10, 10), flameMat);
+    brazier.position.set(px, 10.1, pz);
+    group.add(brazier);
+  }
+
+  return group;
+}
+
+

@@ -1316,3 +1316,303 @@ html, body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ==========================================================================
+   Battle Stage Top-Center HUD & Boss Bar + 20-Stage & Special Dungeon Modals
+   ========================================================================== */
+.battle-stage-hud {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(14px);
+  border: 2.5px solid #facc15;
+  border-radius: 20px;
+  padding: 10px 20px;
+  min-width: 340px;
+  max-width: 520px;
+  color: #ffffff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.38);
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.battle-stage-hud.active {
+  display: flex;
+}
+
+.battle-stage-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.battle-stage-badge {
+  font-size: 14px;
+  font-weight: 900;
+  color: #fef08a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.battle-remain-pill {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.btn-return-town-mini {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 99px;
+  padding: 4px 11px;
+  font-size: 11.5px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-return-town-mini:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.stage-boss-bar-wrap {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(244, 63, 94, 0.5);
+}
+
+.stage-boss-bar-wrap.active {
+  display: flex;
+}
+
+.stage-boss-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 900;
+  color: #fda4af;
+}
+
+.stage-boss-track {
+  width: 100%;
+  height: 11px;
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stage-boss-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #f43f5e, #facc15);
+  transition: width 0.18s ease-out;
+}
+
+/* Stage & Dungeon Select Modal */
+.stage-modal-window {
+  max-width: 860px !important;
+  width: 94% !important;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.dungeon-section-box {
+  background: linear-gradient(135deg, #f0f9ff 0%, #fefce8 100%);
+  border: 2px solid #bae6fd;
+  border-radius: 18px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+.dungeon-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.dungeon-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.dungeon-card.exp-theme {
+  border-color: #7dd3fc;
+  background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
+}
+
+.dungeon-card.gold-theme {
+  border-color: #fde047;
+  background: linear-gradient(180deg, #fefce8 0%, #ffffff 100%);
+}
+
+.dungeon-tier-btns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.dungeon-tier-btn {
+  border: 1.5px solid #cbd5e1;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 7px 6px;
+  font-size: 11.5px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.dungeon-tier-btn:hover {
+  transform: translateY(-2px);
+  border-color: #0284c7;
+  background: #e0f2fe;
+}
+
+.dungeon-card.gold-theme .dungeon-tier-btn:hover {
+  border-color: #d97706;
+  background: #fef3c7;
+}
+
+/* 20-Stage Campaign Grid */
+.stage-campaign-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.stage-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.16s;
+  position: relative;
+}
+
+.stage-card:hover:not(.locked) {
+  transform: translateY(-3px);
+  border-color: #ff4d6d;
+  box-shadow: 0 8px 18px rgba(255, 77, 109, 0.16);
+}
+
+.stage-card.midboss {
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  border-color: #fb923c;
+  border-width: 2.5px;
+}
+
+.stage-card.mainboss {
+  background: linear-gradient(180deg, #fff1f2 0%, #fefce8 100%);
+  border-color: #f43f5e;
+  border-width: 2.5px;
+  box-shadow: 0 6px 16px rgba(244, 63, 94, 0.15);
+}
+
+.stage-card.cleared {
+  border-color: #4ade80;
+}
+
+.stage-card.locked {
+  opacity: 0.55;
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+.stage-num-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.stage-type-tag {
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 6px;
+  border-radius: 99px;
+}
+
+.tag-normal { background: #f1f5f9; color: #475569; }
+.tag-midboss { background: #ffedd5; color: #c2410c; border: 1px solid #fdba74; }
+.tag-mainboss { background: #ffe4e6; color: #be123c; border: 1px solid #fda4af; }
+
+.stage-card-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.stage-card-reward {
+  font-size: 11px;
+  font-weight: 800;
+  color: #b45309;
+  background: #fefce8;
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+
+.stage-card-action {
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+  padding: 5px;
+  border-radius: 8px;
+  background: #ff4d6d;
+  color: #ffffff;
+}
+
+.stage-card.cleared .stage-card-action {
+  background: #16a34a;
+}
+
+.stage-card.locked .stage-card-action {
+  background: #94a3b8;
+}
+
+@media (max-width: 780px) {
+  .dungeon-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .stage-campaign-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+

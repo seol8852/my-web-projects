@@ -83,8 +83,31 @@
         </div>
       </div>
 
-      <!-- 우측: 캐릭터 재선택, 의상실/강화, 포토 스냅샷, 낮/밤 전환, 사운드, 포털 홈 -->
+      <!-- 중앙 상단: 전투 스테이지 / 스페셜 던전 진행 상황 & 보스 HP 바 (전투 중에만 표시) -->
+      <div class="battle-stage-hud" id="battle-stage-hud">
+        <div class="battle-stage-top-row">
+          <div class="battle-stage-badge" id="battle-stage-title">⚔️ 제 1 스테이지</div>
+          <span class="battle-remain-pill" id="battle-stage-remain">남은 괴수: 0 / 0</span>
+          <button type="button" class="btn-return-town-mini" onclick="gameApp.returnToTown()">
+            🏳️ 광장 귀환
+          </button>
+        </div>
+        <div class="stage-boss-bar-wrap" id="stage-boss-bar-wrap">
+          <div class="stage-boss-label-row">
+            <span id="stage-boss-name">👑 보스 괴수</span>
+            <span id="stage-boss-hp-txt">100%</span>
+          </div>
+          <div class="stage-boss-track">
+            <div class="stage-boss-fill" id="stage-boss-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 우측: 토벌 스테이지/던전, 캐릭터 재선택, 의상실/강화, 포토 스냅샷, 낮/밤 전환, 사운드, 포털 홈 -->
       <div class="top-right-controls hud-interactive">
+        <button type="button" class="hud-pill-btn" style="background:linear-gradient(135deg,#ef4444,#f97316); color:#fff; border-color:#fde047;" onclick="openStageSelectModal()">
+          ⚔️ 토벌 스테이지 & 던전 [M]
+        </button>
         <button type="button" class="hud-pill-btn" onclick="gameApp.openCharSelectScreen()">
           🔄 캐릭터 변경
         </button>
@@ -121,7 +144,7 @@
 
         <div class="teleport-panel">
           <div class="panel-header-title">
-            <span>🚀 구역 빠른 이동 (Warp)</span>
+            <span>🚀 평화 광장 이동 & 전투 출격</span>
           </div>
           <div class="teleport-grid">
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('plaza')">⛲ 중앙 분수광장</button>
@@ -131,11 +154,11 @@
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('pudding')">🍮 푸딩 점프대</button>
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('onsen')">🌸 벚꽃 온천호수</button>
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('camp')">⛺ 별빛 캠핑장</button>
-            <button type="button" class="warp-btn" style="background:#fff1f2; border-color:#fda4af;" onclick="gameApp.warpToZone('forest')">
-              ⛩️ 토벌의 숲
+            <button type="button" class="warp-btn" style="background:#fff1f2; border-color:#fda4af;" onclick="gameApp.warpToZone('gate')">
+              ⛩️ 출격 포털 게이트
             </button>
-            <button type="button" class="warp-btn" style="background:#f3e8ff; border-color:#d8b4fe; grid-column: span 2;" onclick="gameApp.warpToZone('ruins')">
-              🏛️ 심연의 고대 보스 신전 (레이드)
+            <button type="button" class="warp-btn" style="background:linear-gradient(135deg,#fff1f2,#fef3c7); border-color:#f43f5e; color:#be123c; grid-column: span 2; justify-content:center;" onclick="openStageSelectModal()">
+              ⚔️ 전투 스테이지(1~20단계) & 성장 던전 입장 [M]
             </button>
           </div>
         </div>
@@ -307,6 +330,138 @@
         </button>
         <button type="button" class="choice-btn" style="background:#f8fafc; border-color:#cbd5e1;" onclick="closeNpcDialog()">
           👋 다음에 또 이야기하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       모달 5: ⚔️ 전투 스테이지 (1~20단계) & 스페셜 성장 던전 (경험치/재화 던전)
+       ======================================================================== -->
+  <div class="modal-backdrop" id="stage-select-modal">
+    <div class="modal-window stage-modal-window">
+      <button type="button" class="modal-close-btn" onclick="closeStageSelectModal()">✕</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding-right:36px; flex-wrap:wrap; gap:8px;">
+        <div>
+          <h2 style="font-size:21px; font-weight:900; color:#be123c;">⚔️ 치이카와 토벌 원정대 & 스페셜 성장 던전</h2>
+          <p style="font-size:12.5px; color:#64748b; margin-top:2px;">
+            메인 광장은 평화 구역입니다! 이곳에서 <strong>경험치/재화 던전</strong>으로 스펙을 올리고 <strong>총 20단계 토벌 스테이지</strong>를 돌파하세요!
+          </p>
+        </div>
+        <span style="background:#fff1f2; border:2px solid #f43f5e; color:#be123c; padding:5px 14px; border-radius:99px; font-weight:900; font-size:13px;" id="stage-progress-badge">
+          🏆 최고 돌파: 1 / 20 단계
+        </span>
+      </div>
+
+      <!-- 1. 레벨업 & 재화 파밍을 위한 스페셜 던전 섹션 -->
+      <div class="dungeon-section-box">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:14.5px; font-weight:900; color:#0f172a;">💎 스페셜 성장 던전 (횟수 제한 없이 반복 파밍 가능!)</span>
+          <span style="font-size:11.5px; font-weight:800; color:#0284c7;">빠른 레벨업 & 무기 강화 코인 획득</span>
+        </div>
+
+        <div class="dungeon-cards-grid">
+          <!-- 경험치 던전 -->
+          <div class="dungeon-card exp-theme">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:15px; font-weight:900; color:#0369a1;">📘 별사탕 수련의 숲 (경험치 던전)</span>
+              <span style="background:#e0f2fe; color:#0284c7; font-size:11px; font-weight:900; padding:2px 8px; border-radius:99px;">EXP 특화</span>
+            </div>
+            <p style="font-size:12px; color:#475569;">
+              경험치를 대량으로 주는 별사탕 풍뎅이 무리를 토벌하여 <strong>캐릭터 레벨(공격력·최대체력)</strong>을 단숨에 올립니다!
+            </p>
+            <div class="dungeon-tier-btns">
+              <button type="button" class="dungeon-tier-btn" onclick="gameApp.startSpecialDungeon('exp', 1)">
+                <span>🌱 초급 수련</span>
+                <span style="color:#0284c7;">+220 EXP</span>
+              </button>
+              <button type="button" class="dungeon-tier-btn" onclick="gameApp.startSpecialDungeon('exp', 2)">
+                <span>🌿 중급 수련</span>
+                <span style="color:#0284c7;">+550 EXP</span>
+              </button>
+              <button type="button" class="dungeon-tier-btn" onclick="gameApp.startSpecialDungeon('exp', 3)">
+                <span>👑 상급 수련</span>
+                <span style="color:#0284c7;">+1,200 EXP</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 재화(골드) 던전 -->
+          <div class="dungeon-card gold-theme">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-size:15px; font-weight:900; color:#b45309;">🪙 황금 클로버 보물굴 (재화 던전)</span>
+              <span style="background:#fef3c7; color:#b45309; font-size:11px; font-weight:900; padding:2px 8px; border-radius:99px;">코인 특화</span>
+            </div>
+            <p style="font-size:12px; color:#475569;">
+              황금 보물 괴수와 황금 클로버·크리스탈이 가득한 던전! <strong>무기 강화 및 의상 구매용 코인</strong>을 대량 획득합니다!
+            </p>
+            <div class="dungeon-tier-btns">
+              <button type="button" class="dungeon-tier-btn" onclick="gameApp.startSpecialDungeon('gold', 1)">
+                <span>🪙 초급 금광</span>
+                <span style="color:#d97706;">+380 코인</span>
+              </button>
+              <button type="button" class="dungeon-tier-btn" onclick="gameApp.startSpecialDungeon('gold', 2)">
+                <span>💰 중급 금광</span>
+                <span style="color:#d97706;">+850 코인</span>
+              </button>
+              <button type="button" class="dungeon-tier-btn" onclick="gameApp.startSpecialDungeon('gold', 3)">
+                <span>💎 상급 금광</span>
+                <span style="color:#d97706;">+1,800 코인</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 총 20단계 토벌 스테이지 그리드 -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px;">
+        <span style="font-size:15px; font-weight:900; color:#0f172a;">
+          ⚔️ 단계별 토벌 스테이지 (1 ~ 20단계)
+        </span>
+        <span style="font-size:12px; font-weight:800; color:#be123c;">
+          ★ 5·15단계: <strong>중간보스</strong> / 👑 10·20단계: <strong>대보스</strong> 출현!
+        </span>
+      </div>
+
+      <div class="stage-campaign-grid" id="stage-campaign-grid"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       모달 6: 🎉 전투 스테이지 / 던전 클리어 결과 모달
+       ======================================================================== -->
+  <div class="modal-backdrop" id="stage-result-modal">
+    <div class="modal-window" style="max-width: 480px; text-align:center;">
+      <div style="font-size:44px; margin-bottom:4px;" id="stage-result-icon">🎉</div>
+      <h2 style="font-size:23px; font-weight:900; color:#0f172a;" id="stage-result-title">스테이지 클리어!!</h2>
+      <p style="font-size:13.5px; color:#475569; margin-top:6px;" id="stage-result-desc">
+        모든 괴수를 성공적으로 토벌했습니다!
+      </p>
+
+      <div style="background:#fefce8; border:2px solid #fde047; border-radius:16px; padding:14px; margin:16px 0; display:flex; justify-content:space-around; font-weight:900;">
+        <div>
+          <div style="font-size:11.5px; color:#64748b;">획득 코인 보상</div>
+          <div style="font-size:19px; color:#d97706; margin-top:2px;" id="stage-result-coin">+0 🪙</div>
+        </div>
+        <div style="width:1.5px; background:#fde047;"></div>
+        <div>
+          <div style="font-size:11.5px; color:#64748b;">획득 경험치 보상</div>
+          <div style="font-size:19px; color:#0284c7; margin-top:2px;" id="stage-result-exp">+0 EXP</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button type="button" class="choice-btn" id="btn-next-stage" style="background:linear-gradient(135deg,#ff4d6d,#f43f5e); color:#fff; border:none; justify-content:center; font-size:15px;" onclick="gameApp.startNextStage()">
+          ⏭️ 다음 스테이지 즉시 도전하기!
+        </button>
+        <button type="button" class="choice-btn" style="background:#eff6ff; border-color:#93c5fd; color:#1d4ed8; justify-content:center;" onclick="gameApp.retryCurrentStage()">
+          🔄 현재 스테이지 / 던전 다시 도전 (반복 파밍)
+        </button>
+        <button type="button" class="choice-btn" style="background:#fdf2f8; border-color:#fbcfe8; color:#be185d; justify-content:center;" onclick="closeStageResultModal(); openStageSelectModal();">
+          📋 스테이지 & 던전 선택창 열기
+        </button>
+        <button type="button" class="choice-btn" style="background:#f8fafc; border-color:#cbd5e1; justify-content:center;" onclick="closeStageResultModal(); gameApp.returnToTown();">
+          ⛲ 평화로운 메인 광장으로 귀환하기
         </button>
       </div>
     </div>
