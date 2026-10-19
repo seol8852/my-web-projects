@@ -1,6 +1,7 @@
 // ==========================================================================
 // 치이카와 3D 오픈월드 타운: 제초 & 토벌 빌리지 - 메인 3D 액션 엔진 (main.js)
-// [단일 캐릭터 선택 시스템 + 원작 100% 3D 볼륨 스탠디 + 쿼터뷰 타격감/오토에임/3연격 콤보]
+// [Live2D/Spine 스타일 실시간 버텍스 스켈레탈 모션 + UnrealBloomPass 포스트프로세싱
+//  + 2,200개 Instanced 3D 잔디밭 + 대시 잔상(Afterimage) + 3연격 회오리 스핀 모션]
 // ==========================================================================
 
 class Chiikawa3DWorldApp {
@@ -9,6 +10,7 @@ class Chiikawa3DWorldApp {
     this.camera = null;
     this.renderer = null;
     this.composer = null;
+    this.bloomPass = null;
     this.clock = new THREE.Clock();
     this.raycaster = new THREE.Raycaster();
     this.groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -17,14 +19,14 @@ class Chiikawa3DWorldApp {
     this.gameStarted = false;
     this.selectedCharInLobby = 'chiikawa';
 
-    // 플레이어 상태 (선택한 단 하나의 캐릭터만 조작!)
+    // 플레이어 상태 (선택한 단 하나의 캐릭터만 조작)
     this.activeCharKey = 'chiikawa';
     this.playerMesh = null;
     this.playerPos = new THREE.Vector3(0, 0, 12);
     this.playerVel = new THREE.Vector3(0, 0, 0);
     this.playerVelY = 0;
     this.playerYaw = 0;
-    this.facingFlip = 1; // +1 (우측) or -1 (좌측) 페이퍼마리오식 3D 플립
+    this.facingFlip = 1;
     this.currentFlipScale = 1;
     this.isGrounded = true;
     this.walkTime = 0;
@@ -37,9 +39,10 @@ class Chiikawa3DWorldApp {
     this.hitStopTimer = 0;
     this.camShake = 0;
 
-    // 대시(회피) 및 잔상, 발걸음 먼지
+    // 대시(회피) 및 잔상(Afterimages), 발걸음 먼지
     this.dashTimer = 0;
     this.dashCooldown = 0;
+    this.dashGhostSpawnTimer = 0;
     this.dashDir = new THREE.Vector3(0, 0, 1);
     this.afterimages = [];
     this.footstepTimer = 0;
@@ -65,8 +68,8 @@ class Chiikawa3DWorldApp {
 
     // 쿼터뷰 액션 카메라 궤도 설정
     this.camYaw = 0;
-    this.camPitch = 0.52;
-    this.camDist = 24;
+    this.camPitch = 0.50;
+    this.camDist = 23.5;
     this.camTargetLook = new THREE.Vector3(0, 2, 12);
     this.isDraggingCam = false;
     this.dragDistMoved = 0;
@@ -87,6 +90,8 @@ class Chiikawa3DWorldApp {
     this.weatherParticles = [];
     this.clouds = [];
     this.zoneSigns = [];
+    this.skyDome = null;
+    this.instancedGrass = null;
     this.waterTexture = null;
     this.fountainMesh = null;
     this.windmillMesh = null;
@@ -191,7 +196,7 @@ class Chiikawa3DWorldApp {
     this.spawnPlayer(chosen);
     this.spawnTownNpcs();
     this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0xff85a2, 24);
-    showToast(`🌟 [${CHAR_CONFIGS[chosen].name}](으)로 모험을 시작합니다! (좌클릭: 베기 / Shift: 대시)`);
+    showToast(`🌟 [${CHAR_CONFIGS[chosen].name}](으)로 모험을 시작합니다! (좌클릭: 3연격 베기 / 우클릭·Shift: 잔상 대시)`);
   }
 
   openCharSelectScreen() {
@@ -205,19 +210,19 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 1. Three.js 씬, ACES 톤매핑, 조명, 카메라 초기화
+  // 1. Three.js 씬, ACES 톤매핑, UnrealBloomPass 포스트프로세싱 초기화
   // ========================================================================
   initThreeScene() {
     const canvas = document.getElementById('webgl-canvas');
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x93c5fd);
-    this.scene.fog = new THREE.FogExp2(0xbae6fd, 0.0032);
+    this.scene.fog = new THREE.FogExp2(0xbae6fd, 0.0028);
 
     this.camera = new THREE.PerspectiveCamera(
       46,
       window.innerWidth / window.innerHeight,
       0.5,
-      480
+      500
     );
 
     this.renderer = new THREE.WebGLRenderer({
@@ -232,15 +237,30 @@ class Chiikawa3DWorldApp {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.06;
+    this.renderer.toneMappingExposure = 1.05;
+
+    // Three.js 공식 Post-Processing (EffectComposer + UnrealBloomPass)
+    if (typeof THREE.EffectComposer !== 'undefined' && typeof THREE.UnrealBloomPass !== 'undefined') {
+      this.composer = new THREE.EffectComposer(this.renderer);
+      const renderPass = new THREE.RenderPass(this.scene, this.camera);
+      this.composer.addPass(renderPass);
+
+      this.bloomPass = new THREE.UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        0.32, // strength (화사한 파스텔 글로우)
+        0.55, // radius
+        0.85  // threshold
+      );
+      this.composer.addPass(this.bloomPass);
+    }
 
     // 반구형 환경광
-    this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x86efac, 0.9);
+    this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x86efac, 0.92);
     this.hemiLight.position.set(0, 90, 0);
     this.scene.add(this.hemiLight);
 
     // 태양 직사광 & 소프트 그림자
-    this.dirLight = new THREE.DirectionalLight(0xfffbeb, 0.95);
+    this.dirLight = new THREE.DirectionalLight(0xfffbeb, 0.96);
     this.dirLight.position.set(50, 88, 45);
     this.dirLight.castShadow = true;
     this.dirLight.shadow.mapSize.width = 2048;
@@ -255,7 +275,7 @@ class Chiikawa3DWorldApp {
     this.scene.add(this.dirLight);
   }
 
-  // 낮 / 노을 / 밤 분위기 전환
+  // 낮 / 노을 / 밤 분위기 전환 (GLSL 스카이돔 & 블룸 연동)
   cycleTimeOfDay() {
     soundFx.playWeedPull();
     const modes = ['day', 'sunset', 'night'];
@@ -263,26 +283,46 @@ class Chiikawa3DWorldApp {
     this.timeOfDay = modes[nextIdx];
 
     const btn = document.getElementById('btn-time-toggle');
+    const skyUniforms = this.skyDome ? this.skyDome.material.uniforms : null;
+
     if (this.timeOfDay === 'day') {
       this.scene.background.setHex(0x93c5fd);
       this.scene.fog.color.setHex(0xbae6fd);
-      this.hemiLight.intensity = 0.9;
+      this.hemiLight.intensity = 0.92;
       this.dirLight.color.setHex(0xfffbeb);
-      this.dirLight.intensity = 0.95;
+      this.dirLight.intensity = 0.96;
+      if (this.bloomPass) this.bloomPass.strength = 0.32;
+      if (skyUniforms) {
+        skyUniforms.topColor.value.setHex(0x38bdf8);
+        skyUniforms.midColor.value.setHex(0xbae6fd);
+        skyUniforms.bottomColor.value.setHex(0xfef9c3);
+      }
       if (btn) btn.innerText = '☀️ 낮 (벚꽃초원)';
     } else if (this.timeOfDay === 'sunset') {
       this.scene.background.setHex(0xfda4af);
       this.scene.fog.color.setHex(0xfecdd3);
-      this.hemiLight.intensity = 0.75;
+      this.hemiLight.intensity = 0.78;
       this.dirLight.color.setHex(0xf97316);
-      this.dirLight.intensity = 0.9;
+      this.dirLight.intensity = 0.92;
+      if (this.bloomPass) this.bloomPass.strength = 0.44;
+      if (skyUniforms) {
+        skyUniforms.topColor.value.setHex(0x6d28d9);
+        skyUniforms.midColor.value.setHex(0xfb7185);
+        skyUniforms.bottomColor.value.setHex(0xfde047);
+      }
       if (btn) btn.innerText = '🌅 노을 (황혼)';
     } else {
       this.scene.background.setHex(0x0f172a);
       this.scene.fog.color.setHex(0x0f172a);
-      this.hemiLight.intensity = 0.5;
+      this.hemiLight.intensity = 0.52;
       this.dirLight.color.setHex(0x818cf8);
-      this.dirLight.intensity = 0.65;
+      this.dirLight.intensity = 0.68;
+      if (this.bloomPass) this.bloomPass.strength = 0.55;
+      if (skyUniforms) {
+        skyUniforms.topColor.value.setHex(0x020617);
+        skyUniforms.midColor.value.setHex(0x1e1b4b);
+        skyUniforms.bottomColor.value.setHex(0x312e81);
+      }
       if (btn) btn.innerText = '🌙 밤 (반딧불이)';
     }
 
@@ -290,10 +330,16 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 2. 고해상도 텍스처 지형 & 랜드마크 월드 구축
+  // 2. 고해상도 텍스처 지형, 스카이돔, 2,200개 Instanced 잔디 & 랜드마크 구축
   // ========================================================================
   buildEnvironment() {
     const gradientMap = getToonGradientMap();
+
+    // 0) GLSL 그라데이션 애니메이션 스카이돔
+    if (typeof createAnimeSkyDome3D === 'function') {
+      this.skyDome = createAnimeSkyDome3D();
+      this.scene.add(this.skyDome);
+    }
 
     // 1) 고해상도 클로버/잔디 텍스처 평원
     const grassTex = createGrassCanvasTexture();
@@ -306,6 +352,12 @@ class Chiikawa3DWorldApp {
     ground.position.y = -2;
     ground.receiveShadow = true;
     this.scene.add(ground);
+
+    // 1-2) 2,200개의 바람에 흔들리는 입체 3D 풀잎 (InstancedMesh)
+    if (typeof createInstancedGrassField3D === 'function') {
+      this.instancedGrass = createInstancedGrassField3D();
+      this.scene.add(this.instancedGrass);
+    }
 
     // 2) 중앙 광장 타일 바닥 & 2단 대리석 분수대
     const plazaTex = createPlazaCanvasTexture();
@@ -323,7 +375,6 @@ class Chiikawa3DWorldApp {
     this.fountainMesh.position.set(0, 0.1, 0);
     this.scene.add(this.fountainMesh);
 
-    // 광장 산책길 징검다리 돌길
     const stoneMat = new THREE.MeshToonMaterial({ color: 0xfde68a, gradientMap });
     for (let i = 1; i <= 6; i++) {
       const s1 = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.45, 0.18, 14), stoneMat);
@@ -337,7 +388,7 @@ class Chiikawa3DWorldApp {
       this.scene.add(s2);
     }
 
-    // 3) 에메랄드 시냇물 & 아치형 다리 (흐르는 물결 텍스처)
+    // 3) 에메랄드 시냇물 & 아치형 다리
     this.waterTexture = createWaterCanvasTexture();
     const riverBridge = createRiverAndBridge3D(this.waterTexture);
     this.scene.add(riverBridge);
@@ -441,7 +492,7 @@ class Chiikawa3DWorldApp {
       this.scene.add(tree);
     });
 
-    // 11) 초원 야생화 75송이 배치
+    // 11) 초원 야생화 배치
     this.spawnMeadowFlowers();
 
     // 12) 하늘 구름
@@ -635,7 +686,6 @@ class Chiikawa3DWorldApp {
     this.updateHud();
   }
 
-  // 플레이어가 선택하지 않은 나머지 5명의 친구들은 각자의 마을 명소에 NPC로 배치!
   spawnTownNpcs() {
     this.npcs.forEach(n => {
       this.scene.remove(n.mesh);
@@ -645,11 +695,11 @@ class Chiikawa3DWorldApp {
 
     const otherKeys = Object.keys(CHAR_CONFIGS).filter(k => k !== this.activeCharKey);
     const townSpots = [
-      [-7, -9],    // 치이카와 하우스 앞
-      [-28, 16],   // 제초 시험장 입구
-      [28, 18],    // 라멘 랑 포차 앞
-      [-24, -22],  // 푸딩 언덕 입구
-      [24, -18]    // 토벌의 숲 도리이 앞
+      [-7, -9],
+      [-28, 16],
+      [28, 18],
+      [-24, -22],
+      [24, -18]
     ];
 
     otherKeys.forEach((key, idx) => {
@@ -754,29 +804,30 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 5. 개선된 조작감 & 액션: 스마트 오토에임 3연격 콤보, 전진 타격, 대시 잔상
+  // 5. 역동적인 모션 & 액션: 점프 젤리 탄성, 대시 3D 잔상, 3연격 회오리 베기
   // ========================================================================
   triggerJump() {
     if (!this.isGrounded) return;
     soundFx.playJump();
-    this.playerVelY = 19.5;
+    this.playerVelY = 20.0;
     this.isGrounded = false;
     this.spawnFootstepDust(this.playerPos, 6);
+    this.spawnSlashRing(this.playerPos.clone(), 0xffffff, 2.2);
 
     if (this.playerMesh) {
-      this.playerMesh.scale.set(0.85, 1.24, 0.85);
+      this.playerMesh.scale.set(0.82, 1.28, 0.82);
     }
   }
 
-  // 💨 즉각 반응 회피 대시 + 잔상(Afterimage) 이펙트
+  // 💨 회피 대시 + 실시간 3D 잔상(Afterimage Ghosts) 생성
   triggerDash() {
     if (this.dashCooldown > 0) return;
-    this.dashCooldown = 0.85;
-    this.dashTimer = 0.22;
-    this.attackTimer = 0; // 후딜레이 즉시 캔슬!
+    this.dashCooldown = 0.8;
+    this.dashTimer = 0.24;
+    this.dashGhostSpawnTimer = 0;
+    this.attackTimer = 0;
     soundFx.playJump();
 
-    // 현재 이동 입력 방향이 있으면 그 방향으로, 없으면 바라보는 방향으로 즉시 대시
     let ix = this.joyVec.x;
     let iz = this.joyVec.y;
     if (this.keys['KeyW'] || this.keys['ArrowUp']) iz -= 1;
@@ -800,10 +851,32 @@ class Chiikawa3DWorldApp {
     }
 
     if (this.playerMesh) {
-      this.playerMesh.scale.set(1.25, 0.78, 1.25);
+      this.playerMesh.scale.set(1.28, 0.75, 1.28);
     }
-    this.spawnSlashRing(this.playerPos.clone(), 0x38bdf8, 3.2);
+    this.spawnSlashRing(this.playerPos.clone(), 0x38bdf8, 3.4);
     this.spawnFootstepDust(this.playerPos, 8);
+  }
+
+  // 대시 중 캐릭터 실루엣 잔상(Afterimage) 스폰
+  spawnDashAfterimage() {
+    const cfg = CHAR_CONFIGS[this.activeCharKey];
+    const tex = loadCleanCharacterTexture(cfg.portrait);
+    const geo = new THREE.PlaneGeometry(4.6, 4.8);
+    geo.translate(0, 2.4, 0);
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex,
+      color: cfg.accentColor,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const ghost = new THREE.Mesh(geo, mat);
+    ghost.position.copy(this.playerPos);
+    ghost.rotation.y = this.camYaw;
+    ghost.scale.x = this.facingFlip;
+    this.scene.add(ghost);
+    this.afterimages.push({ mesh: ghost, life: 0.28, maxLife: 0.28 });
   }
 
   // ⚔️ 스마트 오토에임 + 3연격 초승달 검기 콤보 공격
@@ -812,10 +885,10 @@ class Chiikawa3DWorldApp {
 
     this.comboStep = (this.comboStep % 3) + 1;
     this.comboResetTimer = 1.2;
-    this.attackTimer = this.comboStep === 3 ? 0.32 : 0.22;
+    this.attackTimer = this.comboStep === 3 ? 0.34 : 0.24;
     soundFx.playAttack();
 
-    // 1) 스마트 타겟 록온: 주변 8.5m 이내에 살아있는 몬스터나 잡초가 있으면 자동 조준!
+    // 1) 스마트 타겟 록온
     let targetDir = null;
     let bestDist = 8.5;
 
@@ -845,7 +918,6 @@ class Chiikawa3DWorldApp {
 
     if (targetDir && Math.hypot(targetDir.x, targetDir.z) > 0.1) {
       this.playerYaw = Math.atan2(targetDir.x, targetDir.z);
-      // 카메라 기준 좌우 판별하여 스탠디 좌우 반전
       const rightX = Math.cos(this.camYaw);
       const rightZ = -Math.sin(this.camYaw);
       const dotRight = targetDir.x * rightX + targetDir.z * rightZ;
@@ -853,41 +925,39 @@ class Chiikawa3DWorldApp {
     }
 
     const forward = new THREE.Vector3(Math.sin(this.playerYaw), 0, Math.cos(this.playerYaw)).normalize();
+    this.playerPos.addScaledVector(forward, this.comboStep === 3 ? 1.45 : 0.8);
 
-    // 2) 경쾌한 전진 스텝(Lunge)으로 헛방 방지
-    this.playerPos.addScaledVector(forward, this.comboStep === 3 ? 1.35 : 0.75);
+    // 3타 피니시 공격 시 살짝 점프하며 360도 회전 슬램 연출!
+    if (this.comboStep === 3 && this.isGrounded) {
+      this.playerVelY = 8.5;
+      this.isGrounded = false;
+    }
 
     if (this.playerMesh && this.playerMesh.userData.setExpression) {
       this.playerMesh.userData.setExpression('attack');
-      setTimeout(() => {
-        if (this.playerMesh) this.playerMesh.userData.setExpression('normal');
-      }, 280);
     }
 
-    // 3) 3D 초승달 검기(Crescent Slash Arc) 생성
     const cfg = CHAR_CONFIGS[this.activeCharKey];
     const slashColor = this.comboStep === 3 ? 0xfacc15 : cfg.accentColor;
     const atkCenter = this.playerPos.clone().add(forward.clone().multiplyScalar(2.6));
     this.spawnCrescentSlash(atkCenter, this.playerYaw, slashColor, this.comboStep);
 
-    // 4) 넓은 범위(5.6m) 내 잡초 수확
     let hitAnything = false;
     this.weeds.forEach(w => {
-      if (w.alive && w.pos.distanceTo(atkCenter) < 5.4) {
+      if (w.alive && w.pos.distanceTo(atkCenter) < 5.5) {
         this.harvestWeed(w);
         hitAnything = true;
       }
     });
 
-    // 5) 범위 내 몬스터 타격 (3타째는 1.45배 크리티컬 피해 + 강한 넉백!)
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.35 : 1.0;
-    const comboMult = this.comboStep === 3 ? 1.45 : 1.0;
+    const comboMult = this.comboStep === 3 ? 1.5 : 1.0;
     const weaponBonus = (this.stats.weaponLv - 1) * 9;
     const certBonus = this.stats.certLevel * 6;
     const dmg = Math.round((cfg.atk + this.stats.level * 4 + weaponBonus + certBonus) * buffMult * comboMult);
 
     this.monsters.forEach(m => {
-      const hitRadius = m.type === 'anoko' ? 7.5 : 5.8;
+      const hitRadius = m.type === 'anoko' ? 7.6 : 5.9;
       if (m.alive && m.pos.distanceTo(atkCenter) < hitRadius) {
         this.damageMonster(m, dmg, forward, this.comboStep === 3);
         hitAnything = true;
@@ -895,34 +965,33 @@ class Chiikawa3DWorldApp {
     });
 
     if (hitAnything) {
-      this.hitStopTimer = 0.032; // 쫀득한 타격 경직(Hit-stop)
-      this.camShake = this.comboStep === 3 ? 0.45 : 0.22;
+      this.hitStopTimer = 0.035;
+      this.camShake = this.comboStep === 3 ? 0.48 : 0.24;
     }
   }
 
-  // 3D 초승달 슬래시 웨이브 이펙트
   spawnCrescentSlash(center, yaw, colorHex, comboStep) {
-    const radius = comboStep === 3 ? 4.4 : 3.4;
-    const geo = new THREE.RingGeometry(radius * 0.55, radius, 24, 1, -Math.PI * 0.65, Math.PI * 1.3);
+    const radius = comboStep === 3 ? 4.6 : 3.5;
+    const geo = new THREE.RingGeometry(radius * 0.52, radius, 26, 1, -Math.PI * 0.7, Math.PI * 1.4);
     geo.rotateX(-Math.PI / 2);
     const mat = new THREE.MeshBasicMaterial({
       color: colorHex,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.92
+      opacity: 0.95
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(center);
     mesh.position.y = 1.4;
     mesh.rotation.y = yaw;
-    if (comboStep === 2) mesh.rotation.z = 0.25;
+    if (comboStep === 2) mesh.rotation.z = 0.28;
     this.scene.add(mesh);
 
     this.slashArcs.push({
       mesh,
-      life: 0.22,
-      maxLife: 0.22,
-      spin: comboStep === 3 ? 14 : 6
+      life: 0.24,
+      maxLife: 0.24,
+      spin: comboStep === 3 ? 16 : 7
     });
   }
 
@@ -932,7 +1001,7 @@ class Chiikawa3DWorldApp {
       return;
     }
     this.skillCooldown = 4.0;
-    this.camShake = 0.7;
+    this.camShake = 0.75;
     soundFx.playSkill();
 
     const cfg = CHAR_CONFIGS[this.activeCharKey];
@@ -940,23 +1009,18 @@ class Chiikawa3DWorldApp {
 
     if (this.playerMesh && this.playerMesh.userData.setExpression) {
       this.playerMesh.userData.setExpression('happy');
-      setTimeout(() => {
-        if (this.playerMesh) this.playerMesh.userData.setExpression('normal');
-      }, 950);
     }
 
-    this.spawnSlashRing(this.playerPos.clone(), 0xfacc15, 13.0);
-    this.spawnSlashRing(this.playerPos.clone(), cfg.accentColor, 9.5);
-    this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0xfacc15, 34);
+    this.spawnSlashRing(this.playerPos.clone(), 0xfacc15, 13.5);
+    this.spawnSlashRing(this.playerPos.clone(), cfg.accentColor, 9.8);
+    this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0xfacc15, 36);
 
-    // 주변 잡초 일괄 수확
     this.weeds.forEach(w => {
       if (w.alive && w.pos.distanceTo(this.playerPos) < 12.5) {
         this.harvestWeed(w);
       }
     });
 
-    // 주변 모든 몬스터에게 강력한 범위 피해 + 외곽 넉백
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.35 : 1.0;
     const weaponBonus = (this.stats.weaponLv - 1) * 16;
     const skillDmg = Math.round((cfg.atk * 2.6 + this.stats.level * 9 + weaponBonus) * buffMult);
@@ -974,7 +1038,11 @@ class Chiikawa3DWorldApp {
   takePhotoSnapshot() {
     soundFx.playFanfare();
     this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xff85a2, 24);
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) {
+      this.composer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
 
     try {
       const dataUrl = this.renderer.domElement.toDataURL('image/png');
@@ -1015,10 +1083,9 @@ class Chiikawa3DWorldApp {
       m.mesh.userData.flashHit();
     }
 
-    // 넉백 물리 적용
     if (knockDir && m.knockbackVel) {
-      const kbPower = m.type === 'anoko' ? 6 : 14;
-      m.knockbackVel.copy(knockDir).multiplyScalar(isCrit ? kbPower * 1.4 : kbPower);
+      const kbPower = m.type === 'anoko' ? 6 : 15;
+      m.knockbackVel.copy(knockDir).multiplyScalar(isCrit ? kbPower * 1.45 : kbPower);
     }
 
     this.spawnBurstParticles(
@@ -1032,7 +1099,7 @@ class Chiikawa3DWorldApp {
       isCrit ? '#facc15' : '#ff4d6d'
     );
 
-    m.mesh.scale.set(1.24, 0.8, 1.24);
+    m.mesh.scale.set(1.26, 0.78, 1.26);
 
     if (m.hp <= 0) {
       m.hp = 0;
@@ -1295,24 +1362,19 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 8. 메인 게임 루프 (Physics, AI, Animation, Weather, Minimap)
+  // 8. 메인 게임 루프 (Physics, Skeletal Vertex Motion, Bloom Render)
   // ========================================================================
   animate() {
     requestAnimationFrame(() => this.animate());
 
     let dt = Math.min(this.clock.getDelta(), 0.05);
 
-    // 타격 경직(Hit-Stop) 연출
     if (this.hitStopTimer > 0) {
       this.hitStopTimer -= dt;
       dt *= 0.12;
     }
 
-    // Q / E 키로 부드러운 카메라 수평 회전 지원
     if (this.keys['KeyQ']) this.camYaw += dt * 1.8;
-    if (this.keys['KeyE'] && !this.nearestInteractable) {
-      // 상호작용 대상이 없을 때는 E로 상호작용/베기
-    }
 
     this.updatePlayer(dt);
     this.updateTownNpcs(dt);
@@ -1321,7 +1383,12 @@ class Chiikawa3DWorldApp {
     this.updateCamera(dt);
     this.checkNearestInteraction();
 
-    this.renderer.render(this.scene, this.camera);
+    if (this.composer) {
+      this.composer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
+
     this.updateProjectedLabels();
     this.drawMinimap();
   }
@@ -1338,7 +1405,6 @@ class Chiikawa3DWorldApp {
       this.stats.ramenBuffTimer = Math.max(0, this.stats.ramenBuffTimer - dt);
     }
 
-    // 입력 방향 계산
     let ix = this.joyVec.x;
     let iz = this.joyVec.y;
     if (this.keys['KeyW'] || this.keys['ArrowUp']) iz -= 1;
@@ -1350,9 +1416,15 @@ class Chiikawa3DWorldApp {
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.28 : 1.0;
     const moveSpeed = cfg.speed * buffMult;
 
+    // 대시 이동 및 잔상(Afterimage) 스폰
     if (this.dashTimer > 0) {
       this.dashTimer -= dt;
-      this.playerPos.addScaledVector(this.dashDir, moveSpeed * 2.55 * dt);
+      this.playerPos.addScaledVector(this.dashDir, moveSpeed * 2.6 * dt);
+      this.dashGhostSpawnTimer -= dt;
+      if (this.dashGhostSpawnTimer <= 0) {
+        this.dashGhostSpawnTimer = 0.055;
+        this.spawnDashAfterimage();
+      }
     }
 
     const isMoving = Math.hypot(ix, iz) > 0.05;
@@ -1361,7 +1433,6 @@ class Chiikawa3DWorldApp {
       ix /= len;
       iz /= len;
 
-      // 좌우 방향에 따라 스탠디 플립 방향 갱신
       if (Math.abs(ix) > 0.1) {
         this.facingFlip = ix > 0 ? 1 : -1;
       }
@@ -1375,7 +1446,6 @@ class Chiikawa3DWorldApp {
       const moveZ = rightZ * ix + forwardZ * (-iz);
 
       if (this.dashTimer <= 0) {
-        // 부드럽고 즉각적인 속도 보간으로 조작감 향상
         this.playerVel.x = THREE.MathUtils.lerp(this.playerVel.x, moveX * moveSpeed, dt * 16);
         this.playerVel.z = THREE.MathUtils.lerp(this.playerVel.z, moveZ * moveSpeed, dt * 16);
         this.playerPos.x += this.playerVel.x * dt;
@@ -1383,11 +1453,11 @@ class Chiikawa3DWorldApp {
       }
 
       this.playerYaw = Math.atan2(moveX, moveZ);
-      this.walkTime += dt * 15;
+      this.walkTime += dt * 16;
 
       this.footstepTimer -= dt;
       if (this.isGrounded && this.footstepTimer <= 0) {
-        this.footstepTimer = 0.2;
+        this.footstepTimer = 0.18;
         this.spawnFootstepDust(this.playerPos, 1);
       }
     } else {
@@ -1398,7 +1468,6 @@ class Chiikawa3DWorldApp {
       this.walkTime = 0;
     }
 
-    // 월드 경계 제한
     const distFromOrigin = Math.hypot(this.playerPos.x, this.playerPos.z);
     if (distFromOrigin > 130) {
       const scale = 130 / distFromOrigin;
@@ -1406,7 +1475,7 @@ class Chiikawa3DWorldApp {
       this.playerPos.z *= scale;
     }
 
-    // 쫀득한 점프 중력 물리 (기존보다 중력을 높여 붕 뜨는 느낌 제거)
+    const wasGrounded = this.isGrounded;
     this.playerPos.y += this.playerVelY * dt;
     this.playerVelY -= 48 * dt;
 
@@ -1439,41 +1508,56 @@ class Chiikawa3DWorldApp {
       this.playerPos.y = groundHeight;
       this.playerVelY = 0;
       this.isGrounded = true;
+
+      // 착지 순간 말랑말랑 찹쌀떡 젤리 탄성 진동 발동!
+      if (!wasGrounded && this.playerMesh && this.playerMesh.userData.triggerJellyBounce) {
+        this.playerMesh.userData.triggerJellyBounce(0.38);
+        this.spawnFootstepDust(this.playerPos, 4);
+      }
     }
 
-    // 원작 일러스트 3D 스탠디 애니메이션 (항상 카메라를 정면으로 바라보며 귀엽게 뒤뚱거림!)
+    // ======================================================================
+    // 핵심: Live2D/Spine 스타일 실시간 버텍스 스켈레탈 모션 적용!
+    // ======================================================================
     if (this.playerMesh) {
-      const hopY = isMoving && this.isGrounded ? Math.abs(Math.sin(this.walkTime)) * 0.32 : 0;
+      const hopY = isMoving && this.isGrounded ? Math.abs(Math.sin(this.walkTime)) * 0.28 : 0;
       this.playerMesh.position.set(this.playerPos.x, this.playerPos.y + hopY, this.playerPos.z);
 
-      // 카메라 각도에 맞춰 정면 유지 (종이처럼 얇아 보이지 않게!)
-      this.playerMesh.rotation.y = this.camYaw;
+      // 3타째 피니시 공격 중에는 360도 회오리 스핀 모션!
+      let spinOffset = 0;
+      if (this.attackTimer > 0 && this.comboStep === 3) {
+        spinOffset = (1.0 - this.attackTimer / 0.34) * Math.PI * 2;
+      }
+
+      this.playerMesh.rotation.y = this.camYaw + spinOffset;
       this.playerMesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 12);
 
-      // 페이퍼마리오식 부드러운 좌우 반전 플립
       this.currentFlipScale = THREE.MathUtils.lerp(this.currentFlipScale, this.facingFlip, dt * 16);
 
       const parts = this.playerMesh.userData.parts;
       if (parts && parts.standeeGroup) {
-        const waddleTilt = isMoving ? Math.sin(this.walkTime) * 0.09 : Math.sin(this.clock.elapsedTime * 2.5) * 0.02;
+        const waddleTilt = isMoving ? Math.sin(this.walkTime) * 0.08 : 0;
         parts.standeeGroup.rotation.z = waddleTilt;
         parts.standeeGroup.scale.x = this.currentFlipScale;
+      }
 
-        // 3D 사스마타/명검 무기 휘두르기 모션
-        if (this.attackTimer > 0) {
-          parts.rightArmPivot.rotation.z = -1.2 + Math.sin(this.attackTimer * 28) * 1.4;
-          parts.rightArmPivot.rotation.x = 0.6;
-        } else {
-          parts.rightArmPivot.rotation.z = Math.sin(this.clock.elapsedTime * 3) * 0.08;
-          parts.rightArmPivot.rotation.x = 0;
-        }
+      if (this.playerMesh.userData.updateMotion) {
+        this.playerMesh.userData.updateMotion(
+          this.clock.elapsedTime,
+          this.walkTime,
+          isMoving,
+          this.isGrounded,
+          this.playerVelY,
+          this.attackTimer,
+          this.comboStep
+        );
       }
     }
   }
 
   updateTownNpcs(dt) {
     this.npcs.forEach((npc, idx) => {
-      npc.walkPhase += dt * 4.5;
+      npc.walkPhase += dt * 7.5;
       npc.speechTimer -= dt;
 
       if (npc.speechTimer <= 0) {
@@ -1486,21 +1570,36 @@ class Chiikawa3DWorldApp {
         }, 3800);
       }
 
-      // 자기 명소 주변에서 귀엽게 산책하며 카메라를 향해 정면 유지
       const a = this.clock.elapsedTime * 0.45 + idx * 1.5;
       const tx = npc.homePos.x + Math.cos(a) * 2.2;
       const tz = npc.homePos.z + Math.sin(a) * 2.2;
       npc.pos.x = THREE.MathUtils.lerp(npc.pos.x, tx, dt * 3);
       npc.pos.z = THREE.MathUtils.lerp(npc.pos.z, tz, dt * 3);
 
-      const hop = Math.abs(Math.sin(npc.walkPhase)) * 0.15;
+      const hop = Math.abs(Math.sin(npc.walkPhase * 0.5)) * 0.14;
       npc.mesh.position.set(npc.pos.x, hop, npc.pos.z);
       npc.mesh.rotation.y = this.camYaw;
+
+      if (npc.mesh.userData.updateMotion) {
+        npc.mesh.userData.updateMotion(
+          this.clock.elapsedTime + idx,
+          npc.walkPhase,
+          true,
+          true,
+          0,
+          0,
+          0
+        );
+      }
     });
   }
 
   updateWeedsAndMonsters(dt) {
-    // 물결 애니메이션 & 분수/풍차 회전
+    // 2,200개 Instanced 3D 잔디밭 바람 흔들림 업데이트
+    if (this.instancedGrass && this.instancedGrass.userData.updateWind) {
+      this.instancedGrass.userData.updateWind(this.clock.elapsedTime);
+    }
+
     if (this.waterTexture) {
       this.waterTexture.offset.x -= dt * 0.25;
     }
@@ -1511,13 +1610,11 @@ class Chiikawa3DWorldApp {
       this.windmillMesh.userData.bladesPivot.rotation.z -= dt * 1.1;
     }
 
-    // 구름 흐름
     this.clouds.forEach(c => {
       c.position.x += dt * 1.2;
       if (c.position.x > 105) c.position.x = -105;
     });
 
-    // 날씨 입자 흐름
     this.weatherParticles.forEach(wp => {
       wp.phase += dt * 2.0;
       wp.mesh.position.y -= wp.speedY * dt;
@@ -1532,7 +1629,6 @@ class Chiikawa3DWorldApp {
       }
     });
 
-    // 잡초 리스폰
     this.weeds.forEach((w, idx) => {
       if (!w.alive) {
         w.respawnTimer -= dt;
@@ -1545,7 +1641,7 @@ class Chiikawa3DWorldApp {
       }
     });
 
-    // 몬스터 AI & 넉백 물리 & 카메라 빌보드 정렬
+    // 몬스터 AI & 실시간 버텍스 스톰프/날갯짓 모션
     this.monsters.forEach((m, idx) => {
       if (!m.alive) {
         m.respawnTimer -= dt;
@@ -1561,18 +1657,23 @@ class Chiikawa3DWorldApp {
         return;
       }
 
-      // 넉백 속도 감쇠 적용
       if (m.knockbackVel.lengthSq() > 0.05) {
         m.pos.addScaledVector(m.knockbackVel, dt);
         m.knockbackVel.multiplyScalar(Math.max(0, 1 - dt * 10));
       }
 
       m.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 9);
-      m.mesh.rotation.y = this.camYaw; // 항상 카메라를 향해 고화질 일러스트 정면 유지!
+      m.mesh.rotation.y = this.camYaw;
       if (m.atkCooldown > 0) m.atkCooldown -= dt;
 
       const distToPlayer = m.pos.distanceTo(this.playerPos);
-      if (distToPlayer < 19) {
+      const isChasing = distToPlayer < 19;
+
+      if (m.mesh.userData.updateMonsterMotion) {
+        m.mesh.userData.updateMonsterMotion(this.clock.elapsedTime, isChasing, idx * 1.7);
+      }
+
+      if (isChasing) {
         if (m.type === 'anoko') {
           m.slamCooldown -= dt;
           if (m.slamCooldown <= 0) {
@@ -1608,6 +1709,17 @@ class Chiikawa3DWorldApp {
   }
 
   updateEffects(dt) {
+    // 대시 잔상(Afterimages) 페이드아웃
+    for (let i = this.afterimages.length - 1; i >= 0; i--) {
+      const ai = this.afterimages[i];
+      ai.life -= dt;
+      ai.mesh.material.opacity = Math.max(0, (ai.life / ai.maxLife) * 0.55);
+      if (ai.life <= 0) {
+        this.scene.remove(ai.mesh);
+        this.afterimages.splice(i, 1);
+      }
+    }
+
     // 초승달 검기 슬래시 업데이트
     for (let i = this.slashArcs.length - 1; i >= 0; i--) {
       const sa = this.slashArcs[i];
@@ -1686,7 +1798,6 @@ class Chiikawa3DWorldApp {
 
     this.camera.position.lerp(new THREE.Vector3(targetCamX, targetCamY, targetCamZ), 0.18);
 
-    // 타격 시 카메라 쉐이크(Camera Shake)
     let shakeX = 0;
     let shakeY = 0;
     if (this.camShake > 0) {
@@ -1841,13 +1952,16 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 10. 키보드 / 마우스 좌클릭 타격 / 우클릭 드래그 카메라 / 모바일 조이스틱
+  // 10. 키보드 / 마우스 좌클릭 타격 / 우클릭 대시 / 드래그 카메라
   // ========================================================================
   bindEvents() {
     window.addEventListener('resize', () => {
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
+      if (this.composer) {
+        this.composer.setSize(window.innerWidth, window.innerHeight);
+      }
     });
 
     window.addEventListener('keydown', e => {
@@ -1878,21 +1992,13 @@ class Chiikawa3DWorldApp {
       this.keys[e.code] = false;
     });
 
-    // 마우스 조작:
-    // - 좌클릭(클릭): 마우스 커서 방향 또는 가장 가까운 적/잡초를 향해 즉시 3연격 사스마타 베기!
-    // - 드래그(좌/우클릭 드래그): 부드러운 3D 카메라 회전
     const canvas = document.getElementById('webgl-canvas');
     canvas.addEventListener('contextmenu', e => e.preventDefault());
 
     canvas.addEventListener('mousedown', e => {
       if (!this.gameStarted) return;
       soundFx.startBgm();
-      if (e.button === 2) {
-        // 우클릭 시 즉시 회피 대시 또는 드래그 회전
-        this.isDraggingCam = true;
-        this.dragDistMoved = 0;
-        this.prevMouse = { x: e.clientX, y: e.clientY };
-      } else if (e.button === 0) {
+      if (e.button === 0 || e.button === 2) {
         this.isDraggingCam = true;
         this.dragDistMoved = 0;
         this.prevMouse = { x: e.clientX, y: e.clientY };
@@ -1916,10 +2022,8 @@ class Chiikawa3DWorldApp {
       if (!this.isDraggingCam) return;
       this.isDraggingCam = false;
 
-      // 드래그하지 않고 제자리에서 클릭한 경우 -> 좌클릭은 마우스 방향 공격, 우클릭은 회피 대시!
       if (this.dragDistMoved <= 6 && this.gameStarted) {
         if (e.button === 0) {
-          // 마우스 클릭 지점의 3D 바닥 좌표 계산 후 그 방향으로 공격!
           const mouseNDC = new THREE.Vector2(
             (e.clientX / window.innerWidth) * 2 - 1,
             -(e.clientY / window.innerHeight) * 2 + 1
@@ -1938,7 +2042,6 @@ class Chiikawa3DWorldApp {
       this.camDist = Math.max(12, Math.min(40, this.camDist + e.deltaY * 0.015));
     });
 
-    // 모바일 가상 조이스틱
     const joyZone = document.getElementById('mobile-joystick');
     const joyKnob = document.getElementById('joystick-knob');
     if (joyZone && joyKnob) {

@@ -1,13 +1,13 @@
 // ==========================================================================
 // 치이카와 3D 오픈월드 타운 - 고품질 3D 캐릭터/몬스터/월드 에셋 빌더 (models3d.js)
-// [Real Chiikawa Artwork 3D Volumetric Standee Rig + 1.5-Head Mochi 3D Mesh
-//  + High-Res Procedural Terrain Textures + Detailed 3D Landmarks]
+// [Live2D/Spine 스타일 실시간 버텍스 스켈레탈 변형 모션 + 3D 손/무기 관절 리그
+//  + GLSL 애니메이션 스카이돔 + 2,400개 Instanced 3D 흔들리는 풀숲]
 // ==========================================================================
 
 let sharedToonGradientMap = null;
 function getToonGradientMap() {
   if (sharedToonGradientMap) return sharedToonGradientMap;
-  const colors = new Uint8Array([95, 155, 215, 255]);
+  const colors = new Uint8Array([90, 150, 210, 255]);
   const texture = new THREE.DataTexture(colors, colors.length, 1, THREE.LuminanceFormat);
   texture.minFilter = THREE.NearestFilter;
   texture.magFilter = THREE.NearestFilter;
@@ -149,7 +149,111 @@ const CHAR_CONFIGS = {
 };
 
 // ==========================================================================
-// 2. 고해상도 프로시저럴 월드 지형 텍스처 생성기 (Grass, Plaza, Water, Forest)
+// 2. GLSL 애니메이션 그라데이션 스카이돔 & 2,400개 Instanced 3D 잔디밭
+// ==========================================================================
+function createAnimeSkyDome3D() {
+  const geo = new THREE.SphereGeometry(360, 32, 24);
+  const mat = new THREE.ShaderMaterial({
+    uniforms: {
+      topColor: { value: new THREE.Color(0x38bdf8) },
+      midColor: { value: new THREE.Color(0xbae6fd) },
+      bottomColor: { value: new THREE.Color(0xfef9c3) }
+    },
+    vertexShader: `
+      varying vec3 vWorldPos;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vWorldPos = wp.xyz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 topColor;
+      uniform vec3 midColor;
+      uniform vec3 bottomColor;
+      varying vec3 vWorldPos;
+      void main() {
+        float h = normalize(vWorldPos).y;
+        vec3 col = mix(bottomColor, midColor, smoothstep(-0.05, 0.25, h));
+        col = mix(col, topColor, smoothstep(0.25, 0.85, h));
+        gl_FragColor = vec4(col, 1.0);
+      }
+    `,
+    side: THREE.BackSide,
+    depthWrite: false
+  });
+  return new THREE.Mesh(geo, mat);
+}
+
+// 2,200개의 입체 3D 풀잎을 단 1번의 Draw Call로 렌더링하는 InstancedMesh
+function createInstancedGrassField3D() {
+  const count = 2200;
+  const bladeGeo = new THREE.ConeGeometry(0.18, 0.95, 5);
+  bladeGeo.translate(0, 0.45, 0);
+  const gradientMap = getToonGradientMap();
+  const bladeMat = new THREE.MeshToonMaterial({
+    color: 0x65a30d,
+    gradientMap
+  });
+
+  const instMesh = new THREE.InstancedMesh(bladeGeo, bladeMat, count);
+  instMesh.receiveShadow = true;
+
+  const dummy = new THREE.Object3D();
+  const baseTransforms = [];
+  const color = new THREE.Color();
+  const palette = [0x65a30d, 0x84cc16, 0x4ade80, 0xa3e635];
+
+  let idx = 0;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 20 + Math.random() * 102;
+    const x = Math.cos(angle) * dist;
+    const z = Math.sin(angle) * dist;
+
+    // 시냇물 영역(z: 23~33)은 제외
+    if (z > 23 && z < 33) continue;
+
+    const rotY = Math.random() * Math.PI * 2;
+    const scaleY = 0.65 + Math.random() * 0.85;
+    const scaleXZ = 0.75 + Math.random() * 0.5;
+
+    dummy.position.set(x, 0, z);
+    dummy.rotation.set(0, rotY, 0);
+    dummy.scale.set(scaleXZ, scaleY, scaleXZ);
+    dummy.updateMatrix();
+    instMesh.setMatrixAt(idx, dummy.matrix);
+
+    color.setHex(palette[idx % palette.length]);
+    instMesh.setColorAt(idx, color);
+
+    baseTransforms.push({ x, z, rotY, scaleXZ, scaleY, phase: (x + z) * 0.12 });
+    idx++;
+  }
+
+  instMesh.count = idx;
+  instMesh.instanceMatrix.needsUpdate = true;
+  if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
+
+  // 매 프레임 바람에 흔들리는 업데이트 함수 제공
+  instMesh.userData.updateWind = time => {
+    for (let i = 0; i < idx; i++) {
+      const bt = baseTransforms[i];
+      const sway = Math.sin(time * 2.6 + bt.phase) * 0.18;
+      dummy.position.set(bt.x, 0, bt.z);
+      dummy.rotation.set(sway * 0.5, bt.rotY, sway);
+      dummy.scale.set(bt.scaleXZ, bt.scaleY, bt.scaleXZ);
+      dummy.updateMatrix();
+      instMesh.setMatrixAt(i, dummy.matrix);
+    }
+    instMesh.instanceMatrix.needsUpdate = true;
+  };
+
+  return instMesh;
+}
+
+// ==========================================================================
+// 3. 고해상도 프로시저럴 지형 텍스처 생성기
 // ==========================================================================
 function createGrassCanvasTexture() {
   const canvas = document.createElement('canvas');
@@ -157,20 +261,17 @@ function createGrassCanvasTexture() {
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  // 파스텔 초원 베이스 그라데이션
   ctx.fillStyle = '#84cc16';
   ctx.fillRect(0, 0, 512, 512);
 
-  // 부드러운 잔디 패치 변주
-  for (let i = 0; i < 90; i++) {
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(163, 230, 53, 0.38)' : 'rgba(101, 163, 13, 0.25)';
+  for (let i = 0; i < 95; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(163, 230, 53, 0.42)' : 'rgba(101, 163, 13, 0.28)';
     ctx.beginPath();
-    ctx.arc(Math.random() * 512, Math.random() * 512, 18 + Math.random() * 35, 0, Math.PI * 2);
+    ctx.arc(Math.random() * 512, Math.random() * 512, 18 + Math.random() * 36, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  // 세밀한 풀잎 & 세잎클로버 디테일
-  for (let i = 0; i < 420; i++) {
+  for (let i = 0; i < 450; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
     ctx.strokeStyle = i % 3 === 0 ? '#ecfccb' : '#4d7c0f';
@@ -199,7 +300,6 @@ function createPlazaCanvasTexture() {
   ctx.fillStyle = '#fef3c7';
   ctx.fillRect(0, 0, 512, 512);
 
-  // 원형 광장 벽돌 타일 패턴
   const cx = 256;
   const cy = 256;
   for (let r = 24; r < 250; r += 26) {
@@ -219,15 +319,13 @@ function createPlazaCanvasTexture() {
     }
   }
 
-  // 외곽 파스텔 핑크 링
   ctx.strokeStyle = '#fb7185';
   ctx.lineWidth = 14;
   ctx.beginPath();
   ctx.arc(cx, cy, 238, 0, Math.PI * 2);
   ctx.stroke();
 
-  const tex = new THREE.CanvasTexture(canvas);
-  return tex;
+  return new THREE.CanvasTexture(canvas);
 }
 
 function createWaterCanvasTexture() {
@@ -239,8 +337,8 @@ function createWaterCanvasTexture() {
   ctx.fillStyle = '#0ea5e9';
   ctx.fillRect(0, 0, 512, 512);
 
-  for (let i = 0; i < 65; i++) {
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(125, 211, 252, 0.45)' : 'rgba(255, 255, 255, 0.35)';
+  for (let i = 0; i < 70; i++) {
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(125, 211, 252, 0.5)' : 'rgba(255, 255, 255, 0.42)';
     const x = Math.random() * 512;
     const y = Math.random() * 512;
     ctx.beginPath();
@@ -256,8 +354,7 @@ function createWaterCanvasTexture() {
 }
 
 // ==========================================================================
-// 3. 스마트 배경 투명화 & 원작 일러스트 3D 입체 스탠디 생성기
-//    (틈새 막기 모폴로지 Flood-Fill로 흰색 몸통은 보존하고 외부 흰 배경만 완벽 제거!)
+// 4. 스마트 배경 투명화 (모폴로지 Flood-Fill)
 // ==========================================================================
 const cleanTextureCache = {};
 
@@ -267,7 +364,6 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
     return cleanTextureCache[imageUrl];
   }
 
-  // 로딩 전 임시 투명 텍스처 생성
   const tempCanvas = document.createElement('canvas');
   tempCanvas.width = 512;
   tempCanvas.height = 512;
@@ -285,7 +381,6 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
     c.height = size;
     const ctx = c.getContext('2d');
 
-    // 여백 16px을 두어 외곽선 테두리가 잘리지 않게 그림
     const pad = 18;
     const drawW = size - pad * 2;
     const drawH = size - pad * 2;
@@ -294,14 +389,10 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
     const imgData = ctx.getImageData(0, 0, size, size);
     const data = imgData.data;
 
-    // 1) 이미 투명 배경(WebP 알파)인지 확인: 모서리 (pad+2, pad+2) 픽셀 알파 체크
     const cornerIdx = ((pad + 2) * size + (pad + 2)) * 4;
     const hasNativeAlpha = data[cornerIdx + 3] < 50;
 
     if (!hasNativeAlpha) {
-      // 2) JPEG 흰 배경 제거: 나가노 작가님 특유의 끊어진 외곽선 틈새(약 8~16px)로
-      //    배경 투명화가 캐릭터 흰 얼굴 안으로 새어 들어가는 것을 방지하기 위해
-      //    [어두운 외곽선 팽창(Dilation) -> 외부 BFS Flood-Fill -> 원래 외곽선까지 복원] 수행!
       const N = size * size;
       const isDarkLine = new Uint8Array(N);
       for (let i = 0; i < N; i++) {
@@ -309,18 +400,15 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
         const g = data[i * 4 + 1];
         const b = data[i * 4 + 2];
         const a = data[i * 4 + 3];
-        // 외곽선 또는 채색 영역 판정
         if (a > 50 && (r < 238 || g < 238 || b < 238)) {
           isDarkLine[i] = 1;
         }
       }
 
-      // 틈새 봉합용 팽창 반경 (12px: 귀/어깨 사이 끊어진 선을 완벽히 이어줌)
       const sealRadius = 12;
       const sealedBarrier = new Uint8Array(N);
       const horizTemp = new Uint8Array(N);
 
-      // 수평 1D 팽창
       for (let y = 0; y < size; y++) {
         const rowOff = y * size;
         let count = 0;
@@ -333,7 +421,6 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
           if (addX < size) count += isDarkLine[rowOff + addX];
         }
       }
-      // 수직 1D 팽창
       for (let x = 0; x < size; x++) {
         let count = 0;
         for (let y = 0; y <= sealRadius; y++) count += horizTemp[y * size + x];
@@ -346,13 +433,12 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
         }
       }
 
-      // 봉합된 장벽 바깥(테두리 (0,0))에서 BFS Flood-Fill로 진짜 외부 배경 탐색
       const isExteriorCore = new Uint8Array(N);
       const queue = new Int32Array(N);
       let head = 0;
       let tail = 0;
 
-      const pushSeed = ( idx ) => {
+      const pushSeed = idx => {
         if (!sealedBarrier[idx] && !isExteriorCore[idx]) {
           isExteriorCore[idx] = 1;
           queue[tail++] = idx;
@@ -378,7 +464,6 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
         if (cy < size - 1) pushSeed(cur + size);
       }
 
-      // 이제 외부 코어 영역을 다시 sealRadius만큼 확장하되, 실제 어두운 외곽선(isDarkLine)에서 멈춤!
       const isExteriorFinal = new Uint8Array(isExteriorCore);
       let curWave = [];
       for (let i = 0; i < N; i++) {
@@ -420,7 +505,6 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
         if (curWave.length === 0) break;
       }
 
-      // 외부 배경 픽셀 알파를 0으로 설정 & 외곽 경계 부드럽게 안티앨리어싱
       for (let i = 0; i < N; i++) {
         if (isExteriorFinal[i]) {
           data[i * 4 + 3] = 0;
@@ -430,11 +514,10 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
 
     ctx.putImageData(imgData, 0, 0);
 
-    // 최종 캔버스에 깔끔한 화이트 피규어 림(Sticker Rim) 효과를 뒤에 살짝 깔아 입체감 극대화
     const finalCtx = tempCanvas.getContext('2d');
     finalCtx.clearRect(0, 0, size, size);
     finalCtx.save();
-    finalCtx.shadowColor = 'rgba(255, 255, 255, 0.95)';
+    finalCtx.shadowColor = 'rgba(255, 255, 255, 0.96)';
     finalCtx.shadowBlur = 4;
     finalCtx.drawImage(c, 0, 0);
     finalCtx.restore();
@@ -448,28 +531,40 @@ function loadCleanCharacterTexture(imageUrl, onReady) {
 }
 
 // ==========================================================================
-// 4. 사스마타 & 전용 무기 3D 메쉬 빌더
+// 5. 사스마타 & 전용 무기 3D 메쉬 + 3D 손(Paw) 빌더
 // ==========================================================================
-function createWeapon3D(weaponType) {
+function createWeapon3D(weaponType, bodyColor = 0xffffff) {
   const group = new THREE.Group();
   const gradientMap = getToonGradientMap();
+
+  // 무기를 쥐고 있는 3D 찹쌀떡 손(Paw) 추가!
+  const pawMat = new THREE.MeshToonMaterial({ color: bodyColor, gradientMap });
+  const paw = new THREE.Mesh(new THREE.SphereGeometry(0.32, 14, 14), pawMat);
+  paw.position.set(0, 0.25, 0.08);
+  addCartoonOutline(paw, 0.08);
+  group.add(paw);
 
   if (weaponType === 'rakko_sword') {
     const hiltMat = new THREE.MeshToonMaterial({ color: 0x1e293b, gradientMap });
     const goldMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
-    const bladeMat = new THREE.MeshToonMaterial({ color: 0xf8fafc, gradientMap });
+    const bladeMat = new THREE.MeshToonMaterial({
+      color: 0xf8fafc,
+      gradientMap,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 0.2
+    });
 
     const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.0, 10), hiltMat);
     addCartoonOutline(handle, 0.05);
     group.add(handle);
 
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.16, 0.35), goldMat);
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.18, 0.36), goldMat);
     guard.position.y = 0.55;
     addCartoonOutline(guard, 0.05);
     group.add(guard);
 
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.24, 2.7, 0.08), bladeMat);
-    blade.position.y = 1.95;
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.26, 2.85, 0.08), bladeMat);
+    blade.position.y = 2.0;
     blade.castShadow = true;
     addCartoonOutline(blade, 0.04);
     group.add(blade);
@@ -478,20 +573,25 @@ function createWeapon3D(weaponType) {
 
   if (weaponType === 'wand_yellow') {
     const rodMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
-    const tipMat = new THREE.MeshToonMaterial({ color: 0xf43f5e, gradientMap });
+    const tipMat = new THREE.MeshToonMaterial({
+      color: 0xf43f5e,
+      gradientMap,
+      emissive: 0xf43f5e,
+      emissiveIntensity: 0.25
+    });
 
-    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.4, 12), rodMat);
+    const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 3.5, 12), rodMat);
     rod.position.y = 1.0;
     addCartoonOutline(rod, 0.04);
     group.add(rod);
 
-    const topBall = new THREE.Mesh(new THREE.SphereGeometry(0.34, 14, 14), tipMat);
-    topBall.position.y = 2.75;
+    const topBall = new THREE.Mesh(new THREE.SphereGeometry(0.36, 14, 14), tipMat);
+    topBall.position.y = 2.8;
     addCartoonOutline(topBall, 0.05);
     group.add(topBall);
 
     const botBall = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 12), tipMat);
-    botBall.position.y = -0.7;
+    botBall.position.y = -0.75;
     addCartoonOutline(botBall, 0.05);
     group.add(botBall);
     return group;
@@ -504,25 +604,25 @@ function createWeapon3D(weaponType) {
   if (weaponType === 'sasumata_amber') colorHex = 0xf59e0b;
 
   const mat = new THREE.MeshToonMaterial({ color: colorHex, gradientMap });
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 3.2, 12), mat);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 3.3, 12), mat);
   pole.position.y = 1.0;
   pole.castShadow = true;
-  addCartoonOutline(pole, 0.04);
+  addCartoonOutline(pole, 0.045);
   group.add(pole);
 
-  const forkGeo = new THREE.TorusGeometry(0.48, 0.1, 10, 22, Math.PI);
+  const forkGeo = new THREE.TorusGeometry(0.5, 0.11, 10, 22, Math.PI);
   const fork = new THREE.Mesh(forkGeo, mat);
-  fork.position.y = 2.65;
+  fork.position.y = 2.7;
   fork.rotation.z = Math.PI;
   fork.castShadow = true;
-  addCartoonOutline(fork, 0.04);
+  addCartoonOutline(fork, 0.045);
   group.add(fork);
 
   return group;
 }
 
 // ==========================================================================
-// 5. 3D 머리 코스튬 액세서리 생성기 (왕관, 벚꽃 화관, 왕리본, 천사링)
+// 6. 3D 머리 코스튬 액세서리 생성기
 // ==========================================================================
 function createHatAccessory3D(hatType) {
   const group = new THREE.Group();
@@ -600,10 +700,12 @@ function createHatAccessory3D(hatType) {
 }
 
 // ==========================================================================
-// 6. 진짜 치이카와 캐릭터 3D 하이브리드 모델 빌더 (createChiikawaPlushie)
-//    - 기본(Default): 원작 고해상도 일러스트를 다층 3D 볼륨 레이어로 적층한
-//      3D 디오라마 스탠디 리그 (진짜 치이카와 외형 100% 일치!)
-//    - 호환: 팔다리/무기 피벗, 3D 모자 장착, 피격 플래시, 1.5등신 찹쌀떡 3D 메쉬 전환 지원
+// 7. Live2D / Spine 스타일 실시간 버텍스 변형 모션이 탑재된 3D 캐릭터 리그!
+//    - 16x20 고밀도 서브디비전 메쉬를 매 프레임 변형하여:
+//      1) 좌우 발이 번갈아 총총거리며 달리는 다리 교차 모션 (Leg Stride)
+//      2) 볼살과 배가 말랑거리며 숨쉬는 모찌 탄성 모션 (Mochi Breathing & Jelly)
+//      3) 귀와 머리가 관성에 따라 흔들리는 2차 팔로쓰루 모션 (Ear & Head Lag)
+//      4) 공격 시 상체 비틀기 & 전진 전단 변형 (Slash Twist & Shear)
 // ==========================================================================
 function createChiikawaPlushie(charKey = 'chiikawa') {
   const cfg = CHAR_CONFIGS[charKey] || CHAR_CONFIGS.chiikawa;
@@ -611,31 +713,37 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
   root.userData.charKey = charKey;
 
   // 바닥 원형 그림자 디스크
-  const shadowGeo = new THREE.CircleGeometry(1.75, 28);
+  const shadowGeo = new THREE.CircleGeometry(1.8, 28);
   shadowGeo.rotateX(-Math.PI / 2);
   const shadowMat = new THREE.MeshBasicMaterial({
     color: 0x0f172a,
     transparent: true,
-    opacity: 0.28,
+    opacity: 0.3,
     depthWrite: false
   });
   const shadowDisc = new THREE.Mesh(shadowGeo, shadowMat);
   shadowDisc.position.y = 0.04;
   root.add(shadowDisc);
 
-  // ------------------------------------------------------------------------
-  // A. 원작 일러스트 3D 입체 볼륨 스탠디 그룹 (10겹 3D 두께 적층으로 입체 피규어감 구현)
-  // ------------------------------------------------------------------------
+  // 다층 3D 볼륨 스탠디 (고밀도 14x18 서브디비전 지오메트리 공유 -> 실시간 버텍스 변형!)
   const standeeGroup = new THREE.Group();
   const charTex = loadCleanCharacterTexture(cfg.portrait);
 
-  const layerCount = 9;
-  const totalThickness = 0.38;
   const planeW = 4.6;
   const planeH = 4.8;
-  const planeGeo = new THREE.PlaneGeometry(planeW, planeH);
+  // 중심 피벗을 발바닥(y = 0) 기준으로 맞추기 위해 translate(0, planeH/2, 0) 적용
+  const sharedDeformGeo = new THREE.PlaneGeometry(planeW, planeH, 14, 18);
+  sharedDeformGeo.translate(0, planeH * 0.5, 0);
 
+  // 원본 버텍스 좌표 백업
+  const posAttr = sharedDeformGeo.attributes.position;
+  const baseCoords = new Float32Array(posAttr.array.length);
+  baseCoords.set(posAttr.array);
+
+  const layerCount = 7;
+  const totalThickness = 0.36;
   const standeeMaterials = [];
+
   for (let i = 0; i < layerCount; i++) {
     const isFrontOrBack = i === 0 || i === layerCount - 1;
     const mat = new THREE.MeshBasicMaterial({
@@ -643,48 +751,54 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
       transparent: true,
       alphaTest: 0.15,
       side: THREE.DoubleSide,
-      color: isFrontOrBack ? 0xffffff : 0xf1f5f9
+      color: isFrontOrBack ? 0xffffff : 0xe2e8f0
     });
     standeeMaterials.push(mat);
 
-    const slice = new THREE.Mesh(planeGeo, mat);
-    slice.position.y = 2.4;
+    const slice = new THREE.Mesh(sharedDeformGeo, mat);
     slice.position.z = ((i / (layerCount - 1)) - 0.5) * totalThickness;
     slice.castShadow = i === Math.floor(layerCount / 2);
     standeeGroup.add(slice);
   }
   root.add(standeeGroup);
 
-  // ------------------------------------------------------------------------
-  // B. 3D 무기 & 팔다리 피벗 (3D 사스마타/명검을 옆에 들고 휘두름)
-  // ------------------------------------------------------------------------
+  // 3D 무기 & 손 관절 피벗
   const leftLegPivot = new THREE.Group();
   const rightLegPivot = new THREE.Group();
   const leftArmPivot = new THREE.Group();
   const rightArmPivot = new THREE.Group();
   const earsGroup = new THREE.Group();
 
-  rightArmPivot.position.set(1.65, 1.85, 0.35);
-  const weaponMesh = createWeapon3D(cfg.weaponType);
-  weaponMesh.position.set(0.2, -0.3, 0.2);
+  // 무기를 캐릭터 앞/옆에서 입체적으로 휘두르도록 배치
+  rightArmPivot.position.set(1.45, 1.85, 0.42);
+  const weaponMesh = createWeapon3D(cfg.weaponType, cfg.bodyColor);
+  weaponMesh.position.set(0.15, -0.25, 0.15);
   weaponMesh.rotation.x = Math.PI / 7;
-  weaponMesh.rotation.z = -0.18;
+  weaponMesh.rotation.z = -0.22;
   rightArmPivot.add(weaponMesh);
 
-  root.add(leftLegPivot);
-  root.add(rightLegPivot);
-  root.add(leftArmPivot);
-  root.add(rightArmPivot);
-  root.add(earsGroup);
+  // 반대편 귀여운 3D 왼손(Paw)도 입체로 부착해 달릴 때 팔을 앞뒤로 흔들게 함!
+  const gradientMap = getToonGradientMap();
+  const leftPawMat = new THREE.MeshToonMaterial({ color: cfg.bodyColor, gradientMap });
+  const leftPaw = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 12), leftPawMat);
+  addCartoonOutline(leftPaw, 0.08);
+  leftArmPivot.position.set(-1.35, 1.75, 0.32);
+  leftArmPivot.add(leftPaw);
 
-  // 3D 모자 장착 슬롯 (정수리 위)
+  standeeGroup.add(leftArmPivot);
+  standeeGroup.add(rightArmPivot);
+
+  // 3D 모자 장착 슬롯 (머리 정점 움직임과 함께 연동!)
   const hatSlot = new THREE.Group();
-  hatSlot.position.set(0, 4.45, 0.1);
-  root.add(hatSlot);
+  hatSlot.position.set(0, 4.4, 0.12);
+  standeeGroup.add(hatSlot);
 
   root.userData.parts = {
     standeeGroup,
     standeeMaterials,
+    sharedDeformGeo,
+    baseCoords,
+    shadowDisc,
     leftLegPivot,
     rightLegPivot,
     leftArmPivot,
@@ -694,18 +808,154 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     weaponMesh
   };
 
-  // 표정/상태 변화 시 컬러/바운스 연출
-  root.userData.setExpression = expr => {
-    if (expr === 'attack') {
-      standeeGroup.scale.set(1.1, 0.92, 1.1);
-    } else if (expr === 'happy') {
-      standeeGroup.scale.set(1.12, 1.12, 1.12);
+  // ========================================================================
+  // 핵심: Live2D/Spine 스타일 실시간 버텍스 스켈레탈 모션 엔진 (updateMotion)
+  // ========================================================================
+  root.userData.jellySpring = 0; // 착지/공격 시 말랑거리는 젤리 스프링 진폭
+
+  root.userData.updateMotion = (time, walkTime, isMoving, isGrounded, velY, attackTimer, comboStep) => {
+    const arr = posAttr.array;
+    const count = posAttr.count;
+
+    // 젤리 탄성 감쇠
+    if (root.userData.jellySpring > 0.001) {
+      root.userData.jellySpring *= 0.88;
     } else {
-      standeeGroup.scale.set(1, 1, 1);
+      root.userData.jellySpring = 0;
+    }
+
+    const jellyWave = Math.sin(time * 28) * root.userData.jellySpring;
+    const breath = Math.sin(time * 3.6) * 0.028;
+
+    for (let i = 0; i < count; i++) {
+      const idx = i * 3;
+      const bx = baseCoords[idx];
+      const by = baseCoords[idx + 1];
+      const bz = baseCoords[idx + 2];
+
+      // 높이 정규화 v ∈ [0 (발바닥), 1 (귀 끝)]
+      const v = Math.max(0, Math.min(1, by / planeH));
+
+      let dx = 0;
+      let dy = 0;
+      let dz = 0;
+
+      // 1) 숨쉬기 & 말랑 모찌 볼살/배 탄성 (중간 몸통 v = 0.25 ~ 0.75)
+      const bellyMask = Math.sin(v * Math.PI);
+      dx += bx * (breath + jellyWave * 0.35) * bellyMask;
+      dy += by * (breath * 0.6 - jellyWave * 0.28);
+
+      // 2) 달릴 때 좌우 다리(v < 0.30)가 실제로 번갈아 위아래/앞뒤로 총총거리는 모션!
+      if (isMoving && isGrounded) {
+        if (v < 0.30) {
+          const legWeight = 1.0 - (v / 0.30);
+          // 왼쪽 다리(bx < -0.15)와 오른쪽 다리(bx > 0.15)가 정반대 위상으로 스텝!
+          if (Math.abs(bx) > 0.12) {
+            const sideSign = bx > 0 ? 1 : -1;
+            const stridePhase = walkTime + (sideSign > 0 ? 0 : Math.PI);
+            const liftY = Math.max(0, Math.sin(stridePhase)) * 0.42 * legWeight;
+            const kickX = Math.cos(stridePhase) * 0.18 * legWeight;
+            const kickZ = Math.cos(stridePhase) * 0.28 * legWeight;
+            dy += liftY;
+            dx += kickX;
+            dz += kickZ;
+          }
+        }
+
+        // 상체/귀(v > 0.45)는 달리는 리듬에 맞춰 좌우로 귀엽게 스윙 + 귀 끝 관성 흔들림
+        if (v > 0.45) {
+          const upperWeight = (v - 0.45) / 0.55;
+          dx += Math.sin(walkTime) * 0.22 * upperWeight;
+          // 귀 끝(v > 0.78)은 약간의 위상차(Phase Lag)를 두고 쫑긋거림
+          if (v > 0.75) {
+            const earWeight = (v - 0.75) / 0.25;
+            dy += Math.sin(walkTime * 2 - Math.abs(bx)) * 0.12 * earWeight;
+          }
+        }
+      } else if (isGrounded) {
+        // 대기(Idle) 상태에서도 귀 끝이 살랑살랑 움직임
+        if (v > 0.75) {
+          const earWeight = (v - 0.75) / 0.25;
+          dx += Math.sin(time * 2.8 + bx) * 0.06 * earWeight;
+        }
+      }
+
+      // 3) 점프/낙하 중 공중 스트레치 & 귀 나부낌 변형
+      if (!isGrounded) {
+        const stretch = Math.max(-0.22, Math.min(0.28, velY * 0.014));
+        dy += by * stretch * v;
+        dx -= bx * stretch * 0.45 * bellyMask;
+      }
+
+      // 4) 공격 시 역동적인 상체 스냅 & 전진 베기 텐션
+      if (attackTimer > 0) {
+        const atkPhase = attackTimer * 18;
+        const lungeShear = Math.sin(atkPhase) * 0.35 * v;
+        dx += lungeShear;
+        dz += Math.sin(atkPhase) * 0.25 * bellyMask;
+      }
+
+      arr[idx] = bx + dx;
+      arr[idx + 1] = by + dy;
+      arr[idx + 2] = bz + dz;
+    }
+
+    posAttr.needsUpdate = true;
+
+    // 3D 모자 슬롯 위치도 정수리 변형에 맞춰 자연스럽게 바운스
+    hatSlot.position.y = 4.4 + (breath - jellyWave * 0.25) * 3.2;
+    hatSlot.rotation.z = isMoving ? Math.sin(walkTime) * 0.06 : 0;
+
+    // 3D 왼손 스윙 & 오른손 무기 3연격 역동적 모션
+    if (attackTimer > 0) {
+      const p = 1.0 - Math.min(1, attackTimer / 0.26);
+      if (comboStep === 1) {
+        // 1타: 시원한 대각선 내려베기
+        rightArmPivot.rotation.z = 0.8 - p * 2.6;
+        rightArmPivot.rotation.x = 0.5 + Math.sin(p * Math.PI) * 0.9;
+        rightArmPivot.position.x = 1.45 - Math.sin(p * Math.PI) * 0.6;
+      } else if (comboStep === 2) {
+        // 2타: 아래에서 위로 강하게 올려베기
+        rightArmPivot.rotation.z = -1.8 + p * 2.8;
+        rightArmPivot.rotation.x = 0.7;
+        rightArmPivot.position.x = 1.2 + Math.sin(p * Math.PI) * 0.5;
+      } else {
+        // 3타: 풀스윙 대회전 강타!
+        rightArmPivot.rotation.z = -1.4;
+        rightArmPivot.rotation.y = p * Math.PI * 2;
+        rightArmPivot.rotation.x = 0.9;
+      }
+      leftArmPivot.position.y = 1.95;
+    } else {
+      rightArmPivot.rotation.y = 0;
+      rightArmPivot.position.x = 1.45;
+      if (isMoving) {
+        const armSwing = Math.sin(walkTime) * 0.45;
+        rightArmPivot.rotation.z = -0.22 + armSwing * 0.5;
+        rightArmPivot.rotation.x = armSwing * 0.4;
+        leftArmPivot.position.y = 1.75 + Math.sin(walkTime + Math.PI) * 0.25;
+        leftArmPivot.position.z = 0.32 + Math.cos(walkTime + Math.PI) * 0.25;
+      } else {
+        rightArmPivot.rotation.z = -0.22 + Math.sin(time * 3) * 0.06;
+        rightArmPivot.rotation.x = 0;
+        leftArmPivot.position.y = 1.75 + Math.sin(time * 3) * 0.06;
+        leftArmPivot.position.z = 0.32;
+      }
     }
   };
 
-  // 3D 모자 장착 메서드
+  root.userData.triggerJellyBounce = (strength = 0.32) => {
+    root.userData.jellySpring = strength;
+  };
+
+  root.userData.setExpression = expr => {
+    if (expr === 'attack') {
+      root.userData.triggerJellyBounce(0.28);
+    } else if (expr === 'happy') {
+      root.userData.triggerJellyBounce(0.38);
+    }
+  };
+
   root.userData.equipHat = hatType => {
     while (hatSlot.children.length > 0) {
       hatSlot.remove(hatSlot.children[0]);
@@ -721,7 +971,7 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
 }
 
 // ==========================================================================
-// 7. 진짜 몬스터 일러스트 기반 3D 입체 몬스터 모델 빌더 (createMonster3D)
+// 8. 몬스터 일러스트 기반 3D 입체 스켈레탈 변형 모델 빌더 (createMonster3D)
 // ==========================================================================
 const MONSTER_IMAGE_MAP = {
   bug: 'assets/monster_bug.png',
@@ -753,7 +1003,6 @@ function createMonster3D(type = 'chimera') {
     sizeH = 8.6;
   }
 
-  // 바닥 위협 그림자 & 붉은 오라 링
   const shadowGeo = new THREE.CircleGeometry(sizeW * 0.36, 28);
   shadowGeo.rotateX(-Math.PI / 2);
   const shadowMat = new THREE.MeshBasicMaterial({
@@ -766,13 +1015,18 @@ function createMonster3D(type = 'chimera') {
   shadow.position.y = 0.05;
   group.add(shadow);
 
-  // 다층 3D 입체 몬스터 스탠디
+  // 몬스터도 10x12 서브디비전 메쉬로 숨쉬기 & 발 구르기 & 피격 찌그러짐 변형!
   const bodyWrap = new THREE.Group();
-  const layers = 7;
-  const thickness = type === 'anoko' ? 0.55 : 0.36;
-  const planeGeo = new THREE.PlaneGeometry(sizeW, sizeH);
+  const sharedGeo = new THREE.PlaneGeometry(sizeW, sizeH, 10, 12);
+  sharedGeo.translate(0, sizeH * 0.48, 0);
+  const posAttr = sharedGeo.attributes.position;
+  const baseCoords = new Float32Array(posAttr.array.length);
+  baseCoords.set(posAttr.array);
 
+  const layers = 6;
+  const thickness = type === 'anoko' ? 0.52 : 0.34;
   const mats = [];
+
   for (let i = 0; i < layers; i++) {
     const mat = new THREE.MeshBasicMaterial({
       map: tex,
@@ -781,8 +1035,7 @@ function createMonster3D(type = 'chimera') {
       side: THREE.DoubleSide
     });
     mats.push(mat);
-    const mesh = new THREE.Mesh(planeGeo, mat);
-    mesh.position.y = sizeH * 0.48;
+    const mesh = new THREE.Mesh(sharedGeo, mat);
     mesh.position.z = ((i / (layers - 1)) - 0.5) * thickness;
     mesh.castShadow = i === Math.floor(layers / 2);
     bodyWrap.add(mesh);
@@ -791,20 +1044,68 @@ function createMonster3D(type = 'chimera') {
   group.add(bodyWrap);
   group.userData.bodyWrap = bodyWrap;
   group.userData.mats = mats;
+  group.userData.hitWobble = 0;
 
-  // 피격 시 하얗게/붉게 반짝이는 플래시 효과
+  group.userData.updateMonsterMotion = (time, isChasing, phaseOffset) => {
+    const arr = posAttr.array;
+    const count = posAttr.count;
+    if (group.userData.hitWobble > 0.001) {
+      group.userData.hitWobble *= 0.85;
+    } else {
+      group.userData.hitWobble = 0;
+    }
+
+    const t = time * (isChasing ? 9.5 : 3.5) + phaseOffset;
+    const wobble = Math.sin(time * 35) * group.userData.hitWobble;
+
+    for (let i = 0; i < count; i++) {
+      const idx = i * 3;
+      const bx = baseCoords[idx];
+      const by = baseCoords[idx + 1];
+      const bz = baseCoords[idx + 2];
+      const v = Math.max(0, Math.min(1, by / sizeH));
+
+      let dx = Math.sin(v * Math.PI * 2 + time * 20) * wobble * 0.6;
+      let dy = 0;
+
+      if (type === 'bug') {
+        // 날개 벌레는 위아래 날갯짓 파동
+        dy += Math.sin(time * 16 + Math.abs(bx) * 1.5) * 0.18 * v;
+      } else if (isChasing) {
+        // 추격 중일 때 좌우 다리 스톰프 & 상체 위협 기울기
+        if (v < 0.3) {
+          const side = bx >= 0 ? 1 : -1;
+          dy += Math.max(0, Math.sin(t + (side > 0 ? 0 : Math.PI))) * 0.35 * (1 - v / 0.3);
+        } else {
+          dx += Math.sin(t) * 0.22 * v;
+        }
+      } else {
+        // 대기 중 위협적인 들숨 날숨
+        const b = Math.sin(t) * 0.04;
+        dx += bx * b;
+        dy += by * b;
+      }
+
+      arr[idx] = bx + dx;
+      arr[idx + 1] = by + dy;
+      arr[idx + 2] = bz;
+    }
+    posAttr.needsUpdate = true;
+  };
+
   group.userData.flashHit = () => {
-    mats.forEach(m => m.color.setHex(0xff8fa3));
+    group.userData.hitWobble = 0.45;
+    mats.forEach(m => m.color.setHex(0xff4d6d));
     setTimeout(() => {
       mats.forEach(m => m.color.setHex(0xffffff));
-    }, 110);
+    }, 120);
   };
 
   return group;
 }
 
 // ==========================================================================
-// 8. 3D 초원 잡초 & 황금 클로버 패치
+// 9. 3D 초원 잡초 & 황금 클로버 패치
 // ==========================================================================
 function createWeedPatch3D(isGolden = false) {
   const group = new THREE.Group();
@@ -814,10 +1115,9 @@ function createWeedPatch3D(isGolden = false) {
     color,
     gradientMap,
     emissive: isGolden ? 0xca8a04 : 0x000000,
-    emissiveIntensity: isGolden ? 0.35 : 0
+    emissiveIntensity: isGolden ? 0.45 : 0
   });
 
-  // 바닥 흙더미
   const soilMat = new THREE.MeshToonMaterial({ color: 0x78350f, gradientMap });
   const soil = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.95, 0.22, 12), soilMat);
   soil.position.y = 0.11;
@@ -845,18 +1145,25 @@ function createWeedPatch3D(isGolden = false) {
 }
 
 // ==========================================================================
-// 9. 고품질 3D 월드 랜드마크 (중앙 분수대, 치이카와 하우스, 라멘 랑, 풍차, 다리, 도리이)
+// 10. 고품질 3D 월드 랜드마크
 // ==========================================================================
-
-// ⛲ 중앙 광장 2단 대리석 분수대
 function createPlazaFountain3D() {
   const group = new THREE.Group();
   const gradientMap = getToonGradientMap();
   const stoneMat = new THREE.MeshToonMaterial({ color: 0xf8fafc, gradientMap });
-  const waterMat = new THREE.MeshToonMaterial({ color: 0x38bdf8, gradientMap });
-  const goldMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+  const waterMat = new THREE.MeshToonMaterial({
+    color: 0x38bdf8,
+    gradientMap,
+    emissive: 0x0284c7,
+    emissiveIntensity: 0.2
+  });
+  const goldMat = new THREE.MeshToonMaterial({
+    color: 0xfacc15,
+    gradientMap,
+    emissive: 0xca8a04,
+    emissiveIntensity: 0.3
+  });
 
-  // 1단 수조
   const poolWall = new THREE.Mesh(new THREE.CylinderGeometry(3.8, 4.1, 0.9, 28), stoneMat);
   poolWall.position.y = 0.45;
   poolWall.castShadow = true;
@@ -868,7 +1175,6 @@ function createPlazaFountain3D() {
   waterSurface.position.y = 0.5;
   group.add(waterSurface);
 
-  // 중앙 기둥 & 2단 수반
   const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.9, 2.6, 16), stoneMat);
   pillar.position.y = 1.4;
   pillar.castShadow = true;
@@ -881,7 +1187,6 @@ function createPlazaFountain3D() {
   addCartoonOutline(upperBowl, 0.04);
   group.add(upperBowl);
 
-  // 꼭대기 황금 별 조각상
   const topStar = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 0), goldMat);
   topStar.position.y = 3.55;
   addCartoonOutline(topStar, 0.05);
@@ -891,7 +1196,6 @@ function createPlazaFountain3D() {
   return group;
 }
 
-// 🏡 치이카와 돔 하우스
 function createChiikawaHouse3D() {
   const house = new THREE.Group();
   const gradientMap = getToonGradientMap();
@@ -918,7 +1222,6 @@ function createChiikawaHouse3D() {
   addCartoonOutline(cap, 0.025);
   house.add(cap);
 
-  // 굴뚝
   const chimneyMat = new THREE.MeshToonMaterial({ color: 0xe11d48, gradientMap });
   const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.75, 2.8, 14), chimneyMat);
   chimney.position.set(2.8, 4.5, -1.5);
@@ -926,13 +1229,11 @@ function createChiikawaHouse3D() {
   addCartoonOutline(chimney, 0.04);
   house.add(chimney);
 
-  // 아치형 현관문
   const door = new THREE.Mesh(new THREE.BoxGeometry(2.1, 3.0, 0.6), doorMat);
   door.position.set(0, 1.5, 5.25);
   addCartoonOutline(door, 0.04);
   house.add(door);
 
-  // 따뜻한 빛이 나는 창문 2개
   const winMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
   const frameMat = new THREE.MeshToonMaterial({ color: 0x78350f, gradientMap });
   [-2.7, 2.7].forEach(wx => {
@@ -947,7 +1248,6 @@ function createChiikawaHouse3D() {
     house.add(wGlass);
   });
 
-  // 집 앞 피크닉 돗자리 & 핫케이크
   const matCarpet = new THREE.Mesh(
     new THREE.BoxGeometry(4.2, 0.08, 3.2),
     new THREE.MeshToonMaterial({ color: 0xfb7185, gradientMap })
@@ -966,7 +1266,6 @@ function createChiikawaHouse3D() {
   return house;
 }
 
-// 🍜 갑옷씨의 라멘 '랑(郎)' 포장마차
 function createRamenStall3D() {
   const stall = new THREE.Group();
   const gradientMap = getToonGradientMap();
@@ -997,7 +1296,6 @@ function createRamenStall3D() {
   addCartoonOutline(roof, 0.03);
   stall.add(roof);
 
-  // 간판 캔버스 텍스처
   const signCanvas = document.createElement('canvas');
   signCanvas.width = 512;
   signCanvas.height = 128;
@@ -1022,7 +1320,6 @@ function createRamenStall3D() {
   addCartoonOutline(banner, 0.04);
   stall.add(banner);
 
-  // 의자 4개 & 카운터 위 라멘 그릇
   const stoolMat = new THREE.MeshToonMaterial({ color: 0xef4444, gradientMap });
   [-2.7, -0.9, 0.9, 2.7].forEach(sx => {
     const seat = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, 0.25, 14), stoolMat);
@@ -1040,7 +1337,6 @@ function createRamenStall3D() {
     stall.add(bowl);
   });
 
-  // 붉은 초롱불 2개 & 따뜻한 조명
   const lanternMat = new THREE.MeshBasicMaterial({ color: 0xff4d6d });
   [-3.2, 3.2].forEach(lx => {
     const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.58, 14, 14), lanternMat);
@@ -1050,11 +1346,10 @@ function createRamenStall3D() {
     stall.add(lantern);
   });
 
-  const warmLight = new THREE.PointLight(0xffb703, 1.1, 20);
+  const warmLight = new THREE.PointLight(0xffb703, 1.2, 22);
   warmLight.position.set(0, 4.5, 3.5);
   stall.add(warmLight);
 
-  // 갑옷씨 (Armor-san)
   const armorMat = new THREE.MeshToonMaterial({ color: 0x94a3b8, gradientMap });
   const armorBody = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.25, 2.7, 16), armorMat);
   armorBody.position.set(0, 2.7, -0.5);
@@ -1069,7 +1364,6 @@ function createRamenStall3D() {
   return stall;
 }
 
-// 🌱 제초 평원 회전 풍차
 function createWindmill3D() {
   const group = new THREE.Group();
   const gradientMap = getToonGradientMap();
@@ -1090,7 +1384,6 @@ function createWindmill3D() {
   addCartoonOutline(roof, 0.035);
   group.add(roof);
 
-  // 회전 날개 피벗
   const bladesPivot = new THREE.Group();
   bladesPivot.position.set(0, 6.2, 2.2);
 
@@ -1119,7 +1412,6 @@ function createWindmill3D() {
   return group;
 }
 
-// 🍮 자이언트 푸딩 언덕
 function createGiantPudding3D() {
   const group = new THREE.Group();
   const gradientMap = getToonGradientMap();
@@ -1156,7 +1448,6 @@ function createGiantPudding3D() {
   return group;
 }
 
-// 🌉 에메랄드 시냇물 & 아치형 목조 다리
 function createRiverAndBridge3D(waterTex) {
   const group = new THREE.Group();
   const gradientMap = getToonGradientMap();
@@ -1176,7 +1467,6 @@ function createRiverAndBridge3D(waterTex) {
     group.add(bank);
   });
 
-  // 목조 다리
   const bridgeGroup = new THREE.Group();
   const woodMat = new THREE.MeshToonMaterial({ color: 0xb45309, gradientMap });
   const redPostMat = new THREE.MeshToonMaterial({ color: 0xe11d48, gradientMap });
@@ -1208,7 +1498,6 @@ function createRiverAndBridge3D(waterTex) {
   return group;
 }
 
-// ⛩️ 토벌의 숲 입구 게이트
 function createToriiGate3D() {
   const group = new THREE.Group();
   const gradientMap = getToonGradientMap();
