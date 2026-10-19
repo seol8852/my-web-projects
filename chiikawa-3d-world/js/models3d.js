@@ -130,19 +130,19 @@ const CHAR_CONFIGS = {
   rakko: {
     key: 'rakko',
     name: '랏코 사부',
-    title: '⚔️ 토벌 랭킹 1위 상위 랭커 & 명검',
-    desc: '토벌 랭킹 1위의 검술 달인! 가장 강력한 기본 공격력과 필살 검기를 구사합니다.',
-    bodyColor: 0xf5d0a9,
-    accentColor: 0xef4444,
+    title: '⚔️ 토벌 랭킹 1위 상위 랭커 & 하얀 망토·명검',
+    desc: '오른쪽 눈 위의 십자 흉터와 하얀 망토가 트레이드마크인 토벌 랭킹 1위 달인! 달콤한 파르페를 좋아합니다.',
+    bodyColor: 0x1c1917,
+    accentColor: 0xfacc15,
     weaponType: 'rakko_sword',
-    weaponName: '랭커의 명검',
+    weaponName: '상위 랭커의 토벌검',
     speed: 22.5,
     atk: 46,
     skillName: '상위 랭커의 비기: 일섬 십자베기',
-    portrait: 'assets/rakko.png',
+    portrait: 'assets/rakko.png?v=2',
     quotes: [
       '토벌 랭킹 1위의 검술을 보여주마. 나를 믿고 따라와라!',
-      '전투가 끝난 뒤 파르페와 달콤한 딸기 생크림을 먹는 게 진짜 보람이지...',
+      '전투가 끝난 뒤 딸기 파르페와 달콤한 생크림을 먹는 게 진짜 보람이지...',
       '강해지고 싶다면 두려워하지 말고 정면으로 검을 휘둘러라!'
     ]
   }
@@ -548,28 +548,34 @@ function createWeapon3D(weaponType, bodyColor = 0xffffff) {
   group.add(paw);
 
   if (weaponType === 'rakko_sword') {
-    const hiltMat = new THREE.MeshToonMaterial({ color: 0x1e293b, gradientMap });
-    const goldMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+    // 원작 랏코의 트레이드마크: 흰색/크림색 손잡이(검은 줄무늬) + 흰색 사각 코등이 + 은백색 도신
+    const hiltMat = new THREE.MeshToonMaterial({ color: 0xfef9ee, gradientMap });
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0x1c1917 });
+    const guardMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap });
     const bladeMat = new THREE.MeshToonMaterial({
       color: 0xf8fafc,
-      gradientMap,
-      emissive: 0x38bdf8,
-      emissiveIntensity: 0.2
+      gradientMap
     });
 
-    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.0, 10), hiltMat);
-    addCartoonOutline(handle, 0.05);
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.05, 10), hiltMat);
+    addCartoonOutline(handle, 0.06, 0x1c1917);
     group.add(handle);
 
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.18, 0.36), goldMat);
-    guard.position.y = 0.55;
-    addCartoonOutline(guard, 0.05);
+    [-0.28, 0, 0.28].forEach(sy => {
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.08, 10), stripeMat);
+      band.position.y = sy;
+      group.add(band);
+    });
+
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.22, 0.38), guardMat);
+    guard.position.y = 0.56;
+    addCartoonOutline(guard, 0.06, 0x1c1917);
     group.add(guard);
 
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.26, 2.85, 0.08), bladeMat);
-    blade.position.y = 2.0;
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.28, 2.85, 0.09), bladeMat);
+    blade.position.y = 2.02;
     blade.castShadow = true;
-    addCartoonOutline(blade, 0.04);
+    addCartoonOutline(blade, 0.045, 0x1c1917);
     group.add(blade);
     return group;
   }
@@ -704,11 +710,6 @@ function createHatAccessory3D(hatType) {
 
 // ==========================================================================
 // 7. Live2D / Spine 스타일 실시간 버텍스 변형 모션이 탑재된 3D 캐릭터 리그!
-//    - 16x20 고밀도 서브디비전 메쉬를 매 프레임 변형하여:
-//      1) 좌우 발이 번갈아 총총거리며 달리는 다리 교차 모션 (Leg Stride)
-//      2) 볼살과 배가 말랑거리며 숨쉬는 모찌 탄성 모션 (Mochi Breathing & Jelly)
-//      3) 귀와 머리가 관성에 따라 흔들리는 2차 팔로쓰루 모션 (Ear & Head Lag)
-//      4) 공격 시 상체 비틀기 & 전진 전단 변형 (Slash Twist & Shear)
 // ==========================================================================
 function createChiikawaPlushie(charKey = 'chiikawa') {
   const cfg = CHAR_CONFIGS[charKey] || CHAR_CONFIGS.chiikawa;
@@ -734,11 +735,9 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
 
   const planeW = 4.6;
   const planeH = 4.8;
-  // 중심 피벗을 발바닥(y = 0) 기준으로 맞추기 위해 translate(0, planeH/2, 0) 적용
   const sharedDeformGeo = new THREE.PlaneGeometry(planeW, planeH, 14, 18);
   sharedDeformGeo.translate(0, planeH * 0.5, 0);
 
-  // 원본 버텍스 좌표 백업
   const posAttr = sharedDeformGeo.attributes.position;
   const baseCoords = new Float32Array(posAttr.array.length);
   baseCoords.set(posAttr.array);
@@ -788,6 +787,26 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
   leftArmPivot.position.set(-1.35, 1.75, 0.32);
   leftArmPivot.add(leftPaw);
 
+  // 랏코(rakko) 전용 3D 휘날리는 하얀 망토 & 등 뒤 칼집 디테일 부착!
+  let rakkoCapePivot = null;
+  if (charKey === 'rakko') {
+    rakkoCapePivot = new THREE.Group();
+    rakkoCapePivot.position.set(0, 2.15, -0.22);
+    const capeMat = new THREE.MeshToonMaterial({
+      color: 0xffffff,
+      gradientMap,
+      side: THREE.DoubleSide
+    });
+    const capeGeo = new THREE.CylinderGeometry(1.15, 1.75, 1.65, 16, 1, true, -Math.PI * 0.42, Math.PI * 0.84);
+    capeGeo.translate(0, -0.75, 0);
+    const capeMesh = new THREE.Mesh(capeGeo, capeMat);
+    capeMesh.rotation.y = Math.PI;
+    capeMesh.rotation.x = 0.18;
+    addCartoonOutline(capeMesh, 0.035, 0x1c1917);
+    rakkoCapePivot.add(capeMesh);
+    standeeGroup.add(rakkoCapePivot);
+  }
+
   standeeGroup.add(leftArmPivot);
   standeeGroup.add(rightArmPivot);
 
@@ -808,7 +827,8 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     rightArmPivot,
     earsGroup,
     hatSlot,
-    weaponMesh
+    weaponMesh,
+    rakkoCapePivot
   };
 
   // ========================================================================
@@ -908,6 +928,14 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     // 3D 모자 슬롯 위치도 정수리 변형에 맞춰 자연스럽게 바운스
     hatSlot.position.y = 4.4 + (breath - jellyWave * 0.25) * 3.2;
     hatSlot.rotation.z = isMoving ? Math.sin(walkTime) * 0.06 : 0;
+
+    // 랏코 사범의 하얀 망토 나부낌 모션
+    if (rakkoCapePivot) {
+      rakkoCapePivot.rotation.x = isMoving
+        ? 0.28 + Math.abs(Math.sin(walkTime)) * 0.22
+        : 0.1 + Math.sin(time * 2.5) * 0.04;
+      rakkoCapePivot.rotation.z = isMoving ? Math.sin(walkTime) * 0.12 : 0;
+    }
 
     // 3D 왼손 스윙 & 오른손 무기 3연격 역동적 모션
     if (attackTimer > 0) {
