@@ -2110,169 +2110,186 @@ class Chiikawa3DWorldApp {
     });
   }
 
-  // 🌟 [Key Q] 6인 캐릭터별 초화려 3D 궁극기 비주얼 연출 생성기
+  // 🌟 [Key Q] 6인 캐릭터별 100% 고유한 3D 월드 궁극기 연출 생성기 (공통 기둥 제거, 캐릭터별 독자 연출!)
   spawnUltimateEffect3D(charKey) {
     const center = this.playerPos.clone();
-
-    // 공통: 하늘을 뚫는 초대형 궁극기 마법진 빛기둥 & 트리플 충격파 링
-    const pillarMat = new THREE.MeshBasicMaterial({
-      color: CHAR_CONFIGS[charKey]?.accentColor || 0xfacc15,
-      transparent: true,
-      opacity: 0.55,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 5.5, 22, 24, 1, true), pillarMat);
-    pillar.position.copy(center);
-    pillar.position.y = 11;
-    this.scene.add(pillar);
-    this.slashArcs.push({ mesh: pillar, material: pillarMat, life: 0.85, maxLife: 0.85, spin: 9 });
+    const fwd = this.ultForward || new THREE.Vector3(Math.sin(this.playerYaw), 0, Math.cos(this.playerYaw)).normalize();
 
     if (charKey === 'chiikawa') {
-      // [치이카와 궁극기] 하늘에서 쏟아지는 16개의 핑크·황금 별사탕 유성우 + 하트 스톰!
-      for (let i = 0; i < 16; i++) {
-        const ang = (i / 16) * Math.PI * 2;
-        const rad = 2.5 + (i % 3) * 3.8;
+      // 🩷 [치이카와] 전방 대지 강타 지점에 핑크 하트·별사탕 분수 폭발!
+      const slamSpot = center.clone().add(fwd.clone().multiplyScalar(3.5));
+      for (let i = 0; i < 18; i++) {
+        const ang = (i / 18) * Math.PI * 2;
         const starMat = new THREE.MeshBasicMaterial({
           color: i % 2 === 0 ? 0xff85a2 : 0xfacc15,
           transparent: true,
           opacity: 0.95
         });
-        const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.95, 0), starMat);
-        star.position.set(center.x + Math.cos(ang) * rad, 12 + (i % 4) * 2.5, center.z + Math.sin(ang) * rad);
+        const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.75, 0), starMat);
+        star.position.set(slamSpot.x, 1.5, slamSpot.z);
         this.scene.add(star);
         this.particles.push({
           mesh: star,
-          vel: new THREE.Vector3(Math.cos(ang) * 2, -22, Math.sin(ang) * 2),
-          life: 0.85,
-          isDust: true
+          vel: new THREE.Vector3(Math.cos(ang) * 9, 10 + (i % 4) * 3, Math.sin(ang) * 9),
+          life: 0.95
         });
       }
-      this.spawnSlashRing(center.clone(), 0xff4d6d, 16.5);
-      this.spawnSlashRing(center.clone(), 0xfacc15, 11.5);
     } else if (charKey === 'hachiware') {
-      // [하치와레 궁극기] 6중 나선 창공 블루 토네이도 회오리!
-      for (let i = 0; i < 6; i++) {
-        const hPos = center.clone().add(new THREE.Vector3(0, 0.8 + i * 1.3, 0));
-        this.spawnCrescentSlash(hPos, this.playerYaw + (i * Math.PI) / 3, i % 2 === 0 ? 0x38bdf8 : 0xfef08a, 3, 0.18, 0);
+      // 💙 [하치와레] 전방 프로펠러 돌진 경로를 따라 연속 소닉붐 충격파 고리 생성!
+      for (let i = 0; i < 5; i++) {
+        const stepPos = center.clone().add(fwd.clone().multiplyScalar(2.0 + i * 2.4));
+        this.spawnCrescentSlash(stepPos, this.playerYaw, i % 2 === 0 ? 0x38bdf8 : 0xfef08a, 3, Math.PI * 0.45, i * 0.6);
       }
-      this.spawnSlashRing(center.clone(), 0x38bdf8, 17.0);
-      this.spawnSlashRing(center.clone(), 0x60a5fa, 12.0);
     } else if (charKey === 'usagi') {
-      // [우사기 궁극기] 우라야하!! 8방위 골든 노바 대폭발 & 불꽃 크레이터!
+      // 💛 [우사기] 하늘에서 꽂히는 8방위 폭약 스파크 기둥!
       for (let i = 0; i < 8; i++) {
         const ang = (i / 8) * Math.PI * 2;
-        const boomPos = center.clone().add(new THREE.Vector3(Math.cos(ang) * 6.5, 1.5 + (i % 2) * 1.5, Math.sin(ang) * 6.5));
+        const boomPos = center.clone().add(new THREE.Vector3(Math.cos(ang) * 5.2, 1.2, Math.sin(ang) * 5.2));
         this.spawnHitImpactEffect3D(boomPos, i % 2 === 0 ? 0xfacc15 : 0xf43f5e, true);
       }
-      this.spawnSlashRing(center.clone(), 0xfacc15, 18.5);
-      this.spawnSlashRing(center.clone(), 0xef4444, 14.0);
     } else if (charKey === 'momonga') {
-      // [모몽가 궁극기] 샤랄라 은하수 오로라 돔 & 8겹 보랏빛 리본 블레이드!
-      for (let i = 0; i < 8; i++) {
-        const ang = (i / 8) * Math.PI * 2;
+      // 💜 [모몽가] 6m 거대 복실 꼬리가 쓸고 지나가는 보랏빛 회오리 궤적!
+      for (let i = 0; i < 6; i++) {
+        const ang = (i / 6) * Math.PI * 2;
         this.spawnCrescentSlash(
-          center.clone().add(new THREE.Vector3(0, 1.2 + (i % 3) * 0.9, 0)),
+          center.clone().add(new THREE.Vector3(0, 1.0 + (i % 2) * 0.8, 0)),
           ang,
-          i % 2 === 0 ? 0xa855f7 : 0xf472b6,
+          i % 2 === 0 ? 0xc084fc : 0xf472b6,
           3,
-          0.35,
-          -0.35
+          0.12,
+          0
         );
       }
-      this.spawnSlashRing(center.clone(), 0xc084fc, 16.5);
-      this.spawnSlashRing(center.clone(), 0xf472b6, 12.0);
     } else if (charKey === 'kurimanju') {
-      // [쿠리만쥬 궁극기] 캬하-! 지면에서 솟구치는 10개의 황금 바위·용암 스파이크 기둥!
-      for (let i = 0; i < 10; i++) {
-        const ang = (i / 10) * Math.PI * 2;
-        const rad = 5.5 + (i % 2) * 4.2;
-        const spikeMat = new THREE.MeshBasicMaterial({
-          color: i % 2 === 0 ? 0xf59e0b : 0xfacc15,
-          transparent: true,
-          opacity: 0.92
-        });
-        const spike = new THREE.Mesh(new THREE.ConeGeometry(1.35, 7.5, 6), spikeMat);
-        spike.position.set(center.x + Math.cos(ang) * rad, 3.5, center.z + Math.sin(ang) * rad);
-        this.scene.add(spike);
-        this.slashArcs.push({ mesh: spike, material: spikeMat, life: 0.75, maxLife: 0.75, spin: 4 });
+      // 🧡 [쿠리만쥬] 거대화 기합 오라 & 호박빛 주전자 증기 분출!
+      this.spawnSlashRing(center.clone(), 0xf59e0b, 12.0);
+      this.spawnBurstParticles(center.clone().add(new THREE.Vector3(0, 3.5, 0)), 0xfacc15, 28);
+    } else if (charKey === 'rakko') {
+      // ⚔️ [랏코 사부] 삼각 Z자 발도 궤적을 따라 허공에 남는 황금·은백 대검기!
+      for (let i = 0; i < 4; i++) {
+        const ang = this.playerYaw + (i - 1.5) * 0.55;
+        const slashPos = center.clone().add(fwd.clone().multiplyScalar(2.5 + i * 1.8));
+        this.spawnCrescentSlash(slashPos, ang, i % 2 === 0 ? 0xfacc15 : 0xf8fafc, 3, (i % 2 === 0 ? 1 : -1) * 0.4, 0.35);
       }
-      this.spawnSlashRing(center.clone(), 0xd97706, 18.0);
-      this.spawnSlashRing(center.clone(), 0xfacc15, 13.5);
-    } else {
-      // [랏코 사부 궁극기] 토벌 랭킹 1위의 비기: 천검 일섬 (8방위 공간 절단 대검기 + 성검 낙하)!
-      for (let i = 0; i < 8; i++) {
-        const ang = (i / 8) * Math.PI * 2;
-        this.spawnCrescentSlash(
-          center.clone().add(new THREE.Vector3(Math.cos(ang) * 3.5, 1.8, Math.sin(ang) * 3.5)),
-          ang,
-          i % 2 === 0 ? 0xfacc15 : 0xf8fafc,
-          3,
-          (i % 2 === 0 ? 1 : -1) * 0.45,
-          0.35
-        );
-      }
-      this.spawnSlashRing(center.clone(), 0xfacc15, 18.5);
-      this.spawnSlashRing(center.clone(), 0xf8fafc, 14.0);
     }
   }
 
-  // 🌟 [Key Q] 초화려 궁극기 발동! (전신 궁극기 모션 + 3연속 광역 약점 타격 + 무적 판정)
+  // 🌟 [Key Q] 6인 캐릭터별 고유 안무·물리 궤적·다단히트 타이밍이 완전히 차별화된 초화려 궁극기 발동!
   triggerSpecialSkill() {
     if (this.skillCooldown > 0) {
       showToast(`⏳ 궁극기[Q] 재충전 중입니다! (${this.skillCooldown.toFixed(1)}초)`);
       return;
     }
     this.skillCooldown = 6.0;
-    this.camShake = 0.95;
+    this.camShake = 0.85;
     soundFx.playSkill();
 
-    // 궁극기 전용 모션(comboStep = 99) 1.05초 가동 및 무적 프레임 부여!
-    this.comboStep = 99;
-    this.maxAttackTime = 1.05;
-    this.attackTimer = 1.05;
-    this.dashTimer = Math.max(this.dashTimer, 1.05);
+    const charKey = this.activeCharKey;
+    const cfg = CHAR_CONFIGS[charKey];
 
-    const cfg = CHAR_CONFIGS[this.activeCharKey];
-    showToast(`🌟 [${cfg.name}] 궁극기(Q) 작렬: ${cfg.skillName}!! (3연속 초광역 약점 강타!)`);
+    // 가장 가까운 적 방향으로 자동 조준
+    let bestDist = 15.0;
+    let targetDir = null;
+    for (const m of this.monsters) {
+      if (m.alive) {
+        const d = m.pos.distanceTo(this.playerPos);
+        if (d < bestDist) {
+          bestDist = d;
+          targetDir = m.pos.clone().sub(this.playerPos);
+        }
+      }
+    }
+    if (targetDir && Math.hypot(targetDir.x, targetDir.z) > 0.1) {
+      this.playerYaw = Math.atan2(targetDir.x, targetDir.z);
+      const rightX = Math.cos(this.camYaw);
+      const rightZ = -Math.sin(this.camYaw);
+      this.facingFlip = (targetDir.x * rightX + targetDir.z * rightZ) >= 0 ? 1 : -1;
+    }
+
+    // 궁극기 전용 모션(comboStep = 99) 1.25초 가동!
+    // (주의: comboResetTimer도 1.5초로 설정하여 도중에 comboStep이 0으로 초기화되는 현상 원천 차단!)
+    this.comboStep = 99;
+    this.maxAttackTime = 1.25;
+    this.attackTimer = 1.25;
+    this.comboResetTimer = 1.50;
+    this.ultTimer = 1.25;
+    this.ultDuration = 1.25;
+    this.ultForward = new THREE.Vector3(Math.sin(this.playerYaw), 0, Math.cos(this.playerYaw)).normalize();
+    this.ultAfterimageTimer = 0;
+
+    showToast(`🌟 [${cfg.name}] 고유 궁극기(Q) 발동: ${cfg.skillName}!!`);
 
     if (this.playerMesh && this.playerMesh.userData.setExpression) {
       this.playerMesh.userData.setExpression('happy');
     }
 
-    this.spawnUltimateEffect3D(this.activeCharKey);
-    this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2.4, 0)), 0xfacc15, 45);
+    this.spawnUltimateEffect3D(charKey);
     this.spawnFloatingText(
-      this.playerPos.clone().add(new THREE.Vector3(0, 4.8, 0)),
+      this.playerPos.clone().add(new THREE.Vector3(0, 5.0, 0)),
       `🌟궁극기 [Q] : ${cfg.skillName}!!`,
       '#fde047'
     );
 
     this.weeds.forEach(w => {
-      if (w.alive && w.pos.distanceTo(this.playerPos) < 16.0) {
+      if (w.alive && w.pos.distanceTo(this.playerPos) < 16.5) {
         this.harvestWeed(w);
       }
     });
 
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.35 : 1.0;
     const weaponBonus = (this.stats.weaponLv - 1) * 18;
-    const pulseDmg = Math.round((cfg.atk * 1.45 + this.stats.level * 11 + weaponBonus) * buffMult);
+    const pulseDmg = Math.round((cfg.atk * 1.5 + this.stats.level * 11 + weaponBonus) * buffMult);
 
-    // 1차, 2차(0.3s), 3차(0.62s) 총 3연속 다단히트 궁극기 폭격!
-    [0, 300, 620].forEach((delayMs, waveIdx) => {
+    // 캐릭터별 안무 타이밍에 맞춘 고유 타격 스케줄!
+    let hitTimings = [150, 480, 820];
+    if (charKey === 'chiikawa') {
+      // 기 모으기(0~0.42s) 직후 3.85배 거대 사스마타 대지 강타(520ms) + 여진 폭발(760ms)!
+      hitTimings = [500, 680, 880];
+    } else if (charKey === 'hachiware') {
+      // 프로펠러 드릴 돌진 연속 다단히트!
+      hitTimings = [120, 340, 560, 800];
+    } else if (charKey === 'usagi') {
+      // 로켓 발사(120ms) -> 초고도 메테오 다이브 착지 대폭발(620ms, 820ms)!
+      hitTimings = [120, 620, 840];
+    } else if (charKey === 'momonga') {
+      // 6m 거대 복실 꼬리 360도 대청소 스윕(160ms, 400ms, 640ms)!
+      hitTimings = [160, 400, 640];
+    } else if (charKey === 'kurimanju') {
+      // 2.25배 거인 상태에서 땅바닥 3연속 양손 내리찍기(480ms: 쿵!, 740ms: 쿵!, 980ms: 콰아앙!!)!
+      hitTimings = [480, 740, 980];
+    } else if (charKey === 'rakko') {
+      // 삼각 Z자 1참(160ms), 2참(360ms), 3참(560ms) -> 검집 납도 '찰칵' 최종 일섬 폭발(860ms)!
+      hitTimings = [160, 360, 560, 860];
+    }
+
+    const perHitDmg = Math.round((pulseDmg * 3) / hitTimings.length);
+
+    hitTimings.forEach((delayMs, waveIdx) => {
       setTimeout(() => {
         if (!this.gameStarted) return;
         const pCenter = this.playerPos.clone();
-        if (waveIdx > 0) {
-          soundFx.playAttack();
-          this.camShake = Math.max(this.camShake, 0.55);
-          this.spawnSlashRing(pCenter.clone(), waveIdx === 2 ? 0xfacc15 : cfg.accentColor, 15.5 + waveIdx * 2);
-          this.spawnBurstParticles(pCenter.clone().add(new THREE.Vector3(0, 2, 0)), cfg.accentColor, 26);
+        soundFx.playAttack();
+        this.camShake = Math.max(this.camShake, waveIdx === hitTimings.length - 1 ? 0.85 : 0.5);
+
+        if (charKey === 'chiikawa' && waveIdx === 0) {
+          const impactPos = pCenter.clone().add(this.ultForward.clone().multiplyScalar(3.2));
+          this.spawnSlashRing(impactPos, 0xff4d6d, 17.5);
+          this.spawnHitImpactEffect3D(impactPos.clone().add(new THREE.Vector3(0, 1.5, 0)), 0xff85a2, true);
+        } else if (charKey === 'kurimanju') {
+          this.spawnSlashRing(pCenter.clone(), 0xd97706, 15.0 + waveIdx * 3.0);
+          this.spawnBurstParticles(pCenter.clone().add(new THREE.Vector3(0, 1.0, 0)), 0xfacc15, 24);
+          this.spawnFloatingText(pCenter.clone().add(new THREE.Vector3(0, 5.8, 0)), waveIdx === 2 ? '🌋콰아아앙!!' : '💥쿠우웅!!', '#f59e0b');
+        } else if (charKey === 'rakko' && waveIdx === hitTimings.length - 1) {
+          this.spawnSlashRing(pCenter.clone(), 0xfacc15, 20.0);
+          this.spawnFloatingText(pCenter.clone().add(new THREE.Vector3(0, 4.8, 0)), '⚔️납도(納刀)... 천검 일섬!!', '#fef08a');
+        } else {
+          this.spawnSlashRing(pCenter.clone(), cfg.accentColor, 14.5 + waveIdx * 1.5);
         }
+
         this.monsters.forEach(m => {
-          if (m.alive && m.pos.distanceTo(pCenter) < 17.5) {
+          if (m.alive && m.pos.distanceTo(pCenter) < 18.5) {
             const pushDir = m.pos.clone().sub(pCenter).normalize();
-            this.damageMonsterPart(m, pulseDmg, pushDir, 'head', false);
+            this.damageMonsterPart(m, perHitDmg, pushDir, 'head', false);
           }
         });
       }, delayMs);
@@ -2427,8 +2444,8 @@ class Chiikawa3DWorldApp {
 
     if (!isInsideZone) return;
 
-    // 1) 대시 무적 프레임 중이면 -> ✨ JUST DODGE (완벽 회피 보너스)!
-    if (this.dashTimer > 0) {
+    // 1) 대시 또는 궁극기 무적 프레임 중이면 -> ✨ JUST DODGE (완벽 회피 보너스)!
+    if (this.dashTimer > 0 || (this.ultTimer && this.ultTimer > 0)) {
       soundFx.playCoin();
       this.skillCooldown = Math.max(0, this.skillCooldown - 1.5);
       this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + 8);
@@ -2762,7 +2779,7 @@ class Chiikawa3DWorldApp {
     });
 
     if (this.playerHurtRingMesh) {
-      if (this.dashTimer > 0) {
+      if (this.dashTimer > 0 || (this.ultTimer && this.ultTimer > 0)) {
         this.playerHurtRingMesh.material.color.setHex(0x38bdf8);
         this.playerHurtRingMesh.material.opacity = 0.85;
       } else if (!this.isGrounded) {
@@ -2816,6 +2833,58 @@ class Chiikawa3DWorldApp {
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.28 : 1.0;
     const moveSpeed = cfg.speed * buffMult;
 
+    // 🌟 궁극기(Q) 발동 중 캐릭터별 고유 물리 이동 궤적 연출 (dashTimer와 완전히 분리!)
+    if (this.ultTimer && this.ultTimer > 0) {
+      this.ultTimer = Math.max(0, this.ultTimer - dt);
+      const uProg = 1.0 - this.ultTimer / (this.ultDuration || 1.25);
+      const fwd = this.ultForward || new THREE.Vector3(0, 0, -1);
+      const right = new THREE.Vector3(fwd.z, 0, -fwd.x);
+
+      if (this.activeCharKey === 'chiikawa') {
+        // 치이카와: 0~0.42초 제자리 기 모으기 후 0.42~0.68초에 전방 점프 강타!
+        if (uProg >= 0.42 && uProg <= 0.68) {
+          this.playerPos.addScaledVector(fwd, moveSpeed * 1.15 * dt);
+        }
+      } else if (this.activeCharKey === 'hachiware') {
+        // 하치와레: 프로펠러 사스마타를 돌리며 0~0.75초 동안 전방 고속 드릴 질주!
+        if (uProg < 0.75) {
+          this.playerPos.addScaledVector(fwd, moveSpeed * 1.85 * dt);
+        }
+      } else if (this.activeCharKey === 'usagi') {
+        // 우사기: 로켓 점프 후 전방으로 메테오 다이브 강하!
+        if (uProg < 0.70) {
+          this.playerPos.addScaledVector(fwd, moveSpeed * 0.95 * dt);
+        }
+      } else if (this.activeCharKey === 'momonga') {
+        // 모몽가: 좌우로 지그재그 생떼 스텝을 밟으며 6m 거대 복실 꼬리 휘두르기!
+        if (uProg < 0.70) {
+          this.playerPos.addScaledVector(right, Math.sin(uProg * Math.PI * 10) * moveSpeed * 0.75 * dt);
+          this.playerPos.addScaledVector(fwd, moveSpeed * 0.45 * dt);
+        }
+      } else if (this.activeCharKey === 'kurimanju') {
+        // 쿠리만쥬: 0.34초 거대화 이후 묵직한 타이탄 전진 스매시!
+        if (uProg >= 0.34 && uProg <= 0.90) {
+          this.playerPos.addScaledVector(fwd, moveSpeed * 0.75 * dt);
+        }
+      } else if (this.activeCharKey === 'rakko') {
+        // 랏코 사부: 0~0.64초 동안 전광석화 삼각 Z자 섬광 이동(잔상 생성), 0.64초 이후 미동 없는 납도 정지 포즈!
+        if (uProg < 0.64) {
+          const stage = (uProg / 0.64) * 3;
+          let stepDir = fwd.clone();
+          if (stage < 1) stepDir.addScaledVector(right, -0.85).normalize();
+          else if (stage < 2) stepDir.addScaledVector(right, 1.15).normalize();
+          else stepDir.addScaledVector(right, -0.35).normalize();
+          this.playerPos.addScaledVector(stepDir, moveSpeed * 2.4 * dt);
+
+          this.ultAfterimageTimer = (this.ultAfterimageTimer || 0) - dt;
+          if (this.ultAfterimageTimer <= 0) {
+            this.ultAfterimageTimer = 0.065;
+            this.spawnDashAfterimage();
+          }
+        }
+      }
+    }
+
     if (this.dashTimer > 0) {
       this.dashTimer -= dt;
       this.playerPos.addScaledVector(this.dashDir, moveSpeed * 2.6 * dt);
@@ -2844,7 +2913,7 @@ class Chiikawa3DWorldApp {
       const moveX = rightX * ix + forwardX * (-iz);
       const moveZ = rightZ * ix + forwardZ * (-iz);
 
-      if (this.dashTimer <= 0) {
+      if (this.dashTimer <= 0 && (!this.ultTimer || this.ultTimer <= 0)) {
         this.playerVel.x = THREE.MathUtils.lerp(this.playerVel.x, moveX * moveSpeed, dt * 16);
         this.playerVel.z = THREE.MathUtils.lerp(this.playerVel.z, moveZ * moveSpeed, dt * 16);
         this.playerPos.x += this.playerVel.x * dt;

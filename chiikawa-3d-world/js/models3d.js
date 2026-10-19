@@ -827,6 +827,230 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
   hatSlot.position.set(0, 4.4, 0.12);
   standeeGroup.add(hatSlot);
 
+  // ========================================================================
+  // 🌟 6인 캐릭터별 100% 고유한 3D 궁극기 전용 오브젝트 리그 (ultPropGroup)
+  // ========================================================================
+  const ultPropGroup = new THREE.Group();
+  ultPropGroup.visible = false;
+  root.add(ultPropGroup);
+
+  const ultPropParts = {};
+  if (charKey === 'chiikawa') {
+    // [치이카와 전용] 수호령 자이언트 핑크 곰돌이 포쉐트 & 별사탕 위성 + 대형 핑크 스타 크레이터
+    const bearGroup = new THREE.Group();
+    const pinkMat = new THREE.MeshToonMaterial({ color: 0xff85a2, gradientMap });
+    const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const darkMat = new THREE.MeshBasicMaterial({ color: 0x1e293b });
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(1.15, 16, 16), pinkMat);
+    addCartoonOutline(head, 0.06);
+    bearGroup.add(head);
+
+    [-0.85, 0.85].forEach(ex => {
+      const ear = new THREE.Mesh(new THREE.SphereGeometry(0.45, 12, 12), pinkMat);
+      ear.position.set(ex, 0.88, 0);
+      addCartoonOutline(ear, 0.05);
+      bearGroup.add(ear);
+    });
+
+    const snout = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12), whiteMat);
+    snout.position.set(0, -0.15, 1.02);
+    bearGroup.add(snout);
+
+    [-0.38, 0.38].forEach(eyeX => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), darkMat);
+      eye.position.set(eyeX, 0.18, 1.05);
+      bearGroup.add(eye);
+    });
+
+    bearGroup.position.set(0, 6.2, -0.5);
+    ultPropGroup.add(bearGroup);
+    ultPropParts.bearGroup = bearGroup;
+
+    const starOrbit = new THREE.Group();
+    const starColors = [0xff85a2, 0xfacc15, 0x38bdf8, 0xf472b6, 0xfef08a, 0xc084fc];
+    for (let i = 0; i < 6; i++) {
+      const sMesh = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.58, 0),
+        new THREE.MeshBasicMaterial({ color: starColors[i] })
+      );
+      const a = (i / 6) * Math.PI * 2;
+      sMesh.position.set(Math.cos(a) * 3.2, 2.5, Math.sin(a) * 3.2);
+      starOrbit.add(sMesh);
+    }
+    ultPropGroup.add(starOrbit);
+    ultPropParts.starOrbit = starOrbit;
+
+    const slamStar = new THREE.Mesh(
+      new THREE.RingGeometry(0.5, 4.8, 10),
+      new THREE.MeshBasicMaterial({ color: 0xff4d6d, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+    );
+    slamStar.rotation.x = -Math.PI / 2;
+    slamStar.position.set(0, 0.18, 2.8);
+    ultPropGroup.add(slamStar);
+    ultPropParts.slamStar = slamStar;
+  } else if (charKey === 'hachiware') {
+    // [하치와레 전용] 전방 돌진 소닉 드릴 윈드터널 코일 (5중 회전 바람 고리)
+    const drillGroup = new THREE.Group();
+    const rings = [];
+    for (let i = 0; i < 5; i++) {
+      const rMat = new THREE.MeshBasicMaterial({
+        color: i % 2 === 0 ? 0x38bdf8 : 0xfef08a,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.82
+      });
+      const rMesh = new THREE.Mesh(new THREE.TorusGeometry(2.8 - i * 0.35, 0.14, 10, 24, Math.PI * 1.45), rMat);
+      rMesh.position.set(0, 2.3, -1.0 + i * 0.95);
+      drillGroup.add(rMesh);
+      rings.push(rMesh);
+    }
+    ultPropGroup.add(drillGroup);
+    ultPropParts.drillRings = rings;
+  } else if (charKey === 'usagi') {
+    // [우사기 전용] 하늘에서 수직 낙하하는 6개의 초대형 황금 폭약 토벌봉 미사일 & 화염 돔
+    const missiles = [];
+    for (let i = 0; i < 6; i++) {
+      const mGroup = new THREE.Group();
+      const rod = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28, 0.28, 6.2, 10),
+        new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap })
+      );
+      addCartoonOutline(rod, 0.06);
+      mGroup.add(rod);
+      const bombTip = new THREE.Mesh(
+        new THREE.SphereGeometry(0.75, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0xf43f5e })
+      );
+      bombTip.position.y = -3.1;
+      mGroup.add(bombTip);
+
+      const a = (i / 6) * Math.PI * 2;
+      mGroup.position.set(Math.cos(a) * 4.2, 10, Math.sin(a) * 4.2);
+      ultPropGroup.add(mGroup);
+      missiles.push({ mesh: mGroup, angle: a, delay: i * 0.05 });
+    }
+    ultPropParts.missiles = missiles;
+
+    const fireDome = new THREE.Mesh(
+      new THREE.SphereGeometry(4.5, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.5),
+      new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
+    );
+    fireDome.position.y = 0.1;
+    ultPropGroup.add(fireDome);
+    ultPropParts.fireDome = fireDome;
+  } else if (charKey === 'momonga') {
+    // [모몽가 전용] 360도 휘몰아치는 6m 초대형 3D 보랏빛 복실복실 구름 꼬리 & 샤랄라 하트
+    const tailPivot = new THREE.Group();
+    tailPivot.position.set(0, 1.5, -0.3);
+    const tailColors = [0xc084fc, 0xa855f7, 0xe9d5ff, 0xc084fc, 0xa855f7, 0xf3e8ff, 0xd8b4fe];
+    for (let i = 0; i < 7; i++) {
+      const puffRadius = 0.85 + Math.sin((i / 6) * Math.PI) * 0.95;
+      const puff = new THREE.Mesh(
+        new THREE.SphereGeometry(puffRadius, 14, 14),
+        new THREE.MeshToonMaterial({ color: tailColors[i], gradientMap })
+      );
+      const curveAng = i * 0.22;
+      const dist = 1.1 + i * 0.78;
+      puff.position.set(Math.sin(curveAng) * dist, 0.3 + i * 0.22, -Math.cos(curveAng) * dist);
+      addCartoonOutline(puff, 0.06);
+      tailPivot.add(puff);
+    }
+    ultPropGroup.add(tailPivot);
+    ultPropParts.tailPivot = tailPivot;
+
+    const cuteHearts = new THREE.Group();
+    for (let i = 0; i < 6; i++) {
+      const hMesh = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.62, 0),
+        new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0xf472b6 : 0xc084fc })
+      );
+      const a = (i / 6) * Math.PI * 2;
+      hMesh.position.set(Math.cos(a) * 2.8, 3.2 + (i % 2) * 0.8, Math.sin(a) * 2.8);
+      cuteHearts.add(hMesh);
+    }
+    ultPropGroup.add(cuteHearts);
+    ultPropParts.cuteHearts = cuteHearts;
+  } else if (charKey === 'kurimanju') {
+    // [쿠리만쥬 전용] 원샷 황금 술 호리병 & 3연속 대지분쇄 용암 바위 스파이크 링
+    const gourdGroup = new THREE.Group();
+    const gourdMat = new THREE.MeshToonMaterial({ color: 0xf59e0b, gradientMap });
+    const botBulb = new THREE.Mesh(new THREE.SphereGeometry(0.62, 12, 12), gourdMat);
+    const topBulb = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 12), gourdMat);
+    topBulb.position.y = 0.72;
+    const ribbon = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.28, 0.18, 10),
+      new THREE.MeshBasicMaterial({ color: 0xef4444 })
+    );
+    ribbon.position.y = 0.42;
+    addCartoonOutline(botBulb, 0.05);
+    addCartoonOutline(topBulb, 0.05);
+    gourdGroup.add(botBulb, topBulb, ribbon);
+    ultPropGroup.add(gourdGroup);
+    ultPropParts.gourdGroup = gourdGroup;
+
+    const rockRing = new THREE.Group();
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const spike = new THREE.Mesh(
+        new THREE.ConeGeometry(0.95, 4.6, 5),
+        new THREE.MeshToonMaterial({ color: i % 2 === 0 ? 0xd97706 : 0xfacc15, gradientMap })
+      );
+      spike.position.set(Math.cos(a) * 4.5, 2.1, Math.sin(a) * 4.5);
+      spike.rotation.z = -Math.cos(a) * 0.28;
+      spike.rotation.x = Math.sin(a) * 0.28;
+      addCartoonOutline(spike, 0.05);
+      rockRing.add(spike);
+    }
+    ultPropGroup.add(rockRing);
+    ultPropParts.rockRing = rockRing;
+  } else if (charKey === 'rakko') {
+    // [랏코 사부 전용] 왼쪽 허리춤 납도용 흑단 검집 & 허공을 가르는 초대형 3D 황금·은백 십자 검기 칼날
+    const scabbard = new THREE.Group();
+    const sheathBody = new THREE.Mesh(
+      new THREE.BoxGeometry(0.26, 3.2, 0.18),
+      new THREE.MeshToonMaterial({ color: 0x1e293b, gradientMap })
+    );
+    const goldBand = new THREE.Mesh(
+      new THREE.BoxGeometry(0.32, 0.35, 0.24),
+      new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+    );
+    goldBand.position.y = 1.35;
+    scabbard.add(sheathBody, goldBand);
+    scabbard.position.set(-1.35, 1.45, -0.1);
+    scabbard.rotation.set(0.35, 0, -1.15);
+    standeeGroup.add(scabbard);
+    ultPropParts.scabbard = scabbard;
+
+    const slashBeams = new THREE.Group();
+    for (let i = 0; i < 4; i++) {
+      const beam = new THREE.Mesh(
+        new THREE.OctahedronGeometry(1.0, 0),
+        new THREE.MeshBasicMaterial({
+          color: i % 2 === 0 ? 0xfacc15 : 0xf8fafc,
+          transparent: true,
+          opacity: 0.9
+        })
+      );
+      beam.scale.set(0.22, 0.22, 9.5);
+      beam.position.set(0, 2.2, 1.5);
+      beam.rotation.y = (i * Math.PI) / 4;
+      beam.rotation.z = (i % 2 === 0 ? 1 : -1) * 0.45;
+      slashBeams.add(beam);
+    }
+    ultPropGroup.add(slashBeams);
+    ultPropParts.slashBeams = slashBeams;
+
+    const sheatheFlash = new THREE.Mesh(
+      new THREE.RingGeometry(0.8, 7.2, 32),
+      new THREE.MeshBasicMaterial({ color: 0xfef08a, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
+    );
+    sheatheFlash.rotation.x = -Math.PI / 2;
+    sheatheFlash.position.y = 1.65;
+    ultPropGroup.add(sheatheFlash);
+    ultPropParts.sheatheFlash = sheatheFlash;
+  }
+
   root.userData.parts = {
     standeeGroup,
     standeeMaterials,
@@ -840,7 +1064,9 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     earsGroup,
     hatSlot,
     weaponMesh,
-    rakkoCapePivot
+    rakkoCapePivot,
+    ultPropGroup,
+    ultPropParts
   };
 
   // ========================================================================
@@ -851,6 +1077,7 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
   root.userData.updateMotion = (time, walkTime, isMoving, isGrounded, velY, attackTimer, comboStep, maxAttackTime = 0.28) => {
     const arr = posAttr.array;
     const count = posAttr.count;
+    const flipSign = standeeGroup.scale.x >= 0 ? 1 : -1;
 
     // 젤리 탄성 감쇠
     if (root.userData.jellySpring > 0.001) {
@@ -923,18 +1150,56 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
       // 4) 캐릭터별 고유 공격 & 궁극기(comboStep === 99) 체형 변형 (Live2D 버텍스 애니메이션)
       if (attackTimer > 0) {
         if (comboStep === 99) {
-          // ✨ [궁극기 Q] 전신 초각성 파동 & 캐릭터별 특화 텐션 변형!
-          const ultPulse = Math.sin(p * Math.PI * 6) * 0.28;
-          const ultRise = Math.sin(p * Math.PI);
-          if (charKey === 'kurimanju') {
-            // 쿠리만쥬 궁극기: 전신이 1.28배로 거대하게 부풀어 오르며 대지 분쇄!
-            dx += bx * ultRise * 0.28;
-            dy += by * ultRise * 0.25;
-            dz += ultRise * 0.55 * bellyMask;
-          } else {
-            dx += bx * ultPulse * 0.25 + Math.sin(p * Math.PI * 4) * 0.28 * v;
-            dy += ultRise * 0.42 * v;
-            dz += ultRise * 0.45 * bellyMask;
+          // ✨ [궁극기 Q] 6인 캐릭터마다 완전히 다른 전신 Live2D 버텍스 모션!
+          if (charKey === 'chiikawa') {
+            // 치이카와: 초반(0~0.42)에 울먹이며 초고속으로 부들부들 떨다가 전방으로 쭉 뻗으며 강타!
+            if (p < 0.42) {
+              dx += Math.sin(p * 150) * 0.22 * v;
+              dy -= (p / 0.42) * 0.35 * v;
+            } else if (p < 0.74) {
+              const slam = Math.sin(((p - 0.42) / 0.32) * Math.PI);
+              dy += slam * 0.45 * v;
+              dz += slam * 0.55 * bellyMask;
+            } else {
+              dy += Math.abs(Math.sin(p * Math.PI * 8)) * 0.35 * v;
+            }
+          } else if (charKey === 'hachiware') {
+            // 하치와레: 전방 질주 풍압에 귀와 상체가 뒤로 날렵하게 스트림라인 변형!
+            dx += 0.38 * v;
+            dz += 0.35 * bellyMask;
+            if (v > 0.7) {
+              dy += Math.sin(p * 60 + bx) * 0.18 * (v - 0.7);
+            }
+          } else if (charKey === 'usagi') {
+            // 우사기: 로켓 점프 시 세로로 길게 늘어났다가 착지 후 양옆으로 춤추듯 웨이브!
+            if (p < 0.72) {
+              const stretch = p < 0.48 ? 0.45 : -0.35;
+              dy += by * stretch * v;
+              dx -= bx * stretch * 0.38 * bellyMask;
+            } else {
+              dx += Math.sin(p * Math.PI * 16) * 0.55 * v;
+            }
+          } else if (charKey === 'momonga') {
+            // 모몽가: 초반 생떼 부리기 다리 파닥파닥 & 좌우 씰룩 -> 후반 볼 빵빵 귀여운 척!
+            if (p < 0.70) {
+              dx += Math.sin(p * Math.PI * 18) * 0.48 * (1 - v * 0.3);
+              if (v < 0.35) {
+                dy += Math.sin(p * 95 + (bx > 0 ? 0 : Math.PI)) * 0.55 * (1 - v / 0.35);
+              }
+            } else {
+              dx += bx * 0.26 * bellyMask;
+              dy += 0.2 * v;
+            }
+          } else if (charKey === 'kurimanju') {
+            // 쿠리만쥬: 크하~! 배와 볼이 통통하게 부풀어 오르며 3연속 헤비 스매시 텐션!
+            const bellySwell = Math.sin(p * Math.PI);
+            dx += bx * bellySwell * 0.34 * bellyMask;
+            dz += bellySwell * 0.65 * bellyMask;
+          } else if (charKey === 'rakko') {
+            // 랏코 사부: 초고속 삼각 발도 돌진 시 날카로운 전경 자세 -> 납도 시 미동 없는 진검 승부 포즈!
+            const bladeLean = p < 0.64 ? 0.52 : 0.22;
+            dx += bladeLean * v;
+            dy -= bladeLean * 0.25 * v;
           }
         } else if (charKey === 'chiikawa') {
           // 치이카와: 용기 내어 부들부들 떨며 앞으로 몸을 쭉 뻗어 찌르기!
@@ -993,7 +1258,7 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     // 랏코 사범의 하얀 망토 나부낌 모션 (공격/궁극기 시 더욱 역동적으로 휘날림!)
     if (rakkoCapePivot) {
       if (attackTimer > 0) {
-        const mult = comboStep === 99 ? 1.6 : 1.0;
+        const mult = comboStep === 99 ? 1.8 : 1.0;
         rakkoCapePivot.rotation.x = 0.65 + Math.sin(p * Math.PI * (comboStep === 99 ? 3 : 1)) * 0.45 * mult;
         rakkoCapePivot.rotation.z = (comboStep === 2 ? -1 : 1) * Math.sin(p * Math.PI * (comboStep === 99 ? 4 : 1)) * 0.38 * mult;
       } else {
@@ -1004,96 +1269,278 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
       }
     }
 
+    // 매 프레임 기본 트랜스폼 초기화 (이전 콤보/궁극기 잔여 회전·스케일 완벽 정리)
+    standeeGroup.position.set(0, 0, 0);
+    standeeGroup.rotation.set(0, 0, isMoving && attackTimer <= 0 ? Math.sin(walkTime) * 0.08 : 0);
+    standeeGroup.scale.set(flipSign, 1, 1);
+    weaponMesh.position.set(0.15, -0.25, 0.15);
+    weaponMesh.scale.set(1, 1, 1);
+    leftArmPivot.rotation.set(0, 0, 0);
+    rightArmPivot.rotation.set(0, 0, 0);
+    ultPropGroup.visible = attackTimer > 0 && comboStep === 99;
+    if (ultPropParts.scabbard) {
+      ultPropParts.scabbard.visible = attackTimer > 0 && comboStep === 99;
+    }
+
     // ======================================================================
-    // 5) 6인 캐릭터별 고유 3연격 & 화려한 궁극기(comboStep === 99) 3D 안무
+    // 5) 6인 캐릭터별 고유 3연격 & 100% 차별화된 궁극기(comboStep === 99) 3D 안무
     // ======================================================================
     if (attackTimer > 0) {
       if (comboStep === 99) {
-        // 🌟 [Key Q] 6인 캐릭터별 초화려 궁극기 전신 3D 모션 안무!!
+        // 🌟 [Key Q] 6인 캐릭터마다 완전히 다른 전신 3D 궁극기 모션 & 전용 3D 프롭 연출!
         if (charKey === 'chiikawa') {
-          // 치이카와 궁극기: 하늘로 부양하며 포쉐트 별빛 소환 3회전 스핀 후 대지 강타!
-          if (p < 0.65) {
-            const u = p / 0.65;
-            standeeGroup.position.y = Math.sin(u * Math.PI) * 2.6;
-            standeeGroup.rotation.y = u * Math.PI * 6;
-            rightArmPivot.position.set(1.3, 2.85, 0.5);
-            rightArmPivot.rotation.set(-0.6, 0, 0.8);
-            weaponMesh.rotation.set(0, 0, u * Math.PI * 8);
-            leftArmPivot.position.set(-1.3, 2.85, 0.5);
-          } else {
-            const s = (p - 0.65) / 0.35;
-            standeeGroup.position.y = (1 - s) * 0.5;
-            standeeGroup.rotation.x = Math.sin(s * Math.PI) * 0.38;
-            rightArmPivot.position.set(0.95, 2.5 - s * 1.4, 0.95);
-            rightArmPivot.rotation.set(1.45, 0, -0.9);
-            leftArmPivot.position.set(-0.95, 2.3 - s * 1.1, 0.85);
-          }
-        } else if (charKey === 'hachiware') {
-          // 하치와레 궁극기: 초고속 1080도(3바퀴) 창공 용오름 회전베기 후 전방 일섬!
-          standeeGroup.position.y = Math.sin(p * Math.PI) * 2.2;
-          standeeGroup.rotation.y = p * Math.PI * 8;
-          standeeGroup.rotation.z = Math.sin(p * Math.PI * 2) * 0.25;
-          rightArmPivot.position.set(1.85, 2.05, 0.6);
-          rightArmPivot.rotation.set(0.25, 0, -1.52);
-          weaponMesh.rotation.set(Math.PI / 6, 0, p * Math.PI * 6);
-          leftArmPivot.position.set(-1.75, 2.15, 0.45);
-        } else if (charKey === 'usagi') {
-          // 우사기 궁극기: 우라야하!! 공중 3연속 백플립 & 옆돌기 아크로바틱 폭격!
-          standeeGroup.position.y = Math.abs(Math.sin(p * Math.PI * 2)) * 2.8;
-          standeeGroup.rotation.x = p * Math.PI * 6;
-          standeeGroup.rotation.z = Math.sin(p * Math.PI * 4) * 0.45;
-          rightArmPivot.position.set(1.35, 2.45, 0.9);
-          rightArmPivot.rotation.set(0.6, 0, 0);
-          weaponMesh.rotation.set(0.2, 0, p * Math.PI * 14);
-          leftArmPivot.position.set(-1.35, 2.45, 0.9);
-        } else if (charKey === 'momonga') {
-          // 모몽가 궁극기: 샤랄라~ 공중 부양 5회전 은하수 발레 피루엣!
-          standeeGroup.position.y = Math.sin(p * Math.PI) * 2.1;
-          standeeGroup.rotation.y = -p * Math.PI * 10;
-          standeeGroup.rotation.z = Math.sin(p * Math.PI * 4) * 0.28;
-          rightArmPivot.position.set(1.65, 2.6, 0.55);
-          rightArmPivot.rotation.set(0.3, 0, -1.1);
-          weaponMesh.rotation.set(Math.PI / 6, 0, p * Math.PI * 8);
-          leftArmPivot.position.set(-1.65, 2.6, 0.55);
-        } else if (charKey === 'kurimanju') {
-          // 쿠리만쥬 궁극기: 캬하-! 거대화 기합 축적 후 대지를 쪼개는 메테오 볼케이노 강타!
+          // 🩷 [치이카와 궁극기] 울먹이며 부들부들 기 모으기 -> 사스마타가 3.85배 초대형으로 거대화 -> 전방 점프 대지 강타 -> 만세 폴짝!
           if (p < 0.42) {
             const c = p / 0.42;
-            standeeGroup.position.y = c * 1.8;
+            standeeGroup.position.x = Math.sin(p * 140) * 0.12;
             standeeGroup.rotation.x = -c * 0.35;
-            rightArmPivot.position.set(1.1, 2.6 + c * 0.8, 0.1);
-            rightArmPivot.rotation.set(-1.1 * c, 0, 0.75);
-            leftArmPivot.position.set(-1.1, 2.6 + c * 0.8, 0.1);
+            rightArmPivot.position.set(0.35, 2.5 + c * 1.65, 0.1);
+            rightArmPivot.rotation.set(-0.95 * c, 0, 0.25);
+            leftArmPivot.position.set(-0.35, 2.5 + c * 1.55, 0.1);
+            weaponMesh.scale.setScalar(1.0 + c * 2.85);
+            weaponMesh.rotation.set(-0.3, 0, 0);
+          } else if (p < 0.74) {
+            const s = Math.min(1, (p - 0.42) / 0.16);
+            const jumpArc = Math.sin(((p - 0.42) / 0.32) * Math.PI);
+            standeeGroup.position.y = jumpArc * 2.1;
+            standeeGroup.rotation.x = -0.35 + s * 0.92;
+            rightArmPivot.position.set(0.35, 4.15 - s * 2.85, 0.1 + s * 1.95);
+            rightArmPivot.rotation.set(-0.95 + s * 2.45, 0, 0.25 - s * 0.45);
+            leftArmPivot.position.set(-0.45, 4.05 - s * 2.6, 0.1 + s * 1.65);
+            weaponMesh.scale.setScalar(3.85);
+            weaponMesh.rotation.set(0.35, 0, -0.1);
           } else {
-            const s = (p - 0.42) / 0.58;
-            standeeGroup.position.y = Math.max(0, (1 - s * 2.2) * 1.8);
-            standeeGroup.rotation.x = -0.35 + Math.min(1, s * 1.8) * 0.72;
-            rightArmPivot.position.set(1.0, 3.4 - Math.min(1, s * 1.6) * 2.1, 0.2 + Math.min(1, s * 1.6) * 1.3);
-            rightArmPivot.rotation.set(-1.1 + Math.min(1, s * 1.6) * 2.6, 0, 0.75 - Math.min(1, s * 1.6) * 2.2);
-            leftArmPivot.position.set(-1.15, 2.9 - Math.min(1, s * 1.6) * 1.4, 0.6);
+            const h = (p - 0.74) / 0.26;
+            standeeGroup.position.y = Math.abs(Math.sin(h * Math.PI * 2)) * 1.15;
+            standeeGroup.rotation.z = Math.sin(h * Math.PI * 4) * 0.2;
+            rightArmPivot.position.set(1.45, 2.95, 0.45);
+            rightArmPivot.rotation.set(0, 0, -0.35);
+            leftArmPivot.position.set(-1.45, 2.95, 0.45);
+            weaponMesh.scale.setScalar(Math.max(1, 3.85 - h * 2.85));
           }
-          weaponMesh.rotation.set(Math.PI / 6, 0, -0.15);
-        } else if (charKey === 'rakko') {
-          // 랏코 사부 궁극기: 랭킹 1위의 비기 [천검 일섬] - 초고속 발도 8연참 검무 후 납도 포즈!
+
+          if (ultPropParts.bearGroup) {
+            ultPropParts.bearGroup.position.y = 5.8 + Math.sin(p * Math.PI * 4) * 0.45;
+            ultPropParts.bearGroup.scale.setScalar(Math.sin(p * Math.PI) * 1.35);
+          }
+          if (ultPropParts.starOrbit) {
+            ultPropParts.starOrbit.rotation.y = p * Math.PI * 6;
+          }
+          if (ultPropParts.slamStar) {
+            ultPropParts.slamStar.visible = p >= 0.48;
+            if (p >= 0.48) {
+              const st = (p - 0.48) / 0.52;
+              ultPropParts.slamStar.scale.setScalar(0.4 + st * 2.2);
+              ultPropParts.slamStar.material.opacity = Math.max(0, 1 - st);
+            }
+          }
+        } else if (charKey === 'hachiware') {
+          // 💙 [하치와레 궁극기] 몸은 정면을 향한 채 파란 사스마타를 2.5배 거대 풍차 프로펠러처럼 초고속 회전하며 전방 드릴 돌진 -> 공중제비 피니시!
           if (p < 0.75) {
-            const u = p / 0.75;
-            standeeGroup.position.y = Math.sin(u * Math.PI) * 1.35;
-            standeeGroup.rotation.y = u * Math.PI * 6;
+            standeeGroup.position.y = 0.65 + Math.sin(p * Math.PI * 10) * 0.22;
             standeeGroup.rotation.x = 0.28;
-            const slashOsc = Math.sin(u * Math.PI * 8);
-            rightArmPivot.position.set(0.6 + slashOsc * 1.25, 1.85 + Math.abs(slashOsc) * 0.6, 0.85);
-            rightArmPivot.rotation.set(0.55, slashOsc * 1.45, slashOsc * 1.65);
-            weaponMesh.rotation.set(Math.PI / 5, 0, slashOsc * 0.5);
-            leftArmPivot.position.set(-1.35, 1.95, 0.55);
+            // 몸 중앙 정면에 거대 사스마타 배치 후 프로펠러 회전!
+            rightArmPivot.position.set(0.0, 2.25, 1.35);
+            rightArmPivot.rotation.set(0, 0, 0);
+            weaponMesh.scale.setScalar(2.45);
+            weaponMesh.position.set(0, -1.25, 0.35);
+            weaponMesh.rotation.set(0.15, 0, p * Math.PI * 26);
+            leftArmPivot.position.set(-1.45, 2.45, -0.15);
           } else {
-            // 피니시 납도 자세!
-            standeeGroup.position.y = 0;
-            standeeGroup.rotation.y = -0.35;
-            standeeGroup.rotation.x = 0.24;
-            rightArmPivot.position.set(-0.55, 1.55, 0.72);
-            rightArmPivot.rotation.set(0.3, 1.45, -1.35);
-            weaponMesh.rotation.set(Math.PI / 5, 0, -0.15);
-            leftArmPivot.position.set(-1.15, 1.62, 0.65);
+            // 피니시 360도 옆돌기 공중제비 & V포즈!
+            const f = (p - 0.75) / 0.25;
+            standeeGroup.position.y = Math.sin(f * Math.PI) * 2.5;
+            standeeGroup.rotation.z = -f * Math.PI * 2;
+            rightArmPivot.position.set(1.75, 2.65, 0.55);
+            rightArmPivot.rotation.set(0.2, 0, -1.15);
+            weaponMesh.scale.setScalar(Math.max(1, 2.45 - f * 1.45));
+            weaponMesh.rotation.set(Math.PI / 6, 0, -0.2);
+            leftArmPivot.position.set(-1.65, 2.65, 0.55);
+          }
+
+          if (ultPropParts.drillRings) {
+            ultPropParts.drillRings.forEach((ring, idx) => {
+              ring.rotation.z = p * Math.PI * 18 * (idx % 2 === 0 ? 1 : -1);
+              ring.scale.setScalar(p < 0.8 ? 1.0 + Math.sin(p * Math.PI * 4 + idx) * 0.15 : (1 - p) * 5);
+            });
+          }
+        } else if (charKey === 'usagi') {
+          // 💛 [우사기 궁극기] 우라야하!! 하늘 높이 8.2m 초고도 로켓 수직 점프 -> 지면 수직 메테오 다이브 폭격 -> 광란의 셔플 댄스!
+          if (p < 0.46) {
+            const u = p / 0.46;
+            standeeGroup.position.y = Math.sin(u * Math.PI * 0.5) * 8.2;
+            standeeGroup.rotation.x = u * Math.PI * 6;
+            rightArmPivot.position.set(0, 3.2, 0.6);
+            weaponMesh.scale.setScalar(2.2);
+            weaponMesh.rotation.set(0, p * Math.PI * 18, Math.PI / 2);
+            leftArmPivot.position.set(-1.3, 2.9, 0.5);
+          } else if (p < 0.70) {
+            const d = (p - 0.46) / 0.24;
+            standeeGroup.position.y = Math.max(0, (1 - d * d) * 8.2);
+            standeeGroup.rotation.x = 0.35;
+            rightArmPivot.position.set(0, 3.6 - d * 2.5, 1.05);
+            rightArmPivot.rotation.set(2.35, 0, 0);
+            weaponMesh.scale.setScalar(2.65);
+            weaponMesh.rotation.set(0, 0, 0);
+            leftArmPivot.position.set(-1.2, 3.1 - d * 1.5, 0.7);
+          } else {
+            // 착지 후 우사기 특유의 광란의 좌우 셔플 댄스!
+            const w = (p - 0.70) / 0.30;
+            const dance = Math.sin(w * Math.PI * 8);
+            standeeGroup.position.x = dance * 1.25;
+            standeeGroup.position.y = Math.abs(Math.cos(w * Math.PI * 8)) * 0.95;
+            standeeGroup.rotation.z = dance * 0.42;
+            rightArmPivot.position.set(1.55, 2.75 + dance * 0.55, 0.55);
+            rightArmPivot.rotation.set(0.3, 0, -0.6 + dance * 0.5);
+            leftArmPivot.position.set(-1.55, 2.75 - dance * 0.55, 0.55);
+            weaponMesh.scale.setScalar(1.5);
+          }
+
+          if (ultPropParts.missiles) {
+            ultPropParts.missiles.forEach(ms => {
+              const mp = Math.max(0, Math.min(1, (p - 0.22 - ms.delay) / 0.42));
+              ms.mesh.position.y = (1 - mp) * 13.5;
+              ms.mesh.rotation.y = p * 12;
+              ms.mesh.visible = p >= 0.20 && p <= 0.88;
+            });
+          }
+          if (ultPropParts.fireDome) {
+            ultPropParts.fireDome.visible = p >= 0.58;
+            if (p >= 0.58) {
+              const fd = (p - 0.58) / 0.42;
+              ultPropParts.fireDome.scale.setScalar(0.3 + fd * 2.4);
+              ultPropParts.fireDome.material.opacity = Math.max(0, (1 - fd) * 0.8);
+            }
+          }
+        } else if (charKey === 'momonga') {
+          // 💜 [모몽가 궁극기] 좌우로 드러누울 듯 생떼 부리며 양팔·다리 파닥파닥 난타 + 6m 초대형 3D 복실 꼬리 대청소 -> 귀여운 척 포즈!
+          if (p < 0.70) {
+            const t = p / 0.70;
+            const tantrum = Math.sin(t * Math.PI * 14);
+            standeeGroup.position.y = Math.abs(Math.cos(t * Math.PI * 14)) * 0.9;
+            standeeGroup.rotation.z = tantrum * 0.55;
+            rightArmPivot.position.set(1.45, 2.2 + tantrum * 0.95, 0.75);
+            rightArmPivot.rotation.set(0.65, 0, tantrum * 1.45);
+            leftArmPivot.position.set(-1.45, 2.2 - tantrum * 0.95, 0.75);
+            weaponMesh.scale.setScalar(1.45);
+            weaponMesh.rotation.set(Math.PI / 5, 0, tantrum * 0.8);
+          } else {
+            // 후반부: 미테미테~ 양손을 볼에 대고 고개를 갸우뚱하는 얄미운 귀여운 척 포즈!
+            const c = (p - 0.70) / 0.30;
+            standeeGroup.position.y = Math.sin(c * Math.PI) * 1.1;
+            standeeGroup.rotation.z = 0.25;
+            rightArmPivot.position.set(0.78, 2.25, 0.82);
+            rightArmPivot.rotation.set(-0.45, 0, 0.95);
+            leftArmPivot.position.set(-0.78, 2.25, 0.82);
+            weaponMesh.scale.setScalar(0.8);
+          }
+
+          if (ultPropParts.tailPivot) {
+            ultPropParts.tailPivot.visible = p < 0.75;
+            ultPropParts.tailPivot.rotation.y = p * Math.PI * 10;
+            ultPropParts.tailPivot.scale.setScalar(p < 0.70 ? 1.15 : Math.max(0.1, (0.75 - p) * 20));
+          }
+          if (ultPropParts.cuteHearts) {
+            ultPropParts.cuteHearts.visible = p >= 0.65;
+            ultPropParts.cuteHearts.rotation.y = p * Math.PI * 4;
+            ultPropParts.cuteHearts.position.y = (p - 0.65) * 3.5;
+          }
+        } else if (charKey === 'kurimanju') {
+          // 🧡 [쿠리만쥬 궁극기] 황금 호리병 원샷("크하~!")과 함께 몸집이 2.25배 타이탄으로 거대화 -> 3연속 양손 대지분쇄 지진 강타!
+          if (p < 0.34) {
+            const d = p / 0.34;
+            const giantScale = 1.0 + d * 1.25;
+            standeeGroup.scale.set(flipSign * giantScale, giantScale, giantScale);
+            standeeGroup.rotation.x = -Math.sin(d * Math.PI) * 0.38;
+            leftArmPivot.position.set(-0.35, 2.85, 0.95);
+            rightArmPivot.position.set(1.45, 2.1, 0.45);
+            rightArmPivot.rotation.set(0.2, 0, -0.4);
+          } else if (p < 0.92) {
+            // 2.25배 거인 상태에서 땅바닥을 쿵! 쿵! 콰아앙!! 3회 연속 양손 내리찍기!
+            standeeGroup.scale.set(flipSign * 2.25, 2.25, 2.25);
+            const cycle = ((p - 0.34) / 0.58) * 3;
+            const sub = cycle % 1;
+            const slamWave = sub < 0.42 ? -(sub / 0.42) : Math.min(1, (sub - 0.42) / 0.25);
+            standeeGroup.position.y = sub < 0.42 ? Math.sin((sub / 0.42) * Math.PI) * 0.65 : 0;
+            standeeGroup.rotation.x = slamWave * 0.42;
+            rightArmPivot.position.set(1.05, 2.65 - slamWave * 1.45, 0.45 + Math.max(0, slamWave) * 1.15);
+            rightArmPivot.rotation.set(slamWave * 1.65, 0, -0.35);
+            leftArmPivot.position.set(-1.05, 2.65 - slamWave * 1.45, 0.45 + Math.max(0, slamWave) * 1.15);
+            weaponMesh.scale.setScalar(1.65);
+          } else {
+            const r = (p - 0.92) / 0.08;
+            const sc = Math.max(1, 2.25 - r * 1.25);
+            standeeGroup.scale.set(flipSign * sc, sc, sc);
+          }
+
+          if (ultPropParts.gourdGroup) {
+            ultPropParts.gourdGroup.visible = p < 0.38;
+            ultPropParts.gourdGroup.position.set(-0.55 * flipSign, 3.85 + p * 3.2, 1.35);
+            ultPropParts.gourdGroup.rotation.z = flipSign * 0.85;
+            ultPropParts.gourdGroup.scale.setScalar(1.45);
+          }
+          if (ultPropParts.rockRing) {
+            ultPropParts.rockRing.visible = p >= 0.38;
+            if (p >= 0.38) {
+              const waveBounce = Math.abs(Math.sin(((p - 0.38) / 0.54) * Math.PI * 3));
+              ultPropParts.rockRing.position.y = -2.2 + waveBounce * 2.4;
+              ultPropParts.rockRing.scale.setScalar(0.85 + (p - 0.38) * 1.35);
+            }
+          }
+        } else if (charKey === 'rakko') {
+          // ⚔️ [랏코 사부 궁극기] 랭킹 1위 비기 [천검 일섬] - 초고속 삼각 Z자 공간절단 3연참 후 진검 칼집 납도(納刀) 정지 포즈!
+          if (p < 0.64) {
+            const stage = (p / 0.64) * 3;
+            weaponMesh.scale.set(1.4, 2.55, 1.4);
+            if (stage < 1) {
+              // 1참: 좌측 낮게 파고들며 수평 일섬!
+              const s = stage;
+              standeeGroup.position.set(-1.4 * Math.sin(s * Math.PI), 0.15, 0.75);
+              standeeGroup.rotation.set(0.28, 0.38 - s * 0.76, -0.18);
+              rightArmPivot.position.set(-0.9 + s * 2.7, 1.52, 0.92);
+              rightArmPivot.rotation.set(0.28, 1.6 - s * 3.2, -1.45);
+              leftArmPivot.position.set(-1.25, 1.55, 0.55);
+            } else if (stage < 2) {
+              // 2참: 우측에서 대각선 역수 올려베기!
+              const s = stage - 1;
+              standeeGroup.position.set(1.4 * Math.sin(s * Math.PI), 0.55 * Math.sin(s * Math.PI), 0.95);
+              standeeGroup.rotation.set(0.22, -0.35 + s * 0.7, 0.22);
+              rightArmPivot.position.set(1.85 - s * 2.5, 1.2 + s * 1.85, 0.95);
+              rightArmPivot.rotation.set(0.55, -1.25 + s * 2.5, 1.25 - s * 2.65);
+              leftArmPivot.position.set(-1.35, 1.85, 0.5);
+            } else {
+              // 3참: 정면 공중 도약 X자 대참격!
+              const s = stage - 2;
+              standeeGroup.position.set(0, Math.sin(s * Math.PI) * 2.2, 1.25 * Math.sin(s * Math.PI));
+              standeeGroup.rotation.set(0.36, 0, 0);
+              rightArmPivot.position.set(0.25, 3.2 - s * 1.9, 1.15);
+              rightArmPivot.rotation.set(1.75, 0, -0.45 + s * 0.9);
+              leftArmPivot.position.set(-1.25, 2.2, 0.65);
+            }
+          } else {
+            // 0.64 ~ 1.0: 검성 납도(納刀) 피니시! 왼쪽 허리의 칼집에 검을 '찰칵' 집어넣고 미동 없이 정지!
+            const sh = Math.min(1, (p - 0.64) / 0.16);
+            standeeGroup.position.set(0, 0, 0);
+            standeeGroup.rotation.set(0.18, -0.22, 0);
+            leftArmPivot.position.set(-1.22, 1.48, 0.45);
+            rightArmPivot.position.set(0.35 - sh * 1.35, 1.55, 0.68);
+            rightArmPivot.rotation.set(0.18, 1.48, -1.45);
+            weaponMesh.scale.set(1.0, Math.max(0.15, 1.6 - sh * 1.45), 1.0);
+          }
+
+          if (ultPropParts.slashBeams) {
+            ultPropParts.slashBeams.visible = p < 0.85;
+            ultPropParts.slashBeams.rotation.z = p * 1.5;
+            const beamScale = p < 0.64 ? 0.6 + p * 0.8 : 1.1 + (p - 0.64) * 3.5;
+            ultPropParts.slashBeams.scale.setScalar(beamScale);
+          }
+          if (ultPropParts.sheatheFlash) {
+            ultPropParts.sheatheFlash.visible = p >= 0.68;
+            if (p >= 0.68) {
+              const sf = (p - 0.68) / 0.32;
+              ultPropParts.sheatheFlash.scale.setScalar(0.3 + sf * 2.4);
+              ultPropParts.sheatheFlash.material.opacity = Math.max(0, 1 - sf);
+            }
           }
         }
       } else if (charKey === 'chiikawa') {
@@ -1279,10 +1726,6 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
       }
     } else {
       // 비공격 시 기본 자세 및 달리기 팔 스윙 복귀
-      standeeGroup.rotation.x = 0;
-      standeeGroup.rotation.y = 0;
-      standeeGroup.position.y = 0;
-      rightArmPivot.rotation.y = 0;
       rightArmPivot.position.set(1.45, 1.85, 0.42);
       weaponMesh.rotation.set(Math.PI / 7, 0, -0.22);
 
