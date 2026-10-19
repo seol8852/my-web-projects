@@ -35,7 +35,7 @@
         </div>
         <div class="player-info-col">
           <div class="player-name-row">
-            <span class="player-name-txt" id="hud-char-name">치이카와</span>
+            <span class="player-name-txt" id="hud-char-name">치이카와 (+1강)</span>
             <span class="cert-rank-pill" id="hud-cert-badge">🌱 제초 견습생</span>
           </div>
           <div class="bar-row">
@@ -51,7 +51,7 @@
             </div>
           </div>
           <div class="currency-row">
-            <span class="currency-item">🪙 <strong id="hud-coins-val">150</strong></span>
+            <span class="currency-item">🪙 <strong id="hud-coins-val">200</strong></span>
             <span class="currency-item">🌿 <strong id="hud-weeds-val">0포기</strong></span>
           </div>
         </div>
@@ -103,13 +103,19 @@
         </button>
       </div>
 
-      <!-- 우측: 파티 모드, 낮/밤 전환, 사운드, 포털 홈 -->
+      <!-- 우측: 의상실/강화, 포토 스튜디오, 파티 모드, 낮/밤 전환, 사운드, 포털 홈 -->
       <div class="top-right-controls hud-interactive">
+        <button type="button" class="hud-pill-btn shop-highlight-btn" onclick="openCostumeShopModal()">
+          🛍️ 의상실 & 강화 [B]
+        </button>
+        <button type="button" class="hud-pill-btn" onclick="gameApp.takePhotoSnapshot()">
+          📸 스냅샷 [P]
+        </button>
         <button type="button" class="hud-pill-btn" id="btn-party-mode" onclick="gameApp.togglePartyFollow()">
           👯 파티 동행 ON
         </button>
         <button type="button" class="hud-pill-btn" id="btn-time-toggle" onclick="gameApp.cycleTimeOfDay()">
-          ☀️ 낮 (초원)
+          ☀️ 낮 (벚꽃초원)
         </button>
         <button type="button" class="hud-pill-btn" id="btn-sound-toggle" onclick="const on = soundFx.toggleSound(); this.innerText = on ? '🔊 사운드 ON' : '🔇 사운드 OFF';">
           🔊 사운드 ON
@@ -139,11 +145,12 @@
           </div>
           <div class="teleport-grid">
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('plaza')">🏡 중앙 광장</button>
+            <button type="button" class="warp-btn" onclick="gameApp.warpToZone('shop')">🛍️ 의상 & 강화</button>
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('weed')">🌱 제초 평원</button>
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('ramen')">🍜 라멘 랑</button>
             <button type="button" class="warp-btn" onclick="gameApp.warpToZone('pudding')">🍮 푸딩 언덕</button>
-            <button type="button" class="warp-btn" style="grid-column: span 2; justify-content:center; background:#fff1f2; border-color:#fda4af;" onclick="gameApp.warpToZone('forest')">
-              ⚔️ 토벌의 숲 (아노코 레이드)
+            <button type="button" class="warp-btn" style="background:#fff1f2; border-color:#fda4af;" onclick="gameApp.warpToZone('forest')">
+              ⚔️ 토벌의 숲
             </button>
           </div>
         </div>
@@ -188,6 +195,14 @@
           </div>
         </button>
 
+        <button type="button" class="skill-slot-btn" onclick="gameApp.triggerDash()">
+          <span class="skill-icon">💨</span>
+          <div class="skill-text-col">
+            <span class="skill-name">회피 대시</span>
+            <span class="skill-hotkey">[Shift]</span>
+          </div>
+        </button>
+
         <button type="button" class="skill-slot-btn" onclick="gameApp.triggerJump()">
           <span class="skill-icon">🦘</span>
           <div class="skill-text-col">
@@ -206,7 +221,7 @@
       </div>
 
       <div class="controls-hint-bar">
-        🎮 이동: <strong>WASD / 방향키</strong> · 시점 회전: <strong>마우스 드래그 / 휠 줌</strong> · 점프: <strong>Space</strong> · 베기/풀뽑기: <strong>J</strong> · 필살기: <strong>K</strong> · 상호작용: <strong>E</strong>
+        🎮 이동: <strong>WASD / 방향키</strong> · 대시: <strong>Shift</strong> · 점프: <strong>Space</strong> · 베기/제초: <strong>J</strong> · 필살기: <strong>K</strong> · 상호작용: <strong>E</strong> · 의상실: <strong>B</strong> · 스냅샷: <strong>P</strong>
       </div>
     </footer>
   </div>
@@ -237,7 +252,7 @@
       <div class="ramen-ingredients-grid" id="ramen-ing-grid"></div>
 
       <button type="button" class="btn-serve-ramen" onclick="submitRamenOrder()">
-        🍜 정성 가득 라멘 한 그릇 대접하기! (+80 코인 & 버프)
+        🍜 정성 가득 라멘 한 그릇 대접하기! (+90 코인 & 활력 버프)
       </button>
     </div>
   </div>
@@ -263,7 +278,30 @@
   </div>
 
   <!-- ========================================================================
-       모달 3: 치이카와 동료 NPC 대화창
+       모달 3: 🛍️ 포쉐트 3D 코스튬 & 사스마타 무기 강화 부티크
+       ======================================================================== -->
+  <div class="modal-backdrop" id="shop-modal">
+    <div class="modal-window" style="max-width: 640px;">
+      <button type="button" class="modal-close-btn" onclick="closeCostumeShopModal()">✕</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; padding-right:36px;">
+        <h2 style="font-size:21px; font-weight:900; color:#db2777;">🛍️ 포쉐트 의상실 & 무기 강화소</h2>
+        <span style="background:#fef3c7; border:2px solid #f59e0b; color:#b45309; padding:4px 12px; border-radius:99px; font-weight:900; font-size:14px;" id="shop-coin-display">200 🪙</span>
+      </div>
+      <p style="font-size:13px; color:#64748b; margin-top:4px;">
+        풀뽑기와 토벌, 라멘 알바로 모은 코인으로 <strong>사스마타 무기</strong>를 강화하거나 귀여운 <strong>3D 머리 장식</strong>을 착용하세요!
+      </p>
+
+      <!-- 무기 강화 섹션 -->
+      <div class="shop-weapon-section" id="shop-weapon-box"></div>
+
+      <!-- 3D 모자 코스튬 그리드 -->
+      <div style="font-size:14px; font-weight:900; color:#1e293b; margin:14px 0 8px;">👑 3D 입체 머리 장식 컬렉션</div>
+      <div class="shop-hat-grid" id="shop-hat-grid"></div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       모달 4: 치이카와 동료 NPC 대화창
        ======================================================================== -->
   <div class="modal-backdrop" id="npc-dialog-modal">
     <div class="modal-window">
@@ -282,7 +320,7 @@
 
       <div class="dialog-choices">
         <button type="button" class="choice-btn" onclick="closeNpcDialog('gift')">
-          💖 반갑게 인사하고 간식 나누기 (+30 코인 & 경험치)
+          💖 반갑게 인사하고 간식 나누기 (+35 코인 & 경험치)
         </button>
         <button type="button" class="choice-btn" onclick="closeNpcDialog('party')">
           👯 파티 동행 대열 모드 전환하기 (함께 따라다니기 / 자유 산책)
