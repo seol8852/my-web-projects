@@ -91,9 +91,11 @@ class Chiikawa3DWorldApp {
     this.npcs = [];
     this.weeds = [];
     this.monsters = [];
+    this.chests = [];
     this.particles = [];
     this.shockwaves = [];
     this.slashArcs = [];
+    this.hitBursts = [];
     this.telegraphs = [];
     this.weatherParticles = [];
     this.clouds = [];
@@ -103,6 +105,13 @@ class Chiikawa3DWorldApp {
     this.waterTexture = null;
     this.fountainMesh = null;
     this.windmillMesh = null;
+    this.windmill2Mesh = null;
+    this.campsiteMesh = null;
+    this.onsenPos = new THREE.Vector3(-82, 0, -68);
+    this.campPos = new THREE.Vector3(-92, 0, 62);
+    this.pudding2Pos = new THREE.Vector3(-85, 0, -14);
+    this.pudding2Mesh = null;
+    this.onsenHealTimer = 0;
     this.timeOfDay = 'day';
 
     this.nearestInteractable = null;
@@ -119,11 +128,37 @@ class Chiikawa3DWorldApp {
     this.spawnPlayer(this.activeCharKey);
     this.spawnTownNpcs();
     this.spawnWeeds();
+    this.spawnFieldChests();
     this.spawnMonsters();
     this.bindEvents();
     this.renderCharSelectCards();
     this.updateHud();
     this.animate();
+  }
+
+  // 방향키 유령 눌림(Stuck Key) 방지용 전체 입력 초기화
+  clearAllInputKeys() {
+    this.keys = {};
+    this.joyVec.x = 0;
+    this.joyVec.y = 0;
+    if (this.playerVel) {
+      this.playerVel.set(0, 0, 0);
+    }
+    const joyKnob = document.getElementById('joystick-knob');
+    if (joyKnob) {
+      joyKnob.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+
+  isAnyModalOpen() {
+    const screen = document.getElementById('char-select-screen');
+    if (screen && !screen.classList.contains('hidden')) return true;
+    const modals = ['ramen-modal', 'shop-modal', 'weed-exam-modal', 'npc-dialog-modal'];
+    for (const id of modals) {
+      const el = document.getElementById(id);
+      if (el && el.classList.contains('active')) return true;
+    }
+    return false;
   }
 
   loadSavedData() {
@@ -190,6 +225,7 @@ class Chiikawa3DWorldApp {
   }
 
   startGameWithSelectedChar() {
+    this.clearAllInputKeys();
     soundFx.startBgm();
     soundFx.playFanfare();
     this.gameStarted = true;
@@ -205,10 +241,11 @@ class Chiikawa3DWorldApp {
     this.spawnPlayer(chosen);
     this.spawnTownNpcs();
     this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0xff85a2, 24);
-    showToast(`🌟 [${CHAR_CONFIGS[chosen].name}] 출격! (1타:🦵다리둔화 / 2타·점프:🎯머리약점 / 등뒤:⚡백어택!)`);
+    showToast(`🌟 [${CHAR_CONFIGS[chosen].name}] 출격! 넓어진 치이카와 대륙을 탐험해보세요!`);
   }
 
   openCharSelectScreen() {
+    this.clearAllInputKeys();
     soundFx.playCoin();
     this.selectedCharInLobby = this.activeCharKey;
     this.renderCharSelectCards();
@@ -219,19 +256,19 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 1. Three.js 씬, ACES 톤매핑, UnrealBloomPass 포스트프로세싱 초기화
+  // 1. Three.js 씬, 눈부심 방지 소프트 톤매핑 & 절제된 Bloom 포스트프로세싱
   // ========================================================================
   initThreeScene() {
     const canvas = document.getElementById('webgl-canvas');
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x93c5fd);
-    this.scene.fog = new THREE.FogExp2(0xbae6fd, 0.0028);
+    this.scene.background = new THREE.Color(0x7dd3fc);
+    this.scene.fog = new THREE.FogExp2(0x93c5fd, 0.0014);
 
     this.camera = new THREE.PerspectiveCamera(
       46,
       window.innerWidth / window.innerHeight,
       0.5,
-      500
+      800
     );
 
     this.renderer = new THREE.WebGLRenderer({
@@ -246,34 +283,36 @@ class Chiikawa3DWorldApp {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    // 눈이 피로하지 않도록 노출도를 차분하고 부드러운 0.78로 조정
+    this.renderer.toneMappingExposure = 0.78;
 
     if (typeof THREE.EffectComposer !== 'undefined' && typeof THREE.UnrealBloomPass !== 'undefined') {
       this.composer = new THREE.EffectComposer(this.renderer);
       const renderPass = new THREE.RenderPass(this.scene, this.camera);
       this.composer.addPass(renderPass);
 
+      // threshold를 0.96으로 높이고 strength를 0.08로 낮추어 일반 지형/캐릭터 눈부심을 완벽 제거!
       this.bloomPass = new THREE.UnrealBloomPass(
         new THREE.Vector2(window.innerWidth, window.innerHeight),
-        0.32,
-        0.55,
-        0.85
+        0.08,
+        0.35,
+        0.96
       );
       this.composer.addPass(this.bloomPass);
     }
 
-    this.hemiLight = new THREE.HemisphereLight(0xffffff, 0x86efac, 0.92);
-    this.hemiLight.position.set(0, 90, 0);
+    this.hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x4d7c0f, 0.62);
+    this.hemiLight.position.set(0, 110, 0);
     this.scene.add(this.hemiLight);
 
-    this.dirLight = new THREE.DirectionalLight(0xfffbeb, 0.96);
-    this.dirLight.position.set(50, 88, 45);
+    this.dirLight = new THREE.DirectionalLight(0xfef3c7, 0.68);
+    this.dirLight.position.set(65, 115, 55);
     this.dirLight.castShadow = true;
     this.dirLight.shadow.mapSize.width = 2048;
     this.dirLight.shadow.mapSize.height = 2048;
     this.dirLight.shadow.camera.near = 10;
-    this.dirLight.shadow.camera.far = 240;
-    const d = 90;
+    this.dirLight.shadow.camera.far = 380;
+    const d = 160;
     this.dirLight.shadow.camera.left = -d;
     this.dirLight.shadow.camera.right = d;
     this.dirLight.shadow.camera.top = d;
@@ -295,15 +334,14 @@ class Chiikawa3DWorldApp {
       color: 0xffffff,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.42,
       depthWrite: false
     });
     this.playerHurtRingMesh = new THREE.Mesh(hurtGeo, hurtMat);
     this.playerHurtRingMesh.position.y = 0.08;
     this.combatIndicatorGroup.add(this.playerHurtRingMesh);
 
-    // 2) 콤보 단계별 타격 범위 가이드 도형 (Three.js RingGeometry: +Z 전방이 중앙이 되도록 Math.PI/2 오프셋)
-    // - 1타: 사거리 5.4m, 전방 135° 부채꼴 (하단/다리 베기)
+    // 2) 콤보 단계별 타격 범위 가이드 도형
     const arc1 = Math.PI * 0.75;
     const geo1 = new THREE.RingGeometry(0.85, 5.4, 28, 1, Math.PI * 0.5 - arc1 * 0.5, arc1);
     geo1.rotateX(-Math.PI / 2);
@@ -318,7 +356,6 @@ class Chiikawa3DWorldApp {
     this.aimSectorMeshes[1].position.y = 0.06;
     this.combatIndicatorGroup.add(this.aimSectorMeshes[1]);
 
-    // - 2타: 사거리 5.8m, 전방 95° 집중 부채꼴 (상단/머리 약점 올려베기)
     const arc2 = Math.PI * 0.52;
     const geo2 = new THREE.RingGeometry(0.85, 5.8, 24, 1, Math.PI * 0.5 - arc2 * 0.5, arc2);
     geo2.rotateX(-Math.PI / 2);
@@ -334,14 +371,13 @@ class Chiikawa3DWorldApp {
     this.aimSectorMeshes[2].visible = false;
     this.combatIndicatorGroup.add(this.aimSectorMeshes[2]);
 
-    // - 3타: 반경 6.0m, 360° 전방위 원형 회전 강타 (공중 머리 약점 스매시)
     const geo3 = new THREE.RingGeometry(0.85, 6.0, 36);
     geo3.rotateX(-Math.PI / 2);
     const mat3 = new THREE.MeshBasicMaterial({
       color: 0xfacc15,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.26,
       depthWrite: false
     });
     this.aimSectorMeshes[3] = new THREE.Mesh(geo3, mat3);
@@ -360,38 +396,41 @@ class Chiikawa3DWorldApp {
     const skyUniforms = this.skyDome ? this.skyDome.material.uniforms : null;
 
     if (this.timeOfDay === 'day') {
-      this.scene.background.setHex(0x93c5fd);
-      this.scene.fog.color.setHex(0xbae6fd);
-      this.hemiLight.intensity = 0.92;
-      this.dirLight.color.setHex(0xfffbeb);
-      this.dirLight.intensity = 0.96;
-      if (this.bloomPass) this.bloomPass.strength = 0.32;
+      this.scene.background.setHex(0x7dd3fc);
+      this.scene.fog.color.setHex(0x93c5fd);
+      this.hemiLight.intensity = 0.62;
+      this.dirLight.color.setHex(0xfef3c7);
+      this.dirLight.intensity = 0.68;
+      this.renderer.toneMappingExposure = 0.78;
+      if (this.bloomPass) this.bloomPass.strength = 0.08;
       if (skyUniforms) {
-        skyUniforms.topColor.value.setHex(0x38bdf8);
-        skyUniforms.midColor.value.setHex(0xbae6fd);
-        skyUniforms.bottomColor.value.setHex(0xfef9c3);
+        skyUniforms.topColor.value.setHex(0x2563eb);
+        skyUniforms.midColor.value.setHex(0x7dd3fc);
+        skyUniforms.bottomColor.value.setHex(0xdbeafe);
       }
       if (btn) btn.innerText = '☀️ 낮 (벚꽃초원)';
     } else if (this.timeOfDay === 'sunset') {
-      this.scene.background.setHex(0xfda4af);
-      this.scene.fog.color.setHex(0xfecdd3);
-      this.hemiLight.intensity = 0.78;
-      this.dirLight.color.setHex(0xf97316);
-      this.dirLight.intensity = 0.92;
-      if (this.bloomPass) this.bloomPass.strength = 0.44;
+      this.scene.background.setHex(0xfb7185);
+      this.scene.fog.color.setHex(0xfda4af);
+      this.hemiLight.intensity = 0.54;
+      this.dirLight.color.setHex(0xfb923c);
+      this.dirLight.intensity = 0.64;
+      this.renderer.toneMappingExposure = 0.76;
+      if (this.bloomPass) this.bloomPass.strength = 0.12;
       if (skyUniforms) {
-        skyUniforms.topColor.value.setHex(0x6d28d9);
-        skyUniforms.midColor.value.setHex(0xfb7185);
-        skyUniforms.bottomColor.value.setHex(0xfde047);
+        skyUniforms.topColor.value.setHex(0x581c87);
+        skyUniforms.midColor.value.setHex(0xe11d48);
+        skyUniforms.bottomColor.value.setHex(0xfdba74);
       }
       if (btn) btn.innerText = '🌅 노을 (황혼)';
     } else {
       this.scene.background.setHex(0x0f172a);
       this.scene.fog.color.setHex(0x0f172a);
-      this.hemiLight.intensity = 0.52;
+      this.hemiLight.intensity = 0.42;
       this.dirLight.color.setHex(0x818cf8);
-      this.dirLight.intensity = 0.68;
-      if (this.bloomPass) this.bloomPass.strength = 0.55;
+      this.dirLight.intensity = 0.52;
+      this.renderer.toneMappingExposure = 0.74;
+      if (this.bloomPass) this.bloomPass.strength = 0.18;
       if (skyUniforms) {
         skyUniforms.topColor.value.setHex(0x020617);
         skyUniforms.midColor.value.setHex(0x1e1b4b);
@@ -404,7 +443,7 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 2. 고해상도 텍스처 지형, 스카이돔, 2,200개 Instanced 잔디 & 랜드마크 구축
+  // 2. 대폭 확장된 월드 지형(반경 250m), 4,500개 잔디 & 신규 랜드마크 구축
   // ========================================================================
   buildEnvironment() {
     const gradientMap = getToonGradientMap();
@@ -414,8 +453,9 @@ class Chiikawa3DWorldApp {
       this.scene.add(this.skyDome);
     }
 
+    // 기존 반경 150m -> 250m(면적 약 3배 확장!) 초대형 대륙 지형
     const grassTex = createGrassCanvasTexture();
-    const groundGeo = new THREE.CylinderGeometry(150, 154, 4, 64);
+    const groundGeo = new THREE.CylinderGeometry(250, 256, 4, 72);
     const groundMat = new THREE.MeshToonMaterial({
       map: grassTex,
       gradientMap
@@ -431,7 +471,7 @@ class Chiikawa3DWorldApp {
     }
 
     const plazaTex = createPlazaCanvasTexture();
-    const plazaGeo = new THREE.CylinderGeometry(19, 19.5, 0.26, 48);
+    const plazaGeo = new THREE.CylinderGeometry(21, 21.5, 0.26, 48);
     const plazaMat = new THREE.MeshToonMaterial({
       map: plazaTex,
       gradientMap
@@ -445,28 +485,36 @@ class Chiikawa3DWorldApp {
     this.fountainMesh.position.set(0, 0.1, 0);
     this.scene.add(this.fountainMesh);
 
-    const stoneMat = new THREE.MeshToonMaterial({ color: 0xfde68a, gradientMap });
-    for (let i = 1; i <= 6; i++) {
-      const s1 = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.45, 0.18, 14), stoneMat);
-      s1.position.set(i * 4.8, 0.06, i * 2.1);
+    const stoneMat = new THREE.MeshToonMaterial({ color: 0xd6c7b2, gradientMap });
+    for (let i = 1; i <= 12; i++) {
+      const s1 = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.5, 0.18, 14), stoneMat);
+      s1.position.set(i * 5.2, 0.06, i * 2.1);
       s1.receiveShadow = true;
       this.scene.add(s1);
 
-      const s2 = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.45, 0.18, 14), stoneMat);
-      s2.position.set(-i * 4.8, 0.06, i * 2.5);
+      const s2 = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.5, 0.18, 14), stoneMat);
+      s2.position.set(-i * 5.2, 0.06, i * 2.5);
       s2.receiveShadow = true;
       this.scene.add(s2);
+
+      // 북서쪽 온천 호수로 이어지는 징검다리 길
+      const s3 = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.5, 0.18, 14), stoneMat);
+      s3.position.set(-i * 5.8, 0.06, -i * 4.8);
+      s3.receiveShadow = true;
+      this.scene.add(s3);
     }
 
     this.waterTexture = createWaterCanvasTexture();
     const riverBridge = createRiverAndBridge3D(this.waterTexture);
     this.scene.add(riverBridge);
 
+    // 1) 중앙 치이카와 하우스
     const house = createChiikawaHouse3D();
     house.position.set(0, 0, -16);
     this.scene.add(house);
     this.addZoneSign('🏡 치이카와 하우스 & 중앙 분수 광장', 0, 11.8, -16);
 
+    // 2) 동남쪽 라멘 랑(郎) 본점 & 야시장 거리
     const ramenStall = createRamenStall3D();
     ramenStall.position.set(36, 0, 16);
     ramenStall.rotation.y = -Math.PI / 4;
@@ -474,6 +522,14 @@ class Chiikawa3DWorldApp {
     this.ramenPos = new THREE.Vector3(36, 0, 16);
     this.addZoneSign('🍜 라멘 랑(郎) 포차 [E]', 36, 8.2, 16);
 
+    // 남동쪽 확장 구역: 쿠리만쥬의 낭만 포장마차 분점
+    const subStall = createRamenStall3D();
+    subStall.position.set(78, 0, 56);
+    subStall.rotation.y = -Math.PI / 2.5;
+    this.scene.add(subStall);
+    this.addZoneSign('🍢 쿠리만쥬의 숲속 야시장 쉼터', 78, 8.2, 56);
+
+    // 3) 의상실 & 무기 강화 공방
     this.shopPos = new THREE.Vector3(16, 0, -5);
     const shopStand = this.createBoutiqueStand3D();
     shopStand.position.copy(this.shopPos);
@@ -481,11 +537,18 @@ class Chiikawa3DWorldApp {
     this.scene.add(shopStand);
     this.addZoneSign('🛍️ 포쉐트 의상실 & 무기 강화 [E]', 16, 6.2, -5);
 
+    // 4) 서쪽 제초 알바 대평원 & 쌍둥이 풍차 언덕
     this.weedZonePos = new THREE.Vector3(-38, 0, 20);
     this.windmillMesh = createWindmill3D();
     this.windmillMesh.position.set(-44, 0, 15);
     this.windmillMesh.rotation.y = Math.PI / 6;
     this.scene.add(this.windmillMesh);
+
+    this.windmill2Mesh = createWindmill3D();
+    this.windmill2Mesh.position.set(-96, 0, 42);
+    this.windmill2Mesh.rotation.y = Math.PI / 4;
+    this.scene.add(this.windmill2Mesh);
+    this.addZoneSign('🌾 서부 대평원 제2 풍차 농장', -96, 10.5, 42);
 
     const boardGroup = new THREE.Group();
     const boardGeo = new THREE.BoxGeometry(5.0, 3.4, 0.4);
@@ -506,6 +569,7 @@ class Chiikawa3DWorldApp {
     this.scene.add(boardGroup);
     this.addZoneSign('🌱 제초 승급 시험장 [E]', -38, 5.6, 20);
 
+    // 5) 자이언트 푸딩 점프대 (1호 & 2호 더블 디저트 파크)
     this.puddingPos = new THREE.Vector3(-36, 0, -34);
     const pudding = createGiantPudding3D();
     pudding.position.copy(this.puddingPos);
@@ -513,12 +577,23 @@ class Chiikawa3DWorldApp {
     this.puddingMesh = pudding;
     this.addZoneSign('🍮 자이언트 푸딩 점프대', -36, 9.5, -34);
 
+    if (this.pudding2Pos) {
+      const pudding2 = createGiantPudding3D();
+      pudding2.position.copy(this.pudding2Pos);
+      this.scene.add(pudding2);
+      this.pudding2Mesh = pudding2;
+      this.addZoneSign('🍮 서쪽 더블 푸딩 트램펄린', -85, 9.5, -14);
+    }
+
     const stepCoords = [
       [-26, 1.8, -28],
       [-28, 3.6, -34],
-      [-31, 5.2, -37]
+      [-31, 5.2, -37],
+      [-74, 1.8, -10],
+      [-77, 3.6, -14],
+      [-80, 5.2, -16]
     ];
-    const stepMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap });
+    const stepMat = new THREE.MeshToonMaterial({ color: 0xfde68a, gradientMap });
     stepCoords.forEach(([sx, sy, sz]) => {
       const step = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.3, 0.75, 20), stepMat);
       step.position.set(sx, sy, sz);
@@ -528,47 +603,116 @@ class Chiikawa3DWorldApp {
       this.scene.add(step);
     });
 
-    const forestGeo = new THREE.CylinderGeometry(36, 37, 0.22, 40);
-    const forestMat = new THREE.MeshToonMaterial({ color: 0x4d7c0f, gradientMap });
-    const forestFloor = new THREE.Mesh(forestGeo, forestMat);
-    forestFloor.position.set(48, 0.04, -38);
-    forestFloor.receiveShadow = true;
-    this.scene.add(forestFloor);
+    // 6) 신규 확장 구역 A: 🌸 북서쪽 벚꽃 노천온천 & 치유 호수 (-82, 0, -68)
+    if (typeof createSakuraOnsenLake3D === 'function') {
+      const onsen = createSakuraOnsenLake3D();
+      onsen.position.copy(this.onsenPos);
+      this.scene.add(onsen);
+      this.addZoneSign('🌸 벚꽃 노천온천 치유 호수 [E: 체력회복·버프]', -82, 8.2, -68);
+    }
+
+    // 7) 신규 확장 구역 B: ⛺ 남서쪽 별빛 캠핑장 & 모닥불 언덕 (-92, 0, 62)
+    if (typeof createStarlightCampsite3D === 'function') {
+      this.campsiteMesh = createStarlightCampsite3D();
+      this.campsiteMesh.position.copy(this.campPos);
+      this.scene.add(this.campsiteMesh);
+      this.addZoneSign('⛺ 별빛 캠핑장 & 군고구마 모닥불 [E]', -92, 7.2, 62);
+    }
+
+    // 8) 동쪽 3단계 확장 대삼림 & 심연의 고대 보스 유적지
+    const forestZones = [
+      { x: 52, z: -38, r: 42, color: 0x3f6212 },
+      { x: 108, z: -64, r: 48, color: 0x365314 },
+      { x: 88, z: 36, r: 38, color: 0x3f6212 }
+    ];
+    forestZones.forEach(fz => {
+      const fGeo = new THREE.CylinderGeometry(fz.r, fz.r + 1, 0.22, 44);
+      const fMat = new THREE.MeshToonMaterial({ color: fz.color, gradientMap });
+      const fFloor = new THREE.Mesh(fGeo, fMat);
+      fFloor.position.set(fz.x, 0.04, fz.z);
+      fFloor.receiveShadow = true;
+      this.scene.add(fFloor);
+    });
 
     const toriiGate = createToriiGate3D();
     toriiGate.position.set(30, 0, -21);
     toriiGate.rotation.y = -Math.PI / 4;
     this.scene.add(toriiGate);
-    this.addZoneSign('⛩️ 위험! 토벌의 숲 (약점·백어택 공략)', 30, 8.8, -21);
+    this.addZoneSign('⛩️ 제1 토벌 구역: 초록 버섯 숲', 30, 8.8, -21);
 
+    const toriiGate2 = createToriiGate3D();
+    toriiGate2.position.set(82, 0, -50);
+    toriiGate2.rotation.y = -Math.PI / 3;
+    this.scene.add(toriiGate2);
+    this.addZoneSign('⛩️ 제2 토벌 구역: 심연의 고대 유적지', 82, 8.8, -50);
+
+    const toriiGate3 = createToriiGate3D();
+    toriiGate3.position.set(58, 0, 20);
+    toriiGate3.rotation.y = Math.PI / 5;
+    this.scene.add(toriiGate3);
+    this.addZoneSign('⛩️ 제3 토벌 구역: 남동쪽 키메라 협곡', 58, 8.8, 20);
+
+    if (typeof createAncientRuins3D === 'function') {
+      const ruins = createAncientRuins3D();
+      ruins.position.set(128, 0, -76);
+      this.scene.add(ruins);
+      this.addZoneSign('🏛️ 고대 보스 신전: 아노코의 제단', 128, 10.5, -76);
+    }
+
+    // 토벌의 숲 곳곳에 대형 판타지 버섯 36개 배치
+    if (typeof createForestMushroom3D === 'function') {
+      const mushColors = [0xa855f7, 0xec4899, 0x3b82f6, 0xef4444];
+      for (let i = 0; i < 36; i++) {
+        const mush = createForestMushroom3D(mushColors[i % mushColors.length]);
+        const mx = 34 + Math.random() * 115;
+        const mz = -105 + Math.random() * 165;
+        if ( mz > 22 && mz < 34) continue;
+        mush.position.set(mx, 0, mz);
+        const s = 0.65 + Math.random() * 0.75;
+        mush.scale.setScalar(s);
+        this.scene.add(mush);
+      }
+    }
+
+    // 72그루의 벚꽃나무와 소나무를 넓어진 대륙 전역에 배치
     const treePositions = [
       [-18, -18], [18, -18], [-22, 5], [24, 34], [-55, 0],
       [-52, 35], [-20, 44], [12, 46], [52, 35], [-55, -25],
       [35, -62], [65, -25], [70, -50], [25, -55], [-12, -52],
-      [-42, -8], [46, 4], [-8, 38], [62, 12]
+      [-42, -8], [46, 4], [-8, 38], [62, 12],
+      // 확장된 외곽 대륙 나무들
+      [-68, -55], [-95, -58], [-98, -82], [-68, -85], [-48, -74],
+      [-115, -35], [-125, 10], [-118, 55], [-105, 82], [-72, 78],
+      [-45, 75], [-15, 88], [22, 85], [58, 78], [92, 72],
+      [118, 52], [135, 18], [148, -15], [155, -52], [148, -95],
+      [115, -112], [82, -98], [48, -92], [10, -88], [-28, -92],
+      [-82, 18], [-64, 52], [85, -18], [102, -38], [96, 12],
+      [122, -25], [110, 42], [-132, -18], [-110, -68], [68, 88]
     ];
     treePositions.forEach(([tx, tz], idx) => {
       const isSakura = idx % 2 === 0;
       const tree = this.createTree3D(isSakura);
       tree.position.set(tx, 0, tz);
+      const scale = 0.88 + (idx % 4) * 0.12;
+      tree.scale.setScalar(scale);
       this.scene.add(tree);
     });
 
     this.spawnMeadowFlowers();
 
-    const cloudMat = new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap });
-    for (let i = 0; i < 14; i++) {
+    const cloudMat = new THREE.MeshToonMaterial({ color: 0xe2e8f0, gradientMap });
+    for (let i = 0; i < 24; i++) {
       const cg = new THREE.Group();
       for (let j = 0; j < 3; j++) {
-        const puff = new THREE.Mesh(new THREE.SphereGeometry(2.4 + Math.random() * 1.2, 14, 14), cloudMat);
-        puff.position.set((j - 1) * 2.2, Math.random() * 0.6, 0);
+        const puff = new THREE.Mesh(new THREE.SphereGeometry(2.6 + Math.random() * 1.4, 14, 14), cloudMat);
+        puff.position.set((j - 1) * 2.4, Math.random() * 0.6, 0);
         puff.scale.y = 0.65;
         cg.add(puff);
       }
       cg.position.set(
-        (Math.random() - 0.5) * 180,
-        26 + Math.random() * 14,
-        (Math.random() - 0.5) * 180
+        (Math.random() - 0.5) * 340,
+        28 + Math.random() * 16,
+        (Math.random() - 0.5) * 340
       );
       this.scene.add(cg);
       this.clouds.push(cg);
@@ -618,10 +762,10 @@ class Chiikawa3DWorldApp {
   }
 
   spawnMeadowFlowers() {
-    const flowerColors = [0xff85a2, 0xfacc15, 0xffffff, 0xc084fc, 0x60a5fa];
+    const flowerColors = [0xff85a2, 0xfacc15, 0xe2e8f0, 0xc084fc, 0x60a5fa];
     const stemMat = new THREE.MeshBasicMaterial({ color: 0x15803d });
 
-    for (let i = 0; i < 75; i++) {
+    for (let i = 0; i < 180; i++) {
       const fg = new THREE.Group();
       const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 6), stemMat);
       stem.position.y = 0.25;
@@ -634,7 +778,7 @@ class Chiikawa3DWorldApp {
       fg.add(head);
 
       const angle = Math.random() * Math.PI * 2;
-      const dist = 19.5 + Math.random() * 75;
+      const dist = 21 + Math.random() * 175;
       fg.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
       this.scene.add(fg);
     }
@@ -642,17 +786,17 @@ class Chiikawa3DWorldApp {
 
   initWeatherParticles() {
     const geo = new THREE.OctahedronGeometry(0.22, 0);
-    for (let i = 0; i < 75; i++) {
+    for (let i = 0; i < 95; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0xffb3c6,
         transparent: true,
-        opacity: 0.88
+        opacity: 0.78
       });
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.set(
-        (Math.random() - 0.5) * 140,
+        (Math.random() - 0.5) * 220,
         2 + Math.random() * 26,
-        (Math.random() - 0.5) * 140
+        (Math.random() - 0.5) * 220
       );
       this.scene.add(mesh);
       this.weatherParticles.push({
@@ -799,37 +943,112 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 4. 잡초(Weeds) & 6종 원작 일러스트 몬스터(Monsters + 부위별 피격 판정) 스폰
+  // 4. 확장 맵 잡초(62개), 보물상자/별사탕 광석(16개), 3개 구역 몬스터(18마리) 스폰
   // ========================================================================
   spawnWeeds() {
-    for (let i = 0; i < 28; i++) {
-      const isGolden = Math.random() < 0.25;
-      const mesh = createWeedPatch3D(isGolden);
-      const angle = Math.random() * Math.PI * 2;
-      const rad = 5 + Math.random() * 24;
-      const wx = -35 + Math.cos(angle) * rad;
-      const wz = 20 + Math.sin(angle) * rad;
-      mesh.position.set(wx, 0, wz);
+    const weedCenters = [
+      { x: -35, z: 20, r: 24, count: 28 },
+      { x: -95, z: 42, r: 30, count: 22 },
+      { x: -24, z: 68, r: 22, count: 12 }
+    ];
+
+    weedCenters.forEach(zone => {
+      for (let i = 0; i < zone.count; i++) {
+        const isGolden = Math.random() < 0.28;
+        const mesh = createWeedPatch3D(isGolden);
+        const angle = Math.random() * Math.PI * 2;
+        const rad = 4 + Math.random() * zone.r;
+        const wx = zone.x + Math.cos(angle) * rad;
+        const wz = zone.z + Math.sin(angle) * rad;
+        if (wz > 23 && wz < 33) continue;
+        mesh.position.set(wx, 0, wz);
+        this.scene.add(mesh);
+
+        this.weeds.push({
+          mesh,
+          pos: new THREE.Vector3(wx, 0, wz),
+          isGolden,
+          alive: true,
+          respawnTimer: 0
+        });
+      }
+    });
+  }
+
+  // 맵 전역에 흩어진 보물상자 & 별사탕 크리스탈 광석 (공격하거나 [E]로 개봉!)
+  spawnFieldChests() {
+    if (typeof createTreasureChest3D !== 'function') return;
+    const chestSpots = [
+      [-56, -42, false], [-94, -72, true], [-70, -62, false],
+      [-105, 58, false], [-82, 74, true], [-115, 16, false],
+      [-88, -22, true], [84, 62, false], [48, 52, true],
+      [68, -42, false], [95, -35, true], [115, -58, false],
+      [138, -82, true], [122, -92, false], [74, 28, true],
+      [98, 42, false]
+    ];
+
+    chestSpots.forEach(([cx, cz, isCrystal]) => {
+      const mesh = createTreasureChest3D(isCrystal);
+      const pos = new THREE.Vector3(cx, 0, cz);
+      mesh.position.copy(pos);
       this.scene.add(mesh);
 
-      this.weeds.push({
+      this.chests.push({
         mesh,
-        pos: new THREE.Vector3(wx, 0, wz),
-        isGolden,
+        pos,
+        isCrystal,
         alive: true,
         respawnTimer: 0
       });
-    }
+    });
+  }
+
+  openFieldChest(chest) {
+    if (!chest || !chest.alive) return;
+    chest.alive = false;
+    chest.mesh.visible = false;
+    chest.respawnTimer = 22 + Math.random() * 8;
+    soundFx.playFanfare();
+
+    const coinGain = chest.isCrystal ? 85 : 65;
+    const expGain = chest.isCrystal ? 55 : 40;
+    this.addReward(coinGain, expGain, 'chest');
+
+    const hitPos = chest.pos.clone().add(new THREE.Vector3(0, 1.5, 0));
+    this.spawnHitImpactEffect3D(hitPos, chest.isCrystal ? 0x38bdf8 : 0xfacc15, true);
+    this.spawnBurstParticles(hitPos, chest.isCrystal ? 0x38bdf8 : 0xfacc15, 22);
+    this.spawnFloatingText(
+      hitPos.clone().add(new THREE.Vector3(0, 1.4, 0)),
+      chest.isCrystal ? `💎별사탕 광석 채굴! +${coinGain}🪙` : `🎁보물상자 발견! +${coinGain}🪙`,
+      chest.isCrystal ? '#38bdf8' : '#facc15'
+    );
   }
 
   spawnMonsters() {
     const monsterDefs = [
+      // 1구역: 초록 버섯 숲 (초급~중급)
       { type: 'bug', name: '보라 날개 벌레', hp: 100, maxHp: 100, atk: 10, coin: 32, exp: 35, pos: [35, -28], atkPattern: 'sector', reach: 4.2 },
+      { type: 'bug', name: '숲속 독침 벌레', hp: 110, maxHp: 110, atk: 11, coin: 35, exp: 38, pos: [28, -42], atkPattern: 'sector', reach: 4.2 },
       { type: 'goblin', name: '새총 고블린', hp: 140, maxHp: 140, atk: 13, coin: 45, exp: 48, pos: [45, -24], atkPattern: 'line', reach: 10.5 },
       { type: 'chimera', name: '분홍 눈물 키메라', hp: 185, maxHp: 185, atk: 16, coin: 58, exp: 65, pos: [53, -34], atkPattern: 'sector', reach: 4.8 },
-      { type: 'midboss', name: '🛡️가시 뿔 괴수', hp: 250, maxHp: 250, atk: 19, coin: 80, exp: 85, pos: [38, -45], atkPattern: 'circle', reach: 5.2 },
-      { type: 'iron_chimera', name: '🛡️중장갑 강철 괴수', hp: 310, maxHp: 310, atk: 22, coin: 100, exp: 110, pos: [62, -33], atkPattern: 'sector', reach: 5.4 },
-      { type: 'anoko', name: '👑 거대 보스 아노코', hp: 560, maxHp: 560, atk: 28, coin: 240, exp: 220, pos: [55, -52], atkPattern: 'circle', reach: 6.6 }
+      { type: 'midboss', name: '🛡️가시 뿔 괴수', hp: 250, maxHp: 250, atk: 19, coin: 80, exp: 85, pos: [38, -48], atkPattern: 'circle', reach: 5.2 },
+      { type: 'iron_chimera', name: '🛡️중장갑 강철 괴수', hp: 310, maxHp: 310, atk: 22, coin: 100, exp: 110, pos: [64, -33], atkPattern: 'sector', reach: 5.4 },
+      { type: 'anoko', name: '👑 숲의 보스 아노코', hp: 560, maxHp: 560, atk: 28, coin: 240, exp: 220, pos: [56, -56], atkPattern: 'circle', reach: 6.6 },
+
+      // 2구역: 남동쪽 키메라 협곡 (중급 사냥터)
+      { type: 'bug', name: '협곡 정찰 벌레', hp: 120, maxHp: 120, atk: 12, coin: 38, exp: 40, pos: [66, 26], atkPattern: 'sector', reach: 4.2 },
+      { type: 'goblin', name: '협곡 명사수 고블린', hp: 155, maxHp: 155, atk: 14, coin: 50, exp: 52, pos: [78, 22], atkPattern: 'line', reach: 11.0 },
+      { type: 'chimera', name: '붉은 발톱 키메라', hp: 200, maxHp: 200, atk: 17, coin: 65, exp: 70, pos: [88, 38], atkPattern: 'sector', reach: 4.8 },
+      { type: 'chimera', name: '포효하는 키메라', hp: 210, maxHp: 210, atk: 18, coin: 68, exp: 72, pos: [74, 48], atkPattern: 'sector', reach: 4.8 },
+      { type: 'midboss', name: '🛡️협곡 수호 거대괴수', hp: 280, maxHp: 280, atk: 21, coin: 95, exp: 95, pos: [98, 32], atkPattern: 'circle', reach: 5.4 },
+
+      // 3구역: 북동쪽 심연의 고대 유적지 (상급 & 레이드 보스 구역)
+      { type: 'goblin', name: '유적 파수꾼 고블린', hp: 170, maxHp: 170, atk: 15, coin: 55, exp: 58, pos: [88, -56], atkPattern: 'line', reach: 11.0 },
+      { type: 'chimera', name: '심연의 그림자 키메라', hp: 230, maxHp: 230, atk: 19, coin: 75, exp: 80, pos: [96, -72], atkPattern: 'sector', reach: 5.0 },
+      { type: 'iron_chimera', name: '🛡️고대 유적 강철병', hp: 350, maxHp: 350, atk: 24, coin: 120, exp: 130, pos: [110, -58], atkPattern: 'sector', reach: 5.5 },
+      { type: 'iron_chimera', name: '🛡️신전 수호 강철괴수', hp: 370, maxHp: 370, atk: 25, coin: 130, exp: 140, pos: [116, -86], atkPattern: 'sector', reach: 5.5 },
+      { type: 'midboss', name: '🛡️유적 파괴자 뿔괴수', hp: 320, maxHp: 320, atk: 23, coin: 110, exp: 115, pos: [104, -42], atkPattern: 'circle', reach: 5.5 },
+      { type: 'anoko', name: '👑 고대 신전 제왕 아노코', hp: 720, maxHp: 720, atk: 32, coin: 350, exp: 320, pos: [128, -76], atkPattern: 'circle', reach: 7.0 }
     ];
 
     monsterDefs.forEach(def => {
@@ -871,7 +1090,7 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 5. 정밀 타격 범위(Sector/Arc/Height) & 부위별 피격 판정(머리 약점 / 백어택 / 다리 / 장갑)
+  // 5. 정밀 타격 범위(Sector/Arc/Height) & 부위별 피격 판정 + 화려한 3D 타격 이펙트
   // ========================================================================
   triggerJump() {
     if (!this.isGrounded) return;
@@ -952,6 +1171,29 @@ class Chiikawa3DWorldApp {
     return diff;
   }
 
+  // 💥 3D 입체 타격 임팩트 이펙트 스폰 (십자 스타버스트 + X자 슬래시 + 경사 충격파 링)
+  spawnHitImpactEffect3D(hitWorldPos, colorHex = 0xfacc15, isCrit = false) {
+    if (typeof createHitImpactBurst3D === 'function') {
+      const burst = createHitImpactBurst3D(colorHex, isCrit);
+      burst.position.copy(hitWorldPos);
+      burst.rotation.y = this.camYaw;
+      burst.rotation.z = (Math.random() - 0.5) * 0.8;
+      burst.scale.setScalar(0.25);
+      this.scene.add(burst);
+
+      this.hitBursts.push({
+        mesh: burst,
+        life: isCrit ? 0.28 : 0.20,
+        maxLife: isCrit ? 0.28 : 0.20,
+        targetScale: isCrit ? 1.85 : 1.35,
+        spinSpeed: (Math.random() > 0.5 ? 1 : -1) * 9.5
+      });
+    }
+
+    // 타격 지점 미니 충격파 링
+    this.spawnSlashRing(hitWorldPos.clone(), colorHex, isCrit ? 3.8 : 2.5);
+  }
+
   // ⚔️ 정밀 타격 범위(Sector/Height) & 부위별 타격 판정 공격
   triggerAttack(aimWorldPoint = null) {
     if (this.attackTimer > 0) return;
@@ -985,6 +1227,17 @@ class Chiikawa3DWorldApp {
         }
       }
     }
+    if (!targetDir) {
+      for (const c of this.chests) {
+        if (c.alive) {
+          const d = c.pos.distanceTo(this.playerPos);
+          if (d < 6.5 && d < bestDist) {
+            bestDist = d;
+            targetDir = c.pos.clone().sub(this.playerPos);
+          }
+        }
+      }
+    }
     if (!targetDir && aimWorldPoint) {
       targetDir = aimWorldPoint.clone().sub(this.playerPos);
     }
@@ -1012,9 +1265,6 @@ class Chiikawa3DWorldApp {
     }
 
     // 2) 콤보별 타격 범위(Reach & Sector Angle) 정의
-    // - 1타: 사거리 5.4m, 전방 ±68°(총 136° 부채꼴) -> 기본 하단/다리 베기
-    // - 2타: 사거리 5.8m, 전방 ±48°(총 96° 집중 부채꼴) -> 상단/머리 약점 올려베기
-    // - 3타: 사거리 6.0m, 360° 전방위 원형 -> 공중 회전 머리 강타
     const reach = this.comboStep === 1 ? 5.4 : this.comboStep === 2 ? 5.8 : 6.0;
     const halfArc = this.comboStep === 1 ? Math.PI * 0.38 : this.comboStep === 2 ? Math.PI * 0.27 : Math.PI;
 
@@ -1023,7 +1273,7 @@ class Chiikawa3DWorldApp {
     const atkCenter = this.playerPos.clone().add(forward.clone().multiplyScalar(2.4));
     this.spawnCrescentSlash(atkCenter, this.playerYaw, slashColor, this.comboStep);
 
-    // 3) 부채꼴 범위 내 잡초 수확
+    // 3) 부채꼴 범위 내 잡초 수확 & 보물상자 타격 개봉
     let hitAnything = false;
     this.weeds.forEach(w => {
       if (!w.alive) return;
@@ -1032,6 +1282,18 @@ class Chiikawa3DWorldApp {
       const ang = Math.abs(this.angleDifference(Math.atan2(toWeed.x, toWeed.z), this.playerYaw));
       if (dist <= reach && ang <= halfArc + 0.2) {
         this.harvestWeed(w);
+        this.spawnHitImpactEffect3D(w.pos.clone().add(new THREE.Vector3(0, 0.9, 0)), w.isGolden ? 0xfacc15 : 0x4ade80, w.isGolden);
+        hitAnything = true;
+      }
+    });
+
+    this.chests.forEach(c => {
+      if (!c.alive) return;
+      const toChest = c.pos.clone().sub(this.playerPos);
+      const dist = Math.hypot(toChest.x, toChest.z);
+      const ang = Math.abs(this.angleDifference(Math.atan2(toChest.x, toChest.z), this.playerYaw));
+      if (dist <= reach && ang <= halfArc + 0.25) {
+        this.openFieldChest(c);
         hitAnything = true;
       }
     });
@@ -1050,24 +1312,20 @@ class Chiikawa3DWorldApp {
       const angleToMon = Math.atan2(toMon.x, toMon.z);
       const angDiff = Math.abs(this.angleDifference(angleToMon, this.playerYaw));
 
-      // 몬스터의 피격 원기둥이 타격 사거리 & 부채꼴 각도 안에 들어왔는지 정밀 체크!
       if (effectiveDist <= reach && (angDiff <= halfArc || dist2D < m.bodyRadius + 1.2)) {
-        // 어떤 부위(Part)에 적중했는지 결정:
-        // A. 몬스터의 등 뒤(후방 130° 영역)에서 공격했는가? -> ⚡ 후방 백어택(Back-Attack)!
         const attackFromAngle = Math.atan2(this.playerPos.x - m.pos.x, this.playerPos.z - m.pos.z);
         const angleFromMonsterFront = Math.abs(this.angleDifference(attackFromAngle, m.facingYaw));
         const isBackAttack = angleFromMonsterFront > Math.PI * 0.62;
 
-        // B. 타점 고도(점프 공격 / 2타 올려베기 / 3타 점프 찍기)에 따른 부위 판정!
         let hitPart = 'body';
         if (wasAirborne || this.comboStep === 2 || this.comboStep === 3) {
-          hitPart = 'head'; // 상단/공중 타격 -> 🎯 머리/뿔 약점 적중!
+          hitPart = 'head';
         } else if (isBackAttack) {
-          hitPart = 'back'; // 등 뒤 기습 -> ⚡ 백어택!
+          hitPart = 'back';
         } else if (this.comboStep === 1 && !m.isArmored) {
-          hitPart = 'legs'; // 1타 하단 횡베기 -> 🦵 다리 타격(이동속도 둔화)!
+          hitPart = 'legs';
         } else {
-          hitPart = 'body'; // 정면 몸통/장갑 타격
+          hitPart = 'body';
         }
 
         this.damageMonsterPart(m, baseDmg, forward, hitPart, isBackAttack);
@@ -1076,48 +1334,52 @@ class Chiikawa3DWorldApp {
     });
 
     if (hitAnything) {
-      this.hitStopTimer = 0.036;
-      this.camShake = this.comboStep === 3 ? 0.48 : 0.24;
+      this.hitStopTimer = 0.042;
+      this.camShake = this.comboStep === 3 ? 0.52 : 0.28;
     }
   }
 
-  // 몬스터 부위별(머리 약점 / 백어택 / 다리 둔화 / 장갑 몸통) 데미지 & 상태이상 처리
+  // 몬스터 부위별(머리 약점 / 백어택 / 다리 둔화 / 장갑 몸통) 데미지 & 3D 타격 이펙트 처리
   damageMonsterPart(m, baseDmg, knockDir, hitPart, isBackAttack) {
     const hurtParts = m.mesh.userData.hurtParts;
     let partMult = 1.0;
     let hitHeightY = m.sizeH * 0.48;
     let badgeText = '';
+    let sfxWord = '💥퍽!';
     let textColor = '#ff4d6d';
     let sparkColor = 0xf43f5e;
+    let isCrit = false;
 
     if (hitPart === 'head') {
-      // 🎯 머리/뿔 약점 강타 (1.5배 치명타 + 경직 부여!)
       partMult = isBackAttack ? 1.7 : 1.5;
       hitHeightY = hurtParts ? hurtParts.head.hitY : m.sizeH * 0.78;
       badgeText = isBackAttack ? '🎯⚡약점+백어택!' : '🎯머리 약점!';
+      sfxWord = '⚡콰직!!';
       textColor = '#facc15';
       sparkColor = 0xfacc15;
-      m.stunTimer = Math.max(m.stunTimer, 0.75); // 머리 약점 타격 시 경직!
+      isCrit = true;
+      m.stunTimer = Math.max(m.stunTimer, 0.75);
     } else if (hitPart === 'back' || isBackAttack) {
-      // ⚡ 후방 백어택 (장갑 무시 1.35배 피해!)
       partMult = 1.35;
       hitHeightY = m.sizeH * 0.5;
       badgeText = '⚡후방 백어택!';
+      sfxWord = '💥번쩍!!';
       textColor = '#38bdf8';
       sparkColor = 0x38bdf8;
+      isCrit = true;
     } else if (hitPart === 'legs') {
-      // 🦵 다리 하단 베기 (1.05배 피해 + 이동속도 둔화 3초!)
       partMult = 1.05;
       hitHeightY = hurtParts ? hurtParts.legs.hitY : m.sizeH * 0.18;
       badgeText = '🦵다리(둔화)!';
+      sfxWord = '💫휙!';
       textColor = '#4ade80';
       sparkColor = 0x4ade80;
       m.slowTimer = 3.0;
     } else {
-      // 🛡️ 정면 몸통 (중장갑 몬스터는 정면 몸통 타격 시 0.75배 방어 판정!)
       partMult = m.isArmored ? 0.75 : 1.0;
       hitHeightY = hurtParts ? hurtParts.body.hitY : m.sizeH * 0.45;
       badgeText = m.isArmored ? '🛡️정면 장갑(방어)' : '💥몸통';
+      sfxWord = m.isArmored ? '🛡️챙!' : '💥퍽!';
       textColor = m.isArmored ? '#94a3b8' : '#ff4d6d';
       sparkColor = m.isArmored ? 0x94a3b8 : 0xf43f5e;
     }
@@ -1125,23 +1387,22 @@ class Chiikawa3DWorldApp {
     const finalDmg = Math.max(1, Math.round(baseDmg * partMult));
     m.hp -= finalDmg;
 
-    // 부위별 메쉬 흔들림 & 플래시 반응 호출
     if (m.mesh && m.mesh.userData.flashHit) {
       m.mesh.userData.flashHit(hitPart);
     }
 
-    // 넉백 물리
     if (knockDir && m.knockbackVel) {
       const kbPower = m.type === 'anoko' ? 5 : 13;
       m.knockbackVel.copy(knockDir).multiplyScalar(hitPart === 'head' ? kbPower * 1.4 : kbPower);
     }
 
-    // 실제로 맞은 부위의 정확한 3D 높이(hitHeightY)에서 타격 스파크와 텍스트 폭발!
+    // 실제로 맞은 부위의 정확한 3D 높이(hitHeightY)에서 입체 3D 타격 임팩트 & 스파크 폭발!
     const exactHitWorldPos = m.pos.clone().add(new THREE.Vector3(0, hitHeightY, 0));
-    this.spawnBurstParticles(exactHitWorldPos, sparkColor, hitPart === 'head' ? 18 : 11);
+    this.spawnHitImpactEffect3D(exactHitWorldPos, sparkColor, isCrit);
+    this.spawnBurstParticles(exactHitWorldPos, sparkColor, isCrit ? 22 : 14);
     this.spawnFloatingText(
       exactHitWorldPos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 0.6, 0)),
-      `${badgeText} -${finalDmg}`,
+      `${sfxWord} ${badgeText} -${finalDmg}`,
       textColor
     );
 
@@ -1158,6 +1419,7 @@ class Chiikawa3DWorldApp {
       soundFx.playFanfare();
       this.stats.monstersDefeated++;
       this.addReward(m.coin, m.exp, 'monster');
+      this.spawnHitImpactEffect3D(m.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xfacc15, true);
       this.spawnBurstParticles(m.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xfacc15, 28);
       this.spawnFloatingText(
         m.pos.clone().add(new THREE.Vector3(0, 4.2, 0)),
@@ -1171,21 +1433,33 @@ class Chiikawa3DWorldApp {
   }
 
   spawnCrescentSlash(center, yaw, colorHex, comboStep) {
-    const radius = comboStep === 3 ? 4.8 : 3.6;
-    const geo = new THREE.RingGeometry(radius * 0.52, radius, 26, 1, -Math.PI * 0.7, Math.PI * 1.4);
+    const radius = comboStep === 3 ? 5.0 : 3.8;
+    const geo = new THREE.RingGeometry(radius * 0.48, radius, 28, 1, -Math.PI * 0.72, Math.PI * 1.44);
     geo.rotateX(-Math.PI / 2);
     const mat = new THREE.MeshBasicMaterial({
       color: colorHex,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.95
+      opacity: 0.92
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(center);
-    mesh.position.y = comboStep === 2 ? 2.4 : 1.2; // 2타는 상단(머리 높이) 검기!
+    mesh.position.y = comboStep === 2 ? 2.4 : 1.2;
     mesh.rotation.y = yaw;
     if (comboStep === 2) mesh.rotation.z = 0.28;
     this.scene.add(mesh);
+
+    // 외곽 흰색 코어 검기 트레일 추가 (이중 레이어 슬래시 이펙트)
+    const innerGeo = new THREE.RingGeometry(radius * 0.74, radius * 0.96, 24, 1, -Math.PI * 0.65, Math.PI * 1.3);
+    innerGeo.rotateX(-Math.PI / 2);
+    const innerMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85
+    });
+    const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+    mesh.add(innerMesh);
 
     this.slashArcs.push({
       mesh,
@@ -1421,19 +1695,41 @@ class Chiikawa3DWorldApp {
 
     const item = this.nearestInteractable;
     if (item.type === 'ramen') {
+      this.clearAllInputKeys();
       openRamenMinigame();
     } else if (item.type === 'shop') {
+      this.clearAllInputKeys();
       openCostumeShopModal();
     } else if (item.type === 'weed_exam') {
+      this.clearAllInputKeys();
       openWeedExamModal();
+    } else if (item.type === 'onsen') {
+      soundFx.playFanfare();
+      this.stats.hp = this.stats.maxHp;
+      this.stats.ramenBuffTimer = Math.max(this.stats.ramenBuffTimer, 45);
+      this.updateHud();
+      this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0xff85a2, 24);
+      this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 3.5, 0)), '🌸온천 힐링! 체력 100% & 활력 버프!', '#ff85a2');
+      showToast('🌸 따뜻한 벚꽃 노천온천에서 피로를 풀었습니다! (체력 100% 회복 + 45초 공/이속 버프)');
+    } else if (item.type === 'camp') {
+      soundFx.playCoin();
+      this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + 45);
+      this.addReward(45, 30, 'camp');
+      this.spawnBurstParticles(this.campPos.clone().add(new THREE.Vector3(0, 1.8, 0)), 0xf97316, 20);
+      this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 3.5, 0)), '🍠따끈한 군고구마! +45🪙 & 체력회복', '#facc15');
+      showToast('🍠 모닥불에 구운 달콤한 군고구마를 나눠 먹었습니다! (+45 코인 & 체력 회복)');
+    } else if (item.type === 'chest') {
+      this.openFieldChest(item.target);
     } else if (item.type === 'weed') {
       this.harvestWeed(item.target);
     } else if (item.type === 'npc') {
+      this.clearAllInputKeys();
       openNpcDialog(item.target);
     }
   }
 
   warpToZone(zoneKey) {
+    this.clearAllInputKeys();
     soundFx.playSkill();
     const coords = {
       plaza: [0, 0, 10],
@@ -1441,7 +1737,10 @@ class Chiikawa3DWorldApp {
       weed: [-32, 0, 20],
       ramen: [30, 0, 20],
       pudding: [-26, 0, -25],
-      forest: [32, 0, -22]
+      forest: [32, 0, -22],
+      onsen: [-68, 0, -60],
+      camp: [-82, 0, 56],
+      ruins: [108, 0, -64]
     };
     const target = coords[zoneKey] || coords.plaza;
     this.playerPos.set(target[0], target[1], target[2]);
@@ -1544,9 +1843,9 @@ class Chiikawa3DWorldApp {
   spawnFootstepDust(pos, count = 2) {
     const geo = new THREE.SphereGeometry(0.18, 8, 8);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+      color: 0xe2e8f0,
       transparent: true,
-      opacity: 0.72
+      opacity: 0.65
     });
 
     for (let i = 0; i < count; i++) {
@@ -1573,7 +1872,7 @@ class Chiikawa3DWorldApp {
       color: colorHex,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.92
+      opacity: 0.88
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.copy(center);
@@ -1584,22 +1883,22 @@ class Chiikawa3DWorldApp {
       mesh,
       scale: 1,
       maxScale: maxRadius,
-      alpha: 0.95
+      alpha: 0.9
     });
   }
 
   spawnBurstParticles(pos, colorHex, count = 14) {
-    const geo = new THREE.OctahedronGeometry(0.24, 0);
+    const geo = new THREE.OctahedronGeometry(0.26, 0);
     const mat = new THREE.MeshBasicMaterial({ color: colorHex });
 
     for (let i = 0; i < count; i++) {
       const p = new THREE.Mesh(geo, mat);
       p.position.copy(pos);
       const angle = Math.random() * Math.PI * 2;
-      const spd = 4 + Math.random() * 8;
+      const spd = 4.5 + Math.random() * 9.5;
       const vel = new THREE.Vector3(
         Math.cos(angle) * spd,
-        4 + Math.random() * 8,
+        4.5 + Math.random() * 8.5,
         Math.sin(angle) * spd
       );
       this.scene.add(p);
@@ -1639,7 +1938,7 @@ class Chiikawa3DWorldApp {
       dt *= 0.12;
     }
 
-    if (this.keys['KeyQ']) this.camYaw += dt * 1.8;
+    if (this.keys['KeyQ'] && !this.isAnyModalOpen()) this.camYaw += dt * 1.8;
 
     this.updatePlayer(dt);
     this.updateCombatRangeIndicators();
@@ -1659,12 +1958,10 @@ class Chiikawa3DWorldApp {
     this.drawMinimap();
   }
 
-  // 플레이어 발밑 타격 범위 가이드 & 피격 원 실시간 업데이트
   updateCombatRangeIndicators() {
     if (!this.combatIndicatorGroup) return;
     this.combatIndicatorGroup.position.set(this.playerPos.x, 0, this.playerPos.z);
 
-    // 다음 타격할 콤보 단계(1, 2, 3)의 타격 범위 도형 표시
     const nextCombo = (this.comboStep % 3) + 1;
     [1, 2, 3].forEach(step => {
       if (this.aimSectorMeshes[step]) {
@@ -1673,7 +1970,6 @@ class Chiikawa3DWorldApp {
       }
     });
 
-    // 플레이어 피격 반경 원 색상 (대시 무적: 시안색, 점프 하단회피: 노란색, 기본: 흰색)
     if (this.playerHurtRingMesh) {
       if (this.dashTimer > 0) {
         this.playerHurtRingMesh.material.color.setHex(0x38bdf8);
@@ -1689,6 +1985,11 @@ class Chiikawa3DWorldApp {
   }
 
   updatePlayer(dt) {
+    // 창 포커스를 잃었거나 모달창이 열려 있으면 즉시 모든 방향키 입력 해제 (유령 눌림 완벽 방지!)
+    if (!document.hasFocus() || this.isAnyModalOpen()) {
+      this.clearAllInputKeys();
+    }
+
     if (this.attackTimer > 0) this.attackTimer -= dt;
     if (this.comboResetTimer > 0) {
       this.comboResetTimer -= dt;
@@ -1698,6 +1999,19 @@ class Chiikawa3DWorldApp {
     if (this.dashCooldown > 0) this.dashCooldown -= dt;
     if (this.stats.ramenBuffTimer > 0) {
       this.stats.ramenBuffTimer = Math.max(0, this.stats.ramenBuffTimer - dt);
+    }
+
+    // 벚꽃 노천온천 물속에 들어가 있으면 자동으로 체력 지속 회복!
+    if (this.onsenPos && this.playerPos.distanceTo(this.onsenPos) < 12.0) {
+      this.onsenHealTimer += dt;
+      if (this.onsenHealTimer >= 1.2) {
+        this.onsenHealTimer = 0;
+        if (this.stats.hp < this.stats.maxHp) {
+          this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + 10);
+          this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 3.2, 0)), '🌸온천 치유 +10 HP', '#ff85a2');
+          this.updateHud();
+        }
+      }
     }
 
     let ix = this.joyVec.x;
@@ -1755,16 +2069,21 @@ class Chiikawa3DWorldApp {
         this.spawnFootstepDust(this.playerPos, 1);
       }
     } else {
-      this.playerVel.x = THREE.MathUtils.lerp(this.playerVel.x, 0, dt * 18);
-      this.playerVel.z = THREE.MathUtils.lerp(this.playerVel.z, 0, dt * 18);
-      this.playerPos.x += this.playerVel.x * dt;
-      this.playerPos.z += this.playerVel.z * dt;
+      this.playerVel.x = THREE.MathUtils.lerp(this.playerVel.x, 0, dt * 22);
+      this.playerVel.z = THREE.MathUtils.lerp(this.playerVel.z, 0, dt * 22);
+      if (Math.hypot(this.playerVel.x, this.playerVel.z) < 0.08) {
+        this.playerVel.set(0, 0, 0);
+      } else {
+        this.playerPos.x += this.playerVel.x * dt;
+        this.playerPos.z += this.playerVel.z * dt;
+      }
       this.walkTime = 0;
     }
 
+    // 확장된 맵 경계(반경 220m) 적용
     const distFromOrigin = Math.hypot(this.playerPos.x, this.playerPos.z);
-    if (distFromOrigin > 130) {
-      const scale = 130 / distFromOrigin;
+    if (distFromOrigin > 220) {
+      const scale = 220 / distFromOrigin;
       this.playerPos.x *= scale;
       this.playerPos.z *= scale;
     }
@@ -1774,29 +2093,29 @@ class Chiikawa3DWorldApp {
     this.playerVelY -= 48 * dt;
 
     let groundHeight = 0;
-    const distToPudding = Math.hypot(
-      this.playerPos.x - this.puddingPos.x,
-      this.playerPos.z - this.puddingPos.z
-    );
-    if (distToPudding < 6.2 && this.playerPos.y >= 4.2) {
-      groundHeight = 5.6;
-      if (this.playerVelY < 0 && this.playerPos.y <= 5.8) {
-        this.playerVelY = 25;
-        soundFx.playJump();
-        if (this.puddingMesh) {
-          this.puddingMesh.scale.set(1.18, 0.8, 1.18);
-        }
-        if (this.stats.puddingClimbed === 0) {
-          this.stats.puddingClimbed = 1;
-          this.addReward(100, 60, 'pudding');
-          showToast('🍮 자이언트 푸딩 정상 등반 성공!! 통통 트램펄린 보너스 (+100 코인) 획득!');
+    const checkPuddingBounce = (pPos, pMesh) => {
+      if (!pPos) return;
+      const distToP = Math.hypot(this.playerPos.x - pPos.x, this.playerPos.z - pPos.z);
+      if (distToP < 6.2 && this.playerPos.y >= 4.2) {
+        groundHeight = 5.6;
+        if (this.playerVelY < 0 && this.playerPos.y <= 5.8) {
+          this.playerVelY = 26;
+          soundFx.playJump();
+          if (pMesh) pMesh.scale.set(1.18, 0.8, 1.18);
+          if (this.stats.puddingClimbed === 0) {
+            this.stats.puddingClimbed = 1;
+            this.addReward(100, 60, 'pudding');
+            showToast('🍮 자이언트 푸딩 정상 등반 성공!! 통통 트램펄린 보너스 (+100 코인) 획득!');
+          }
         }
       }
-    }
+    };
 
-    if (this.puddingMesh) {
-      this.puddingMesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 8);
-    }
+    checkPuddingBounce(this.puddingPos, this.puddingMesh);
+    checkPuddingBounce(this.pudding2Pos, this.pudding2Mesh);
+
+    if (this.puddingMesh) this.puddingMesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 8);
+    if (this.pudding2Mesh) this.pudding2Mesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 8);
 
     if (this.playerPos.y <= groundHeight) {
       this.playerPos.y = groundHeight;
@@ -1897,10 +2216,17 @@ class Chiikawa3DWorldApp {
     if (this.windmillMesh && this.windmillMesh.userData.bladesPivot) {
       this.windmillMesh.userData.bladesPivot.rotation.z -= dt * 1.1;
     }
+    if (this.windmill2Mesh && this.windmill2Mesh.userData.bladesPivot) {
+      this.windmill2Mesh.userData.bladesPivot.rotation.z -= dt * 1.25;
+    }
+    if (this.campsiteMesh && this.campsiteMesh.userData.flameOuter) {
+      const fScale = 0.92 + Math.sin(this.clock.elapsedTime * 14) * 0.14;
+      this.campsiteMesh.userData.flameOuter.scale.set(fScale, 1 + (1 - fScale), fScale);
+    }
 
     this.clouds.forEach(c => {
       c.position.x += dt * 1.2;
-      if (c.position.x > 105) c.position.x = -105;
+      if (c.position.x > 180) c.position.x = -180;
     });
 
     this.weatherParticles.forEach(wp => {
@@ -1929,7 +2255,18 @@ class Chiikawa3DWorldApp {
       }
     });
 
-    // 가장 가까운 몬스터에 약점 조준 마커(🎯) 표시
+    this.chests.forEach((c, idx) => {
+      if (!c.alive) {
+        c.respawnTimer -= dt;
+        if (c.respawnTimer <= 0) {
+          c.alive = true;
+          c.mesh.visible = true;
+        }
+      } else if (c.isCrystal) {
+        c.mesh.rotation.y = this.clock.elapsedTime * 1.2 + idx;
+      }
+    });
+
     let closestMonster = null;
     let closestDist = 11.0;
     for (const m of this.monsters) {
@@ -1942,7 +2279,6 @@ class Chiikawa3DWorldApp {
       }
     }
 
-    // 몬스터 AI & 상태이상(둔화/경직) & 패턴별 공격 범위 예고
     this.monsters.forEach((m, idx) => {
       if (!m.alive) {
         m.respawnTimer -= dt;
@@ -1961,12 +2297,10 @@ class Chiikawa3DWorldApp {
         return;
       }
 
-      // 약점 조준 마커 토글
       if (m.mesh.userData.weakPointMarker) {
         m.mesh.userData.weakPointMarker.visible = m === closestMonster;
       }
 
-      // 상태이상(경직/둔화) 타이머 갱신 및 HUD 태그 표시
       if (m.stunTimer > 0) m.stunTimer = Math.max(0, m.stunTimer - dt);
       if (m.slowTimer > 0) m.slowTimer = Math.max(0, m.slowTimer - dt);
       if (m.statusEl) {
@@ -1992,7 +2326,6 @@ class Chiikawa3DWorldApp {
       }
 
       if (m.stunTimer > 0) {
-        // 머리 약점 피격으로 경직된 동안은 이동/공격 불가!
         m.mesh.position.set(m.pos.x, 0, m.pos.z);
         return;
       }
@@ -2002,7 +2335,6 @@ class Chiikawa3DWorldApp {
         dir.y = 0;
         const dist = dir.length();
 
-        // 공격 예고 중이 아닐 때만 회전(공격 예고 중에는 등 뒤로 돌아가 백어택 찬스!)
         if (!m.isWindingUp && dist > 0.1) {
           const targetYaw = Math.atan2(dir.x, dir.z);
           const diff = this.angleDifference(targetYaw, m.facingYaw);
@@ -2012,14 +2344,13 @@ class Chiikawa3DWorldApp {
         const triggerDist = m.atkPattern === 'line' ? 8.5 : m.reach * 0.82;
         if (dist > triggerDist && !m.isWindingUp) {
           dir.normalize();
-          const slowMult = m.slowTimer > 0 ? 0.5 : 1.0; // 다리 부위 피격 시 이동속도 50% 감소!
+          const slowMult = m.slowTimer > 0 ? 0.5 : 1.0;
           m.pos.addScaledVector(dir, dt * 6.0 * slowMult);
           const hop = Math.abs(Math.sin(this.clock.elapsedTime * 7 + idx)) * 0.25;
           m.mesh.position.set(m.pos.x, hop, m.pos.z);
         } else if (m.atkCooldown <= 0 && !m.isWindingUp) {
-          // 몬스터 공격 범위 예고(Telegraph) 시작!
           m.atkCooldown = m.type === 'anoko' ? 3.2 : 2.4;
-          const center = m.atkPattern === 'circle' && m.type === 'anoko' ? m.pos.clone() : m.pos.clone();
+          const center = m.pos.clone();
           this.spawnMonsterAttackTelegraph(m, m.atkPattern, center, m.facingYaw, m.reach, m.atk);
         }
       } else {
@@ -2035,6 +2366,26 @@ class Chiikawa3DWorldApp {
   }
 
   updateEffects(dt) {
+    // 💥 3D 입체 타격 임팩트 스타버스트 애니메이션
+    for (let i = this.hitBursts.length - 1; i >= 0; i--) {
+      const hb = this.hitBursts[i];
+      hb.life -= dt;
+      const ratio = 1 - Math.max(0, hb.life / hb.maxLife);
+      const curScale = THREE.MathUtils.lerp(0.25, hb.targetScale, Math.sin(ratio * Math.PI * 0.5));
+      hb.mesh.scale.setScalar(curScale);
+      hb.mesh.rotation.y = this.camYaw;
+      hb.mesh.rotation.z += dt * hb.spinSpeed;
+      if (hb.mesh.userData.mats) {
+        hb.mesh.userData.mats.forEach(mat => {
+          mat.opacity = Math.max(0, (hb.life / hb.maxLife) * 0.95);
+        });
+      }
+      if (hb.life <= 0) {
+        this.scene.remove(hb.mesh);
+        this.hitBursts.splice(i, 1);
+      }
+    }
+
     for (let i = this.afterimages.length - 1; i >= 0; i--) {
       const ai = this.afterimages[i];
       ai.life -= dt;
@@ -2057,7 +2408,6 @@ class Chiikawa3DWorldApp {
       }
     }
 
-    // 몬스터 공격 예고 도형(Telegraph) 업데이트 & 만료 시 정밀 피격 판정
     for (let i = this.telegraphs.length - 1; i >= 0; i--) {
       const tg = this.telegraphs[i];
       tg.progress += dt;
@@ -2126,7 +2476,7 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 9. 근접 상호작용 감지 & 3D 라벨 투영 & 미니맵
+  // 9. 근접 상호작용 감지 & 3D 라벨 투영 & 확장 미니맵
   // ========================================================================
   checkNearestInteraction() {
     this.nearestInteractable = null;
@@ -2152,6 +2502,29 @@ class Chiikawa3DWorldApp {
       promptTxt.innerText = '🌱 스피드 제초 자격증 승급 시험 응시하기';
       promptEl.classList.add('visible');
       return;
+    }
+
+    if (this.onsenPos && this.playerPos.distanceTo(this.onsenPos) < 14.0) {
+      this.nearestInteractable = { type: 'onsen' };
+      promptTxt.innerText = '🌸 벚꽃 노천온천 입욕하기 (체력 100% & 활력 버프)';
+      promptEl.classList.add('visible');
+      return;
+    }
+
+    if (this.campPos && this.playerPos.distanceTo(this.campPos) < 9.5) {
+      this.nearestInteractable = { type: 'camp' };
+      promptTxt.innerText = '🍠 모닥불 군고구마 구워 먹기 (+45 코인 & 회복)';
+      promptEl.classList.add('visible');
+      return;
+    }
+
+    for (const c of this.chests) {
+      if (c.alive && c.pos.distanceTo(this.playerPos) < 4.5) {
+        this.nearestInteractable = { type: 'chest', target: c };
+        promptTxt.innerText = c.isCrystal ? '💎 별사탕 크리스탈 채굴하기 (+85 코인)' : '🎁 필드 보물상자 열기 (+65 코인)';
+        promptEl.classList.add('visible');
+        return;
+      }
     }
 
     for (const w of this.weeds) {
@@ -2180,6 +2553,11 @@ class Chiikawa3DWorldApp {
     const h = window.innerHeight;
 
     const projectToScreen = (worldVec, offsetY, domEl) => {
+      const dist = worldVec.distanceTo(this.playerPos);
+      if (dist > 95) {
+        domEl.style.opacity = '0';
+        return;
+      }
       const v = worldVec.clone();
       v.y += offsetY;
       v.project(this.camera);
@@ -2215,19 +2593,27 @@ class Chiikawa3DWorldApp {
     const ctx = canvas.getContext('2d');
     const size = canvas.width;
     const half = size / 2;
-    const scale = size / 160;
+    const scale = size / 320; // 넓어진 320m 스케일 미니맵
 
     ctx.clearRect(0, 0, size, size);
 
-    ctx.fillStyle = '#d9f99d';
+    ctx.fillStyle = '#c7e596';
     ctx.fillRect(0, 0, size, size);
 
+    // 시냇물
     ctx.fillStyle = '#38bdf8';
     ctx.fillRect(0, half + 26 * scale, size, 6 * scale);
 
-    ctx.fillStyle = '#fef08a';
+    // 중앙 광장
+    ctx.fillStyle = '#e5d7c1';
     ctx.beginPath();
-    ctx.arc(half, half, 18 * scale, 0, Math.PI * 2);
+    ctx.arc(half, half, 20 * scale, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 북서쪽 온천 호수
+    ctx.fillStyle = '#7dd3fc';
+    ctx.beginPath();
+    ctx.arc(half - 82 * scale, half - 68 * scale, 13 * scale, 0, Math.PI * 2);
     ctx.fill();
 
     const drawDot = (wx, wz, color, r) => {
@@ -2240,23 +2626,28 @@ class Chiikawa3DWorldApp {
     };
 
     this.weeds.forEach(w => {
-      if (w.alive) drawDot(w.pos.x, w.pos.z, '#22c55e', 2.2);
+      if (w.alive) drawDot(w.pos.x, w.pos.z, '#22c55e', 1.8);
     });
-    drawDot(this.ramenPos.x, this.ramenPos.z, '#f97316', 5);
-    drawDot(this.puddingPos.x, this.puddingPos.z, '#eab308', 5);
-    if (this.shopPos) drawDot(this.shopPos.x, this.shopPos.z, '#ec4899', 4.5);
+    this.chests.forEach(c => {
+      if (c.alive) drawDot(c.pos.x, c.pos.z, '#facc15', 2.4);
+    });
+
+    drawDot(this.ramenPos.x, this.ramenPos.z, '#f97316', 4.2);
+    drawDot(this.puddingPos.x, this.puddingPos.z, '#eab308', 4.2);
+    if (this.campPos) drawDot(this.campPos.x, this.campPos.z, '#fb923c', 4.2);
+    if (this.shopPos) drawDot(this.shopPos.x, this.shopPos.z, '#ec4899', 4.0);
 
     this.monsters.forEach(m => {
-      if (m.alive) drawDot(m.pos.x, m.pos.z, '#ef4444', m.type === 'anoko' ? 5.5 : 3.5);
+      if (m.alive) drawDot(m.pos.x, m.pos.z, '#ef4444', m.type === 'anoko' ? 4.8 : 3.0);
     });
 
-    this.npcs.forEach(n => drawDot(n.pos.x, n.pos.z, '#38bdf8', 3));
+    this.npcs.forEach(n => drawDot(n.pos.x, n.pos.z, '#38bdf8', 2.6));
 
     const px = half + this.playerPos.x * scale;
     const py = half + this.playerPos.z * scale;
     ctx.fillStyle = '#ff4d6d';
     ctx.beginPath();
-    ctx.arc(px, py, 5, 0, Math.PI * 2);
+    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2;
@@ -2264,8 +2655,29 @@ class Chiikawa3DWorldApp {
   }
 
   // ========================================================================
-  // 10. 키보드 / 마우스 좌클릭 타격 / 우클릭 대시 / 드래그 카메라
+  // 10. 키보드(방향키 끼임 완벽 방지) / 마우스 좌클릭 타격 / 우클릭 대시 / 드래그 카메라
   // ========================================================================
+  normalizeKeyCode(e) {
+    if (e.code) {
+      if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyQ'].includes(e.code)) {
+        return e.code;
+      }
+    }
+    const k = (e.key || '').toLowerCase();
+    const map = {
+      w: 'KeyW', 'ㅈ': 'KeyW',
+      a: 'KeyA', 'ㅁ': 'KeyA',
+      s: 'KeyS', 'ㄴ': 'KeyS',
+      d: 'KeyD', 'ㅇ': 'KeyD',
+      q: 'KeyQ', 'ㅂ': 'KeyQ',
+      arrowup: 'ArrowUp',
+      arrowdown: 'ArrowDown',
+      arrowleft: 'ArrowLeft',
+      arrowright: 'ArrowRight'
+    };
+    return map[k] || e.code;
+  }
+
   bindEvents() {
     window.addEventListener('resize', () => {
       this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -2276,13 +2688,41 @@ class Chiikawa3DWorldApp {
       }
     });
 
+    // 창 포커스 이탈, 탭 전환, 우클릭 메뉴 시 눌려있던 방향키 상태를 즉시 초기화하여 유령 이동 방지!
+    window.addEventListener('blur', () => this.clearAllInputKeys());
+    window.addEventListener('focus', () => this.clearAllInputKeys());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.clearAllInputKeys();
+    });
+    window.addEventListener('contextmenu', () => this.clearAllInputKeys());
+
+    // HUD 버튼 클릭 시 버튼에 포커스가 남아 방향키/스페이스바가 가로채이는 현상 방지
+    document.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => btn.blur());
+    });
+
     window.addEventListener('keydown', e => {
-      this.keys[e.code] = true;
+      if (this.isAnyModalOpen()) {
+        this.clearAllInputKeys();
+        return;
+      }
+
+      const normCode = this.normalizeKeyCode(e);
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(normCode)) {
+        e.preventDefault();
+      }
+
+      if (normCode) {
+        this.keys[normCode] = true;
+      }
+      if (e.code) {
+        this.keys[e.code] = true;
+      }
+
       if (!this.gameStarted) return;
       soundFx.startBgm();
 
       if (e.code === 'Space') {
-        e.preventDefault();
         this.triggerJump();
       } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         e.preventDefault();
@@ -2294,6 +2734,7 @@ class Chiikawa3DWorldApp {
       } else if (e.code === 'KeyE' || e.code === 'KeyF') {
         this.triggerInteract();
       } else if (e.code === 'KeyB') {
+        this.clearAllInputKeys();
         openCostumeShopModal();
       } else if (e.code === 'KeyP') {
         this.takePhotoSnapshot();
@@ -2301,7 +2742,17 @@ class Chiikawa3DWorldApp {
     });
 
     window.addEventListener('keyup', e => {
-      this.keys[e.code] = false;
+      const normCode = this.normalizeKeyCode(e);
+      if (normCode) {
+        this.keys[normCode] = false;
+      }
+      if (e.code) {
+        this.keys[e.code] = false;
+      }
+      // Shift나 Alt 조합 해제 시 혹시 남아있을 방향키 유령 판정 정리
+      if (e.key === 'Meta' || e.key === 'Alt') {
+        this.clearAllInputKeys();
+      }
     });
 
     const canvas = document.getElementById('webgl-canvas');
@@ -2351,7 +2802,7 @@ class Chiikawa3DWorldApp {
     });
 
     canvas.addEventListener('wheel', e => {
-      this.camDist = Math.max(12, Math.min(40, this.camDist + e.deltaY * 0.015));
+      this.camDist = Math.max(12, Math.min(44, this.camDist + e.deltaY * 0.015));
     });
 
     const joyZone = document.getElementById('mobile-joystick');

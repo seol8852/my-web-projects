@@ -7,7 +7,7 @@
 let sharedToonGradientMap = null;
 function getToonGradientMap() {
   if (sharedToonGradientMap) return sharedToonGradientMap;
-  const colors = new Uint8Array([90, 150, 210, 255]);
+  const colors = new Uint8Array([80, 130, 178, 222]);
   const texture = new THREE.DataTexture(colors, colors.length, 1, THREE.LuminanceFormat);
   texture.minFilter = THREE.NearestFilter;
   texture.magFilter = THREE.NearestFilter;
@@ -149,15 +149,15 @@ const CHAR_CONFIGS = {
 };
 
 // ==========================================================================
-// 2. GLSL 애니메이션 그라데이션 스카이돔 & 2,400개 Instanced 3D 잔디밭
+// 2. GLSL 애니메이션 그라데이션 스카이돔 & 4,500개 확장형 Instanced 3D 잔디밭
 // ==========================================================================
 function createAnimeSkyDome3D() {
-  const geo = new THREE.SphereGeometry(360, 32, 24);
+  const geo = new THREE.SphereGeometry(560, 32, 24);
   const mat = new THREE.ShaderMaterial({
     uniforms: {
-      topColor: { value: new THREE.Color(0x38bdf8) },
-      midColor: { value: new THREE.Color(0xbae6fd) },
-      bottomColor: { value: new THREE.Color(0xfef9c3) }
+      topColor: { value: new THREE.Color(0x2563eb) },
+      midColor: { value: new THREE.Color(0x7dd3fc) },
+      bottomColor: { value: new THREE.Color(0xdbeafe) }
     },
     vertexShader: `
       varying vec3 vWorldPos;
@@ -174,8 +174,8 @@ function createAnimeSkyDome3D() {
       varying vec3 vWorldPos;
       void main() {
         float h = normalize(vWorldPos).y;
-        vec3 col = mix(bottomColor, midColor, smoothstep(-0.05, 0.25, h));
-        col = mix(col, topColor, smoothstep(0.25, 0.85, h));
+        vec3 col = mix(bottomColor, midColor, smoothstep(-0.05, 0.28, h));
+        col = mix(col, topColor, smoothstep(0.28, 0.88, h));
         gl_FragColor = vec4(col, 1.0);
       }
     `,
@@ -185,14 +185,14 @@ function createAnimeSkyDome3D() {
   return new THREE.Mesh(geo, mat);
 }
 
-// 2,200개의 입체 3D 풀잎을 단 1번의 Draw Call로 렌더링하는 InstancedMesh
+// 4,500개의 입체 3D 풀잎을 단 1번의 Draw Call로 넓어진 월드 전역에 렌더링하는 InstancedMesh
 function createInstancedGrassField3D() {
-  const count = 2200;
+  const count = 4500;
   const bladeGeo = new THREE.ConeGeometry(0.18, 0.95, 5);
   bladeGeo.translate(0, 0.45, 0);
   const gradientMap = getToonGradientMap();
   const bladeMat = new THREE.MeshToonMaterial({
-    color: 0x65a30d,
+    color: 0x4d7c0f,
     gradientMap
   });
 
@@ -202,17 +202,18 @@ function createInstancedGrassField3D() {
   const dummy = new THREE.Object3D();
   const baseTransforms = [];
   const color = new THREE.Color();
-  const palette = [0x65a30d, 0x84cc16, 0x4ade80, 0xa3e635];
+  const palette = [0x4d7c0f, 0x65a30d, 0x3f6212, 0x15803d];
 
   let idx = 0;
   for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const dist = 20 + Math.random() * 102;
+    const dist = 21 + Math.random() * 195;
     const x = Math.cos(angle) * dist;
     const z = Math.sin(angle) * dist;
 
-    // 시냇물 영역(z: 23~33)은 제외
+    // 시냇물 영역(z: 23~33) 및 온천 호수 영역(x: -100~-64, z: -86~-50)은 제외
     if (z > 23 && z < 33) continue;
+    if (Math.hypot(x - (-82), z - (-68)) < 16) continue;
 
     const rotY = Math.random() * Math.PI * 2;
     const scaleY = 0.65 + Math.random() * 0.85;
@@ -253,7 +254,7 @@ function createInstancedGrassField3D() {
 }
 
 // ==========================================================================
-// 3. 고해상도 프로시저럴 지형 텍스처 생성기
+// 3. 눈이 편안한 차분한 톤의 프로시저럴 지형 텍스처 생성기
 // ==========================================================================
 function createGrassCanvasTexture() {
   const canvas = document.createElement('canvas');
@@ -261,11 +262,12 @@ function createGrassCanvasTexture() {
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  ctx.fillStyle = '#84cc16';
+  // 눈부심을 줄인 차분하고 깊은 파스텔 초원 그린 베이스
+  ctx.fillStyle = '#5c9427';
   ctx.fillRect(0, 0, 512, 512);
 
   for (let i = 0; i < 95; i++) {
-    ctx.fillStyle = i % 2 === 0 ? 'rgba(163, 230, 53, 0.42)' : 'rgba(101, 163, 13, 0.28)';
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(116, 172, 46, 0.35)' : 'rgba(63, 98, 18, 0.25)';
     ctx.beginPath();
     ctx.arc(Math.random() * 512, Math.random() * 512, 18 + Math.random() * 36, 0, Math.PI * 2);
     ctx.fill();
@@ -274,7 +276,7 @@ function createGrassCanvasTexture() {
   for (let i = 0; i < 450; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
-    ctx.strokeStyle = i % 3 === 0 ? '#ecfccb' : '#4d7c0f';
+    ctx.strokeStyle = i % 3 === 0 ? '#84cc16' : '#3f6212';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -287,7 +289,7 @@ function createGrassCanvasTexture() {
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(16, 16);
+  tex.repeat.set(28, 28);
   return tex;
 }
 
@@ -297,13 +299,14 @@ function createPlazaCanvasTexture() {
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
 
-  ctx.fillStyle = '#fef3c7';
+  // 눈이 시리지 않은 따뜻한 샌드베이지 석재 타일 톤
+  ctx.fillStyle = '#e5d7c1';
   ctx.fillRect(0, 0, 512, 512);
 
   const cx = 256;
   const cy = 256;
   for (let r = 24; r < 250; r += 26) {
-    ctx.strokeStyle = '#f59e0b';
+    ctx.strokeStyle = '#c29b61';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -319,7 +322,7 @@ function createPlazaCanvasTexture() {
     }
   }
 
-  ctx.strokeStyle = '#fb7185';
+  ctx.strokeStyle = '#e17086';
   ctx.lineWidth = 14;
   ctx.beginPath();
   ctx.arc(cx, cy, 238, 0, Math.PI * 2);
@@ -1529,7 +1532,8 @@ function createRiverAndBridge3D(waterTex) {
   const group = new THREE.Group();
   const gradientMap = getToonGradientMap();
 
-  const waterGeo = new THREE.BoxGeometry(260, 0.25, 7.5);
+  // 확장된 맵(반경 250m) 전체를 가로지르는 480m 시냇물
+  const waterGeo = new THREE.BoxGeometry(480, 0.25, 7.5);
   const waterMat = new THREE.MeshBasicMaterial({
     map: waterTex || createWaterCanvasTexture()
   });
@@ -1537,41 +1541,45 @@ function createRiverAndBridge3D(waterTex) {
   river.position.set(0, 0.03, 28);
   group.add(river);
 
-  const bankMat = new THREE.MeshToonMaterial({ color: 0xfde68a, gradientMap });
+  const bankMat = new THREE.MeshToonMaterial({ color: 0xd6c7b2, gradientMap });
   [-4.1, 4.1].forEach(bz => {
-    const bank = new THREE.Mesh(new THREE.BoxGeometry(260, 0.16, 1.4), bankMat);
+    const bank = new THREE.Mesh(new THREE.BoxGeometry(480, 0.16, 1.4), bankMat);
     bank.position.set(0, 0.02, 28 + bz);
     group.add(bank);
   });
 
-  const bridgeGroup = new THREE.Group();
+  // 서쪽(-75), 중앙(0), 동쪽(75) 3개의 아치형 목조 다리 배치
   const woodMat = new THREE.MeshToonMaterial({ color: 0xb45309, gradientMap });
   const redPostMat = new THREE.MeshToonMaterial({ color: 0xe11d48, gradientMap });
 
-  for (let i = -4; i <= 4; i++) {
-    const plank = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.28, 0.9), woodMat);
-    const archY = Math.cos((i / 4.5) * (Math.PI / 2)) * 0.85;
-    plank.position.set(0, 0.2 + archY, 28 + i * 0.98);
-    plank.castShadow = true;
-    plank.receiveShadow = true;
-    addCartoonOutline(plank, 0.03);
-    bridgeGroup.add(plank);
-  }
-
-  [-3.1, 3.1].forEach(rx => {
-    for (let j = -1; j <= 1; j++) {
-      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2.2, 10), redPostMat);
-      post.position.set(rx, 1.3, 28 + j * 3.8);
-      addCartoonOutline(post, 0.05);
-      bridgeGroup.add(post);
+  [-75, 0, 75].forEach(bx => {
+    const bridgeGroup = new THREE.Group();
+    for (let i = -4; i <= 4; i++) {
+      const plank = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.28, 0.9), woodMat);
+      const archY = Math.cos((i / 4.5) * (Math.PI / 2)) * 0.85;
+      plank.position.set(bx, 0.2 + archY, 28 + i * 0.98);
+      plank.castShadow = true;
+      plank.receiveShadow = true;
+      addCartoonOutline(plank, 0.03);
+      bridgeGroup.add(plank);
     }
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 8.8), redPostMat);
-    rail.position.set(rx, 2.1, 28);
-    addCartoonOutline(rail, 0.04);
-    bridgeGroup.add(rail);
+
+    [-3.3, 3.3].forEach(rx => {
+      for (let j = -1; j <= 1; j++) {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2.2, 10), redPostMat);
+        post.position.set(bx + rx, 1.3, 28 + j * 3.8);
+        addCartoonOutline(post, 0.05);
+        bridgeGroup.add(post);
+      }
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.2, 8.8), redPostMat);
+      rail.position.set(bx + rx, 2.1, 28);
+      addCartoonOutline(rail, 0.04);
+      bridgeGroup.add(rail);
+    });
+
+    group.add(bridgeGroup);
   });
 
-  group.add(bridgeGroup);
   return group;
 }
 
@@ -1605,3 +1613,318 @@ function createToriiGate3D() {
 
   return group;
 }
+
+// ==========================================================================
+// 11. 확장 맵 전용 신규 3D 랜드마크 & 오브젝트 빌더
+//     (벚꽃 노천온천 호수 / 별빛 캠핑장 / 고대 보스 유적지 / 보물상자 / 타격 이펙트)
+// ==========================================================================
+
+// 🌸 북서쪽: 벚꽃 노천온천 & 피크닉 치유 호수
+function createSakuraOnsenLake3D() {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+
+  const rockMat = new THREE.MeshToonMaterial({ color: 0x94a3b8, gradientMap });
+  const waterMat = new THREE.MeshToonMaterial({
+    color: 0x38bdf8,
+    gradientMap,
+    emissive: 0x0284c7,
+    emissiveIntensity: 0.18
+  });
+  const woodMat = new THREE.MeshToonMaterial({ color: 0x92400e, gradientMap });
+  const roofMat = new THREE.MeshToonMaterial({ color: 0xf472b6, gradientMap });
+
+  // 에메랄드 온천 수면
+  const pool = new THREE.Mesh(new THREE.CylinderGeometry(12.5, 13.0, 0.35, 36), waterMat);
+  pool.position.y = 0.12;
+  group.add(pool);
+
+  // 온천 테두리 자연석 바위들
+  for (let i = 0; i < 24; i++) {
+    const ang = (i / 24) * Math.PI * 2;
+    const rad = 12.4 + (i % 2) * 0.6;
+    const rock = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(1.3 + (i % 3) * 0.45, 1),
+      rockMat
+    );
+    rock.position.set(Math.cos(ang) * rad, 0.6, Math.sin(ang) * rad);
+    rock.scale.y = 0.68;
+    rock.castShadow = true;
+    addCartoonOutline(rock, 0.035);
+    group.add(rock);
+  }
+
+  // 온천 정자(가제보) 쉼터
+  const gazebo = new THREE.Group();
+  gazebo.position.set(0, 0, -9.5);
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.5, 5.2), woodMat);
+  deck.position.y = 0.35;
+  addCartoonOutline(deck, 0.03);
+  gazebo.add(deck);
+
+  [-3.1, 3.1].forEach(px => {
+    [-2.0, 2.0].forEach(pz => {
+      const p = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 4.2, 10), woodMat);
+      p.position.set(px, 2.4, pz);
+      gazebo.add(p);
+    });
+  });
+
+  const gRoof = new THREE.Mesh(new THREE.ConeGeometry(5.8, 2.4, 4), roofMat);
+  gRoof.position.y = 5.4;
+  gRoof.rotation.y = Math.PI / 4;
+  addCartoonOutline(gRoof, 0.035);
+  gazebo.add(gRoof);
+  group.add(gazebo);
+
+  // 피크닉 돗자리 & 도시락 바구니
+  const matMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(5.5, 0.08, 4.2),
+    new THREE.MeshToonMaterial({ color: 0xfda4af, gradientMap })
+  );
+  matMesh.position.set(9.5, 0.06, 8.5);
+  group.add(matMesh);
+
+  return group;
+}
+
+// ⛺ 남서쪽: 별빛 캠핑장 & 군고구마 모닥불 언덕
+function createStarlightCampsite3D() {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+
+  const woodMat = new THREE.MeshToonMaterial({ color: 0x78350f, gradientMap });
+  const tentMat1 = new THREE.MeshToonMaterial({ color: 0xfbbf24, gradientMap });
+  const tentMat2 = new THREE.MeshToonMaterial({ color: 0x38bdf8, gradientMap });
+  const fireMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+  const innerFireMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+
+  // 텐트 2동
+  [
+    { x: -7.5, z: -5.5, rot: 0.45, mat: tentMat1 },
+    { x: 7.8, z: -4.8, rot: -0.5, mat: tentMat2 }
+  ].forEach(t => {
+    const tent = new THREE.Group();
+    const prism = new THREE.Mesh(new THREE.ConeGeometry(4.2, 4.6, 4), t.mat);
+    prism.position.y = 2.3;
+    prism.rotation.y = Math.PI / 4;
+    prism.castShadow = true;
+    addCartoonOutline(prism, 0.035);
+    tent.add(prism);
+    tent.position.set(t.x, 0, t.z);
+    tent.rotation.y = t.rot;
+    group.add(tent);
+  });
+
+  // 중앙 모닥불 & 통나무 의자
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * Math.PI * 2;
+    const stone = new THREE.Mesh(
+      new THREE.DodecahedronGeometry(0.45, 0),
+      new THREE.MeshToonMaterial({ color: 0x64748b, gradientMap })
+    );
+    stone.position.set(Math.cos(ang) * 1.4, 0.25, Math.sin(ang) * 1.4);
+    group.add(stone);
+  }
+
+  const flameOuter = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.5, 8), fireMat);
+  flameOuter.position.y = 1.25;
+  group.add(flameOuter);
+
+  const flameInner = new THREE.Mesh(new THREE.ConeGeometry(0.65, 1.7, 8), innerFireMat);
+  flameInner.position.y = 1.0;
+  group.add(flameInner);
+  group.userData.flameOuter = flameOuter;
+
+  // 통나무 벤치 3개
+  [0, 2.1, 4.2].forEach(ang => {
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 4.4, 12), woodMat);
+    log.rotation.z = Math.PI / 2;
+    log.rotation.y = ang + Math.PI / 2;
+    log.position.set(Math.cos(ang) * 4.5, 0.5, Math.sin(ang) * 4.5);
+    log.castShadow = true;
+    addCartoonOutline(log, 0.04);
+    group.add(log);
+  });
+
+  return group;
+}
+
+// 🏛️ 동쪽 심연: 고대 보스 신전 유적지
+function createAncientRuins3D() {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+  const stoneMat = new THREE.MeshToonMaterial({ color: 0x94a3b8, gradientMap });
+  const darkStoneMat = new THREE.MeshToonMaterial({ color: 0x475569, gradientMap });
+  const runeMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
+
+  // 원형 고대 제단 바닥
+  const altar = new THREE.Mesh(new THREE.CylinderGeometry(15, 16.5, 0.6, 32), darkStoneMat);
+  altar.position.y = 0.3;
+  altar.receiveShadow = true;
+  addCartoonOutline(altar, 0.025);
+  group.add(altar);
+
+  const runeRing = new THREE.Mesh(new THREE.RingGeometry(11.2, 12.0, 32), runeMat);
+  runeRing.rotation.x = -Math.PI / 2;
+  runeRing.position.y = 0.64;
+  group.add(runeRing);
+
+  // 8개의 고대 석조 기둥
+  for (let i = 0; i < 8; i++) {
+    const ang = (i / 8) * Math.PI * 2;
+    const h = i % 2 === 0 ? 8.2 : 5.4;
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.15, h, 12), stoneMat);
+    pillar.position.set(Math.cos(ang) * 13.5, h * 0.5 + 0.5, Math.sin(ang) * 13.5);
+    pillar.castShadow = true;
+    addCartoonOutline(pillar, 0.035);
+    group.add(pillar);
+
+    if (i % 2 === 0) {
+      const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.75, 0), runeMat);
+      orb.position.set(Math.cos(ang) * 13.5, h + 1.4, Math.sin(ang) * 13.5);
+      group.add(orb);
+    }
+  }
+
+  return group;
+}
+
+// 🎁 필드 보물상자 & 별사탕 크리스탈 광석
+function createTreasureChest3D(isCrystal = false) {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+
+  if (isCrystal) {
+    const crysMat = new THREE.MeshToonMaterial({
+      color: 0x38bdf8,
+      gradientMap,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.25
+    });
+    const subMat = new THREE.MeshToonMaterial({
+      color: 0xf472b6,
+      gradientMap,
+      emissive: 0xdb2777,
+      emissiveIntensity: 0.22
+    });
+
+    const mainCrys = new THREE.Mesh(new THREE.OctahedronGeometry(1.15, 0), crysMat);
+    mainCrys.scale.set(0.85, 1.65, 0.85);
+    mainCrys.position.y = 1.5;
+    addCartoonOutline(mainCrys, 0.045);
+    group.add(mainCrys);
+
+    [-0.75, 0.75].forEach((ox, idx) => {
+      const sub = new THREE.Mesh(new THREE.OctahedronGeometry(0.75, 0), idx === 0 ? subMat : crysMat);
+      sub.scale.set(0.8, 1.4, 0.8);
+      sub.position.set(ox, 1.0, (idx === 0 ? 1 : -1) * 0.35);
+      sub.rotation.z = ox * -0.45;
+      addCartoonOutline(sub, 0.05);
+      group.add(sub);
+    });
+  } else {
+    const boxMat = new THREE.MeshToonMaterial({ color: 0xb45309, gradientMap });
+    const goldMat = new THREE.MeshToonMaterial({ color: 0xfacc15, gradientMap });
+
+    const base = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.3, 1.5), boxMat);
+    base.position.y = 0.65;
+    base.castShadow = true;
+    addCartoonOutline(base, 0.045);
+    group.add(base);
+
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 2.1, 14, 1, false, 0, Math.PI), boxMat);
+    lid.rotation.z = Math.PI / 2;
+    lid.position.y = 1.3;
+    addCartoonOutline(lid, 0.045);
+    group.add(lid);
+
+    const lock = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.55, 1.62), goldMat);
+    lock.position.y = 1.15;
+    addCartoonOutline(lock, 0.05);
+    group.add(lock);
+  }
+
+  return group;
+}
+
+// 🍄 토벌의 숲 장식용 대형 버섯
+function createForestMushroom3D(capColor = 0xa855f7) {
+  const group = new THREE.Group();
+  const gradientMap = getToonGradientMap();
+  const stemMat = new THREE.MeshToonMaterial({ color: 0xfef3c7, gradientMap });
+  const capMat = new THREE.MeshToonMaterial({ color: capColor, gradientMap });
+  const spotMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.58, 1.8, 12), stemMat);
+  stem.position.y = 0.9;
+  stem.castShadow = true;
+  addCartoonOutline(stem, 0.045);
+  group.add(stem);
+
+  const cap = new THREE.Mesh(
+    new THREE.SphereGeometry(1.35, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.58),
+    capMat
+  );
+  cap.position.y = 1.55;
+  cap.castShadow = true;
+  addCartoonOutline(cap, 0.045);
+  group.add(cap);
+
+  for (let i = 0; i < 5; i++) {
+    const ang = (i / 5) * Math.PI * 2;
+    const spot = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), spotMat);
+    spot.position.set(Math.cos(ang) * 0.85, 2.15, Math.sin(ang) * 0.85);
+    group.add(spot);
+  }
+
+  return group;
+}
+
+// 💥 3D 입체 타격 임팩트 이펙트 메쉬 빌더 (십자 스타버스트 + X자 참격 + 코어 플래시)
+function createHitImpactBurst3D(colorHex = 0xfacc15, isCrit = false) {
+  const group = new THREE.Group();
+
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.95,
+    depthWrite: false
+  });
+  const outerMat = new THREE.MeshBasicMaterial({
+    color: colorHex,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.92,
+    depthWrite: false
+  });
+
+  // 1) 중심부 8각 코어 플래시
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(isCrit ? 0.85 : 0.58, 0), coreMat);
+  group.add(core);
+
+  // 2) 방사형 4방향/6방향 뾰족한 스타버스트 광선(Spike Cross)
+  const rayCount = isCrit ? 6 : 4;
+  for (let i = 0; i < rayCount; i++) {
+    const ang = (i / rayCount) * Math.PI;
+    const len = isCrit ? 3.8 : 2.6;
+    const spikeGeo = new THREE.ConeGeometry(isCrit ? 0.36 : 0.26, len, 4);
+    const spike1 = new THREE.Mesh(spikeGeo, i % 2 === 0 ? outerMat : coreMat);
+    spike1.rotation.z = ang;
+    group.add(spike1);
+
+    const spike2 = new THREE.Mesh(spikeGeo, i % 2 === 0 ? outerMat : coreMat);
+    spike2.rotation.z = ang + Math.PI;
+    group.add(spike2);
+  }
+
+  // 3) 외곽 타격 링
+  const ringGeo = new THREE.RingGeometry(isCrit ? 0.9 : 0.6, isCrit ? 1.45 : 1.05, 24);
+  const ringMesh = new THREE.Mesh(ringGeo, outerMat);
+  group.add(ringMesh);
+
+  group.userData.mats = [coreMat, outerMat];
+  return group;
+}
+
