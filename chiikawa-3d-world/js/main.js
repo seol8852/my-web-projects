@@ -185,7 +185,8 @@ class Chiikawa3DWorldApp {
       'npc-dialog-modal',
       'stage-select-modal',
       'stage-result-modal',
-      'auth-modal'
+      'auth-modal',
+      'coop-modal'
     ];
     for (const id of modals) {
       const el = document.getElementById(id);
@@ -2078,6 +2079,7 @@ class Chiikawa3DWorldApp {
 
     const atkCenter = this.playerPos.clone().add(forward.clone().multiplyScalar(2.45));
     this.spawnCharacterAttackEffect3D(charKey, this.comboStep, atkCenter, this.playerYaw, cfg.accentColor);
+    if (window.coop) window.coop.onLocalAttack(this.comboStep, this.playerYaw, atkCenter);
 
     // 3) 부채꼴 범위 내 잡초 수확 & 보물상자 타격 개봉
     let hitAnything = false;
@@ -2556,6 +2558,7 @@ class Chiikawa3DWorldApp {
     }
 
     this.spawnUltimateEffect3D(charKey);
+    if (window.coop) window.coop.onLocalUlt(this.playerYaw);
     if (typeof FXHQ !== 'undefined') {
       // 🎬 궁극기 컷인: 화면 플래시 + 집중선 + 캐릭터 컷인 배너 + 오라 기둥 + 마법진 + 카메라 줌
       FXHQ.ultimate({
@@ -3713,6 +3716,7 @@ class Chiikawa3DWorldApp {
   updateEffects(dt) {
     if (typeof FXHQ !== 'undefined') FXHQ.update(dt);
     if (typeof POLISH !== 'undefined') POLISH.update(this, dt);
+    if (window.coop) window.coop.update(dt);
     // 💥 3D 입체 타격 임팩트 스타버스트 애니메이션
     for (let i = this.hitBursts.length - 1; i >= 0; i--) {
       const hb = this.hitBursts[i];

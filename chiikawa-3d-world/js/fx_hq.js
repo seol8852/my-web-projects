@@ -877,7 +877,7 @@ const FXHQ = (() => {
   function ultimate(opts) {
     const { getPos, color = 0xfacc15, duration = 1.25, portrait, name = '', skill = '' } = opts;
     ensureOverlay();
-    const P = overlay && overlay._p;
+    const P = !opts.noScreen && overlay && overlay._p;
     const anim = (el, frames, o) => el && el.animate && el.animate(frames, o);
     if (P) {
       const ms = duration * 1000;
@@ -902,7 +902,7 @@ const FXHQ = (() => {
         { opacity: 0, transform: 'skewY(-6deg) translateX(115%)' }
       ], { duration: Math.max(1100, ms), easing: 'linear' });
     }
-    fovPunch(8, duration);
+    if (!opts.noScreen) fovPunch(8, duration);
 
     if (!scene) return;
     // 오라 기둥
