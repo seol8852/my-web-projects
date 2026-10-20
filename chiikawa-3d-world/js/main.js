@@ -2105,7 +2105,7 @@ class Chiikawa3DWorldApp {
     } else if (charKey === 'rakko') {
       // 랏코 사부: 초고속 발도 대시(잔상 생성!) + 3타 질풍 공중 십자 일섬!
       lungeDist = this.comboStep === 1 ? 1.55 : this.comboStep === 3 ? 1.85 : 0.95;
-      this.spawnAfterimage();
+      this.spawnDashAfterimage();
       if (this.comboStep === 3 && this.isGrounded) {
         this.playerVelY = 8.4;
         this.isGrounded = false;
