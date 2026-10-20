@@ -524,11 +524,147 @@ const POLISH = (() => {
     updateCompactBtn();
   }
 
+
+  // ------------------------------------------------------------------
+  // 11) 몬스터/보스 공격 연출: 기 모으기(붉게 맥동·웅크림·도약) → 착탄 충격(충격파·파편·먼지·빛기둥)
+  // ------------------------------------------------------------------
+  function onTelegraph(monster, patternType, center, duration) {
+    if (!monster || !monster.mesh) return;
+    monster.windupT = duration;
+    monster.windupMax = duration;
+    // 자기 주변을 내려찍는 원형 공격이면 도약 후 착지
+    const dx = (center.x - monster.pos.x), dz = (center.z - monster.pos.z);
+    monster.windupJump = patternType === 'circle' && Math.hypot(dx, dz) < 2.5;
+    monster.windupLunge = patternType !== 'circle';
+  }
+
+  function debris(pos, n, spread, colorHex = 0x8b7d6b) {
+    if (typeof FXHQ === 'undefined' || !FXHQ._add) return;
+    n = Math.max(3, Math.round(n * detail));
+    for (let i = 0; i < n; i++) {
+      const g = new THREE.DodecahedronGeometry(0.16 + Math.random() * 0.26, 0);
+      const mat = new THREE.MeshLambertMaterial({ color: i % 3 === 0 ? 0xa8a29e : colorHex });
+      const rock = new THREE.Mesh(g, mat);
+      const a = Math.random() * Math.PI * 2;
+      const r0 = Math.random() * spread * 0.6;
+      rock.position.set(pos.x + Math.cos(a) * r0, 0.3, pos.z + Math.sin(a) * r0);
+      const v = new THREE.Vector3(Math.cos(a) * (3 + Math.random() * 6), 6 + Math.random() * 9, Math.sin(a) * (3 + Math.random() * 6));
+      const spin = new THREE.Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10);
+      FXHQ._add(rock, 0.9 + Math.random() * 0.4, (it, dt, k) => {
+        v.y -= 30 * dt;
+        rock.position.addScaledVector(v, dt);
+        if (rock.position.y < 0.15) { rock.position.y = 0.15; v.y *= -0.3; v.x *= 0.6; v.z *= 0.6; }
+        rock.rotation.x += spin.x * dt; rock.rotation.y += spin.y * dt;
+        rock.scale.setScalar(k > 0.7 ? (1 - k) / 0.3 : 1);
+      });
+    }
+  }
+
+  function lightPillar(pos, colorHex, R) {
+    if (typeof FXHQ === 'undefined' || !FXHQ._add) return;
+    const s = FXHQ._sprite('glow', colorHex, true, 1);
+    s.position.set(pos.x, R * 0.9, pos.z);
+    FXHQ._add(s, 0.4, (it, dt, k) => {
+      s.scale.set(R * (0.55 - k * 0.3), R * (2.4 + k * 0.6), 1);
+      s.material.opacity = 1 - k;
+    });
+    const core = FXHQ._sprite('glow', 0xffffff, true, 1);
+    core.position.set(pos.x, R * 0.7, pos.z);
+    FXHQ._add(core, 0.25, (it, dt, k) => {
+      core.scale.set(R * 0.25 * (1 - k), R * 1.8, 1);
+      core.material.opacity = 1 - k;
+    });
+  }
+
+  function attackImpact(game, tg) {
+    if (typeof FXHQ === 'undefined' || !FXHQ._add) return false;
+    const c = tg.center;
+    const R = tg.reach || 5;
+    const m = tg.monster;
+    const isBoss = !!(m && (m.isBoss || m.isRaidBoss));
+    const col = tg.patternType === 'line' ? 0xf97316 : 0xef4444;
+    const ground = new THREE.Vector3(c.x, 0, c.z);
+    const yaw = tg.yaw || 0;
+    const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+
+    if (tg.patternType === 'circle') {
+      FXHQ.shockwave(ground, col, R * 1.05);
+      FXHQ.shockwave(ground, 0xffd7a8, R * 0.65);
+      FXHQ.hitSpark(ground.clone().setY(1.0), 0xfb923c, R >= 7);
+      debris(ground, 6 + R * 1.3, R);
+      dust(ground, 5 + R * 0.8, 1.6 + R * 0.08);
+      if (R >= 7) lightPillar(ground, col, R);
+    } else if (tg.patternType === 'sector') {
+      FXHQ.slash(ground, yaw, col, 3, 0, 0, { radius: R, span: Math.PI * 0.64, y: 0.9, dir: Math.random() < 0.5 ? 1 : -1, life: 0.32, noOffset: true });
+      FXHQ.slash(ground, yaw, 0xffd7a8, 1, 0, 0, { radius: R * 0.8, span: Math.PI * 0.6, y: 1.6, dir: 1, life: 0.26, noOffset: true });
+      for (let k = 0; k < 6; k++) {
+        const a = yaw + (k / 5 - 0.5) * Math.PI * 0.58;
+        const p = ground.clone().add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(R * (0.45 + Math.random() * 0.45)));
+        dust(p, 2, 1.3);
+      }
+      debris(ground.clone().addScaledVector(fwd, R * 0.6), 5 + R * 0.5, R * 0.6);
+    } else {
+      FXHQ.thrust(ground, yaw, col, R, 1.3);
+      for (let k = 0; k <= 8; k++) dust(ground.clone().addScaledVector(fwd, (k / 8) * R), 2, 1.4);
+      const end = ground.clone().addScaledVector(fwd, R);
+      FXHQ.shockwave(end, col, 3.5);
+      debris(end, 6, 2.5);
+    }
+
+    // 가까이 있으면 화면 흔들림 / 큰 공격은 붉은 섬광
+    const d = Math.hypot(game.playerPos.x - c.x, game.playerPos.z - c.z);
+    if (d < R * 1.6) {
+      game.camShake = Math.max(game.camShake || 0, isBoss ? 0.6 : 0.28);
+      if (isBoss && R >= 7 && typeof FXHQ.screenFlash === 'function') FXHQ.screenFlash(col, 0.16, 200);
+    }
+    // 착지 찌그러짐
+    if (m && m.mesh) {
+      const bs = m.baseScale || 1;
+      m.mesh.scale.set(bs * 1.25, bs * 0.76, bs * 1.25);
+      m.windupT = 0;
+      m.landT = 0.25;
+    }
+    return true;
+  }
+
+  // 매 프레임: 기 모으는 몬스터 연출 (main 몬스터 루프 이후 실행)
+  function updateWindups(game, dt) {
+    const t = game.clock ? game.clock.elapsedTime : 0;
+    (game.monsters || []).forEach(m => {
+      if (!m.alive || !m.mesh) return;
+      const mats = m.mesh.userData.mats || [];
+      if (m.windupT > 0) {
+        m.windupT -= dt;
+        const k = Math.min(1, 1 - Math.max(0, m.windupT) / (m.windupMax || 1));
+        const pulse = 0.5 + 0.5 * Math.sin(t * (12 + 26 * k));
+        mats.forEach(mm => {
+          if (mm.userData.fxFlash) {
+            mm.userData.fxFlash.uFlashColor.value.setHex(0xff3b3b);
+            mm.userData.fxFlash.uFlash.value = Math.max(mm.userData.fxFlash.uFlash.value, 0.1 + 0.32 * k * pulse);
+          }
+        });
+        const bs = m.baseScale || 1;
+        if (m.windupJump && k > 0.62) {
+          // 도약: 마지막 구간에 위로 솟구쳤다가 착탄 순간 착지
+          const j = (k - 0.62) / 0.38;
+          const h = Math.sin(j * Math.PI * 0.5) * (m.isRaidBoss ? 4.5 : m.isBoss ? 3 : 1.6);
+          m.mesh.position.y += h;
+          m.mesh.scale.set(bs * 0.92, bs * 1.12, bs * 0.92);
+        } else {
+          // 웅크리며 힘 모으기
+          m.mesh.scale.set(bs * (1 + 0.07 * k * pulse), bs * (1 - 0.1 * k), bs * (1 + 0.07 * k * pulse));
+          if (m.windupLunge) m.mesh.position.y += Math.sin(t * 40) * 0.05 * k;
+        }
+      }
+    });
+  }
+
   // ------------------------------------------------------------------
   // 매 프레임 업데이트
   // ------------------------------------------------------------------
   function update(game, dt) {
     POLISH._camera = game.camera;
+    updateWindups(game, dt);
     if (game.camera && game.playerPos) updateOccluders(game.camera, game.playerPos, dt);
     const t = game.clock ? game.clock.elapsedTime : 0;
     if (nearGrass && nearGrass.visible) {
@@ -546,7 +682,7 @@ const POLISH = (() => {
   return {
     registerOccluder, attachBackView, makeBackTexture, damageNumber, createNearGrass,
     playerHurt, telegraphMaterial, dust, landing, dashBurst, getWaterMaterial,
-    applyQuality, cycleQuality, initHud, toggleCompact, update,
+    applyQuality, cycleQuality, initHud, toggleCompact, update, onTelegraph, attackImpact,
     get quality() { return quality; }, get detail() { return detail; }, _camera: null
   };
 })();

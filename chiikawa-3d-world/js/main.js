@@ -2249,7 +2249,8 @@ class Chiikawa3DWorldApp {
     m.hp -= finalDmg;
     if (m.isRaidBoss) {
       if (window.coop) window.coop.onRaidDamage(m, finalDmg);
-      m.hp = Math.max(1, m.hp); // 실제 처치 판정은 방장이 함
+      // 실제 처치 판정은 방장이 함 → 파티원 화면에서만 체력 1에서 멈춤
+      if (!(window.coop && window.coop.isHost())) m.hp = Math.max(1, m.hp);
     } else if (this.partyRole === 'member' && m.netId) {
       if (window.coop) window.coop.onPartyDamage(m, finalDmg);
       m.hp = Math.max(1, m.hp); // 실제 처치 판정은 방장이 함
@@ -2800,6 +2801,7 @@ class Chiikawa3DWorldApp {
     }
     this.scene.add(mesh);
 
+    if (typeof POLISH !== 'undefined' && POLISH.onTelegraph) POLISH.onTelegraph(monster, patternType, centerPos, duration);
     if (this.partyRole === 'host' && window.coop && monster && monster.netId) {
       window.coop.onHostTelegraph(monster, patternType, centerPos, yaw, reach, dmg);
     }
@@ -2823,7 +2825,9 @@ class Chiikawa3DWorldApp {
     if (tg.monster && !tg.monster.alive) return; // 공격 전 몬스터가 죽거나 기절하면 취소!
     if (tg.monster && tg.monster.stunTimer > 0) return;
 
-    this.spawnBurstParticles(tg.center.clone().add(new THREE.Vector3(0, 0.8, 0)), 0xef4444, 14);
+    if (!(typeof POLISH !== 'undefined' && POLISH.attackImpact && POLISH.attackImpact(this, tg))) {
+      this.spawnBurstParticles(tg.center.clone().add(new THREE.Vector3(0, 0.8, 0)), 0xef4444, 14);
+    }
     soundFx.playAttack();
 
     const toPlayer = this.playerPos.clone().sub(tg.center);

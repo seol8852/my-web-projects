@@ -695,12 +695,12 @@ export class CoopManager {
     g.camYaw = 0;
     // 성소 입구의 붉은 아치에 카메라가 걸리지 않도록 레이드 동안은 조금 가깝고 높은 시점
     if (!R.savedCam) R.savedCam = { d: g.camDist, p: g.camPitch };
-    g.camDist = 19;
-    g.camPitch = 0.44;
+    g.camDist = 23;
+    g.camPitch = 0.42;
     document.body.classList.add('raid-mode');
 
     // 보스 생성 (기존 몬스터 시스템과 호환되는 객체)
-    const scale = 1.55;
+    const scale = 2.05;
     const mesh = createMonster3D('anoko');
     mesh.scale.setScalar(scale);
     const pos = new THREE.Vector3(RAID_CENTER.x, 0, RAID_CENTER.z - 12);
@@ -888,6 +888,8 @@ export class CoopManager {
     g.spawnMonsterAttackTelegraph(R.boss, t.p, center, t.yaw || 0, t.r, t.d);
     const tg = g.telegraphs[g.telegraphs.length - 1];
     if (tg) tg.duration = t.dur || tg.duration;
+    // 기 모으기 연출 시간을 실제 장판 시간에 맞춤
+    if (t.dur) { R.boss.windupT = t.dur; R.boss.windupMax = t.dur; }
     R.boss.isWindingUp = false; // 보스는 여러 장판을 동시에 깔 수 있음
   }
 
@@ -953,7 +955,15 @@ export class CoopManager {
         const targetYaw = Math.atan2(dir.x, dir.z);
         m.facingYaw += g.angleDifference(targetYaw, m.facingYaw) * Math.min(1, dt * 3.5);
       }
-      if (dist > 8.5 && R.aiCd > 0.6) {
+      if (R.dash) {
+        // 돌진: 예고 시간 동안 멈춰 있다가 레인을 따라 고속 이동
+        if (R.dash.wait > 0) R.dash.wait -= dt;
+        else {
+          m.pos.lerp(R.dash.to, 1 - Math.exp(-dt * 14));
+          R.dash.go -= dt;
+          if (R.dash.go <= 0) R.dash = null;
+        }
+      } else if (dist > 10.5 && R.aiCd > 0.6 && !(m.windupT > 0)) {
         m.pos.addScaledVector(dir.normalize(), dt * (phase === 3 ? 6.5 : 5.0));
       }
       // 성소 밖으로 나가지 않게
@@ -1002,6 +1012,10 @@ export class CoopManager {
     } else if (phase >= 2 && roll < 0.45) {
       // 🐗 돌진 레인 3줄
       [-0.35, 0, 0.35].forEach(o => this.hostTelegraph('line', mx, mz, yawT + o, 24, 1.2, Math.round(26 * dmgMul)));
+      const dashTo = new THREE.Vector3(mx + Math.sin(yawT) * 16, 0, mz + Math.cos(yawT) * 16);
+      const off = dashTo.clone().sub(RAID_CENTER);
+      if (off.length() > 17) dashTo.copy(RAID_CENTER).addScaledVector(off.normalize(), 17);
+      this.raid.dash = { wait: 1.2, go: 0.35, to: dashTo };
     } else if (roll < 0.6) {
       // 🎯 파티원 전원 발밑 장판
       alive.forEach(p => this.hostTelegraph('circle', p.pos.x, p.pos.z, 0, 4.6, 1.5, Math.round(22 * dmgMul)));

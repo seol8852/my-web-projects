@@ -567,7 +567,8 @@ const FXHQ = (() => {
     const holder = new THREE.Group();
     holder.add(mesh);
     const fwdX = Math.sin(yaw), fwdZ = Math.cos(yaw);
-    holder.position.set(center.x - fwdX * r * 0.42, (center.y || 0) + (opts.y !== undefined ? opts.y : comboStep === 2 ? 2.0 : 1.45), center.z - fwdZ * r * 0.42);
+    const back = opts.noOffset ? 0 : r * 0.42;
+    holder.position.set(center.x - fwdX * back, (center.y || 0) + (opts.y !== undefined ? opts.y : comboStep === 2 ? 2.0 : 1.45), center.z - fwdZ * back);
     holder.rotation.order = 'YXZ';
     holder.rotation.set(tiltX, yaw, tiltZ || (comboStep === 2 ? 0.28 * dir : 0));
     const startRot = -dir * 0.35;
