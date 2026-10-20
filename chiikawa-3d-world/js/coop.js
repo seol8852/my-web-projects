@@ -617,7 +617,7 @@ export class CoopManager {
     const n = this.raidPlayerCount();
     const lv = (g && g.stats && g.stats.level) || 1;
     // 🔥 하드 난이도: 체력 약 3배 (인원·레벨에 비례)
-    const maxHp = Math.round((8000 + 6000 * n) * (1 + (lv - 1) * 0.08));
+    const maxHp = Math.round((18000 + 13000 * n) * (1 + (lv - 1) * 0.1));
     const id = Date.now().toString(36);
     try {
       await set(this.path('raid/boss'), { x: RAID_CENTER.x, z: RAID_CENTER.z - 12, yaw: 0, hp: maxHp, ph: 1, t: this.now() });
@@ -1006,7 +1006,7 @@ export class CoopManager {
     const mx = m.pos.x, mz = m.pos.z;
     const toT = target.pos.clone().sub(m.pos).setY(0);
     const yawT = Math.atan2(toT.x, toT.z);
-    const dm = phase === 3 ? 1.5 : phase === 2 ? 1.25 : 1;   // 🔥 기본 데미지도 크게 상향
+    const dm = (phase === 3 ? 1.5 : phase === 2 ? 1.25 : 1) * 1.8;   // 🔥 기본 데미지 대폭 상향
     const D = v => Math.round(v * dm * 1.4); // 🔥 보스 데미지 추가 상향 (x1.4)
     const T = (p, x, z, yaw, r, dur, d) => this.hostTelegraph(p, x, z, yaw, r, dur, d);
 
