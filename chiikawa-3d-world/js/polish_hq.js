@@ -538,93 +538,379 @@ const POLISH = (() => {
     monster.windupLunge = patternType !== 'circle';
   }
 
-  function debris(pos, n, spread, colorHex = 0x8b7d6b) {
-    if (typeof FXHQ === 'undefined' || !FXHQ._add) return;
-    n = Math.max(3, Math.round(n * detail));
+  // ---- 공용 셰이더 조각 ----
+  const NOISE_GLSL = `
+    float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float vn(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(h21(i), h21(i + vec2(1, 0)), u.x), mix(h21(i + vec2(0, 1)), h21(i + vec2(1, 1)), u.x), u.y); }
+    float fbm2(vec2 p){ return vn(p) * 0.55 + vn(p * 2.1 + 3.7) * 0.3 + vn(p * 4.3 + 1.3) * 0.15; }`;
+  const FRESNEL_VS = `
+    varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying vec3 vPos;
+    void main() {
+      vUv = uv; vPos = position;
+      vN = normalize(normalMatrix * normal);
+      vec4 mv = modelViewMatrix * vec4(position, 1.0);
+      vV = normalize(-mv.xyz);
+      gl_Position = projectionMatrix * mv;
+    }`;
+  const fxMat = (frag, uniforms, extra = {}) => new THREE.ShaderMaterial({
+    uniforms, vertexShader: FRESNEL_VS, fragmentShader: frag,
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, ...extra
+  });
+  const C = hex => new THREE.Color(hex);
+  const easeO = k => 1 - Math.pow(1 - Math.min(1, Math.max(0, k)), 3);
+  const canFx = () => typeof FXHQ !== 'undefined' && FXHQ._add;
+
+  // 🔴 레이저 기둥 (하얀 심 + 붉은 외곽 + 위로 흐르는 에너지)
+  const PILLAR_FS = `
+    uniform vec3 uColor; uniform float uT; uniform float uFade; uniform float uCore;
+    varying vec2 vUv; varying vec3 vN; varying vec3 vV;
+    ${NOISE_GLSL}
+    void main() {
+      float facing = abs(dot(normalize(vN), normalize(vV)));
+      float flow = fbm2(vec2(vUv.x * 7.0, vUv.y * 6.0 - uT * 7.0));
+      float vfade = smoothstep(0.0, 0.03, vUv.y) * (1.0 - smoothstep(0.5, 1.0, vUv.y));
+      float a = pow(facing, 1.4) * (0.5 + 0.75 * flow) * vfade * uFade;
+      vec3 col = mix(uColor, vec3(1.0, 0.96, 0.92), clamp(pow(facing, 5.0) * uCore + flow * 0.12, 0.0, 1.0));
+      gl_FragColor = vec4(col * a, a);
+    }`;
+  function laserPillar(pos, radius, height, colorHex, life = 0.65, opts = {}) {
+    if (!canFx()) return;
+    const group = new THREE.Group();
+    group.position.set(pos.x, 0, pos.z);
+    const mk = (r, core, col) => {
+      const geo = new THREE.CylinderGeometry(r, r * 1.08, height, 40, 1, true);
+      geo.translate(0, height / 2, 0);
+      const mat = fxMat(PILLAR_FS, { uColor: { value: C(col) }, uT: { value: 0 }, uFade: { value: 1 }, uCore: { value: core } });
+      const mesh = new THREE.Mesh(geo, mat);
+      group.add(mesh);
+      return mat;
+    };
+    const outer = mk(radius, 0.6, colorHex);
+    const inner = mk(radius * 0.32, 1.6, 0xffb3b3);
+    const grow = opts.grow || 0.07;
+    FXHQ._add(group, life, (it, dt, k) => {
+      const t = it.t;
+      const g = easeO(t / grow);
+      const shrink = k > 0.45 ? 1 - easeO((k - 0.45) / 0.55) : 1;
+      group.scale.set(g * shrink + 0.001, Math.min(1, t / (grow * 1.4)), g * shrink + 0.001);
+      [outer, inner].forEach(m => { m.uniforms.uT.value = t; m.uniforms.uFade.value = (opts.alpha || 1) * (k < 0.85 ? 1 : (1 - k) / 0.15); });
+    });
+  }
+
+  // 🔴 에너지 돔 (가장자리가 빛나는 반구가 퍼짐)
+  const DOME_FS = `
+    uniform vec3 uColor; uniform float uT; uniform float uFade;
+    varying vec2 vUv; varying vec3 vN; varying vec3 vV; varying vec3 vPos;
+    ${NOISE_GLSL}
+    void main() {
+      float facing = abs(dot(normalize(vN), normalize(vV)));
+      float rim = pow(1.0 - facing, 2.2);
+      float bands = fbm2(vec2(atan(vPos.x, vPos.z) * 3.0, vPos.y * 2.0 - uT * 5.0));
+      float a = (rim * 1.3 + 0.06 + bands * 0.12) * uFade;
+      vec3 col = mix(uColor, vec3(1.0, 0.85, 0.7), rim * 0.5);
+      gl_FragColor = vec4(col * a, a);
+    }`;
+  function energyDome(pos, R, colorHex, life = 0.55) {
+    if (!canFx()) return;
+    const geo = new THREE.SphereGeometry(1, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.5);
+    const mat = fxMat(DOME_FS, { uColor: { value: C(colorHex) }, uT: { value: 0 }, uFade: { value: 1 } });
+    const dome = new THREE.Mesh(geo, mat);
+    dome.position.set(pos.x, 0.05, pos.z);
+    FXHQ._add(dome, life, (it, dt, k) => {
+      const r = 0.3 + easeO(k * 1.4) * R;
+      dome.scale.set(r, r * 0.75, r);
+      mat.uniforms.uT.value = it.t;
+      mat.uniforms.uFade.value = 1 - k * k;
+    });
+  }
+
+  // 🔥 바닥 그을음 + 빛나는 균열 (서서히 식음)
+  function scorchTextures() {
+    if (FX_SCORCH.burn) return FX_SCORCH;
+    const S = 256;
+    const mk = draw => { const c = document.createElement('canvas'); c.width = S; c.height = S; draw(c.getContext('2d')); const t = new THREE.CanvasTexture(c); return t; };
+    FX_SCORCH.burn = mk(ctx => {
+      const g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+      g.addColorStop(0, 'rgba(20,6,6,0.85)'); g.addColorStop(0.55, 'rgba(30,10,8,0.55)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, S, S);
+    });
+    FX_SCORCH.cracks = mk(ctx => {
+      ctx.translate(S / 2, S / 2);
+      ctx.strokeStyle = 'rgba(255,255,255,1)';
+      ctx.shadowColor = 'rgba(255,255,255,1)';
+      ctx.shadowBlur = 6;
+      for (let i = 0; i < 11; i++) {
+        let a = (i / 11) * Math.PI * 2 + Math.random() * 0.4;
+        let x = 0, y = 0;
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, 0);
+        for (let k = 0; k < 7; k++) {
+          a += (Math.random() - 0.5) * 0.7;
+          const step = 10 + Math.random() * 10;
+          x += Math.cos(a) * step; y += Math.sin(a) * step;
+          ctx.lineTo(x, y);
+          ctx.lineWidth = Math.max(0.6, 3 - k * 0.4);
+        }
+        ctx.stroke();
+      }
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 40);
+      g.addColorStop(0, 'rgba(255,255,255,0.9)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = g; ctx.fillRect(-S / 2, -S / 2, S, S);
+    });
+    return FX_SCORCH;
+  }
+  const FX_SCORCH = {};
+  function scorch(pos, R, colorHex = 0xff3b1f, life = 2.6, stretch = null) {
+    if (!canFx()) return;
+    const tx = scorchTextures();
+    const group = new THREE.Group();
+    group.position.set(pos.x, 0.06, pos.z);
+    const burnMat = new THREE.MeshBasicMaterial({ map: tx.burn, transparent: true, depthWrite: false, opacity: 0.9 });
+    const glowMat = new THREE.MeshBasicMaterial({ map: tx.cracks, color: colorHex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+    const geo = new THREE.PlaneGeometry(R * 2, R * 2);
+    geo.rotateX(-Math.PI / 2);
+    const burn = new THREE.Mesh(geo, burnMat);
+    const glow = new THREE.Mesh(geo.clone(), glowMat);
+    glow.position.y = 0.02;
+    glow.rotation.y = Math.random() * Math.PI * 2;
+    group.add(burn, glow);
+    if (stretch) { group.rotation.y = stretch.yaw; group.scale.set(stretch.w, 1, stretch.l); }
+    FXHQ._add(group, life, (it, dt, k) => {
+      burnMat.opacity = 0.85 * (1 - Math.max(0, (k - 0.5) / 0.5));
+      glowMat.opacity = Math.max(0, 1 - k * 1.6) * (0.75 + 0.25 * Math.sin(it.t * 30));
+    });
+  }
+
+  // ✨ 나선으로 솟구치는 불티
+  function emberSpiral(pos, R, colorHex, n = 18) {
+    if (!canFx()) return;
+    n = Math.max(4, Math.round(n * detail));
     for (let i = 0; i < n; i++) {
-      const g = new THREE.DodecahedronGeometry(0.16 + Math.random() * 0.26, 0);
-      const mat = new THREE.MeshLambertMaterial({ color: i % 3 === 0 ? 0xa8a29e : colorHex });
-      const rock = new THREE.Mesh(g, mat);
-      const a = Math.random() * Math.PI * 2;
-      const r0 = Math.random() * spread * 0.6;
-      rock.position.set(pos.x + Math.cos(a) * r0, 0.3, pos.z + Math.sin(a) * r0);
-      const v = new THREE.Vector3(Math.cos(a) * (3 + Math.random() * 6), 6 + Math.random() * 9, Math.sin(a) * (3 + Math.random() * 6));
-      const spin = new THREE.Vector3(Math.random() * 10, Math.random() * 10, Math.random() * 10);
-      FXHQ._add(rock, 0.9 + Math.random() * 0.4, (it, dt, k) => {
-        v.y -= 30 * dt;
-        rock.position.addScaledVector(v, dt);
-        if (rock.position.y < 0.15) { rock.position.y = 0.15; v.y *= -0.3; v.x *= 0.6; v.z *= 0.6; }
-        rock.rotation.x += spin.x * dt; rock.rotation.y += spin.y * dt;
-        rock.scale.setScalar(k > 0.7 ? (1 - k) / 0.3 : 1);
+      const s = FXHQ._sprite(i % 4 === 0 ? 'star' : 'glow', i % 3 === 0 ? 0xffe4d6 : colorHex, true);
+      const a0 = (i / n) * Math.PI * 2;
+      const r0 = R * (0.2 + Math.random() * 0.5);
+      const up = 7 + Math.random() * 9;
+      const size = 0.35 + Math.random() * 0.5;
+      FXHQ._add(s, 0.9 + Math.random() * 0.5, (it, dt, k) => {
+        const a = a0 + it.t * 3.5;
+        const r = r0 * (1 - k * 0.5);
+        s.position.set(pos.x + Math.cos(a) * r, 0.3 + up * easeO(k), pos.z + Math.sin(a) * r);
+        s.scale.setScalar(size * (1 - k * 0.6));
+        s.material.opacity = 1 - k * k;
       });
     }
   }
 
-  function lightPillar(pos, colorHex, R) {
-    if (typeof FXHQ === 'undefined' || !FXHQ._add) return;
-    const s = FXHQ._sprite('glow', colorHex, true, 1);
-    s.position.set(pos.x, R * 0.9, pos.z);
-    FXHQ._add(s, 0.4, (it, dt, k) => {
-      s.scale.set(R * (0.55 - k * 0.3), R * (2.4 + k * 0.6), 1);
-      s.material.opacity = 1 - k;
+  // 🌊 부채꼴 불꽃 에너지 파동 (앞으로 휩쓸며 퍼짐)
+  const WAVE_VS = `varying vec3 vPos; void main(){ vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+  const WAVE_FS = `
+    uniform vec3 uColor; uniform float uT; uniform float uFront; uniform float uFade; uniform float uR; uniform float uHalf;
+    varying vec3 vPos;
+    ${NOISE_GLSL}
+    void main() {
+      float d = length(vPos.xz) / uR;
+      float ang = atan(vPos.x, vPos.z) / uHalf;
+      float edge = 1.0 - smoothstep(0.8, 1.0, abs(ang));
+      float n = fbm2(vec2(ang * 5.0, d * 7.0 - uT * 6.0));
+      float front = smoothstep(uFront - 0.22 - n * 0.08, uFront, d) * (1.0 - smoothstep(uFront, uFront + 0.025, d));
+      float trail = (1.0 - step(uFront, d)) * smoothstep(0.0, uFront, d) * 0.35 * n;
+      float a = (front * 1.5 + trail) * edge * uFade;
+      vec3 col = mix(uColor, vec3(1.0, 0.92, 0.6), front * 0.75);
+      gl_FragColor = vec4(col * a, a);
+    }`;
+  function sectorWave(pos, yaw, R, arc, colorHex, life = 0.45) {
+    if (!canFx()) return;
+    const seg = 48;
+    const verts = [0, 0, 0];
+    const idx = [];
+    for (let i = 0; i <= seg; i++) {
+      const a = -arc / 2 + (i / seg) * arc;
+      verts.push(Math.sin(a) * R, 0, Math.cos(a) * R);
+      if (i > 0) idx.push(0, i, i + 1);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+    geo.setIndex(idx);
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: C(colorHex) }, uT: { value: 0 }, uFront: { value: 0 }, uFade: { value: 1 }, uR: { value: R }, uHalf: { value: arc / 2 } },
+      vertexShader: WAVE_VS, fragmentShader: WAVE_FS,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
     });
-    const core = FXHQ._sprite('glow', 0xffffff, true, 1);
-    core.position.set(pos.x, R * 0.7, pos.z);
-    FXHQ._add(core, 0.25, (it, dt, k) => {
-      core.scale.set(R * 0.25 * (1 - k), R * 1.8, 1);
-      core.material.opacity = 1 - k;
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(pos.x, 0.25, pos.z);
+    mesh.rotation.y = yaw;
+    FXHQ._add(mesh, life, (it, dt, k) => {
+      mat.uniforms.uT.value = it.t;
+      mat.uniforms.uFront.value = 0.08 + easeO(k * 1.25) * 0.95;
+      mat.uniforms.uFade.value = 1 - Math.max(0, (k - 0.6) / 0.4);
+    });
+    // 파동 위로 세워진 불꽃 커튼
+    FXHQ.slash(pos, yaw, colorHex, 3, 0, 0, { radius: R, span: arc, y: 1.2, dir: 1, life: 0.34, noOffset: true });
+  }
+
+  // 🔴 직선 레이저 빔 (레인을 따라 발사)
+  const BEAM_FS = `
+    uniform vec3 uColor; uniform float uT; uniform float uFade; uniform float uLen;
+    varying vec2 vUv;
+    ${NOISE_GLSL}
+    void main() {
+      float across = 1.0 - abs(vUv.x - 0.5) * 2.0;
+      float core = pow(across, 9.0);
+      float glow = pow(across, 2.2);
+      float flow = fbm2(vec2(vUv.y * uLen * 0.25 - uT * 14.0, vUv.x * 3.0));
+      float ends = smoothstep(0.0, 0.03, vUv.y) * (1.0 - smoothstep(0.96, 1.0, vUv.y));
+      float a = (glow * 0.65 * (0.55 + 0.6 * flow) + core * 1.4) * ends * uFade;
+      vec3 col = mix(uColor, vec3(1.0, 0.95, 0.92), clamp(core * 1.2, 0.0, 1.0));
+      gl_FragColor = vec4(col * a, a);
+    }`;
+  function laserBeam(pos, yaw, len, width, colorHex, life = 0.55, alpha = 1, y = 1.3) {
+    if (!canFx()) return;
+    const group = new THREE.Group();
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: C(colorHex) }, uT: { value: 0 }, uFade: { value: alpha }, uLen: { value: len } },
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: BEAM_FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+    });
+    for (let k = 0; k < 2; k++) {
+      const g = new THREE.PlaneGeometry(width, len);
+      g.translate(0, len / 2, 0);
+      g.rotateX(Math.PI / 2);
+      const m = new THREE.Mesh(g, mat);
+      m.rotation.z = k * Math.PI / 2;
+      group.add(m);
+    }
+    group.position.set(pos.x, y, pos.z);
+    group.rotation.y = yaw;
+    FXHQ._add(group, life, (it, dt, k) => {
+      mat.uniforms.uT.value = it.t;
+      const w = k < 0.12 ? easeO(k / 0.12) : 1 - easeO((k - 0.12) / 0.88) * 0.95;
+      group.scale.set(w, w, 1);
+      mat.uniforms.uFade.value = alpha * (k < 0.8 ? 1 : (1 - k) / 0.2);
     });
   }
 
+  // 🎯 조준(차지) 연출: 하늘에서 내려오는 가는 레이저 + 모여드는 빛 / 직선은 레이저 조준선
+  function chargeFx(tg, remain) {
+    if (!canFx() || remain <= 0.05) return;
+    const c = tg.center;
+    const R = tg.reach || 5;
+    const col = tg.patternType === 'line' ? 0xff6a3d : 0xff2d2d;
+    if (tg.patternType === 'line') {
+      laserBeam(c, tg.yaw || 0, R, 0.35, col, remain, 0.55, 0.6);
+      return;
+    }
+    if (tg.patternType === 'circle') {
+      laserPillar(c, Math.min(0.9, 0.18 + R * 0.04), 34, col, remain, { grow: remain * 0.6, alpha: 0.6 });
+      const n = Math.max(4, Math.round((R < 6 ? 5 : 14) * detail));
+      for (let i = 0; i < n; i++) {
+        const s = FXHQ._sprite('glow', i % 2 ? 0xffd0c0 : col, true);
+        const a = Math.random() * Math.PI * 2;
+        const delay = Math.random() * remain * 0.5;
+        FXHQ._add(s, remain, (it, dt, k) => {
+          const tt = Math.max(0, it.t - delay) / Math.max(0.05, remain - delay);
+          const r = R * (1 - easeO(tt));
+          s.position.set(c.x + Math.cos(a) * r, 0.4 + tt * 1.5, c.z + Math.sin(a) * r);
+          s.scale.setScalar(0.5 * (1 - tt * 0.5));
+          s.material.opacity = it.t < delay ? 0 : 1;
+        });
+      }
+    }
+  }
+
   function attackImpact(game, tg) {
-    if (typeof FXHQ === 'undefined' || !FXHQ._add) return false;
+    if (!canFx()) return false;
     const c = tg.center;
     const R = tg.reach || 5;
     const m = tg.monster;
     const isBoss = !!(m && (m.isBoss || m.isRaidBoss));
-    const col = tg.patternType === 'line' ? 0xf97316 : 0xef4444;
+    const col = tg.patternType === 'line' ? 0xff5a1f : 0xff2424;
     const ground = new THREE.Vector3(c.x, 0, c.z);
     const yaw = tg.yaw || 0;
     const fwd = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
 
     if (tg.patternType === 'circle') {
-      FXHQ.shockwave(ground, col, R * 1.05);
-      FXHQ.shockwave(ground, 0xffd7a8, R * 0.65);
-      FXHQ.hitSpark(ground.clone().setY(1.0), 0xfb923c, R >= 7);
-      debris(ground, 6 + R * 1.3, R);
-      dust(ground, 5 + R * 0.8, 1.6 + R * 0.08);
-      if (R >= 7) lightPillar(ground, col, R);
-    } else if (tg.patternType === 'sector') {
-      FXHQ.slash(ground, yaw, col, 3, 0, 0, { radius: R, span: Math.PI * 0.64, y: 0.9, dir: Math.random() < 0.5 ? 1 : -1, life: 0.32, noOffset: true });
-      FXHQ.slash(ground, yaw, 0xffd7a8, 1, 0, 0, { radius: R * 0.8, span: Math.PI * 0.6, y: 1.6, dir: 1, life: 0.26, noOffset: true });
-      for (let k = 0; k < 6; k++) {
-        const a = yaw + (k / 5 - 0.5) * Math.PI * 0.58;
-        const p = ground.clone().add(new THREE.Vector3(Math.sin(a), 0, Math.cos(a)).multiplyScalar(R * (0.45 + Math.random() * 0.45)));
-        dust(p, 2, 1.3);
+      if (isBoss && R < 6) {
+        // 메테오/발밑 장판: 가벼운 레이저 낙하
+        laserPillar(ground, Math.max(0.8, R * 0.32), 30, col, 0.55);
+        FXHQ.shockwave(ground, col, R * 1.1);
+        scorch(ground, R * 0.85, 0xff3b1f, 2.0);
+        emberSpiral(ground, R * 0.6, col, 6);
+      } else if (isBoss) {
+        laserPillar(ground, Math.max(1.2, R * 0.38), 38, col, 0.7);
+        energyDome(ground, R * 1.05, col, 0.55);
+        FXHQ.shockwave(ground, col, R * 1.15);
+        FXHQ.shockwave(ground, 0xffd2c2, R * 0.6);
+        scorch(ground, R * 0.9, 0xff3b1f, 2.8);
+        emberSpiral(ground, R, col, 20);
+        if (R >= 11) {
+          // 💥 대폭발: 원을 따라 레이저 기둥이 차례로 솟구침
+          const holder = new THREE.Group();
+          const fired = new Set();
+          FXHQ._add(holder, 0.6, (it) => {
+            for (let i = 0; i < 8; i++) {
+              if (fired.has(i) || it.t < i * 0.05) continue;
+              fired.add(i);
+              const a = (i / 8) * Math.PI * 2;
+              const p = ground.clone().add(new THREE.Vector3(Math.cos(a), 0, Math.sin(a)).multiplyScalar(R * 0.72));
+              laserPillar(p, 0.9, 26, col, 0.55);
+              scorch(p, 2.4, 0xff3b1f, 2.0);
+            }
+          });
+        }
+      } else {
+        energyDome(ground, R * 0.9, col, 0.4);
+        FXHQ.shockwave(ground, col, R);
+        emberSpiral(ground, R * 0.7, col, 8);
+        scorch(ground, R * 0.6, 0xff3b1f, 1.6);
       }
-      debris(ground.clone().addScaledVector(fwd, R * 0.6), 5 + R * 0.5, R * 0.6);
+    } else if (tg.patternType === 'sector') {
+      sectorWave(ground, yaw, R, Math.PI * 0.64, col, isBoss ? 0.5 : 0.4);
+      if (isBoss) {
+        [-0.24, 0, 0.24].forEach((o, i) => {
+          const p = ground.clone().add(new THREE.Vector3(Math.sin(yaw + o * Math.PI), 0, Math.cos(yaw + o * Math.PI)).multiplyScalar(R * 0.78));
+          laserPillar(p, 0.7, 18, col, 0.45);
+        });
+        scorch(ground.clone().addScaledVector(fwd, R * 0.45), R * 0.55, 0xff3b1f, 2.2);
+      }
+      emberSpiral(ground.clone().addScaledVector(fwd, R * 0.5), R * 0.5, col, isBoss ? 12 : 6);
     } else {
-      FXHQ.thrust(ground, yaw, col, R, 1.3);
-      for (let k = 0; k <= 8; k++) dust(ground.clone().addScaledVector(fwd, (k / 8) * R), 2, 1.4);
+      laserBeam(ground, yaw, R, isBoss ? 2.6 : 1.6, col, 0.55, 1, 1.3);
+      scorch(ground.clone().addScaledVector(fwd, R * 0.5), 1, 0xff5a1f, 2.2, { yaw, w: 1.4, l: R * 0.5 });
       const end = ground.clone().addScaledVector(fwd, R);
-      FXHQ.shockwave(end, col, 3.5);
-      debris(end, 6, 2.5);
+      energyDome(end, isBoss ? 4 : 2.5, col, 0.4);
+      FXHQ.shockwave(end, col, isBoss ? 4.5 : 3);
+      emberSpiral(end, 2, col, 8);
     }
 
-    // 가까이 있으면 화면 흔들림 / 큰 공격은 붉은 섬광
+    // 가까이 있으면 화면 흔들림 / 보스의 큰 공격은 붉은 섬광
     const d = Math.hypot(game.playerPos.x - c.x, game.playerPos.z - c.z);
     if (d < R * 1.6) {
-      game.camShake = Math.max(game.camShake || 0, isBoss ? 0.6 : 0.28);
-      if (isBoss && R >= 7 && typeof FXHQ.screenFlash === 'function') FXHQ.screenFlash(col, 0.16, 200);
+      game.camShake = Math.max(game.camShake || 0, isBoss ? 0.6 : 0.25);
+      if (isBoss && typeof FXHQ.screenFlash === 'function') FXHQ.screenFlash(col, R >= 7 ? 0.2 : 0.1, 220);
     }
-    // 착지 찌그러짐
     if (m && m.mesh) {
       const bs = m.baseScale || 1;
       m.mesh.scale.set(bs * 1.25, bs * 0.76, bs * 1.25);
       m.windupT = 0;
-      m.landT = 0.25;
     }
     return true;
+  }
+
+  // 장판이 일정 이상 차오르면 조준 연출 시작 (보스 원형·모든 직선 공격)
+  function updateCharges(game) {
+    (game.telegraphs || []).forEach(tg => {
+      if (tg.fxCharged || !tg.duration) return;
+      const m = tg.monster;
+      const isBoss = !!(m && (m.isBoss || m.isRaidBoss));
+      const wants = tg.patternType === 'line' || (isBoss && tg.patternType === 'circle');
+      if (!wants) { tg.fxCharged = true; return; }
+      const k = tg.progress / tg.duration;
+      if (k >= 0.5) {
+        tg.fxCharged = true;
+        chargeFx(tg, tg.duration - tg.progress);
+      }
+    });
   }
 
   // 매 프레임: 기 모으는 몬스터 연출 (main 몬스터 루프 이후 실행)
@@ -665,6 +951,7 @@ const POLISH = (() => {
   function update(game, dt) {
     POLISH._camera = game.camera;
     updateWindups(game, dt);
+    updateCharges(game);
     if (game.camera && game.playerPos) updateOccluders(game.camera, game.playerPos, dt);
     const t = game.clock ? game.clock.elapsedTime : 0;
     if (nearGrass && nearGrass.visible) {

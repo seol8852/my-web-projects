@@ -616,7 +616,8 @@ export class CoopManager {
     const g = this.game;
     const n = this.raidPlayerCount();
     const lv = (g && g.stats && g.stats.level) || 1;
-    const maxHp = Math.round((2600 + 1900 * n) * (1 + (lv - 1) * 0.06));
+    // 🔥 하드 난이도: 체력 약 3배 (인원·레벨에 비례)
+    const maxHp = Math.round((8000 + 6000 * n) * (1 + (lv - 1) * 0.08));
     const id = Date.now().toString(36);
     try {
       await set(this.path('raid/boss'), { x: RAID_CENTER.x, z: RAID_CENTER.z - 12, yaw: 0, hp: maxHp, ph: 1, t: this.now() });
@@ -938,7 +939,7 @@ export class CoopManager {
     // ---------------- 방장: 보스 AI ----------------
     if (R.finishing || R.resultSent) { m.mesh.position.set(m.pos.x, 0, m.pos.z); return; }
     const ratio = m.hp / m.maxHp;
-    const phase = ratio <= 0.2 ? 3 : ratio <= 0.55 ? 2 : 1;
+    const phase = ratio <= 0.3 ? 3 : ratio <= 0.65 ? 2 : 1;
     if (phase !== R.phase) {
       R.phase = phase;
       this.showRaidBanner(phase === 3 ? '🔥 광폭화!' : '⚡ 2페이즈 돌입!', phase === 3 ? '보스의 공격이 훨씬 빨라졌어요!' : '돌진과 대폭발 패턴이 추가돼요. 장판을 잘 피하세요!', '#f97316', 2200);
@@ -964,7 +965,7 @@ export class CoopManager {
           if (R.dash.go <= 0) R.dash = null;
         }
       } else if (dist > 10.5 && R.aiCd > 0.6 && !(m.windupT > 0)) {
-        m.pos.addScaledVector(dir.normalize(), dt * (phase === 3 ? 6.5 : 5.0));
+        m.pos.addScaledVector(dir.normalize(), dt * (phase === 3 ? 8.5 : phase === 2 ? 7.0 : 6.0));
       }
       // 성소 밖으로 나가지 않게
       const off = m.pos.clone().sub(RAID_CENTER).setY(0);
@@ -972,7 +973,7 @@ export class CoopManager {
 
       R.aiCd -= dt;
       if (R.aiCd <= 0) {
-        R.aiCd = phase === 3 ? 1.6 : phase === 2 ? 2.2 : 2.8;
+        R.aiCd = phase === 3 ? 1.05 : phase === 2 ? 1.45 : 1.9;
         this.bossAttack(m, best, alive, phase);
       }
     }
@@ -1000,31 +1001,67 @@ export class CoopManager {
   }
 
   bossAttack(m, target, alive, phase) {
+    const R = this.raid;
     const roll = Math.random();
     const mx = m.pos.x, mz = m.pos.z;
     const toT = target.pos.clone().sub(m.pos).setY(0);
     const yawT = Math.atan2(toT.x, toT.z);
-    const dmgMul = phase === 3 ? 1.25 : 1;
-    if (phase >= 2 && roll < 0.22) {
-      // 💥 대폭발: 보스 주변 넓은 원 (멀리 도망가거나 대시 무적으로 회피)
-      this.hostTelegraph('circle', mx, mz, 0, 13, 2.0, Math.round(38 * dmgMul));
-      this.raid.aiCd += 0.8;
-    } else if (phase >= 2 && roll < 0.45) {
-      // 🐗 돌진 레인 3줄
-      [-0.35, 0, 0.35].forEach(o => this.hostTelegraph('line', mx, mz, yawT + o, 24, 1.2, Math.round(26 * dmgMul)));
-      const dashTo = new THREE.Vector3(mx + Math.sin(yawT) * 16, 0, mz + Math.cos(yawT) * 16);
+    const dm = phase === 3 ? 1.5 : phase === 2 ? 1.25 : 1;   // 🔥 기본 데미지도 크게 상향
+    const D = v => Math.round(v * dm);
+    const T = (p, x, z, yaw, r, dur, d) => this.hostTelegraph(p, x, z, yaw, r, dur, d);
+
+    const slam = () => T('circle', mx, mz, 0, 9.5, 1.0, D(42));
+    const sweep = () => T('sector', mx, mz, yawT, 13, 0.8, D(38));
+    const targets = (dur = 1.15) => alive.forEach(p => {
+      T('circle', p.pos.x, p.pos.z, 0, 4.8, dur, D(32));
+      // 도망칠 방향을 예측한 2차 장판
+      const v = p.pos.clone().sub(RAID_CENTER).setY(0);
+      const ahead = p.pos.clone().add(v.lengthSq() > 1 ? v.normalize().multiplyScalar(5) : new THREE.Vector3(5, 0, 0));
+      T('circle', ahead.x, ahead.z, 0, 4.2, dur + 0.45, D(28));
+    });
+    const meteors = (count, dmg = 30) => {
+      for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * 20;
+        T('circle', RAID_CENTER.x + Math.cos(a) * r, RAID_CENTER.z + Math.sin(a) * r, 0, 3.6, 0.9 + i * 0.16, D(dmg));
+      }
+    };
+    const cross = (offset = 0) => {
+      for (let i = 0; i < 4; i++) T('line', mx, mz, yawT + offset + i * Math.PI / 2, 26, 1.0, D(40));
+    };
+    const charge = () => {
+      [-0.32, 0, 0.32].forEach(o => T('line', mx, mz, yawT + o, 26, 0.95, D(40)));
+      const dashTo = new THREE.Vector3(mx + Math.sin(yawT) * 18, 0, mz + Math.cos(yawT) * 18);
       const off = dashTo.clone().sub(RAID_CENTER);
       if (off.length() > 17) dashTo.copy(RAID_CENTER).addScaledVector(off.normalize(), 17);
-      this.raid.dash = { wait: 1.2, go: 0.35, to: dashTo };
-    } else if (roll < 0.6) {
-      // 🎯 파티원 전원 발밑 장판
-      alive.forEach(p => this.hostTelegraph('circle', p.pos.x, p.pos.z, 0, 4.6, 1.5, Math.round(22 * dmgMul)));
-    } else if (roll < 0.8) {
-      // 🌀 앞쪽 휩쓸기
-      this.hostTelegraph('sector', mx, mz, yawT, 12, 1.05, Math.round(26 * dmgMul));
+      R.dash = { wait: 0.95, go: 0.3, to: dashTo };
+    };
+    const nova = () => {
+      // 💥 대폭발: 보스 주변 거대한 원 → 멀리 도망치거나 대시 무적으로만 회피
+      T('circle', mx, mz, 0, 15, 1.5, D(60));
+      R.aiCd += 0.6;
+    };
+
+    if (phase === 1) {
+      if (roll < 0.25) slam();
+      else if (roll < 0.5) sweep();
+      else if (roll < 0.75) targets();
+      else if (roll < 0.9) cross();
+      else { sweep(); targets(1.4); }
+    } else if (phase === 2) {
+      if (roll < 0.18) nova();
+      else if (roll < 0.36) charge();
+      else if (roll < 0.52) { cross(); meteors(4); }
+      else if (roll < 0.68) { targets(); sweep(); }
+      else if (roll < 0.84) meteors(8);
+      else { slam(); cross(Math.PI / 4); }
     } else {
-      // 👊 내려찍기
-      this.hostTelegraph('circle', mx, mz, 0, 8.5, 1.3, Math.round(30 * dmgMul));
+      // 🔥 광폭화: 모든 공격이 연계 + 메테오 동반
+      if (roll < 0.2) { nova(); meteors(5); }
+      else if (roll < 0.4) { charge(); targets(1.3); }
+      else if (roll < 0.6) { cross(); cross(Math.PI / 4); }
+      else if (roll < 0.8) { meteors(12, 34); sweep(); }
+      else { slam(); targets(); meteors(4); }
     }
   }
 
