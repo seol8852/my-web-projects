@@ -1007,7 +1007,7 @@ export class CoopManager {
     const toT = target.pos.clone().sub(m.pos).setY(0);
     const yawT = Math.atan2(toT.x, toT.z);
     const dm = phase === 3 ? 1.5 : phase === 2 ? 1.25 : 1;   // 🔥 기본 데미지도 크게 상향
-    const D = v => Math.round(v * dm);
+    const D = v => Math.round(v * dm * 1.4); // 🔥 보스 데미지 추가 상향 (x1.4)
     const T = (p, x, z, yaw, r, dur, d) => this.hostTelegraph(p, x, z, yaw, r, dur, d);
 
     const slam = () => T('circle', mx, mz, 0, 9.5, 1.0, D(42));
