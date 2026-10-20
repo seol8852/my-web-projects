@@ -148,6 +148,7 @@ export class FirebaseManager {
         toast(`☁️ [${displayNameOf(user)}]님 계정으로 클라우드에 연결되었습니다!`);
         await this.reconcileOnLogin(user);
         this.closeAuthModal();
+        this.maybePromptNickname(user);
       } else if (isInitialCheck) {
         // 첫 화면에 로그인/회원가입 모달 자동 표시
         setTimeout(() => {
@@ -183,6 +184,8 @@ export class FirebaseManager {
       const nameEl = document.getElementById('profile-name');
       if (emailEl) emailEl.textContent = user.email || 'Google 계정';
       if (nameEl) nameEl.textContent = name;
+      const nickInput = document.getElementById('profile-nick-input');
+      if (nickInput && document.activeElement !== nickInput) nickInput.value = name;
     } else {
       authStatusText.append('💾 ');
       status.style.color = '#f59e0b';
@@ -426,6 +429,63 @@ export class FirebaseManager {
     });
   }
 
+  nickFlagKey(uid) { return `chiikawa_nick_set_${uid}`; }
+
+  // 구글 계정은 실명이 그대로 보일 수 있으니 처음 한 번 게임 닉네임을 정하도록 안내
+  maybePromptNickname(user) {
+    try {
+      if (!user || localStorage.getItem(this.nickFlagKey(user.uid))) return;
+      const isGoogle = (user.providerData || []).some(p => p && p.providerId === 'google.com');
+      localStorage.setItem(this.nickFlagKey(user.uid), '1');
+      if (!isGoogle) return;
+      setTimeout(() => {
+        this.openAuthModal();
+        const input = document.getElementById('profile-nick-input');
+        if (input) { input.focus(); input.select(); }
+        toast('🏷️ 다른 사람에게 보일 게임 닉네임을 정해보세요! (내 계정 → 닉네임 변경)');
+      }, 600);
+    } catch (e) { /* 무시 */ }
+  }
+
+  // 🏷️ 닉네임 변경: 계정 프로필(displayName)에 저장 → 랭킹·협동 이름표에 반영
+  async changeNickname(raw) {
+    const user = auth.currentUser;
+    if (!user) {
+      toast('⚠️ 닉네임은 로그인한 계정에서만 바꿀 수 있어요.');
+      return false;
+    }
+    const cleaned = sanitizeName(raw);
+    const typed = String(raw || '').trim();
+    if (typed.length < 2 || cleaned.length < 2 || cleaned === '토벌자' && typed !== '토벌자') {
+      toast('⚠️ 닉네임은 2~12자로 입력해 주세요. (< > & " \' ` \\ 는 쓸 수 없어요)');
+      return false;
+    }
+    if (cleaned === displayNameOf(user)) {
+      toast('🏷️ 지금 쓰고 있는 닉네임과 같아요.');
+      return false;
+    }
+    const now = Date.now();
+    if (this._nickChangedAt && now - this._nickChangedAt < 5000) {
+      toast('⏳ 잠시 후 다시 바꿔 주세요.');
+      return false;
+    }
+    this._nickChangedAt = now;
+    try {
+      await updateProfile(user, { displayName: cleaned });
+      try { localStorage.setItem(this.nickFlagKey(user.uid), '1'); } catch (e) {}
+      this.updateAuthUI(user);
+      this.dirty = true;
+      await this.flush(true); // 랭킹 이름 즉시 갱신
+      if (window.coop && typeof window.coop.reRegister === 'function') window.coop.reRegister();
+      toast(`🏷️ 닉네임이 [${cleaned}](으)로 바뀌었어요!`);
+      return true;
+    } catch (err) {
+      console.error('닉네임 변경 실패:', err);
+      toast('⚠️ 닉네임을 바꾸지 못했어요. 네트워크를 확인하고 다시 시도해 주세요.');
+      return false;
+    }
+  }
+
   openAuthModal() {
     const modal = document.getElementById('auth-modal');
     if (modal) modal.classList.add('visible');
@@ -460,6 +520,15 @@ window.submitAuthForm = mode => {
     if (!email || pw.length < 6) return toast('⚠️ 유효한 이메일과 6자리 이상 비밀번호를 입력해주세요.');
     window.firebaseManager && window.firebaseManager.registerWithEmail(email, pw, nick);
   }
+};
+
+window.saveNickname = async () => {
+  const input = document.getElementById('profile-nick-input');
+  if (!input || !window.firebaseManager) return;
+  const btn = document.getElementById('profile-nick-btn');
+  if (btn) btn.disabled = true;
+  await window.firebaseManager.changeNickname(input.value);
+  if (btn) btn.disabled = false;
 };
 
 window.backupNowToCloud = async () => {

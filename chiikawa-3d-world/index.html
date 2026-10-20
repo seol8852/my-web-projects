@@ -6,7 +6,7 @@
   <title>치이카와 3D 오픈월드 타운: 제초 & 토벌 빌리지 | Chiikawa 3D World</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261020_10">
+  <link rel="stylesheet" href="css/style.css?v=20261020_11">
 </head>
 <body>
 
@@ -530,6 +530,15 @@
           <div style="font-size:12.5px; color:#64748b;" id="profile-email">user@gmail.com</div>
         </div>
 
+        <div class="nick-edit-box">
+          <label for="profile-nick-input">🏷️ 게임 닉네임 <span>(2~12자)</span></label>
+          <div class="nick-row">
+            <input type="text" id="profile-nick-input" maxlength="12" placeholder="새 닉네임" autocomplete="off" onkeydown="if (event.key === 'Enter') { event.preventDefault(); window.saveNickname && window.saveNickname(); }">
+            <button type="button" id="profile-nick-btn" onclick="window.saveNickname && window.saveNickname()">변경</button>
+          </div>
+          <div class="nick-hint">랭킹과 협동 플레이에서 다른 사람에게 보이는 이름이에요.</div>
+        </div>
+
         <button type="button" class="btn-start-adventure" style="width:100%; justify-content:center; font-size:16px; margin-bottom:10px;" onclick="window.firebaseManager && window.firebaseManager.closeAuthModal()">
           🎮 내 계정으로 바로 모험 시작하기!
         </button>
@@ -556,7 +565,7 @@
         </div>
 
         <div style="display:flex; flex-direction:column; gap:8px; text-align:left;">
-          <input type="text" id="auth-nickname-input" maxlength="12" placeholder="닉네임 (신규 가입 시에만 입력, 12자 이내)" style="padding:11px 14px; border:1.8px solid #cbd5e1; border-radius:12px; font-size:13.5px; outline:none;">
+          <input type="text" id="auth-nickname-input" maxlength="12" placeholder="닉네임 (12자 이내, 나중에 내 계정에서 변경 가능)" style="padding:11px 14px; border:1.8px solid #cbd5e1; border-radius:12px; font-size:13.5px; outline:none;">
           <input type="email" id="auth-email-input" placeholder="이메일 주소" style="padding:11px 14px; border:1.8px solid #cbd5e1; border-radius:12px; font-size:13.5px; outline:none;">
           <input type="password" id="auth-password-input" placeholder="비밀번호 (6자리 이상)" style="padding:11px 14px; border:1.8px solid #cbd5e1; border-radius:12px; font-size:13.5px; outline:none;">
 
@@ -601,20 +610,20 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-  <script src="js/sound.js?v=20261020_10"></script>
-  <script src="js/models3d.js?v=20261020_10"></script>
-  <script src="js/world_hq.js?v=20261020_10"></script>
-  <script src="js/fx_hq.js?v=20261020_10"></script>
-  <script src="js/polish_hq.js?v=20261020_10"></script>
-  <script src="js/skills_hq.js?v=20261020_10"></script>
-  <script src="js/world_extra.js?v=20261020_10"></script>
-  <script src="js/minigames.js?v=20261020_10"></script>
-  <script src="js/main.js?v=20261020_10"></script>
+  <script src="js/sound.js?v=20261020_11"></script>
+  <script src="js/models3d.js?v=20261020_11"></script>
+  <script src="js/world_hq.js?v=20261020_11"></script>
+  <script src="js/fx_hq.js?v=20261020_11"></script>
+  <script src="js/polish_hq.js?v=20261020_11"></script>
+  <script src="js/skills_hq.js?v=20261020_11"></script>
+  <script src="js/world_extra.js?v=20261020_11"></script>
+  <script src="js/minigames.js?v=20261020_11"></script>
+  <script src="js/main.js?v=20261020_11"></script>
 
   <!-- Firebase Auth Module -->
   <script type="module">
-    import { FirebaseManager } from './js/auth.js?v=20261020_10';
-    import { CoopManager } from './js/coop.js?v=20261020_10';
+    import { FirebaseManager } from './js/auth.js?v=20261020_11';
+    import { CoopManager } from './js/coop.js?v=20261020_11';
     window.firebaseManager = new FirebaseManager(window.gameApp);
     const startCoop = () => { try { window.coop = new CoopManager(); } catch (e) { console.error('협동 초기화 실패:', e); } };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startCoop); else startCoop();
