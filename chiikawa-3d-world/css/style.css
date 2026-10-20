@@ -2177,3 +2177,26 @@ body.hud-compact .skill-sq-btn { width: 50px; height: 48px; }
   100% { opacity: 0; transform: translateX(-50%) translateY(-6px); }
 }
 body.raid-mode #skill-cast-banner { bottom: 120px; }
+
+
+/* 🧪 HP 물약 버튼 / 궁극기 쿨타임 */
+.skill-sq-btn.potion-btn {
+  border-color: #86efac;
+  background: linear-gradient(160deg, #ffffff, #dcfce7);
+}
+.skill-sq-btn.potion-btn .skill-sq-key { color: #16a34a; }
+.skill-sq-btn.potion-btn.empty .skill-sq-icon { filter: grayscale(1); opacity: 0.45; }
+.skill-sq-btn.potion-btn.cooling { opacity: 0.7; }
+.skill-slot-btn.special-skill { overflow: hidden; }
+.skill-slot-btn.special-skill .ult-cd {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: auto;
+  height: 100%;
+  width: 0%;
+}
+.skill-slot-btn.special-skill.cooling .skill-icon,
+.skill-slot-btn.special-skill.cooling .skill-text-col { opacity: 0.55; }
+.skill-slot-btn.special-skill .skill-cd-num { font-size: 20px; }
+.skill-slot-btn.special-skill.ready-pop { animation: skillReadyPop 0.45s ease-out; }

@@ -580,12 +580,12 @@ export class CoopManager {
       // 이름표 + 기절/부활 표시
       const info = this.players[r.uid];
       const baseName = (r.uid === this.hostUid ? '👑 ' : '') + cleanName(info && info.name);
-      const rev = this.raid.revive[r.uid] || 0;
+      const canRev = r.downed && !g.isDowned && r.mesh.position.distanceTo(g.playerPos) < 4.5;
       if (r.downed && parts && parts.standeeGroup) {
         parts.standeeGroup.rotation.z = 1.35 * Math.sign(parts.standeeGroup.scale.x || 1);
         parts.standeeGroup.position.y = -0.6;
       }
-      r.label.textContent = r.downed ? (rev > 0 ? `💫 부활 중 ${Math.min(100, Math.round((rev / 2.5) * 100))}%` : `💫 ${baseName} (기절)`) : baseName;
+      r.label.textContent = r.downed ? (canRev ? (this.revivesLeft() > 0 ? `💫 [E] 눌러서 부활! (남은 ${this.revivesLeft()}회)` : '💫 부활 기회 없음') : `💫 ${baseName} (기절)`) : baseName;
       r.label.classList.toggle('downed', !!r.downed);
 
       // 이름표
@@ -745,7 +745,7 @@ export class CoopManager {
     g.monsters.push(m);
     R.boss = m;
     g.updateBattleStageHud();
-    this.showRaidBanner('🐉 협동 레이드 시작!', '거대 아노코를 함께 쓰러뜨리세요! 쓰러진 동료 옆에 서 있으면 부활시킬 수 있어요.', '#f97316');
+    this.showRaidBanner('🐉 협동 레이드 시작!', '거대 아노코를 함께 쓰러뜨리세요! 쓰러진 동료에게 가서 [E]를 누르면 부활! (팀 전체 5회)', '#f97316');
     if (typeof soundFx !== 'undefined') soundFx.playFanfare();
     if (typeof FXHQ !== 'undefined') FXHQ.shockwave(new THREE.Vector3(pos.x, 0, pos.z), 0xef4444, 14);
     this.sendState(true);
@@ -832,7 +832,7 @@ export class CoopManager {
     if (!R.active || !m || !m.isRaidBoss) return;
     m.stunTimer = 0;
     if (!this.isHost()) {
-      this.sendEvent('rdmg', { a: Math.min(5000, Math.round(amt)), rid: R.id });
+      this.sendEvent('rdmg', { a: Math.min(50000, Math.round(amt)), rid: R.id });
     }
   }
 
@@ -845,7 +845,8 @@ export class CoopManager {
     g.attackTimer = 0;
     g.updateHud();
     this.showBubble(g.playerPos, '💫 기절!', 2.5, true);
-    toast('💫 쓰러졌어요! 동료가 옆에 와서 2.5초 동안 서 있으면 부활해요.');
+    const left = this.revivesLeft();
+    toast(left > 0 ? `💫 쓰러졌어요! 동료가 옆에 와서 [E]를 누르면 부활해요. (남은 부활 ${left}회)` : '💫 쓰러졌어요… 부활 기회(5회)를 모두 사용했어요.');
     this.sendState(true);
   }
 
@@ -867,6 +868,7 @@ export class CoopManager {
     const R = this.raid;
     // 파티 전투의 부활 이벤트
     if (ev.type === 'rrev' && ev.rid === 'party') {
+      this.countRevive(ev.n);
       if (ev.to === this.uid) this.reviveLocal();
       return true;
     }
@@ -877,12 +879,13 @@ export class CoopManager {
     }
     if (ev.type === 'rdmg') {
       if (this.isHost() && R.boss) {
-        R.boss.hp = Math.max(0, R.boss.hp - Math.max(0, Math.min(5000, ev.a || 0)));
+        R.boss.hp = Math.max(0, R.boss.hp - Math.max(0, Math.min(50000, ev.a || 0)));
         if (R.boss.mesh.userData.flashHit) R.boss.mesh.userData.flashHit('body');
       }
       return true;
     }
     if (ev.type === 'rrev') {
+      this.countRevive(ev.n);
       if (ev.to === this.uid) this.reviveLocal();
       return true;
     }
@@ -1073,27 +1076,63 @@ export class CoopManager {
     }
   }
 
-  // 부활 진행 (내가 살아있고, 쓰러진 동료 옆에 서 있으면)
-  updateRevive(dt) {
+  // 부활 횟수: 레이드/파티 전투 한 판마다 팀 전체 합산 5회
+  reviveKey() {
+    if (this.raid.active) return 'raid:' + this.raid.id;
+    return this.party ? 'party:' + this.party.id : 'none';
+  }
+  revivesLeft() {
+    const k = this.reviveKey();
+    if (this._revKey !== k) { this._revKey = k; this._revUsed = 0; }
+    return Math.max(0, 5 - this._revUsed);
+  }
+  // id: 부활 이벤트 고유값 (같은 이벤트가 두 번 들어와도 한 번만 계산)
+  countRevive(id) {
+    this.revivesLeft();
+    if (!this._revSeen || this._revSeenKey !== this._revKey) { this._revSeen = new Set(); this._revSeenKey = this._revKey; }
+    if (id) {
+      if (this._revSeen.has(id)) return;
+      this._revSeen.add(id);
+    }
+    this._revUsed++;
+  }
+  nearestDownedRemote(maxD = 4.5) {
+    const g = this.game;
+    const myArea = this.area();
+    let best = null;
+    let bd = maxD;
+    this.remotes.forEach(r => {
+      if (r.area !== myArea || !r.downed || !r.hasPos) return;
+      const d = r.mesh.position.distanceTo(g.playerPos);
+      if (d < bd) { bd = d; best = r; }
+    });
+    return best;
+  }
+  // [E] 쓰러진 동료 즉시 부활 (처리했으면 true)
+  tryReviveNearby() {
     const g = this.game;
     const R = this.raid;
-    if (!(R.active || g.partyRole) || g.isDowned) return;
-    const myArea = this.area();
-    this.remotes.forEach(r => {
-      if (r.area !== myArea || !r.downed) { delete R.revive[r.uid]; return; }
-      const d = r.mesh.position.distanceTo(g.playerPos);
-      if (d < 3.8) {
-        R.revive[r.uid] = (R.revive[r.uid] || 0) + dt;
-        if (R.revive[r.uid] >= 2.5) {
-          R.revive[r.uid] = 0;
-          this.sendEvent('rrev', { to: r.uid, rid: R.active ? R.id : 'party' });
-          r.downed = false;
-        }
-      } else {
-        R.revive[r.uid] = 0;
-      }
-    });
+    if (!g || g.isDowned || !(R.active || g.partyRole)) return false;
+    const r = this.nearestDownedRemote(4.5);
+    if (!r) return false;
+    if (this.revivesLeft() <= 0) {
+      toast('💫 부활 기회(팀 전체 5회)를 모두 사용했어요!');
+      return true;
+    }
+    const n = Math.random().toString(36).slice(2, 10);
+    this.countRevive(n);
+    this.sendEvent('rrev', { to: r.uid, rid: R.active ? R.id : 'party', n });
+    r.downed = false;
+    if (typeof FXHQ !== 'undefined') {
+      FXHQ.burst(r.mesh.position.clone().add(new THREE.Vector3(0, 2, 0)), 0x86efac, 22);
+      FXHQ.shockwave(r.mesh.position.clone().setY(0), 0x86efac, 4);
+    }
+    if (typeof soundFx !== 'undefined') soundFx.playFanfare();
+    this.showBubble(r.mesh.position, '✨ 부활!', 2, true);
+    toast(`✨ 동료를 부활시켰어요! (남은 부활 ${this.revivesLeft()}회)`);
+    return true;
   }
+  updateRevive() {}
 
   decorateRaidHud() {
     const R = this.raid;
@@ -1105,7 +1144,7 @@ export class CoopManager {
     const distTxtEl = document.getElementById('battle-dist-txt');
     const progFillEl = document.getElementById('battle-progress-fill');
     const remainEl = document.getElementById('battle-stage-remain');
-    if (secTxtEl) secTxtEl.innerText = `👥 파티 ${members.length}명${down ? ` · 💫 쓰러진 동료 ${down}명 (옆에 서 있으면 부활)` : ' · 장판을 피하고 등 뒤를 노리세요!'}`;
+    if (secTxtEl) secTxtEl.innerText = `👥 파티 ${members.length}명${down ? ` · 💫 쓰러진 동료 ${down}명 (가서 [E]로 부활 · 남은 ${this.revivesLeft()}회)` : ' · 장판을 피하고 등 뒤를 노리세요!'}`;
     const pct = R.boss ? Math.max(0, Math.round((1 - R.boss.hp / R.boss.maxHp) * 100)) : 0;
     if (distTxtEl) distTxtEl.innerText = `${R.phase >= 3 ? '🔥 광폭화' : R.phase === 2 ? '⚡ 2페이즈' : '1페이즈'} · ${pct}%`;
     if (progFillEl) progFillEl.style.width = `${Math.max(4, pct)}%`;
@@ -1407,7 +1446,7 @@ export class CoopManager {
   // 파티원 → 방장: 몬스터에게 준 데미지
   onPartyDamage(m, amt) {
     if (!m || !m.netId) return;
-    this.sendEvent('sdmg', { id: m.netId, a: Math.min(9999, Math.round(amt)), pid: this.party && this.party.id });
+    this.sendEvent('sdmg', { id: m.netId, a: Math.min(50000, Math.round(amt)), pid: this.party && this.party.id });
   }
 
   // 방장 → 파티원: 몬스터 공격 예고 장판
@@ -1422,7 +1461,7 @@ export class CoopManager {
     if (!g || !this.party || ev.pid !== this.party.id) return true;
     if (ev.type === 'sdmg' && g.partyRole === 'host') {
       const m = g.monsters.find(mm => mm.netId === ev.id && mm.alive);
-      if (m) g.damageMonsterPart(m, Math.max(0, Math.min(9999, ev.a || 0)), null, 'net', false);
+      if (m) g.damageMonsterPart(m, Math.max(0, Math.min(50000, ev.a || 0)), null, 'net', false);
     } else if (ev.type === 'stele' && g.partyRole === 'member') {
       const m = g.monsters.find(mm => mm.netId === ev.id);
       if (m && m.alive) g.spawnMonsterAttackTelegraph(m, ev.p, new THREE.Vector3(ev.x, 0, ev.z), ev.yaw || 0, ev.r, ev.d);
@@ -1555,7 +1594,7 @@ export class CoopManager {
     // 🐉 레이드
     body.append(el('div', 'coop-divider', '협동 레이드'));
     if (this.raid.active) {
-      body.append(el('div', 'coop-note', '🐉 거대 아노코 레이드 진행 중! 장판을 피하고, 쓰러진 동료 옆에 서서 부활시켜 주세요.'));
+      body.append(el('div', 'coop-note', '🐉 거대 아노코 레이드 진행 중! 장판을 피하고, 쓰러진 동료에게 가서 [E]로 부활시켜 주세요. (팀 전체 5회)'));
       if (this.isHost()) body.append(btn('🏳️ 레이드 종료 (방장)', 'raidstop', 'choice-btn coop-leave'));
     } else if (this.isHost()) {
       body.append(btn(`🐉 거대 아노코 레이드 시작 (${ids.length}명)`, 'raid', 'choice-btn coop-raid'));

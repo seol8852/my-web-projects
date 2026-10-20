@@ -514,11 +514,91 @@ const SKILLS = (() => {
     return n;
   }
   const d2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+
+  // ------------------------------------------------------------------
+  // 🎯 스킬 범위 표시 (바닥 영역 데칼) — 실제 판정과 같은 크기
+  // ------------------------------------------------------------------
+  const RANGE = 1.4; // 스킬 판정 범위 배율
+  const ZONE_VS = `
+    varying vec2 vL;
+    void main() { vL = position.xz; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+  const ZONE_FS = `
+    uniform vec3 uColor; uniform float uT; uniform float uFade; uniform float uType;
+    uniform float uR; uniform float uArc; uniform float uW; uniform float uLen;
+    varying vec2 vL;
+    void main() {
+      float d; // 영역 경계까지의 부호 거리 (안쪽 음수)
+      if (uType < 0.5) {
+        d = length(vL) - uR;
+      } else if (uType < 1.5) {
+        float r = length(vL);
+        float a = abs(atan(vL.x, vL.y));
+        float dr = r - uR;
+        float da = (a - uArc) * max(r, 0.001);
+        d = max(dr, da);
+      } else {
+        float dx = abs(vL.x) - uW * 0.5;
+        float dz = abs(vL.y - uLen * 0.5) - uLen * 0.5;
+        d = max(dx, dz);
+      }
+      if (d > 0.25) discard;
+      float edge = smoothstep(0.25, 0.0, abs(d + 0.12));
+      float inside = step(d, 0.0);
+      float stripes = 0.5 + 0.5 * sin((vL.x + vL.y) * 2.2 - uT * 6.0);
+      float a = (edge * 0.95 + inside * (0.13 + stripes * 0.07)) * uFade;
+      vec3 col = mix(uColor, vec3(1.0), edge * 0.45);
+      gl_FragColor = vec4(col * a, a);
+    }`;
+  // area: { t:'circle'|'cone'|'line', R, arc, w, len }  (이미 배율 적용된 값)
+  function makeZone(area, color) {
+    let geo;
+    const pad = 0.6;
+    if (area.t === 'line') {
+      geo = new THREE.PlaneGeometry(area.w + pad, area.len + pad);
+    } else {
+      geo = new THREE.PlaneGeometry((area.R + pad) * 2, (area.R + pad) * 2);
+    }
+    geo.rotateX(-Math.PI / 2);
+    if (area.t === 'line') geo.translate(0, 0, area.len / 2);
+    const m = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: C(color) }, uT: { value: 0 }, uFade: { value: 1 },
+        uType: { value: area.t === 'circle' ? 0 : area.t === 'cone' ? 1 : 2 },
+        uR: { value: area.R || 1 }, uArc: { value: area.arc || 0.5 }, uW: { value: area.w || 1 }, uLen: { value: area.len || 1 }
+      },
+      vertexShader: ZONE_VS, fragmentShader: ZONE_FS,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+    });
+    const mesh = new THREE.Mesh(geo, m);
+    mesh.renderOrder = 3;
+    mesh.userData.m = m;
+    return mesh;
+  }
+  function zoneDecal(ctx, area, pos, yaw, life = 0.42) {
+    if (!hasFx() || !ctx) return;
+    const tnow = now();
+    if (ctx._decalT && tnow - ctx._decalT < 0.09 && !area.force) return;
+    ctx._decalT = tnow;
+    const mesh = makeZone(area, ctx.color);
+    mesh.position.set(pos.x, 0.2, pos.z);
+    mesh.rotation.y = yaw || 0;
+    const m = mesh.userData.m;
+    FXHQ._add(mesh, life, (it, dt, k) => {
+      m.uniforms.uT.value = it.t;
+      m.uniforms.uFade.value = (ctx.local ? 1 : 0.55) * (k < 0.6 ? 1 : (1 - k) / 0.4);
+    });
+  }
+  function yawOf(dir) { return Math.atan2(dir.x, dir.z); }
+
   function hitCircle(ctx, c, R, mult, opts = {}) {
+    R *= RANGE;
+    if (!opts.noDecal) zoneDecal(ctx, { t: 'circle', R }, c, 0);
     return dealHits(ctx, (p, br) => d2(p, c) <= R + br * 0.6, mult, Object.assign({ center: c }, opts));
   }
   function hitLine(ctx, from, dir, len, width, mult, opts = {}) {
+    len *= RANGE; width *= RANGE;
     const f = dir.clone().setY(0).normalize();
+    if (!opts.noDecal) zoneDecal(ctx, { t: 'line', len, w: width }, from, yawOf(f));
     return dealHits(ctx, (p, br) => {
       const dx = p.x - from.x, dz = p.z - from.z;
       const along = dx * f.x + dz * f.z;
@@ -528,6 +608,8 @@ const SKILLS = (() => {
     }, mult, Object.assign({ knockDir: opts.knockDir || f, center: from }, opts));
   }
   function hitCone(ctx, from, yaw, R, halfArc, mult, opts = {}) {
+    R *= RANGE;
+    if (!opts.noDecal) zoneDecal(ctx, { t: 'cone', R, arc: halfArc }, from, yaw);
     return dealHits(ctx, (p, br) => {
       const dx = p.x - from.x, dz = p.z - from.z;
       const dist = Math.hypot(dx, dz);
@@ -1435,6 +1517,63 @@ const SKILLS = (() => {
     ]
   };
 
+  // 스킬별 대표 범위 (미리보기용, RANGE 배율 적용 전 값) — at:'target'은 가장 가까운 적 위치
+  const AREAS = {
+    chiikawa: [{ t: 'line', len: 11, w: 3.2 }, { t: 'circle', R: 5.5 }, { t: 'circle', R: 6.5, at: 'target' }],
+    hachiware: [{ t: 'line', len: 13.5, w: 4.6 }, { t: 'cone', R: 11.5, arc: 0.6 }, { t: 'circle', R: 7 }],
+    usagi: [{ t: 'circle', R: 4.4, at: 'target' }, { t: 'cone', R: 6, arc: 0.8 }, { t: 'circle', R: 6, at: 'target' }],
+    momonga: [{ t: 'line', len: 16, w: 2.4 }, { t: 'line', len: 9, w: 4.6 }, { t: 'circle', R: 8 }],
+    kurimanju: [{ t: 'cone', R: 8.5, arc: 0.5 }, { t: 'line', len: 12.2, w: 3.9 }, { t: 'line', len: 11, w: 4.3 }],
+    rakko: [{ t: 'line', len: 9.5, w: 2.8 }, { t: 'circle', R: 11.5 }, { t: 'circle', R: 9 }]
+  };
+  function areaFor(charKey, slot) {
+    const a = (AREAS[charKey] || AREAS.chiikawa)[slot - 1];
+    if (!a) return null;
+    return { t: a.t, R: (a.R || 0) * RANGE, arc: a.arc, w: (a.w || 0) * RANGE, len: (a.len || 0) * RANGE, at: a.at };
+  }
+  // 미리보기 기준 방향/위치 (가까운 적 자동 조준과 동일)
+  function aimInfo(app) {
+    const near = nearestMonster(app, app.playerPos, 14);
+    let yaw = app.playerYaw || 0;
+    if (near) {
+      const d = near.pos.clone().sub(app.playerPos);
+      if (Math.hypot(d.x, d.z) > 0.1) yaw = Math.atan2(d.x, d.z);
+    }
+    const fwd = V(Math.sin(yaw), 0, Math.cos(yaw));
+    const target = near ? near.pos.clone().setY(0) : app.playerPos.clone().setY(0).addScaledVector(fwd, 7);
+    return { yaw, target };
+  }
+
+  // 마우스를 스킬 버튼에 올리면 바닥에 범위 미리보기
+  let preview = null; // { slot, mesh, key }
+  function setPreview(app, slot) {
+    if (preview && preview.mesh) {
+      if (preview.mesh.parent) preview.mesh.parent.remove(preview.mesh);
+      preview.mesh.geometry.dispose();
+      preview.mesh.userData.m.dispose();
+    }
+    preview = null;
+    if (!slot || !app || !app.scene || !app.gameStarted) return;
+    const area = areaFor(app.activeCharKey, slot);
+    if (!area) return;
+    const cfg = CHAR_CONFIGS[app.activeCharKey] || {};
+    const mesh = makeZone(area, cfg.accentColor || 0xffffff);
+    app.scene.add(mesh);
+    preview = { slot, mesh, area, charKey: app.activeCharKey };
+  }
+  function updatePreview(app, dt) {
+    if (!preview) return;
+    if (preview.charKey !== app.activeCharKey || !app.gameStarted) { setPreview(app, null); return; }
+    const { yaw, target } = aimInfo(app);
+    const m = preview.mesh;
+    if (preview.area.at === 'target') m.position.set(target.x, 0.22, target.z);
+    else m.position.set(app.playerPos.x, 0.22, app.playerPos.z);
+    m.rotation.y = yaw;
+    const u = m.userData.m.uniforms;
+    u.uT.value += dt;
+    u.uFade.value = 0.75 + Math.sin(u.uT.value * 6) * 0.2;
+  }
+
   // ------------------------------------------------------------------
   // 실행부
   // ------------------------------------------------------------------
@@ -1513,6 +1652,13 @@ const SKILLS = (() => {
       if (ctx.target) { ev.tx = r2(ctx.target.x); ev.tz = r2(ctx.target.z); }
       try { window.coop.sendEvent('skl', ev); } catch (e) {}
     }
+    // 시전 순간 스킬 전체 범위를 바닥에 표시
+    const area = areaFor(charKey, slot);
+    if (area) {
+      const tpos = area.at === 'target' ? (ctx.target || aimInfo(app).target) : ctx.origin;
+      zoneDecal(ctx, Object.assign({ force: true }, area), tpos, ctx.yaw, Math.min(1.1, def.dur + 0.2));
+      ctx._decalT = 0;
+    }
     showSkillBanner(def, slot, ctx.color);
     updateHud(app, true);
     return c;
@@ -1533,6 +1679,9 @@ const SKILLS = (() => {
     });
     r.atkTimer = 0;
     r.skillAnim = { charKey: r.charKey, slot, dur: def.dur, cast: startCast(ctx, def, r) };
+    const area = areaFor(r.charKey, slot);
+    if (area) zoneDecal(ctx, Object.assign({ force: true }, area), area.at === 'target' && ctx.target ? ctx.target : ctx.origin, ctx.yaw, Math.min(1.1, def.dur + 0.2));
+    ctx._decalT = 0;
   }
 
   // 매 프레임 (main.updatePlayer에서 호출)
@@ -1562,6 +1711,7 @@ const SKILLS = (() => {
       }
       if (c.idx >= c.ev.length && c.t >= c.def.dur) casts.splice(i, 1);
     }
+    updatePreview(app, dt);
     for (let i = runners.length - 1; i >= 0; i--) {
       const r = runners[i];
       r.t += dt;
@@ -1623,7 +1773,49 @@ const SKILLS = (() => {
         if (ic) ic.textContent = d.icon;
         if (nm) nm.textContent = d.name;
         btn.title = `[${i + 1}] ${d.name} — ${d.desc} (재사용 ${d.cd}초)`;
+        if (!btn._pv) {
+          btn._pv = true;
+          const slot = i + 1;
+          btn.addEventListener('mouseenter', () => setPreview(window.gameApp, slot));
+          btn.addEventListener('mouseleave', () => setPreview(window.gameApp, null));
+        }
       });
+    }
+    // 궁극기 쿨타임 & HP 물약 개수
+    const ultBtn = document.getElementById('ult-btn');
+    if (ultBtn) {
+      const cd = app.skillCooldown > 0 ? app.skillCooldown : 0;
+      const key = cd > 0 ? `${Math.round((cd / (app.ultCooldownMax || 30)) * 100)}|${Math.ceil(cd)}` : 'ready';
+      if (force || ultBtn._k !== key) {
+        const was = ultBtn._k && ultBtn._k !== 'ready';
+        ultBtn._k = key;
+        const ov = ultBtn.querySelector('.skill-cd');
+        const num = ultBtn.querySelector('.skill-cd-num');
+        if (key === 'ready') {
+          if (ov) ov.style.width = '0%';
+          if (num) num.textContent = '';
+          ultBtn.classList.remove('cooling');
+          if (was) { ultBtn.classList.remove('ready-pop'); void ultBtn.offsetWidth; ultBtn.classList.add('ready-pop'); }
+        } else {
+          const [pct, txt] = key.split('|');
+          if (ov) ov.style.width = `${pct}%`;
+          if (num) num.textContent = `${txt}초`;
+          ultBtn.classList.add('cooling');
+        }
+      }
+    }
+    const potBtn = document.getElementById('potion-btn');
+    if (potBtn && app.stats) {
+      const n = Math.max(0, app.stats.potions | 0);
+      const pk = `${n}|${app.potionCd > 0 ? 1 : 0}`;
+      if (force || potBtn._k !== pk) {
+        potBtn._k = pk;
+        const nm = potBtn.querySelector('.skill-sq-name');
+        if (nm) nm.textContent = `물약 ×${n}`;
+        potBtn.classList.toggle('empty', n <= 0);
+        potBtn.classList.toggle('cooling', app.potionCd > 0);
+        potBtn.title = `[R] HP 물약 — 최대 체력의 50% 회복 (보유 ${n}/5개 · 상점에서 구매)`;
+      }
     }
     const cds = app.skillCds || [0, 0, 0];
     const max = app.skillCdMax || [1, 1, 1];
@@ -1670,7 +1862,7 @@ const SKILLS = (() => {
   }
 
   return {
-    DEFS, cast, playRemote, update, applyPose, absorbHit, updateHud, getDefs,
+    DEFS, AREAS, RANGE, cast, playRemote, update, applyPose, absorbHit, updateHud, getDefs, setPreview,
     get activeCount() { return casts.length + runners.length; }
   };
 })();

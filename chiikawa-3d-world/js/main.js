@@ -49,6 +49,8 @@ class Chiikawa3DWorldApp {
     this.skillLock = 0;
     this.skillShieldTimer = 0;
     this.skillAnim = null;
+    this.potionCd = 0;
+    this.ultCooldownMax = 30;
     this.hitStopTimer = 0;
     this.camShake = 0;
 
@@ -75,6 +77,7 @@ class Chiikawa3DWorldApp {
       monstersDefeated: 0,
       puddingClimbed: 0,
       weaponLv: 1,
+      potions: 2,
       equippedHat: 'none',
       unlockedHats: ['none'],
       maxUnlockedStage: 1,
@@ -218,6 +221,7 @@ class Chiikawa3DWorldApp {
         if (typeof this.stats.highestClearedStage !== 'number') {
           this.stats.highestClearedStage = 0;
         }
+        this.stats.potions = Math.max(0, Math.min(5, Math.floor(Number(this.stats.potions) || 0)));
       }
       const savedChar = localStorage.getItem('chiikawa_3d_selected_char');
       if (savedChar && CHAR_CONFIGS[savedChar]) {
@@ -250,6 +254,7 @@ class Chiikawa3DWorldApp {
     if (!this.stats.weaponLv) this.stats.weaponLv = 1;
     if (!this.stats.maxUnlockedStage || this.stats.maxUnlockedStage < 1) this.stats.maxUnlockedStage = 1;
     if (typeof this.stats.highestClearedStage !== 'number') this.stats.highestClearedStage = 0;
+    this.stats.potions = Math.max(0, Math.min(5, Math.floor(Number(this.stats.potions) || 0)));
     this.stats.hp = Math.min(this.stats.hp || this.stats.maxHp, this.stats.maxHp);
     try {
       localStorage.setItem('chiikawa_3d_world_save', JSON.stringify(this.stats));
@@ -2574,6 +2579,35 @@ class Chiikawa3DWorldApp {
   }
 
   // 🌟 [Key Q] 6인 캐릭터별 고유 안무·물리 궤적·다단히트 타이밍이 완전히 차별화된 초화려 궁극기 발동!
+  // 🧪 HP 물약 [R] (최대 5개 보유, 상점에서 구매)
+  usePotion() {
+    if (!this.gameStarted || this.isDowned) return;
+    const s = this.stats;
+    s.potions = Math.max(0, Math.min(5, s.potions | 0));
+    if (s.potions <= 0) {
+      showToast('🧪 HP 물약이 없어요! 의상실·강화소(상점)에서 살 수 있어요.');
+      return;
+    }
+    if (this.potionCd > 0) return;
+    if (s.hp >= s.maxHp) {
+      showToast('❤️ 체력이 이미 가득 찼어요!');
+      return;
+    }
+    s.potions--;
+    const heal = Math.round(s.maxHp * 0.5);
+    s.hp = Math.min(s.maxHp, s.hp + heal);
+    this.potionCd = 1.0;
+    soundFx.playCoin();
+    const p = this.playerPos.clone().add(new THREE.Vector3(0, 2.2, 0));
+    if (typeof FXHQ !== 'undefined') {
+      FXHQ.burst(p, 0x4ade80, 18);
+      FXHQ.shockwave(this.playerPos.clone().setY(0), 0x86efac, 3.5);
+    }
+    this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 4.2, 0)), `🧪 +${heal} HP (남은 물약 ${s.potions})`, '#4ade80');
+    this.updateHud();
+    this.saveData();
+  }
+
   // 🎯 캐릭터별 액티브 스킬 [1] [2] [3] (skills_hq.js)
   triggerSkill(slot) {
     if (!this.gameStarted || this.isDowned) return;
@@ -2589,7 +2623,7 @@ class Chiikawa3DWorldApp {
       showToast(`⏳ 궁극기[Q] 재충전 중입니다! (${this.skillCooldown.toFixed(1)}초)`);
       return;
     }
-    this.skillCooldown = 6.0;
+    this.skillCooldown = this.ultCooldownMax || 30;
     this.camShake = 0.85;
     soundFx.playSkill();
 
@@ -2684,7 +2718,7 @@ class Chiikawa3DWorldApp {
       hitTimings = [160, 360, 560, 860];
     }
 
-    const perHitDmg = Math.round((pulseDmg * 3) / hitTimings.length);
+    const perHitDmg = Math.round((pulseDmg * 3 * 10) / hitTimings.length); // 궁극기 10배 위력
 
     hitTimings.forEach((delayMs, waveIdx) => {
       setTimeout(() => {
@@ -2940,6 +2974,8 @@ class Chiikawa3DWorldApp {
   }
 
   triggerInteract() {
+    // 협동: 쓰러진 동료 옆에서 E → 즉시 부활
+    if (window.coop && typeof window.coop.tryReviveNearby === 'function' && window.coop.tryReviveNearby()) return;
     if (!this.nearestInteractable) {
       this.triggerAttack();
       return;
@@ -3286,6 +3322,7 @@ class Chiikawa3DWorldApp {
     }
     if (this.skillCooldown > 0) this.skillCooldown -= dt;
     if (this.dashCooldown > 0) this.dashCooldown -= dt;
+    if (this.potionCd > 0) this.potionCd = Math.max(0, this.potionCd - dt);
     if (this.stats.ramenBuffTimer > 0) {
       this.stats.ramenBuffTimer = Math.max(0, this.stats.ramenBuffTimer - dt);
     }
@@ -4279,6 +4316,8 @@ class Chiikawa3DWorldApp {
         this.triggerAttack();
       } else if (normCode === 'KeyQ' || e.code === 'KeyQ' || e.code === 'KeyK' || e.code === 'KeyX') {
         this.triggerSpecialSkill();
+      } else if (e.code === 'KeyR' || e.code === 'Digit4' || e.code === 'Numpad4') {
+        this.usePotion();
       } else if (/^(Digit|Numpad)[123]$/.test(e.code)) {
         this.triggerSkill(Number(e.code.slice(-1)));
       } else if (e.code === 'KeyE' || e.code === 'KeyF') {

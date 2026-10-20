@@ -316,6 +316,28 @@ function renderCostumeShop() {
     `;
   }
 
+  // 1-2) HP 물약 (최대 5개)
+  const potionBox = document.getElementById('shop-potion-box');
+  if (potionBox) {
+    const n = Math.max(0, Math.min(5, stats.potions | 0));
+    const full = n >= 5;
+    potionBox.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:15px; font-weight:900; color:#1e293b;">
+            🧪 HP 물약 <span style="color:#16a34a;">${n} / 5개</span>
+          </div>
+          <div style="font-size:12px; color:#64748b; margin-top:3px;">
+            [R]키로 사용 · 최대 체력의 50% 즉시 회복! 레이드에 최대 5개까지 들고 갈 수 있어요.
+          </div>
+        </div>
+        <button type="button" class="shop-buy-btn" ${full ? 'disabled' : ''} onclick="buyHpPotion()">
+          ${full ? '🎒 가방이 가득 찼어요' : `🧪 1개 구매 (${POTION_PRICE}🪙)`}
+        </button>
+      </div>
+    `;
+  }
+
   // 2) 3D 머리 코스튬 그리드 렌더링
   const hatGrid = document.getElementById('shop-hat-grid');
   if (hatGrid) {
@@ -345,6 +367,29 @@ function renderCostumeShop() {
       `;
     }).join('');
   }
+}
+
+const POTION_PRICE = 120;
+function buyHpPotion() {
+  if (!window.gameApp) return;
+  const stats = window.gameApp.stats;
+  stats.potions = Math.max(0, Math.min(5, stats.potions | 0));
+  if (stats.potions >= 5) {
+    showToast('🎒 HP 물약은 최대 5개까지만 들고 다닐 수 있어요!');
+    return;
+  }
+  if (stats.coins < POTION_PRICE) {
+    soundFx.playAttack();
+    showToast(`🪙 코인이 부족합니다! (필요: ${POTION_PRICE} 코인)`);
+    return;
+  }
+  stats.coins -= POTION_PRICE;
+  stats.potions++;
+  soundFx.playCoin();
+  window.gameApp.saveData();
+  window.gameApp.updateHud();
+  renderCostumeShop();
+  showToast(`🧪 HP 물약 구매! (보유 ${stats.potions}/5개 · [R]키로 사용)`);
 }
 
 function upgradeSasumataWeapon() {
