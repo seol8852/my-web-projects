@@ -2200,3 +2200,36 @@ body.raid-mode #skill-cast-banner { bottom: 120px; }
 .skill-slot-btn.special-skill.cooling .skill-text-col { opacity: 0.55; }
 .skill-slot-btn.special-skill .skill-cd-num { font-size: 20px; }
 .skill-slot-btn.special-skill.ready-pop { animation: skillReadyPop 0.45s ease-out; }
+
+
+/* 💥 크리티컬 데미지 숫자 */
+.dmg-num.critical {
+  font-size: 46px;
+  color: #ffd23f;
+  -webkit-text-stroke: 6px #9a1a0a;
+  text-shadow: 0 0 14px rgba(255, 120, 20, 0.95), 0 0 28px rgba(255, 60, 0, 0.6), 0 4px 0 rgba(70, 14, 6, 0.5);
+  flex-direction: column;
+  gap: 0;
+  z-index: 23;
+  animation: dmgPopCritical 1.15s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+.dmg-num.critical .dmg-tag { display: none; }
+.dmg-num .dmg-crit-label {
+  order: -1;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #fff7d6;
+  text-shadow: 0 0 8px rgba(255, 80, 0, 0.9);
+  -webkit-text-stroke: 4px #b91c1c;
+  paint-order: stroke fill;
+  margin-bottom: -6px;
+}
+@keyframes dmgPopCritical {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(0.2) rotate(-10deg); }
+  9% { opacity: 1; transform: translate(-50%, -85%) scale(1.8) rotate(5deg); }
+  18% { transform: translate(-50%, -92%) scale(1.15) rotate(-2deg); }
+  26% { transform: translate(-50%, -95%) scale(1.25) rotate(0deg); }
+  75% { opacity: 1; transform: translate(-50%, -130%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -160%) scale(1); }
+}

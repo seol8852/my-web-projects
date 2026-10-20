@@ -2256,7 +2256,20 @@ class Chiikawa3DWorldApp {
       sparkColor = m.isArmored ? 0x94a3b8 : 0xf43f5e;
     }
 
-    const finalDmg = Math.max(1, Math.round(baseDmg * partMult));
+    // 💥 크리티컬: 낮은 확률(10%)로 데미지 2배 (파티원 전송 데미지는 이미 계산된 값이라 제외)
+    const isCritical = hitPart !== 'net' && Math.random() < (this.critChance || 0.1);
+    const finalDmg = Math.max(1, Math.round(baseDmg * partMult * (isCritical ? (this.critMult || 2) : 1)));
+    if (isCritical) {
+      const cp = m.pos.clone().add(new THREE.Vector3(0, hitHeightY, 0));
+      if (typeof FXHQ !== 'undefined') {
+        FXHQ.hitSpark(cp, 0xff7a1a, true);
+        FXHQ.hitSpark(cp, 0xffffff, true);
+        FXHQ.shockwave(cp, 0xffb020, 3.2);
+      }
+      this.camShake = Math.max(this.camShake || 0, 0.38);
+      this.hitStopTimer = Math.max(this.hitStopTimer || 0, 0.06);
+      if (typeof soundFx !== 'undefined' && soundFx.playCoin) soundFx.playCoin();
+    }
     m.hp -= finalDmg;
     if (m.isRaidBoss) {
       if (window.coop) window.coop.onRaidDamage(m, finalDmg);
@@ -2286,7 +2299,7 @@ class Chiikawa3DWorldApp {
       const partKey = isArmorBody ? 'armor' : (isBackAttack && hitPart !== 'head' ? 'back' : hitPart);
       const numColor = partKey === 'back' ? '#7dd3fc' : partKey === 'legs' ? '#bbf7d0' : null;
       POLISH.damageNumber(this.camera, exactHitWorldPos.clone().add(new THREE.Vector3(0, 0.8, 0)), finalDmg, {
-        crit: isCrit, part: partKey, color: numColor, weak: isArmorBody
+        crit: isCrit, part: partKey, color: isCritical ? null : numColor, weak: isArmorBody && !isCritical, critical: isCritical
       });
     } else {
       this.spawnFloatingText(

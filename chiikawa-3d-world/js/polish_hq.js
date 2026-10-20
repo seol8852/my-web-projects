@@ -156,7 +156,13 @@ const POLISH = (() => {
     const x = (v.x * 0.5 + 0.5) * window.innerWidth + (Math.random() - 0.5) * 40;
     const y = (-(v.y * 0.5) + 0.5) * window.innerHeight + (Math.random() - 0.5) * 16;
     const el = document.createElement('div');
-    el.className = 'dmg-num' + (opts.crit ? ' crit' : '') + (opts.player ? ' player' : '') + (opts.weak ? ' weak' : '');
+    el.className = 'dmg-num' + (opts.crit ? ' crit' : '') + (opts.critical ? ' critical' : '') + (opts.player ? ' player' : '') + (opts.weak ? ' weak' : '');
+    if (opts.critical) {
+      const lb = document.createElement('span');
+      lb.className = 'dmg-crit-label';
+      lb.textContent = 'CRITICAL!';
+      el.appendChild(lb);
+    }
     el.style.left = `${x}px`;
     el.style.top = `${y}px`;
     if (opts.color) el.style.setProperty('--dmg-color', opts.color);
@@ -171,7 +177,7 @@ const POLISH = (() => {
     n.textContent = opts.player ? `-${value}` : `${value}`;
     el.appendChild(n);
     document.body.appendChild(el);
-    setTimeout(() => el.remove(), 900);
+    setTimeout(() => el.remove(), opts.critical ? 1150 : 900);
   }
 
   // ------------------------------------------------------------------
