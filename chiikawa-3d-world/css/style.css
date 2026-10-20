@@ -2024,3 +2024,26 @@ body.raid-mode .battle-stage-hud {
   0% { opacity: 0; transform: translateX(-50%) scale(0.6); }
   100% { opacity: 1; transform: translateX(-50%) scale(1); }
 }
+
+
+/* 같은 방 친구가 사용 중인 캐릭터 */
+.lobby-char-card.taken {
+  position: relative;
+  opacity: 0.45;
+  filter: grayscale(0.7);
+  cursor: not-allowed;
+}
+.lobby-taken-badge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  background: #1e293b;
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 900;
+  padding: 3px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}

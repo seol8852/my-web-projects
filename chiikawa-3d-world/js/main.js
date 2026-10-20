@@ -269,8 +269,11 @@ class Chiikawa3DWorldApp {
     grid.innerHTML = Object.keys(CHAR_CONFIGS).map(key => {
       const c = CHAR_CONFIGS[key];
       const isSel = key === this.selectedCharInLobby;
+      const owner = window.coop && window.coop.charOwner ? window.coop.charOwner(key) : null;
+      const ownerName = owner ? String(owner.name || '친구').replace(/[<>&"'`]/g, '') : '';
       return `
-        <div class="lobby-char-card ${isSel ? 'selected' : ''}" onclick="gameApp.selectLobbyChar('${key}')">
+        <div class="lobby-char-card ${isSel ? 'selected' : ''} ${owner ? 'taken' : ''}" onclick="gameApp.selectLobbyChar('${key}')">
+          ${owner ? `<div class="lobby-taken-badge">👥 ${ownerName} 사용 중</div>` : ''}
           <div class="lobby-char-img-wrap">
             <img src="${c.portrait}" alt="${c.name}">
           </div>
@@ -290,12 +293,21 @@ class Chiikawa3DWorldApp {
 
   selectLobbyChar(charKey) {
     if (!CHAR_CONFIGS[charKey]) return;
+    if (window.coop && window.coop.isCharTaken && window.coop.isCharTaken(charKey)) {
+      soundFx.playAttack();
+      showToast('🙅 같은 방의 친구가 이미 이 캐릭터를 쓰고 있어요. 다른 캐릭터를 골라주세요!');
+      return;
+    }
     soundFx.playCoin();
     this.selectedCharInLobby = charKey;
     this.renderCharSelectCards();
   }
 
   startGameWithSelectedChar() {
+    if (window.coop && window.coop.isCharTaken && window.coop.isCharTaken(this.selectedCharInLobby || 'chiikawa')) {
+      showToast('🙅 같은 방의 친구가 이미 이 캐릭터를 쓰고 있어요. 다른 캐릭터를 골라주세요!');
+      return;
+    }
     this.clearAllInputKeys();
     soundFx.startBgm();
     soundFx.playFanfare();
@@ -313,6 +325,7 @@ class Chiikawa3DWorldApp {
     this.spawnTownNpcs();
     this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2, 0)), 0xff85a2, 24);
     showToast(`🌟 [${CHAR_CONFIGS[chosen].name}] 출격! 넓어진 치이카와 대륙을 탐험해보세요!`);
+    if (window.coop && window.coop.onCharChosen) window.coop.onCharChosen();
   }
 
   openCharSelectScreen() {
@@ -1371,6 +1384,9 @@ class Chiikawa3DWorldApp {
 
   // 현재 구역(Sector)의 특정 웨이브 몬스터들을 전방 진격로에 스폰 (기존 살아있는 몬스터 유지 가능!)
   spawnSectorWaveMonsters(monsterDefs, sectorLocalZ, isReinforcement = false) {
+    if (this.partyRole === 'member' && !this._forceSpawn) return;
+    const netSec = this.battleState.currentSectorIdx || 0;
+    const netWave = this.battleState.currentWaveIdx || 0;
     const cx = this.arenaCenter.x;
     const baseWorldZ = this.arenaCenter.z + sectorLocalZ;
 
@@ -1434,7 +1450,8 @@ class Chiikawa3DWorldApp {
         isWindingUp: false,
         slowTimer: 0,
         stunTimer: 0,
-        heightOffset: (def.type === 'anoko' ? 8.8 : 5.4) * scale
+        heightOffset: (def.type === 'anoko' ? 8.8 : 5.4) * scale,
+        netId: `${netSec}_${netWave}_${idx}`
       });
     });
   }
@@ -1470,13 +1487,14 @@ class Chiikawa3DWorldApp {
   }
 
   // ⚔️ 1 ~ 20단계 전진 돌파형 토벌 스테이지 시작! (5개 구역 릴레이 웨이브, 약 2분 대장정!)
-  startBattleStage(stageNum) {
+  startBattleStage(stageNum, opts = {}) {
     if (this.raidMode) {
       showToast('🐉 레이드 진행 중에는 다른 전투에 입장할 수 없어요.');
       return;
     }
+    if (!opts.party && window.coop && window.coop.blockSoloStage && window.coop.blockSoloStage()) return;
     const maxUnlocked = this.stats.maxUnlockedStage || 1;
-    if (stageNum > maxUnlocked) {
+    if (!opts.party && stageNum > maxUnlocked) {
       showToast(`🔒 이전 단계인 ${stageNum - 1}단계를 먼저 클리어해야 입장할 수 있습니다!`);
       return;
     }
@@ -1519,9 +1537,12 @@ class Chiikawa3DWorldApp {
       this.playerMesh.position.copy(this.playerPos);
     }
 
-    // 제 1구역 첫 번째 웨이브 즉시 스폰!
+    // 제 1구역 첫 번째 웨이브 즉시 스폰! (파티: 방장만 스폰, 파티원은 방장 상태를 받아 생성)
+    this.partyRole = window.coop && window.coop.partyRoleFor ? window.coop.partyRoleFor(opts) : null;
+    this.isDowned = false;
     const firstSec = stData.sectors[0];
     this.spawnSectorWaveMonsters(firstSec.waves[0], firstSec.localZ, false);
+    if (window.coop && window.coop.onStageStarted) window.coop.onStageStarted(opts);
     this.updateArenaBarrierVisual();
     this.updateBattleStageHud();
     this.updateHud();
@@ -1531,11 +1552,12 @@ class Chiikawa3DWorldApp {
   }
 
   // 💎 스페셜 성장 던전 시작 (경험치 던전 / 재화 골드 던전도 5구역 전진 돌파형으로 진행!)
-  startSpecialDungeon(dungeonType = 'exp', tier = 1) {
+  startSpecialDungeon(dungeonType = 'exp', tier = 1, opts = {}) {
     if (this.raidMode) {
       showToast('🐉 레이드 진행 중에는 다른 전투에 입장할 수 없어요.');
       return;
     }
+    if (!opts.party && window.coop && window.coop.blockSoloStage && window.coop.blockSoloStage()) return;
     closeStageSelectModal();
     closeStageResultModal();
     this.clearAllInputKeys();
@@ -1626,8 +1648,11 @@ class Chiikawa3DWorldApp {
       this.playerMesh.position.copy(this.playerPos);
     }
 
+    this.partyRole = window.coop && window.coop.partyRoleFor ? window.coop.partyRoleFor(opts) : null;
+    this.isDowned = false;
     const firstSec = sectors[0];
     this.spawnSectorWaveMonsters(firstSec.waves[0], firstSec.localZ, false);
+    if (window.coop && window.coop.onStageStarted) window.coop.onStageStarted(opts);
     this.updateArenaBarrierVisual();
     this.updateBattleStageHud();
     this.updateHud();
@@ -1656,6 +1681,9 @@ class Chiikawa3DWorldApp {
       window.coop.exitRaid(false);
       return;
     }
+    if (this.partyRole && window.coop) window.coop.onLeaveStage();
+    this.partyRole = null;
+    this.isDowned = false;
     closeStageResultModal();
     closeStageSelectModal();
     this.clearStageMonsters();
@@ -1800,6 +1828,7 @@ class Chiikawa3DWorldApp {
     }
 
     this.addReward(coinReward, expReward, 'stage_clear');
+    if (this.partyRole === 'host' && window.coop) window.coop.onHostStageClear();
     this.stats.hp = this.stats.maxHp;
     this.saveData(true);
     this.updateHud();
@@ -2176,7 +2205,13 @@ class Chiikawa3DWorldApp {
     let sparkColor = 0xf43f5e;
     let isCrit = false;
 
-    if (hitPart === 'head') {
+    if (hitPart === 'net') {
+      // 파티원이 보낸 확정 데미지 (방장에서만 실행)
+      partMult = 1.0;
+      hitHeightY = m.sizeH * 0.45;
+      sparkColor = 0xe2e8f0;
+      textColor = '#e2e8f0';
+    } else if (hitPart === 'head') {
       partMult = isBackAttack ? 1.7 : 1.5;
       hitHeightY = hurtParts ? hurtParts.head.hitY : m.sizeH * 0.78;
       badgeText = isBackAttack ? '🎯⚡약점+백어택!' : '🎯머리 약점!';
@@ -2215,6 +2250,9 @@ class Chiikawa3DWorldApp {
     if (m.isRaidBoss) {
       if (window.coop) window.coop.onRaidDamage(m, finalDmg);
       m.hp = Math.max(1, m.hp); // 실제 처치 판정은 방장이 함
+    } else if (this.partyRole === 'member' && m.netId) {
+      if (window.coop) window.coop.onPartyDamage(m, finalDmg);
+      m.hp = Math.max(1, m.hp); // 실제 처치 판정은 방장이 함
     }
 
     if (m.mesh && m.mesh.userData.flashHit) {
@@ -2249,7 +2287,7 @@ class Chiikawa3DWorldApp {
     const bs = m.baseScale || 1;
     m.mesh.scale.set(bs * 1.24, bs * 0.8, bs * 1.24);
 
-    if (m.hp <= 0 && !m.isRaidBoss) {
+    if (m.hp <= 0 && !m.isRaidBoss && !(this.partyRole === 'member' && m.netId)) {
       m.hp = 0;
       m.alive = false;
       m.isWindingUp = false;
@@ -2762,6 +2800,9 @@ class Chiikawa3DWorldApp {
     }
     this.scene.add(mesh);
 
+    if (this.partyRole === 'host' && window.coop && monster && monster.netId) {
+      window.coop.onHostTelegraph(monster, patternType, centerPos, yaw, reach, dmg);
+    }
     this.telegraphs.push({
       monster,
       patternType,
@@ -2867,7 +2908,7 @@ class Chiikawa3DWorldApp {
     this.updateHud();
 
     // 전투 스테이지/던전에서 HP가 0이 되면 광장으로 긴급 후퇴 및 체력 100% 회복!
-    if (this.raidMode) {
+    if (this.raidMode || (this.partyRole && this.battleState.active)) {
       if (this.stats.hp <= 0 && window.coop) window.coop.onLocalDowned();
     } else if (this.battleState.active && this.stats.hp <= 0) {
       this.returnToTown(true);
@@ -3380,7 +3421,7 @@ class Chiikawa3DWorldApp {
       const curSec = this.battleState.sectors[curSecIdx];
 
       // 1) 구역 교전 중 일정 시간(8.5초)마다 남은 증원 웨이브가 쉴 새 없이 전방에서 추가 돌격!
-      if (curSec && !this.battleState.waitingAdvance && this.battleState.currentWaveIdx + 1 < curSec.waves.length) {
+      if (this.partyRole !== 'member' && curSec && !this.battleState.waitingAdvance && this.battleState.currentWaveIdx + 1 < curSec.waves.length) {
         this.battleState.waveSpawnTimer -= dt;
         if (this.battleState.waveSpawnTimer <= 0) {
           this.battleState.currentWaveIdx++;
@@ -3395,9 +3436,10 @@ class Chiikawa3DWorldApp {
 
       // 2) 현재 구역을 클리어한 상태(waitingAdvance)에서 플레이어가 전방(다음 구역)으로 전진하면 즉시 다음 구역 개시!
       const localZ = this.playerPos.z - this.arenaCenter.z;
-      if (this.battleState.waitingAdvance && curSecIdx + 1 < this.battleState.sectors.length) {
+      if (this.partyRole !== 'member' && this.battleState.waitingAdvance && curSecIdx + 1 < this.battleState.sectors.length) {
         const nextSec = this.battleState.sectors[curSecIdx + 1];
-        if (localZ <= curSec.barrierLocalZ + 12) {
+        const advZ = this.partyRole === 'host' && window.coop ? Math.min(localZ, window.coop.partyMinLocalZ()) : localZ;
+        if (advZ <= curSec.barrierLocalZ + 12) {
           this.battleState.currentSectorIdx++;
           this.battleState.currentWaveIdx = 0;
           this.battleState.waitingAdvance = false;
@@ -3674,6 +3716,10 @@ class Chiikawa3DWorldApp {
         if (window.coop) window.coop.updateRaidBoss(m, dt);
         return;
       }
+      if (this.partyRole === 'member' && m.netId) {
+        if (window.coop) window.coop.updatePartyMonster(m, dt);
+        return;
+      }
 
       if (m.mesh.userData.weakPointMarker) {
         m.mesh.userData.weakPointMarker.visible = m === closestMonster;
@@ -3709,7 +3755,8 @@ class Chiikawa3DWorldApp {
       m.mesh.rotation.y = this.camYaw;
       if (m.atkCooldown > 0) m.atkCooldown -= dt;
 
-      const distToPlayer = m.pos.distanceTo(this.playerPos);
+      const tgtPos = this.partyRole === 'host' && window.coop ? window.coop.nearestPartyPos(m.pos) : this.playerPos;
+      const distToPlayer = m.pos.distanceTo(tgtPos);
       const isChasing = (this.battleState.active || distToPlayer < 19) && m.stunTimer <= 0;
 
       if (m.mesh.userData.updateMonsterMotion) {
@@ -3722,7 +3769,7 @@ class Chiikawa3DWorldApp {
       }
 
       if (isChasing) {
-        const dir = this.playerPos.clone().sub(m.pos);
+        const dir = tgtPos.clone().sub(m.pos);
         dir.y = 0;
         const dist = dir.length();
 

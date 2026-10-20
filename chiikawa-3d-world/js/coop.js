@@ -52,6 +52,9 @@ export class CoopManager {
     this.joinedAt = 0;
     this.busy = false;
     this.raid = { active: false, id: null, boss: null, net: null, phase: 1, revive: {}, finishing: false };
+    this.party = null;
+    this.pendingJoin = null;
+    this.pendingPlayers = null;
 
     this.buildUI();
     if (this.db) {
@@ -142,6 +145,18 @@ export class CoopManager {
         toast(`⚠️ 방이 가득 찼어요. (최대 ${MAX_PLAYERS}명)`);
         return;
       }
+      // 같은 캐릭터 금지: 겹치면 캐릭터를 다시 고른 뒤 자동 입장
+      const myChar = this.game.activeCharKey;
+      const clash = Object.entries(players).find(([id, p]) => id !== uid && p && p.charKey === myChar);
+      if (clash) {
+        const cfg = (typeof CHAR_CONFIGS !== 'undefined' && CHAR_CONFIGS[myChar]) || {};
+        this.pendingJoin = code;
+        this.pendingPlayers = players;
+        this.closeModal();
+        toast(`🙅 [${cfg.name || myChar}]는 ${cleanName(clash[1].name)}님이 쓰고 있어요. 다른 캐릭터를 고르면 바로 입장해요!`);
+        this.game.openCharSelectScreen();
+        return;
+      }
       await this.enterRoom(code);
       toast(`👥 [${code}] 방에 입장했어요!`);
     } catch (e) {
@@ -177,8 +192,8 @@ export class CoopManager {
     const hostRef = this.path('host');
     const eventsQ = query(this.path('events'), limitToLast(25));
 
-    this.listen(onChildAdded(playersRef, s => { this.players[s.key] = s.val(); this.syncRemote(s.key); this.renderModal(); }));
-    this.listen(onChildChanged(playersRef, s => { this.players[s.key] = s.val(); this.syncRemote(s.key, true); this.renderModal(); }));
+    this.listen(onChildAdded(playersRef, s => { this.players[s.key] = s.val(); this.syncRemote(s.key); this.checkDuplicateChar(); this.renderModal(); }));
+    this.listen(onChildChanged(playersRef, s => { this.players[s.key] = s.val(); this.syncRemote(s.key, true); this.checkDuplicateChar(); this.renderModal(); }));
     this.listen(onChildRemoved(playersRef, s => {
       const p = this.players[s.key];
       delete this.players[s.key];
@@ -194,10 +209,24 @@ export class CoopManager {
     }));
     this.listen(onChildAdded(stateRef, s => this.onRemoteState(s.key, s.val())));
     this.listen(onChildChanged(stateRef, s => this.onRemoteState(s.key, s.val())));
-    this.listen(onValue(hostRef, s => { this.hostUid = s.val(); this.checkHostMigration(); this.renderModal(); }));
+    this.listen(onValue(hostRef, s => {
+      this.hostUid = s.val();
+      this.checkHostMigration();
+      // 파티 전투 도중 방장이 되면 몬스터 진행을 이어받음
+      const g = this.game;
+      if (this.isHost() && g && g.partyRole === 'member' && this.party && g.battleState.active) {
+        g.partyRole = 'host';
+        const bs = g.battleState;
+        set(this.path('raid/pinfo'), { active: true, id: this.party.id, kind: bs.mode, num: bs.stageNum || 1, dtype: bs.dungeonType || null, tier: bs.dungeonTier || 1, result: null }).catch(() => {});
+        toast('👑 방장이 되어 파티 전투 진행을 이어받았어요.');
+      }
+      this.renderModal();
+    }));
     this.listen(onChildAdded(eventsQ, s => this.onEvent(s.val() || {})));
     this.listen(onValue(this.path('raid/info'), s => this.onRaidInfo(s.val())));
     this.listen(onValue(this.path('raid/boss'), s => this.onRaidBoss(s.val())));
+    this.listen(onValue(this.path('raid/pinfo'), s => this.onPartyInfo(s.val())));
+    this.listen(onValue(this.path('raid/pstate'), s => this.onPartyState(s.val())));
 
     this.renderModal();
     this.renderHudPill();
@@ -221,6 +250,12 @@ export class CoopManager {
   async leaveRoom(silent = false) {
     if (!this.room) return;
     if (this.raid.active || (this.game && this.game.raidMode)) this.exitRaid(true);
+    if (this.game && this.game.partyRole) {
+      // 방을 나가면 진행 중인 스테이지는 혼자 계속
+      if (this.game.partyRole === 'host' && this.party) set(this.path('raid/pinfo'), { active: false, id: this.party.id }).catch(() => {});
+      this.game.partyRole = null;
+      this.party = null;
+    }
     const code = this.room;
     const uid = this.uid;
     this.listeners.forEach(u => { try { u(); } catch (e) {} });
@@ -378,6 +413,7 @@ export class CoopManager {
   onEvent(ev) {
     if (!ev || !ev.type || ev.uid === this.uid) return;
     if ((ev.ts || 0) < this.joinedAt - 500) return; // 입장 전 이벤트는 무시
+    if (this.onPartyEvent(ev)) return;
     if (this.onRaidEvent(ev)) return;
     const r = this.remotes.get(ev.uid);
     const g = this.game;
@@ -483,6 +519,7 @@ export class CoopManager {
 
     const myArea = this.area();
     this.updateRevive(dt);
+    this.hostPartyTick(dt);
     if (this.raid.active) {
       this.raidHudT = (this.raidHudT || 0) + dt;
       if (this.raidHudT > 0.5) { this.raidHudT = 0; g.updateBattleStageHud(); }
@@ -565,6 +602,7 @@ export class CoopManager {
     const g = this.game;
     if (!g) return 'town';
     if (g.raidMode) return 'raid';
+    if (g.partyRole && g.battleState && g.battleState.active) return 'party';
     return g.battleState && g.battleState.active ? 'arena' : 'town';
   }
 
@@ -818,6 +856,11 @@ export class CoopManager {
   // 원격 이벤트 중 레이드 관련 처리 (true를 반환하면 처리 완료)
   onRaidEvent(ev) {
     const R = this.raid;
+    // 파티 전투의 부활 이벤트
+    if (ev.type === 'rrev' && ev.rid === 'party') {
+      if (ev.to === this.uid) this.reviveLocal();
+      return true;
+    }
     if (!R.active || ev.rid !== R.id) return ev.type === 'rtele' || ev.type === 'rdmg' || ev.type === 'rrev';
     if (ev.type === 'rtele') {
       if (ev.uid === this.hostUid) this.spawnRaidTelegraph(ev);
@@ -975,15 +1018,16 @@ export class CoopManager {
   updateRevive(dt) {
     const g = this.game;
     const R = this.raid;
-    if (!R.active || g.isDowned) return;
+    if (!(R.active || g.partyRole) || g.isDowned) return;
+    const myArea = this.area();
     this.remotes.forEach(r => {
-      if (r.area !== 'raid' || !r.downed) { delete R.revive[r.uid]; return; }
+      if (r.area !== myArea || !r.downed) { delete R.revive[r.uid]; return; }
       const d = r.mesh.position.distanceTo(g.playerPos);
       if (d < 3.8) {
         R.revive[r.uid] = (R.revive[r.uid] || 0) + dt;
         if (R.revive[r.uid] >= 2.5) {
           R.revive[r.uid] = 0;
-          this.sendEvent('rrev', { to: r.uid, rid: R.id });
+          this.sendEvent('rrev', { to: r.uid, rid: R.active ? R.id : 'party' });
           r.downed = false;
         }
       } else {
@@ -1022,6 +1066,309 @@ export class CoopManager {
     el.append(t, s);
     document.body.appendChild(el);
     setTimeout(() => el.remove(), ms);
+  }
+
+
+  // ==================================================================
+  // 👥 같은 캐릭터 금지
+  // ==================================================================
+  charOwner(key) {
+    const players = this.room ? this.players : (this.pendingJoin ? this.pendingPlayers || {} : {});
+    for (const [uid, p] of Object.entries(players)) {
+      if (uid !== (this.uid || (this.auth.currentUser && this.auth.currentUser.uid)) && p && p.charKey === key) return p;
+    }
+    return null;
+  }
+  isCharTaken(key) { return !!this.charOwner(key); }
+
+  // 캐릭터를 새로 고른 직후 (main.js startGameWithSelectedChar 끝에서 호출)
+  onCharChosen() {
+    if (this.pendingJoin) {
+      const code = this.pendingJoin;
+      this.pendingJoin = null;
+      this.pendingPlayers = null;
+      setTimeout(() => this.joinRoom(code), 300);
+    }
+  }
+
+  // 동시에 같은 캐릭터로 들어온 경우: 늦게 들어온 사람이 다시 고름
+  checkDuplicateChar() {
+    if (!this.room || !this.uid) return;
+    const me = this.players[this.uid];
+    if (!me) return;
+    const clash = Object.entries(this.players).find(([uid, p]) => uid !== this.uid && p.charKey === me.charKey && (p.joinedAt || 0) <= (me.joinedAt || 0));
+    if (!clash || this.dupNotified === me.charKey) return;
+    this.dupNotified = me.charKey;
+    const cfg = (typeof CHAR_CONFIGS !== 'undefined' && CHAR_CONFIGS[me.charKey]) || {};
+    toast(`🙅 ${cleanName(clash[1].name)}님이 이미 [${cfg.name || me.charKey}]를 쓰고 있어요. 다른 캐릭터를 골라주세요!`);
+    const g = this.game;
+    if (g && !g.battleState.active && !g.raidMode) g.openCharSelectScreen();
+  }
+
+  // ==================================================================
+  // ⚔️ 파티 전투 스테이지 (방장이 몬스터/웨이브/구역 진행 담당)
+  // ==================================================================
+  partyRoleFor(opts = {}) {
+    if (!this.room) return null;
+    if (opts.party) return 'member';
+    return this.isHost() ? 'host' : null;
+  }
+
+  // 방 안에서 방장이 아닌 사람이 혼자 스테이지를 시작하려 할 때
+  blockSoloStage() {
+    if (this.room && !this.isHost()) {
+      toast('👑 파티 중에는 방장이 스테이지를 시작하면 다 함께 출격해요!');
+      return true;
+    }
+    return false;
+  }
+
+  onStageStarted(opts = {}) {
+    const g = this.game;
+    if (!g) return;
+    if (g.partyRole === 'host') {
+      const id = Date.now().toString(36);
+      this.party = { id };
+      const bs = g.battleState;
+      set(this.path('raid/pinfo'), {
+        active: true, id, kind: bs.mode, num: bs.stageNum || 1,
+        dtype: bs.dungeonType || null, tier: bs.dungeonTier || 1, result: null
+      }).catch(e => this.reportError(e));
+      this.partySendT = 0;
+      this.partyAllDownT = 0;
+      if (this.raidPlayerCount() > 1) toast(`👥 파티원 ${this.raidPlayerCount() - 1}명과 함께 출격합니다!`);
+    } else if (g.partyRole === 'member') {
+      this.party = { id: opts.partyId };
+    }
+    this.sendState(true);
+  }
+
+  onPartyInfo(info) {
+    const g = this.game;
+    if (!g || !g.gameStarted) return;
+    if (g.partyRole === 'host') return;
+    const P = this.party;
+    if (info && info.active && !info.result) {
+      if (g.raidMode) return;
+      if (P && P.id === info.id && g.partyRole === 'member') return;
+      if (typeof closeStageResultModal === 'function') closeStageResultModal();
+      g.isDowned = false;
+      if (info.kind === 'dungeon') g.startSpecialDungeon(info.dtype || 'exp', info.tier || 1, { party: true, partyId: info.id });
+      else g.startBattleStage(info.num || 1, { party: true, partyId: info.id });
+      toast('⚔️ 방장과 함께 출격! 몬스터와 구역 진행이 파티 전체에 공유돼요.');
+    } else if (info && info.result && P && P.id === info.id && g.partyRole === 'member') {
+      if (info.result === 'clear') this.memberStageClear();
+      else if (info.result === 'fail') {
+        g.partyRole = null;
+        this.party = null;
+        g.isDowned = false;
+        g.returnToTown(true);
+        toast('💀 파티 전원이 쓰러졌어요… 광장으로 돌아왔어요.');
+      }
+    } else if ((!info || !info.active) && P && g.partyRole === 'member') {
+      g.partyRole = null;
+      this.party = null;
+      g.isDowned = false;
+      if (g.battleState.active) {
+        g.returnToTown(false);
+        toast('🚪 방장이 전투에서 나가서 파티 전투가 끝났어요.');
+      }
+    }
+  }
+
+  // 방장 → 파티원: 구역/웨이브 진행과 살아있는 몬스터 상태 (10Hz)
+  hostPartyTick(dt) {
+    const g = this.game;
+    if (g.partyRole !== 'host' || !g.battleState.active || !this.party) return;
+    this.partySendT = (this.partySendT || 0) + dt;
+    if (this.partySendT >= 0.1) {
+      this.partySendT = 0;
+      const mons = {};
+      g.monsters.forEach(m => {
+        if (m.alive && m.netId) mons[m.netId] = [r2(m.pos.x), r2(m.pos.z), r2(m.facingYaw || 0), Math.max(0, Math.round(m.hp))];
+      });
+      const bs = g.battleState;
+      set(this.path('raid/pstate'), {
+        id: this.party.id, sec: bs.currentSectorIdx || 0, wave: bs.currentWaveIdx || 0,
+        adv: bs.waitingAdvance ? 1 : 0, killed: bs.killedMonsters || 0, el: Math.round(bs.elapsedTime || 0), mons, t: this.now()
+      }).catch(() => {});
+    }
+    // 전원 기절 → 실패
+    const members = this.partyMembers();
+    if (members.length && members.every(p => p.downed)) {
+      this.partyAllDownT = (this.partyAllDownT || 0) + dt;
+      if (this.partyAllDownT > 1.5) {
+        update(this.path('raid/pinfo'), { result: 'fail' }).catch(() => {});
+        this.partyAllDownT = -999;
+        g.partyRole = null;
+        this.party = null;
+        g.isDowned = false;
+        g.returnToTown(true);
+      }
+    } else {
+      this.partyAllDownT = 0;
+    }
+  }
+
+  onPartyState(st) {
+    const g = this.game;
+    if (!st || !g || g.partyRole !== 'member' || !this.party || st.id !== this.party.id) return;
+    const bs = g.battleState;
+    if (!bs.active || !bs.sectors) return;
+    const secChanged = bs.currentSectorIdx !== st.sec || !!bs.waitingAdvance !== !!st.adv;
+    bs.currentSectorIdx = st.sec;
+    bs.currentWaveIdx = st.wave;
+    bs.waitingAdvance = !!st.adv;
+    bs.killedMonsters = st.killed;
+    if (secChanged) {
+      g.updateArenaBarrierVisual();
+      if (st.adv) toast('🔓 구역 돌파! 앞으로 전진하세요!');
+    }
+    const mons = st.mons || {};
+    // 새로 나타난 몬스터 생성 / 위치·체력 갱신
+    Object.keys(mons).forEach(id => {
+      const [x, z, yaw, hp] = mons[id];
+      let m = g.monsters.find(mm => mm.netId === id);
+      if (!m) {
+        const [s, w, i] = id.split('_').map(Number);
+        const sec = bs.sectors[s];
+        const def = sec && sec.waves[w] && sec.waves[w][i];
+        if (!def) return;
+        g._forceSpawn = true;
+        try { g.spawnSectorWaveMonsters([def], sec.localZ, false); } finally { g._forceSpawn = false; }
+        m = g.monsters[g.monsters.length - 1];
+        if (!m) return;
+        m.netId = id;
+        m.pos.set(x, 0, z);
+        m.mesh.position.copy(m.pos);
+      }
+      if (!m.alive) return;
+      m.netTarget = new THREE.Vector3(x, 0, z);
+      m.netYaw = yaw;
+      if (hp < m.hp || hp > m.hp + 1) m.hp = hp;
+    });
+    // 사라진 몬스터 = 처치됨
+    g.monsters.forEach(m => {
+      if (m.alive && m.netId && !mons[m.netId]) this.memberKill(m);
+    });
+    g.updateBattleStageHud();
+  }
+
+  updatePartyMonster(m, dt) {
+    const g = this.game;
+    if (m.mesh.userData.updateMonsterMotion) {
+      const moving = m.netTarget && m.netTarget.distanceTo(m.pos) > 0.3;
+      m.mesh.userData.updateMonsterMotion(g.clock.elapsedTime, moving, 0, m.facingYaw);
+    }
+    if (m.netTarget) {
+      if (m.pos.distanceTo(m.netTarget) > 15) m.pos.copy(m.netTarget);
+      else m.pos.lerp(m.netTarget, 1 - Math.exp(-dt * 10));
+    }
+    if (m.netYaw !== undefined) m.facingYaw += g.angleDifference(m.netYaw, m.facingYaw) * Math.min(1, dt * 8);
+    const bs = m.baseScale || 1;
+    m.mesh.scale.lerp(new THREE.Vector3(bs, bs, bs), dt * 9);
+    m.mesh.rotation.y = g.camYaw;
+    m.mesh.position.set(m.pos.x, 0, m.pos.z);
+    if (m.mesh.userData.weakPointMarker) m.mesh.userData.weakPointMarker.visible = false;
+    if (m.hpFillEl) m.hpFillEl.style.width = `${Math.max(0, (m.hp / m.maxHp) * 100)}%`;
+  }
+
+  memberKill(m) {
+    const g = this.game;
+    m.hp = 0;
+    m.alive = false;
+    m.isWindingUp = false;
+    m.mesh.visible = false;
+    if (m.labelEl) m.labelEl.style.display = 'none';
+    if (typeof FXHQ !== 'undefined') FXHQ.deathPoof(m.pos.clone().add(new THREE.Vector3(0, 2.4, 0)), 0xfacc15);
+    if (typeof soundFx !== 'undefined') soundFx.playCoin();
+    g.stats.monstersDefeated++;
+    g.addReward(m.coin || 0, m.exp || 0, 'monster');
+    g.spawnFloatingText(m.pos.clone().add(new THREE.Vector3(0, 4.2, 0)), `🎉 파티 토벌! +${m.coin || 0}🪙 +${m.exp || 0}EXP`, '#facc15');
+  }
+
+  memberStageClear() {
+    const g = this.game;
+    const bs = g.battleState;
+    if (!bs.active || !bs.sectors) return;
+    g.monsters.forEach(m => { if (m.alive) this.memberKill(m); });
+    bs.currentSectorIdx = bs.sectors.length - 1;
+    bs.currentWaveIdx = bs.sectors[bs.currentSectorIdx].waves.length - 1;
+    bs.waitingAdvance = false;
+    g.isDowned = false;
+    g.partyRole = 'clearing';
+    try { g.checkStageClearCondition(); } finally { g.partyRole = 'member'; }
+  }
+
+  onHostStageClear() {
+    if (!this.party) return;
+    update(this.path('raid/pinfo'), { result: 'clear' }).catch(() => {});
+  }
+
+  // returnToTown 직전에 호출 (방장이 나가면 파티 전투 종료)
+  onLeaveStage() {
+    const g = this.game;
+    if (!g) return;
+    if (g.partyRole === 'host' && this.party) {
+      set(this.path('raid/pinfo'), { active: false, id: this.party.id }).catch(() => {});
+    }
+    g.partyRole = null;
+    this.party = null;
+    g.isDowned = false;
+    this.sendState(true);
+  }
+
+  // 방장: 몬스터가 쫓아갈 가장 가까운 파티원
+  nearestPartyPos(pos) {
+    const alive = this.partyMembers().filter(p => !p.downed);
+    if (!alive.length) return this.game.playerPos;
+    let best = alive[0].pos;
+    let bd = Infinity;
+    alive.forEach(p => { const d = p.pos.distanceTo(pos); if (d < bd) { bd = d; best = p.pos; } });
+    return best;
+  }
+
+  // 방장: 구역 전진 판정은 파티원 중 가장 앞선 사람 기준
+  partyMinLocalZ() {
+    const g = this.game;
+    let mz = Infinity;
+    this.partyMembers().forEach(p => { mz = Math.min(mz, p.pos.z - g.arenaCenter.z); });
+    return mz;
+  }
+
+  partyMembers() {
+    const g = this.game;
+    const list = [{ uid: this.uid, pos: g.playerPos, downed: !!g.isDowned }];
+    this.remotes.forEach(r => {
+      if (r.area === 'party' && r.hasPos) list.push({ uid: r.uid, pos: r.target || r.mesh.position, downed: !!r.downed });
+    });
+    return list;
+  }
+
+  // 파티원 → 방장: 몬스터에게 준 데미지
+  onPartyDamage(m, amt) {
+    if (!m || !m.netId) return;
+    this.sendEvent('sdmg', { id: m.netId, a: Math.min(9999, Math.round(amt)), pid: this.party && this.party.id });
+  }
+
+  // 방장 → 파티원: 몬스터 공격 예고 장판
+  onHostTelegraph(m, patternType, center, yaw, reach, dmg) {
+    if (!m || !m.netId || !this.party) return;
+    this.sendEvent('stele', { id: m.netId, p: patternType, x: r2(center.x), z: r2(center.z), yaw: r2(yaw || 0), r: reach, d: dmg, pid: this.party.id });
+  }
+
+  onPartyEvent(ev) {
+    const g = this.game;
+    if (ev.type !== 'sdmg' && ev.type !== 'stele') return false;
+    if (!g || !this.party || ev.pid !== this.party.id) return true;
+    if (ev.type === 'sdmg' && g.partyRole === 'host') {
+      const m = g.monsters.find(mm => mm.netId === ev.id && mm.alive);
+      if (m) g.damageMonsterPart(m, Math.max(0, Math.min(9999, ev.a || 0)), null, 'net', false);
+    } else if (ev.type === 'stele' && g.partyRole === 'member') {
+      const m = g.monsters.find(mm => mm.netId === ev.id);
+      if (m && m.alive) g.spawnMonsterAttackTelegraph(m, ev.p, new THREE.Vector3(ev.x, 0, ev.z), ev.yaw || 0, ev.r, ev.d);
+    }
+    return true;
   }
 
   // ------------------------------------------------------------------
@@ -1157,6 +1504,7 @@ export class CoopManager {
     } else {
       body.append(el('div', 'coop-note', '👑 방장이 레이드를 시작하면 다 함께 보스 성소로 이동해요.'));
     }
+    body.append(el('div', 'coop-hint', '⚔️ 방장이 전투 스테이지·성장 던전에 들어가면 파티원도 함께 출격해 같은 몬스터를 같이 잡아요. (같은 캐릭터는 한 방에 한 명만)'));
     const emo = el('div', 'coop-emote-row');
     EMOTES.forEach(e => { const b = btn(e, 'emote', 'coop-emote-btn'); b.dataset.e = e; emo.append(b); });
     body.append(el('div', 'coop-divider', '이모티콘'), emo, btn('🚪 방 나가기', 'leave', 'choice-btn coop-leave'));
