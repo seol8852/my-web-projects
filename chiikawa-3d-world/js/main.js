@@ -1471,6 +1471,10 @@ class Chiikawa3DWorldApp {
 
   // ⚔️ 1 ~ 20단계 전진 돌파형 토벌 스테이지 시작! (5개 구역 릴레이 웨이브, 약 2분 대장정!)
   startBattleStage(stageNum) {
+    if (this.raidMode) {
+      showToast('🐉 레이드 진행 중에는 다른 전투에 입장할 수 없어요.');
+      return;
+    }
     const maxUnlocked = this.stats.maxUnlockedStage || 1;
     if (stageNum > maxUnlocked) {
       showToast(`🔒 이전 단계인 ${stageNum - 1}단계를 먼저 클리어해야 입장할 수 있습니다!`);
@@ -1528,6 +1532,10 @@ class Chiikawa3DWorldApp {
 
   // 💎 스페셜 성장 던전 시작 (경험치 던전 / 재화 골드 던전도 5구역 전진 돌파형으로 진행!)
   startSpecialDungeon(dungeonType = 'exp', tier = 1) {
+    if (this.raidMode) {
+      showToast('🐉 레이드 진행 중에는 다른 전투에 입장할 수 없어요.');
+      return;
+    }
     closeStageSelectModal();
     closeStageResultModal();
     this.clearAllInputKeys();
@@ -1644,6 +1652,10 @@ class Chiikawa3DWorldApp {
 
   // ⛲ 전투 종료 후 평화로운 메인 광장으로 귀환
   returnToTown(isDefeat = false) {
+    if (this.raidMode && window.coop) {
+      window.coop.exitRaid(false);
+      return;
+    }
     closeStageResultModal();
     closeStageSelectModal();
     this.clearStageMonsters();
@@ -1725,12 +1737,13 @@ class Chiikawa3DWorldApp {
         bossWrap.classList.add('active');
         const bPct = Math.max(0, Math.round((bossMon.hp / bossMon.maxHp) * 100));
         document.getElementById('stage-boss-name').innerText = bossMon.name;
-        document.getElementById('stage-boss-hp-txt').innerText = `${bossMon.hp} / ${bossMon.maxHp} (${bPct}%)`;
+        document.getElementById('stage-boss-hp-txt').innerText = `${Math.max(0, Math.round(bossMon.hp)).toLocaleString()} / ${bossMon.maxHp.toLocaleString()} (${bPct}%)`;
         document.getElementById('stage-boss-fill').style.width = `${bPct}%`;
       } else {
         bossWrap.classList.remove('active');
       }
     }
+    if (this.raidMode && window.coop) window.coop.decorateRaidHud();
   }
 
   // 구역 내 증원 웨이브 스폰 및 다음 구역 전진 활성화 체크
@@ -1827,6 +1840,7 @@ class Chiikawa3DWorldApp {
   // 5. 정밀 타격 범위(Sector/Arc/Height) & 부위별 피격 판정 + 화려한 3D 타격 이펙트
   // ========================================================================
   triggerJump() {
+    if (this.isDowned) return;
     if (!this.isGrounded) return;
     soundFx.playJump();
     this.playerVelY = 20.0;
@@ -1840,6 +1854,7 @@ class Chiikawa3DWorldApp {
   }
 
   triggerDash() {
+    if (this.isDowned) return;
     if (this.dashCooldown > 0) return;
     this.dashCooldown = 0.8;
     this.dashTimer = 0.25;
@@ -1935,6 +1950,7 @@ class Chiikawa3DWorldApp {
 
   // ⚔️ 캐릭터별 고유 3연격 모션 & 정밀 타격 범위(Sector/Height) + 부위별 타격 판정 공격
   triggerAttack(aimWorldPoint = null) {
+    if (this.isDowned) return;
     if (this.attackTimer > 0) return;
 
     const charKey = this.activeCharKey;
@@ -2196,6 +2212,10 @@ class Chiikawa3DWorldApp {
 
     const finalDmg = Math.max(1, Math.round(baseDmg * partMult));
     m.hp -= finalDmg;
+    if (m.isRaidBoss) {
+      if (window.coop) window.coop.onRaidDamage(m, finalDmg);
+      m.hp = Math.max(1, m.hp); // 실제 처치 판정은 방장이 함
+    }
 
     if (m.mesh && m.mesh.userData.flashHit) {
       m.mesh.userData.flashHit(hitPart);
@@ -2229,7 +2249,7 @@ class Chiikawa3DWorldApp {
     const bs = m.baseScale || 1;
     m.mesh.scale.set(bs * 1.24, bs * 0.8, bs * 1.24);
 
-    if (m.hp <= 0) {
+    if (m.hp <= 0 && !m.isRaidBoss) {
       m.hp = 0;
       m.alive = false;
       m.isWindingUp = false;
@@ -2510,6 +2530,7 @@ class Chiikawa3DWorldApp {
 
   // 🌟 [Key Q] 6인 캐릭터별 고유 안무·물리 궤적·다단히트 타이밍이 완전히 차별화된 초화려 궁극기 발동!
   triggerSpecialSkill() {
+    if (this.isDowned) return;
     if (this.skillCooldown > 0) {
       showToast(`⏳ 궁극기[Q] 재충전 중입니다! (${this.skillCooldown.toFixed(1)}초)`);
       return;
@@ -2817,6 +2838,7 @@ class Chiikawa3DWorldApp {
 
     // 피격 직후 무적 시간(0.75초) 동안은 연속 피격 없음
     if (this.invulnTimer > 0) return;
+    if (this.isDowned) return;
 
     // 3) 범위 끝자락에 살짝 걸친 경우 -> 🛡️ 스침 피격 (피해량 50% 경감)!
     const actualDmg = isEdgeGraze ? Math.max(1, Math.round(tg.dmg * 0.5)) : tg.dmg;
@@ -2845,7 +2867,9 @@ class Chiikawa3DWorldApp {
     this.updateHud();
 
     // 전투 스테이지/던전에서 HP가 0이 되면 광장으로 긴급 후퇴 및 체력 100% 회복!
-    if (this.battleState.active && this.stats.hp <= 0) {
+    if (this.raidMode) {
+      if (this.stats.hp <= 0 && window.coop) window.coop.onLocalDowned();
+    } else if (this.battleState.active && this.stats.hp <= 0) {
       this.returnToTown(true);
     }
   }
@@ -3221,6 +3245,11 @@ class Chiikawa3DWorldApp {
     if (this.keys['KeyA'] || this.keys['ArrowLeft']) ix -= 1;
     if (this.keys['KeyD'] || this.keys['ArrowRight']) ix += 1;
 
+    if (this.isDowned) {
+      ix = 0;
+      iz = 0;
+    }
+
     const cfg = CHAR_CONFIGS[this.activeCharKey];
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.28 : 1.0;
     const moveSpeed = cfg.speed * buffMult;
@@ -3401,6 +3430,15 @@ class Chiikawa3DWorldApp {
         this.playerPos.z = this.arenaCenter.z + maxLocalZ;
       } else if (localZ < minLocalZ) {
         this.playerPos.z = this.arenaCenter.z + minLocalZ;
+      }
+    } else if (this.raidMode) {
+      // 🐉 레이드: 보스 성소 원형 경계 (중심 0, -542 / 반경 22m)
+      const rdx = this.playerPos.x;
+      const rdz = this.playerPos.z + 542;
+      const rd = Math.hypot(rdx, rdz);
+      if (rd > 22) {
+        this.playerPos.x = (rdx / rd) * 22;
+        this.playerPos.z = -542 + (rdz / rd) * 22;
       }
     } else {
       const distFromOrigin = Math.hypot(this.playerPos.x, this.playerPos.z);
@@ -3629,6 +3667,11 @@ class Chiikawa3DWorldApp {
             m.isWindingUp = false;
           }
         }
+        return;
+      }
+
+      if (m.isRaidBoss) {
+        if (window.coop) window.coop.updateRaidBoss(m, dt);
         return;
       }
 

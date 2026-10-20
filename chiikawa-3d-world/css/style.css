@@ -1790,7 +1790,7 @@ body.hud-compact .minimap-card {
 }
 .coop-hud-pill {
   position: fixed;
-  top: 14px;
+  bottom: 138px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 30;
@@ -1954,4 +1954,73 @@ body.hud-compact .minimap-card {
   color: #ef4444;
   background: #fff;
   border-color: #fecaca;
+}
+
+
+/* ==========================================================================
+   협동 레이드
+   ========================================================================== */
+body.raid-mode .left-side-panels,
+body.raid-mode .controls-hint-bar,
+body.raid-mode .battle-stage-top-row {
+  display: none;
+}
+body.raid-mode .hud-mid-area {
+  justify-content: flex-end;
+}
+/* 레이드 중 상단 보스 카드는 작게 → 보스가 화면에 잘 보이도록 */
+body.raid-mode .battle-stage-hud {
+  transform: translateX(-50%) scale(0.8);
+  transform-origin: top center;
+  padding: 6px 14px;
+}
+.choice-btn.coop-raid {
+  width: 100%;
+  justify-content: center;
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: #fff;
+  border: none;
+  font-size: 15px;
+  font-weight: 900;
+  padding: 13px;
+}
+.coop-hint {
+  font-size: 11.5px;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+.coop-name-tag.downed {
+  background: rgba(100, 116, 139, 0.9);
+  border-color: #fde68a;
+}
+.raid-banner {
+  position: fixed;
+  top: 26%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 58;
+  pointer-events: none;
+  text-align: center;
+  padding: 16px 34px;
+  border-radius: 22px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 2.5px solid var(--raid-color, #f97316);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 30px var(--raid-color, #f97316);
+  animation: raidBannerIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+.raid-banner-title {
+  font-size: 30px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 14px var(--raid-color, #f97316);
+}
+.raid-banner-sub {
+  margin-top: 4px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+@keyframes raidBannerIn {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.6); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
 }
