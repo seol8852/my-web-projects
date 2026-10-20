@@ -162,6 +162,8 @@ class Chiikawa3DWorldApp {
     this.spawnTownNpcs();
     this.spawnWeeds();
     this.spawnFieldChests();
+    // ☁️ 점프 타워 & 🎪 들판 이벤트 광장 (빈 평원 콘텐츠)
+    if (typeof WORLDX !== 'undefined') WORLDX.init(this);
     // 메인 광장은 평화 구역이므로 시작 시 몬스터를 스폰하지 않음! (전투 스테이지/던전 입장 시 스폰)
     this.bindEvents();
     this.renderCharSelectCards();
@@ -3593,6 +3595,8 @@ class Chiikawa3DWorldApp {
 
     checkPuddingBounce(this.puddingPos, this.puddingMesh);
     checkPuddingBounce(this.pudding2Pos, this.pudding2Mesh);
+    // ☁️ 점프 타워 발판
+    if (typeof WORLDX !== 'undefined') groundHeight = Math.max(groundHeight, WORLDX.support(this, dt));
 
     if (this.puddingMesh) this.puddingMesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 8);
     if (this.pudding2Mesh) this.pudding2Mesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 8);
@@ -3692,6 +3696,7 @@ class Chiikawa3DWorldApp {
   }
 
   updateWeedsAndMonsters(dt) {
+    if (typeof WORLDX !== 'undefined') WORLDX.update(this, dt);
     if (this.instancedGrass && this.instancedGrass.userData.updateWind) {
       this.instancedGrass.userData.updateWind(this.clock.elapsedTime);
     }
@@ -4233,6 +4238,7 @@ class Chiikawa3DWorldApp {
     if (this.shopPos) drawDot(this.shopPos.x, this.shopPos.z, '#ec4899', 4.0);
 
     this.npcs.forEach(n => drawDot(n.pos.x, n.pos.z, '#38bdf8', 2.6));
+    if (typeof WORLDX !== 'undefined') WORLDX.drawMinimap(this, ctx, half, scale, drawDot);
 
     const px = half + this.playerPos.x * scale;
     const py = half + this.playerPos.z * scale;
