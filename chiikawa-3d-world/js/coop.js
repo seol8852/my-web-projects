@@ -448,6 +448,13 @@ export class CoopManager {
         FXHQ.ultimate({ getPos: () => r.mesh.position, color: cfg.accentColor || 0xfacc15, duration: 1.25, noScreen: true });
       }
       this.showBubble(r.mesh.position, `🌟 ${cfg.skillName || '궁극기'}!`, 1.6, true);
+    } else if (ev.type === 'skl') {
+      if (typeof SKILLS !== 'undefined') {
+        const yaw = Number(ev.yaw) || 0;
+        const side = Math.sin(yaw) * Math.cos(g.camYaw) - Math.cos(yaw) * Math.sin(g.camYaw);
+        if (Math.abs(side) > 0.1) r.flip = side > 0 ? 1 : -1;
+        SKILLS.playRemote(g, r, ev);
+      }
     }
   }
 
@@ -554,7 +561,7 @@ export class CoopManager {
         const d = vel.normalize();
         const side = d.dot(camRight);
         if (Math.abs(side) > 0.15) r.flip = side > 0 ? 1 : -1;
-        if (r.mesh.userData.setBackView) r.mesh.userData.setBackView(d.dot(camFwd) > 0.55 && r.atkTimer <= 0);
+        if (r.mesh.userData.setBackView) r.mesh.userData.setBackView(d.dot(camFwd) > 0.55 && r.atkTimer <= 0 && !r.skillAnim);
       } else if (r.mesh.userData.setBackView) {
         r.mesh.userData.setBackView(false);
       }
@@ -569,6 +576,7 @@ export class CoopManager {
       if (r.mesh.userData.updateMotion) {
         r.mesh.userData.updateMotion(t, r.walkTime, moving, r.grounded, r.vy, Math.max(0, r.atkTimer), r.combo, r.maxAtk);
       }
+      if (r.skillAnim && typeof SKILLS !== 'undefined' && !SKILLS.applyPose(r.mesh, r.skillAnim)) r.skillAnim = null;
       // 이름표 + 기절/부활 표시
       const info = this.players[r.uid];
       const baseName = (r.uid === this.hostUid ? '👑 ' : '') + cleanName(info && info.name);

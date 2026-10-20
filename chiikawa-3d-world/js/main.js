@@ -44,6 +44,11 @@ class Chiikawa3DWorldApp {
     this.comboStep = 0;
     this.comboResetTimer = 0;
     this.skillCooldown = 0;
+    this.skillCds = [0, 0, 0];
+    this.skillCdMax = [1, 1, 1];
+    this.skillLock = 0;
+    this.skillShieldTimer = 0;
+    this.skillAnim = null;
     this.hitStopTimer = 0;
     this.camShake = 0;
 
@@ -1981,6 +1986,7 @@ class Chiikawa3DWorldApp {
   triggerAttack(aimWorldPoint = null) {
     if (this.isDowned) return;
     if (this.attackTimer > 0) return;
+    if (this.skillLock > 0) return;
 
     const charKey = this.activeCharKey;
     const cfg = CHAR_CONFIGS[charKey];
@@ -2568,8 +2574,17 @@ class Chiikawa3DWorldApp {
   }
 
   // 🌟 [Key Q] 6인 캐릭터별 고유 안무·물리 궤적·다단히트 타이밍이 완전히 차별화된 초화려 궁극기 발동!
+  // 🎯 캐릭터별 액티브 스킬 [1] [2] [3] (skills_hq.js)
+  triggerSkill(slot) {
+    if (!this.gameStarted || this.isDowned) return;
+    if (typeof SKILLS === 'undefined') return;
+    if ((this.ultTimer && this.ultTimer > 0) || this.skillLock > 0) return;
+    SKILLS.cast(this, slot);
+  }
+
   triggerSpecialSkill() {
     if (this.isDowned) return;
+    if (this.skillLock > 0) return;
     if (this.skillCooldown > 0) {
       showToast(`⏳ 궁극기[Q] 재충전 중입니다! (${this.skillCooldown.toFixed(1)}초)`);
       return;
@@ -2677,7 +2692,7 @@ class Chiikawa3DWorldApp {
         const pCenter = this.playerPos.clone();
         soundFx.playAttack();
         this.camShake = Math.max(this.camShake, waveIdx === hitTimings.length - 1 ? 0.85 : 0.5);
-        if (typeof FXHQ !== 'undefined') FXHQ.screenFlash(cfg.accentColor, waveIdx === hitTimings.length - 1 ? 0.42 : 0.2, 180);
+        if (typeof FXHQ !== 'undefined') FXHQ.screenFlash(cfg.accentColor, waveIdx === hitTimings.length - 1 ? 0.2 : 0.08, 160);
 
         if (charKey === 'chiikawa' && waveIdx === 0) {
           const impactPos = pCenter.clone().add(this.ultForward.clone().multiplyScalar(3.2));
@@ -2884,6 +2899,11 @@ class Chiikawa3DWorldApp {
     // 피격 직후 무적 시간(0.75초) 동안은 연속 피격 없음
     if (this.invulnTimer > 0) return;
     if (this.isDowned) return;
+    // 🫧 치이카와 [2] 눈물 방패: 피해 무효
+    if (typeof SKILLS !== 'undefined' && SKILLS.absorbHit(this)) {
+      this.invulnTimer = 0.3;
+      return;
+    }
 
     // 3) 범위 끝자락에 살짝 걸친 경우 -> 🛡️ 스침 피격 (피해량 50% 경감)!
     const actualDmg = isEdgeGraze ? Math.max(1, Math.round(tg.dmg * 0.5)) : tg.dmg;
@@ -3351,6 +3371,9 @@ class Chiikawa3DWorldApp {
       }
     }
 
+    // 🎯 액티브 스킬 타임라인 / 이동 / 쿨타임 (로컬 + 협동 원격 재생)
+    if (typeof SKILLS !== 'undefined') SKILLS.update(this, dt);
+
     if (this.dashTimer > 0) {
       this.dashTimer -= dt;
       this.playerPos.addScaledVector(this.dashDir, moveSpeed * 2.6 * dt);
@@ -3379,7 +3402,7 @@ class Chiikawa3DWorldApp {
       const moveX = rightX * ix + forwardX * (-iz);
       const moveZ = rightZ * ix + forwardZ * (-iz);
 
-      if (this.dashTimer <= 0 && (!this.ultTimer || this.ultTimer <= 0)) {
+      if (this.dashTimer <= 0 && (!this.ultTimer || this.ultTimer <= 0) && !(this.skillLock > 0)) {
         this.playerVel.x = THREE.MathUtils.lerp(this.playerVel.x, moveX * moveSpeed, dt * 16);
         this.playerVel.z = THREE.MathUtils.lerp(this.playerVel.z, moveZ * moveSpeed, dt * 16);
         this.playerPos.x += this.playerVel.x * dt;
@@ -3564,6 +3587,8 @@ class Chiikawa3DWorldApp {
           this.maxAttackTime || 0.28
         );
       }
+      // 스킬 모션은 기본 모션 위에 덮어쓰기
+      if (this.skillAnim && typeof SKILLS !== 'undefined') SKILLS.applyPose(this.playerMesh, this.skillAnim);
 
       // 무적 시간 동안 캐릭터 깜빡임
       if (parts && parts.standeeGroup) {
@@ -3571,7 +3596,7 @@ class Chiikawa3DWorldApp {
       }
       // 카메라 반대쪽(앞쪽)으로 걸어가면 뒷모습
       if (this.playerMesh.userData.setBackView) {
-        const walkingAway = isMoving && iz < -0.55 && this.attackTimer <= 0 && !(this.ultTimer > 0) && this.dashTimer <= 0;
+        const walkingAway = isMoving && iz < -0.55 && this.attackTimer <= 0 && !(this.ultTimer > 0) && this.dashTimer <= 0 && !this.skillAnim;
         this.playerMesh.userData.setBackView(walkingAway);
       }
     }
@@ -3857,6 +3882,7 @@ class Chiikawa3DWorldApp {
 
     for (let i = this.telegraphs.length - 1; i >= 0; i--) {
       const tg = this.telegraphs[i];
+      if (!tg) continue; // 피격으로 스테이지가 끝나 목록이 비워진 경우
       tg.progress += dt;
       const ratio = Math.min(1, tg.progress / tg.duration);
       if (tg.mesh.userData.tele) {
@@ -4253,6 +4279,8 @@ class Chiikawa3DWorldApp {
         this.triggerAttack();
       } else if (normCode === 'KeyQ' || e.code === 'KeyQ' || e.code === 'KeyK' || e.code === 'KeyX') {
         this.triggerSpecialSkill();
+      } else if (/^(Digit|Numpad)[123]$/.test(e.code)) {
+        this.triggerSkill(Number(e.code.slice(-1)));
       } else if (e.code === 'KeyE' || e.code === 'KeyF') {
         this.triggerInteract();
       } else if (e.code === 'KeyM') {

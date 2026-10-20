@@ -836,19 +836,22 @@ const FXHQ = (() => {
       ctx.closePath();
       ctx.fill();
     }
-    lines.style.cssText = `position:absolute;left:50%;top:50%;width:160vmax;height:160vmax;transform:translate(-50%,-50%);opacity:0;background:url(${c.toDataURL()}) center/contain no-repeat;`;
+    // 화면 중앙은 비워두고 가장자리에만 집중선
+    lines.style.cssText = `position:absolute;left:50%;top:50%;width:160vmax;height:160vmax;transform:translate(-50%,-50%);opacity:0;background:url(${c.toDataURL()}) center/contain no-repeat;-webkit-mask-image:radial-gradient(circle, transparent 30%, #000 46%);mask-image:radial-gradient(circle, transparent 30%, #000 46%);`;
     const vignette = document.createElement('div');
     vignette.style.cssText = 'position:absolute;inset:0;opacity:0;';
     const cutin = document.createElement('div');
-    cutin.style.cssText = 'position:absolute;left:0;right:0;top:30%;height:170px;transform:skewY(-6deg) translateX(-110%);opacity:0;display:flex;align-items:center;gap:22px;padding-left:12vw;box-shadow:0 10px 40px rgba(0,0,0,0.25);';
+    // 컷인: 화면 왼쪽 아래 가장자리의 작은 띠 (시야 방해 최소화)
+    cutin.id = 'fxhq-cutin';
+    cutin.style.cssText = 'position:absolute;left:0;bottom:168px;width:min(380px,72vw);height:58px;transform:skewX(-12deg) translateX(-110%);transform-origin:left center;opacity:0;display:flex;align-items:center;gap:10px;padding-left:22px;border-radius:0 14px 14px 0;box-shadow:0 6px 18px rgba(0,0,0,0.18);';
     const img = document.createElement('img');
-    img.style.cssText = 'height:210px;margin-top:-30px;filter:drop-shadow(0 6px 10px rgba(0,0,0,0.35));transform:skewY(6deg);';
+    img.style.cssText = 'height:78px;margin-top:-22px;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.3));transform:skewX(12deg);';
     const txt = document.createElement('div');
-    txt.style.cssText = 'transform:skewY(6deg);color:#fff;font-weight:900;text-shadow:0 3px 0 rgba(0,0,0,0.35),0 0 18px rgba(255,255,255,0.6);line-height:1.1;font-family:inherit;';
+    txt.style.cssText = 'transform:skewX(12deg);color:#fff;font-weight:900;text-shadow:0 2px 0 rgba(0,0,0,0.35),0 0 10px rgba(255,255,255,0.5);line-height:1.15;font-family:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;';
     const t1 = document.createElement('div');
-    t1.style.cssText = 'font-size:20px;letter-spacing:4px;opacity:0.9;';
+    t1.style.cssText = 'font-size:10px;letter-spacing:2px;opacity:0.9;';
     const t2 = document.createElement('div');
-    t2.style.cssText = 'font-size:44px;letter-spacing:1px;';
+    t2.style.cssText = 'font-size:17px;letter-spacing:0.5px;overflow:hidden;text-overflow:ellipsis;';
     txt.append(t1, t2);
     cutin.append(img, txt);
     overlay.append(vignette, lines, flash, cutin);
@@ -882,28 +885,28 @@ const FXHQ = (() => {
     const anim = (el, frames, o) => el && el.animate && el.animate(frames, o);
     if (P) {
       const ms = duration * 1000;
-      screenFlash(0xffffff, 0.85, 300);
-      P.vignette.style.background = `radial-gradient(ellipse at center, rgba(0,0,0,0) 35%, ${cssColor(color, 0.55)} 100%)`;
-      anim(P.vignette, [{ opacity: 0 }, { opacity: 1, offset: 0.12 }, { opacity: 1, offset: 0.75 }, { opacity: 0 }], { duration: ms, easing: 'ease-out' });
+      screenFlash(0xffffff, 0.3, 220);
+      P.vignette.style.background = `radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, ${cssColor(color, 0.38)} 100%)`;
+      anim(P.vignette, [{ opacity: 0 }, { opacity: 0.85, offset: 0.12 }, { opacity: 0.85, offset: 0.7 }, { opacity: 0 }], { duration: ms, easing: 'ease-out' });
       anim(P.lines, [
         { opacity: 0, transform: 'translate(-50%,-50%) scale(1.25) rotate(0deg)' },
-        { opacity: 0.85, transform: 'translate(-50%,-50%) scale(1.0) rotate(4deg)', offset: 0.15 },
-        { opacity: 0.7, transform: 'translate(-50%,-50%) scale(1.04) rotate(10deg)', offset: 0.7 },
+        { opacity: 0.42, transform: 'translate(-50%,-50%) scale(1.0) rotate(4deg)', offset: 0.15 },
+        { opacity: 0.3, transform: 'translate(-50%,-50%) scale(1.04) rotate(10deg)', offset: 0.6 },
         { opacity: 0, transform: 'translate(-50%,-50%) scale(1.1) rotate(14deg)' }
       ], { duration: ms, easing: 'linear' });
-      P.cutin.style.background = `linear-gradient(90deg, ${cssColor(color, 0.0)} 0%, ${cssColor(color, 0.92)} 18%, ${cssColor(color, 0.92)} 70%, ${cssColor(color, 0.0)} 100%)`;
+      P.cutin.style.background = `linear-gradient(90deg, ${cssColor(color, 0.9)} 0%, ${cssColor(color, 0.82)} 62%, ${cssColor(color, 0.0)} 100%)`;
       if (portrait) P.img.src = portrait;
       P.img.style.display = portrait ? 'block' : 'none';
       P.t1.textContent = `${name} · ULTIMATE`;
       P.t2.textContent = skill;
       anim(P.cutin, [
-        { opacity: 0, transform: 'skewY(-6deg) translateX(-110%)', easing: 'cubic-bezier(.15,.85,.25,1)' },
-        { opacity: 1, transform: 'skewY(-6deg) translateX(0%)', offset: 0.16 },
-        { opacity: 1, transform: 'skewY(-6deg) translateX(5%)', offset: 0.74, easing: 'cubic-bezier(.6,0,.9,.4)' },
-        { opacity: 0, transform: 'skewY(-6deg) translateX(115%)' }
-      ], { duration: Math.max(1100, ms), easing: 'linear' });
+        { opacity: 0, transform: 'skewX(-12deg) translateX(-110%)', easing: 'cubic-bezier(.15,.85,.25,1)' },
+        { opacity: 0.95, transform: 'skewX(-12deg) translateX(0%)', offset: 0.14 },
+        { opacity: 0.95, transform: 'skewX(-12deg) translateX(2%)', offset: 0.78, easing: 'cubic-bezier(.6,0,.9,.4)' },
+        { opacity: 0, transform: 'skewX(-12deg) translateX(-110%)' }
+      ], { duration: Math.max(1000, ms), easing: 'linear' });
     }
-    if (!opts.noScreen) fovPunch(8, duration);
+    if (!opts.noScreen) fovPunch(5, duration);
 
     if (!scene) return;
     // 오라 기둥
