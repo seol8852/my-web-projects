@@ -76,7 +76,8 @@ function wqCorridorDist(x, z) {
   return Math.hypot(Math.max(qx, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qz), 0);
 }
 function wqMaskDist(x, z) {
-  return Math.min(Math.hypot(x, z) - WQ_ISLAND_R, wqCorridorDist(x, z));
+  // 섬 · 전투 협곡 · 레이드 원형 분지(중심 0,-820 / 반경 80m)는 평지
+  return Math.min(Math.hypot(x, z) - WQ_ISLAND_R, wqCorridorDist(x, z), Math.hypot(x, z + 820) - 80);
 }
 function wqRiverFactor(z) {
   return wqSmooth(5, 34, Math.abs(z - WQ_RIVER_Z));

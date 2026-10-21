@@ -2889,6 +2889,7 @@ class Chiikawa3DWorldApp {
     if (tg.monster && !tg.monster.alive) return; // 공격 전 몬스터가 죽거나 기절하면 취소!
     if (tg.monster && tg.monster.stunTimer > 0) return;
 
+    if (typeof RAIDHQ !== 'undefined' && tg.monster && tg.monster.isRaidBoss) RAIDHQ.impact(this, tg);
     if (!(typeof POLISH !== 'undefined' && POLISH.attackImpact && POLISH.attackImpact(this, tg))) {
       this.spawnBurstParticles(tg.center.clone().add(new THREE.Vector3(0, 0.8, 0)), 0xef4444, 14);
     }
@@ -3553,13 +3554,14 @@ class Chiikawa3DWorldApp {
         this.playerPos.z = this.arenaCenter.z + minLocalZ;
       }
     } else if (this.raidMode) {
-      // 🐉 레이드: 보스 성소 원형 경계 (중심 0, -542 / 반경 22m)
+      // 🐉 레이드: 전용 원형 투기장 경계 (중심 0, -820 / 반경 46m)
+      const RCZ = -820, RR = 46;
       const rdx = this.playerPos.x;
-      const rdz = this.playerPos.z + 542;
+      const rdz = this.playerPos.z - RCZ;
       const rd = Math.hypot(rdx, rdz);
-      if (rd > 22) {
-        this.playerPos.x = (rdx / rd) * 22;
-        this.playerPos.z = -542 + (rdz / rd) * 22;
+      if (rd > RR) {
+        this.playerPos.x = (rdx / rd) * RR;
+        this.playerPos.z = RCZ + (rdz / rd) * RR;
       }
     } else {
       const distFromOrigin = Math.hypot(this.playerPos.x, this.playerPos.z);
@@ -3890,6 +3892,7 @@ class Chiikawa3DWorldApp {
   updateEffects(dt) {
     if (typeof FXHQ !== 'undefined') FXHQ.update(dt);
     if (typeof POLISH !== 'undefined') POLISH.update(this, dt);
+    if (typeof RAIDHQ !== 'undefined') RAIDHQ.update(this, dt);
     if (window.coop) window.coop.update(dt);
     // 💥 3D 입체 타격 임팩트 스타버스트 애니메이션
     for (let i = this.hitBursts.length - 1; i >= 0; i--) {
@@ -4140,6 +4143,11 @@ class Chiikawa3DWorldApp {
     const half = size / 2;
 
     ctx.clearRect(0, 0, size, size);
+
+    if (this.raidMode && typeof RAIDHQ !== 'undefined') {
+      RAIDHQ.drawMinimap(this, ctx, size);
+      return;
+    }
 
     // ⚔️ 전진 돌파형 토벌 가도(250m) 내부일 때는 5구역 진격로 전술 레이더 표시!
     if (this.battleState.active) {
