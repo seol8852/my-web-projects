@@ -2464,3 +2464,38 @@ body.raid-mode #coop-chat { bottom: 120px; }
 .action-dock .skill-slot-btn.mini .skill-name { display: none; }
 .action-dock .skill-slot-btn.mini .skill-text-col { align-items: center; }
 .action-dock .skill-slot-btn.mini .skill-hotkey { font-size: 9.5px; }
+
+
+/* 🎯 스킬 조준 모드 */
+body.skill-aiming #webgl-canvas { cursor: crosshair; }
+#skill-aim-hint {
+  position: fixed;
+  left: 50%;
+  bottom: 150px;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px 6px 6px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 2px solid var(--sk, #fff);
+  color: #fff;
+  font-weight: 900;
+  font-size: 13.5px;
+  pointer-events: none;
+  z-index: 56;
+  white-space: nowrap;
+}
+#skill-aim-hint.show { display: flex; }
+#skill-aim-hint .sah-key {
+  background: var(--sk, #fff);
+  color: #0f172a;
+  border-radius: 999px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+body.raid-mode #skill-aim-hint { bottom: 120px; }

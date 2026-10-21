@@ -1544,14 +1544,39 @@ const SKILLS = (() => {
     return { yaw, target };
   }
 
-  // 마우스를 스킬 버튼에 올리면 바닥에 범위 미리보기
-  let preview = null; // { slot, mesh, key }
-  function setPreview(app, slot) {
-    if (preview && preview.mesh) {
-      if (preview.mesh.parent) preview.mesh.parent.remove(preview.mesh);
-      preview.mesh.geometry.dispose();
-      preview.mesh.userData.m.dispose();
-    }
+  // 🖱️ 마우스가 가리키는 바닥 위치 (플레이어 높이의 평면)
+  const AIM_RANGE = 17; // 지점 지정 스킬의 최대 사거리
+  const _ray = new THREE.Raycaster();
+  function mouseGround(app) {
+    const mc = app.mouseClient;
+    if (!mc || !app.camera || typeof window === 'undefined') return null;
+    const ndc = new THREE.Vector2((mc.x / window.innerWidth) * 2 - 1, -(mc.y / window.innerHeight) * 2 + 1);
+    _ray.setFromCamera(ndc, app.camera);
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(app.playerPos.y || 0));
+    const hit = new THREE.Vector3();
+    return _ray.ray.intersectPlane(plane, hit) ? hit.setY(0) : null;
+  }
+  // 마우스 조준 정보: 방향(yaw) + 지점(target, 사거리 안으로 제한)
+  function mouseAim(app) {
+    const pt = mouseGround(app);
+    if (!pt) return aimInfo(app);
+    const d = pt.clone().sub(app.playerPos).setY(0);
+    const len = d.length();
+    const yaw = len > 0.3 ? Math.atan2(d.x, d.z) : (app.playerYaw || 0);
+    const target = len > AIM_RANGE ? app.playerPos.clone().setY(0).addScaledVector(d.normalize(), AIM_RANGE) : pt;
+    return { yaw, target };
+  }
+
+  // 범위 미리보기 (aim=true: 마우스 조준 모드)
+  let preview = null;
+  function disposeZone(mesh) {
+    if (!mesh) return;
+    if (mesh.parent) mesh.parent.remove(mesh);
+    mesh.geometry.dispose();
+    mesh.userData.m.dispose();
+  }
+  function setPreview(app, slot, aim = false) {
+    if (preview) { disposeZone(preview.mesh); disposeZone(preview.rangeMesh); }
     preview = null;
     if (!slot || !app || !app.scene || !app.gameStarted) return;
     const area = areaFor(app.activeCharKey, slot);
@@ -1559,33 +1584,89 @@ const SKILLS = (() => {
     const cfg = CHAR_CONFIGS[app.activeCharKey] || {};
     const mesh = makeZone(area, cfg.accentColor || 0xffffff);
     app.scene.add(mesh);
-    preview = { slot, mesh, area, charKey: app.activeCharKey };
+    let rangeMesh = null;
+    if (aim && area.at === 'target') {
+      // 지점 지정 스킬은 최대 사거리 원도 함께 표시
+      rangeMesh = makeZone({ t: 'circle', R: AIM_RANGE }, 0xffffff);
+      app.scene.add(rangeMesh);
+    }
+    preview = { slot, mesh, rangeMesh, area, aim, charKey: app.activeCharKey };
   }
   function updatePreview(app, dt) {
     if (!preview) return;
-    if (preview.charKey !== app.activeCharKey || !app.gameStarted) { setPreview(app, null); return; }
-    const { yaw, target } = aimInfo(app);
+    if (preview.charKey !== app.activeCharKey || !app.gameStarted || app.isDowned) { cancelAim(app); setPreview(app, null); return; }
+    const { yaw, target } = preview.aim ? mouseAim(app) : aimInfo(app);
     const m = preview.mesh;
-    if (preview.area.at === 'target') m.position.set(target.x, 0.22, target.z);
-    else m.position.set(app.playerPos.x, 0.22, app.playerPos.z);
+    if (preview.area.at === 'target') m.position.set(target.x, (app.playerPos.y || 0) + 0.22, target.z);
+    else m.position.set(app.playerPos.x, (app.playerPos.y || 0) + 0.22, app.playerPos.z);
     m.rotation.y = yaw;
     const u = m.userData.m.uniforms;
     u.uT.value += dt;
     u.uFade.value = 0.95;
+    if (preview.rangeMesh) {
+      preview.rangeMesh.position.set(app.playerPos.x, (app.playerPos.y || 0) + 0.2, app.playerPos.z);
+      preview.rangeMesh.userData.m.uniforms.uFade.value = 0.3;
+    }
   }
 
-  // ⌨️ 스킬 키를 누르고 있는 동안 범위 미리보기 → 떼면 시전
+  // ⌨️ 1·2·3: 누르면 조준 모드(마우스에 범위 표시) → 좌클릭으로 시전 / 같은 키·우클릭·Esc로 취소
   let aimSlot = 0;
-  function aimStart(app, slot) {
+  function isAiming() { return aimSlot > 0; }
+  function aimToggle(app, slot) {
+    if (aimSlot === slot) { cancelAim(app); return; }
+    const def = getDefs(app.activeCharKey)[slot - 1];
+    if (!def) return;
+    if (app.skillCds && app.skillCds[slot - 1] > 0) {
+      if (typeof showToast === 'function') showToast(`⏳ [${slot}] ${def.name} 재사용 대기 중… (${app.skillCds[slot - 1].toFixed(1)}초)`);
+      return;
+    }
     aimSlot = slot;
-    setPreview(app, slot);
+    setPreview(app, slot, true);
+    if (typeof document !== 'undefined') document.body.classList.add('skill-aiming');
+    showAimHint(def, slot, (CHAR_CONFIGS[app.activeCharKey] || {}).accentColor || 0xffffff);
   }
-  function aimEnd(app, slot) {
-    if (aimSlot !== slot) return false;
+  function cancelAim(app) {
+    if (!aimSlot) return;
     aimSlot = 0;
     setPreview(app, null);
+    if (typeof document !== 'undefined') document.body.classList.remove('skill-aiming');
+    hideAimHint();
+  }
+  // 좌클릭: 마우스 방향/지점으로 시전
+  function aimConfirm(app) {
+    if (!aimSlot) return false;
+    // 다른 스킬/궁극기 시전 중이면 조준을 유지한 채 무시 (끝난 뒤 다시 클릭)
+    if (app.skillLock > 0 || (app.ultTimer && app.ultTimer > 0)) return true;
+    const slot = aimSlot;
+    const aim = mouseAim(app);
+    cancelAim(app);
+    if (typeof app.triggerSkill === 'function') app.triggerSkill(slot, aim);
     return true;
   }
+  // 예전 방식 호환 (키를 누르고 있는 동안 미리보기)
+  function aimStart(app, slot) { aimToggle(app, slot); }
+  function aimEnd() { return false; }
+
+  let aimHint = null;
+  function showAimHint(def, slot, color) {
+    if (typeof document === 'undefined') return;
+    if (!aimHint) {
+      aimHint = document.createElement('div');
+      aimHint.id = 'skill-aim-hint';
+      document.body.appendChild(aimHint);
+    }
+    const c = new THREE.Color(color);
+    aimHint.style.setProperty('--sk', `rgb(${Math.round(c.r * 255)},${Math.round(c.g * 255)},${Math.round(c.b * 255)})`);
+    aimHint.textContent = '';
+    const k = document.createElement('span');
+    k.className = 'sah-key';
+    k.textContent = String(slot);
+    const t = document.createElement('span');
+    t.textContent = `${def.icon} ${def.name}  ·  🖱️ 좌클릭 시전 · [${slot}] / 우클릭 / Esc 취소`;
+    aimHint.append(k, t);
+    aimHint.classList.add('show');
+  }
+  function hideAimHint() { if (aimHint) aimHint.classList.remove('show'); }
 
   // ⚔️ 평타 범위 가이드 (다음 콤보의 실제 판정 범위를 바닥에 표시)
   let atkGuide = null;
@@ -1657,7 +1738,7 @@ const SKILLS = (() => {
   function getDefs(charKey) { return DEFS[charKey] || DEFS.chiikawa; }
 
   // 로컬 플레이어 시전
-  function cast(app, slot) {
+  function cast(app, slot, aim = null) {
     const charKey = app.activeCharKey;
     const defs = getDefs(charKey);
     const def = defs[slot - 1];
@@ -1671,15 +1752,18 @@ const SKILLS = (() => {
     app.skillCdMax = app.skillCdMax || [1, 1, 1];
     app.skillCdMax[slot - 1] = def.cd;
 
-    // 조준: 가까운 적 방향 (없으면 현재 바라보는 방향)
-    const near = nearestMonster(app, app.playerPos, 14);
-    if (near) {
-      const d = near.pos.clone().sub(app.playerPos);
-      if (Math.hypot(d.x, d.z) > 0.1) {
-        app.playerYaw = Math.atan2(d.x, d.z);
-        const rx = Math.cos(app.camYaw), rz = -Math.sin(app.camYaw);
-        app.facingFlip = (d.x * rx + d.z * rz) >= 0 ? 1 : -1;
-      }
+    // 조준: 마우스로 지정했으면 그 방향, 아니면 가까운 적 방향 (없으면 현재 바라보는 방향)
+    const faceDir = d => {
+      if (Math.hypot(d.x, d.z) <= 0.1) return;
+      app.playerYaw = Math.atan2(d.x, d.z);
+      const rx = Math.cos(app.camYaw), rz = -Math.sin(app.camYaw);
+      app.facingFlip = (d.x * rx + d.z * rz) >= 0 ? 1 : -1;
+    };
+    if (aim) {
+      faceDir(V(Math.sin(aim.yaw), 0, Math.cos(aim.yaw)));
+    } else {
+      const near = nearestMonster(app, app.playerPos, 14);
+      if (near) faceDir(near.pos.clone().sub(app.playerPos));
     }
     const cfg = CHAR_CONFIGS[charKey];
     const s = app.stats || {};
@@ -1688,7 +1772,8 @@ const SKILLS = (() => {
     const dmg = ((cfg.atk || 20) + (s.level || 1) * 4 + ((s.weaponLv || 1) - 1) * 9 + (s.certLevel || 0) * 6) * buff * 0.7 * 3;
     const seed = (Math.random() * 1e9) | 0;
     const ctx = makeCtx(app, true, charKey, slot, {
-      yaw: app.playerYaw, origin: app.playerPos, getPos: () => app.playerPos, seed, dmg
+      yaw: app.playerYaw, origin: app.playerPos, getPos: () => app.playerPos, seed, dmg,
+      target: aim && aim.target ? aim.target.clone().setY(0) : null
     });
     app.attackTimer = 0;
     app.comboStep = 0;
@@ -1740,7 +1825,6 @@ const SKILLS = (() => {
     if (app.skillCds) for (let i = 0; i < 3; i++) if (app.skillCds[i] > 0) app.skillCds[i] = Math.max(0, app.skillCds[i] - dt);
     if (app.skillLock > 0) app.skillLock = Math.max(0, app.skillLock - dt);
     if (app.skillShieldTimer > 0) app.skillShieldTimer = Math.max(0, app.skillShieldTimer - dt);
-    if (aimSlot && typeof document !== 'undefined' && !document.hasFocus()) { aimSlot = 0; setPreview(app, null); }
     if (app.skillAnim && app.skillAnim.cast.t >= app.skillAnim.dur) app.skillAnim = null;
 
     for (let i = casts.length - 1; i >= 0; i--) {
@@ -1918,7 +2002,7 @@ const SKILLS = (() => {
 
   return {
     DEFS, AREAS, RANGE, cast, playRemote, update, applyPose, absorbHit, updateHud, getDefs, setPreview,
-    aimStart, aimEnd, attackGuide, attackFlash,
+    aimStart, aimEnd, aimToggle, aimConfirm, cancelAim, isAiming, attackGuide, attackFlash,
     get activeCount() { return casts.length + runners.length; }
   };
 })();

@@ -2630,11 +2630,12 @@ class Chiikawa3DWorldApp {
   }
 
   // 🎯 캐릭터별 액티브 스킬 [1] [2] [3] (skills_hq.js)
-  triggerSkill(slot) {
+  triggerSkill(slot, aim = null) {
     if (!this.gameStarted || this.isDowned) return;
     if (typeof SKILLS === 'undefined') return;
+    if (!aim && SKILLS.isAiming && SKILLS.isAiming()) SKILLS.cancelAim(this);
     if ((this.ultTimer && this.ultTimer > 0) || this.skillLock > 0) return;
-    SKILLS.cast(this, slot);
+    SKILLS.cast(this, slot, aim);
   }
 
   triggerSpecialSkill() {
@@ -3322,7 +3323,7 @@ class Chiikawa3DWorldApp {
         }
       }
       const gcfg = CHAR_CONFIGS[this.activeCharKey] || {};
-      SKILLS.attackGuide(this, this.getAttackShape(this.activeCharKey, nextCombo), gcfg.accentColor || 0xff85a2, near && !this.isDowned && !this.skillAnim);
+      SKILLS.attackGuide(this, this.getAttackShape(this.activeCharKey, nextCombo), gcfg.accentColor || 0xff85a2, near && !this.isDowned && !this.skillAnim && !(SKILLS.isAiming && SKILLS.isAiming()));
     }
 
     if (this.playerHurtRingMesh) {
@@ -4351,7 +4352,9 @@ class Chiikawa3DWorldApp {
       if (!this.gameStarted) return;
       soundFx.startBgm();
 
-      if (e.code === 'Space') {
+      if (e.code === 'Escape' && typeof SKILLS !== 'undefined' && SKILLS.isAiming && SKILLS.isAiming()) {
+        SKILLS.cancelAim(this);
+      } else if (e.code === 'Space') {
         this.triggerJump();
       } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         e.preventDefault();
@@ -4363,8 +4366,8 @@ class Chiikawa3DWorldApp {
       } else if (e.code === 'KeyR' || e.code === 'Digit4' || e.code === 'Numpad4') {
         this.usePotion();
       } else if (/^(Digit|Numpad)[123]$/.test(e.code)) {
-        // 누르고 있는 동안 범위 미리보기 → 키를 떼면 시전
-        if (typeof SKILLS !== 'undefined' && SKILLS.aimStart) { if (!e.repeat) SKILLS.aimStart(this, Number(e.code.slice(-1))); }
+        // 조준 모드: 마우스 위치에 범위 표시 → 좌클릭 시전 (같은 키를 다시 누르면 취소)
+        if (typeof SKILLS !== 'undefined' && SKILLS.aimToggle) { if (!e.repeat) SKILLS.aimToggle(this, Number(e.code.slice(-1))); }
         else this.triggerSkill(Number(e.code.slice(-1)));
       } else if (e.code === 'KeyE' || e.code === 'KeyF') {
         this.triggerInteract();
@@ -4403,6 +4406,14 @@ class Chiikawa3DWorldApp {
     canvas.addEventListener('mousedown', e => {
       if (!this.gameStarted) return;
       soundFx.startBgm();
+      // 🎯 스킬 조준 중: 좌클릭 = 시전, 우클릭 = 취소 (카메라 회전·평타·대시 없음)
+      if (typeof SKILLS !== 'undefined' && SKILLS.isAiming && SKILLS.isAiming()) {
+        this.mouseClient = { x: e.clientX, y: e.clientY };
+        if (e.button === 0) SKILLS.aimConfirm(this);
+        else if (e.button === 2) SKILLS.cancelAim(this);
+        this.isDraggingCam = false;
+        return;
+      }
       if (e.button === 0 || e.button === 2) {
         this.isDraggingCam = true;
         this.dragDistMoved = 0;
@@ -4411,6 +4422,7 @@ class Chiikawa3DWorldApp {
     });
 
     window.addEventListener('mousemove', e => {
+      this.mouseClient = { x: e.clientX, y: e.clientY }; // 스킬 조준용 마우스 위치
       if (!this.isDraggingCam) return;
       const dx = e.clientX - this.prevMouse.x;
       const dy = e.clientY - this.prevMouse.y;
