@@ -656,7 +656,7 @@ export class CoopManager {
     const n = this.raidPlayerCount();
     const lv = (g && g.stats && g.stats.level) || 1;
     // 🔥 하드 난이도: 체력 약 3배 (인원·레벨에 비례)
-    const maxHp = Math.round((18000 + 13000 * n) * (1 + (lv - 1) * 0.1));
+    const maxHp = Math.round((45000 + 32500 * n) * (1 + (lv - 1) * 0.1)); // 🔥 체력 2.5배
     const id = Date.now().toString(36);
     try {
       await set(this.path('raid/boss'), { x: RAID_CENTER.x, z: RAID_CENTER.z - 16, yaw: 0, hp: maxHp, ph: 1, t: this.now() });
@@ -1019,7 +1019,7 @@ export class CoopManager {
           if (R.dash.go <= 0) R.dash = null;
         }
       } else if (dist > Math.max(13, (m.bodyRadius || 0) + 5) && R.aiCd > 0.6 && !(m.windupT > 0)) {
-        m.pos.addScaledVector(dir.normalize(), dt * (phase === 3 ? 12.5 : phase === 2 ? 10.5 : 9.0));
+        m.pos.addScaledVector(dir.normalize(), dt * (phase === 3 ? 13.5 : phase === 2 ? 11.3 : 9.7));
       }
       // 성소 밖으로 나가지 않게
       const off = m.pos.clone().sub(RAID_CENTER).setY(0);
@@ -1027,7 +1027,7 @@ export class CoopManager {
 
       R.aiCd -= dt;
       if (R.aiCd <= 0) {
-        R.aiCd = phase === 3 ? 1.05 : phase === 2 ? 1.45 : 1.9;
+        R.aiCd = phase === 3 ? 0.95 : phase === 2 ? 1.3 : 1.7; // 공격 간격 약 10% 단축
         this.bossAttack(m, best, alive, phase);
       }
     }
@@ -1074,7 +1074,7 @@ export class CoopManager {
     const toT = target.pos.clone().sub(m.pos).setY(0);
     const yawT = Math.atan2(toT.x, toT.z);
     const dm = (phase === 3 ? 1.5 : phase === 2 ? 1.25 : 1) * 1.8;   // 🔥 기본 데미지 대폭 상향
-    const D = v => Math.round(v * dm * 1.4); // 🔥 보스 데미지 추가 상향 (x1.4)
+    const D = v => Math.round(v * dm * 1.55); // 🔥 보스 데미지 추가 상향 (x1.55)
     const T = (p, x, z, yaw, r, dur, d) => this.hostTelegraph(p, x, z, yaw, r, dur, d);
 
     const slam = () => T('circle', mx, mz, 0, 17, 1.15, D(42));
