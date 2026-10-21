@@ -48,20 +48,21 @@ const RAIDHQ = (() => {
       stone *= 0.9 + 0.2 * h21(vec2(ringI, floor(af * 0.0 + (a / 6.28318) * segN)));
       vec3 col = mix(stone, vec3(0.06, 0.05, 0.07), clamp(mortar, 0.0, 1.0) * 0.85);
       // 룬 고리 (경계선 46m, 30m, 14m) + 방사형 룬 문양
-      float pulse = 0.65 + 0.35 * sin(uT * 2.2);
+      float pulse = 1.0; // 깜빡임 없음 (공격 예고 장판과 구분)
       float rings = smoothstep(0.35, 0.0, abs(r - 46.0)) * 1.2 + smoothstep(0.25, 0.0, abs(r - 30.0)) * 0.8 + smoothstep(0.22, 0.0, abs(r - 14.0)) * 0.7;
-      float glyph = step(0.0, sin(a * 24.0 + uT * 0.4)) * smoothstep(1.2, 0.0, abs(r - 43.5)) * step(abs(r - 43.5), 1.2);
+      float glyph = step(0.0, sin(a * 24.0)) * smoothstep(1.2, 0.0, abs(r - 43.5)) * step(abs(r - 43.5), 1.2);
       glyph *= 0.55 + 0.45 * step(0.5, fract(a * 3.8197 + 0.25));
       float spokes = smoothstep(0.12, 0.0, abs(fract(a / 6.28318 * 8.0 + 0.0625) - 0.5) - 0.48) * step(14.0, r) * step(r, 30.0) * 0.5;
       // 3페이즈: 바닥 균열에서 용암빛이 새어 나옴
       float crack = smoothstep(0.035, 0.0, abs(fbm(p * 0.12 + 5.0) - 0.5)) * uP3;
-      vec3 rune = mix(vec3(1.0, 0.18, 0.12), vec3(0.85, 0.02, 0.05), uP3);
-      col += rune * (rings + glyph * 0.8 + spokes) * pulse * (1.0 + uP3 * 0.6);
-      col += vec3(1.0, 0.25, 0.05) * crack * (0.7 + 0.3 * sin(uT * 3.0 + r));
+      // 룬은 빨강 대신 차분한 청보라 (빨강은 공격 예고 전용)
+      vec3 rune = mix(vec3(0.42, 0.36, 0.95), vec3(0.62, 0.22, 0.85), uP3);
+      col += rune * (rings + glyph * 0.8 + spokes) * 0.55 * pulse;
+      col += vec3(0.5, 0.18, 0.7) * crack * 0.6;
       // 중앙 어두운 그을림 + 바깥 가장자리 어둡게
       col *= 0.82 + 0.18 * smoothstep(0.0, 12.0, r);
       col *= 1.0 - smoothstep(uR - 4.0, uR, r) * 0.6;
-      col = mix(col, col * vec3(1.15, 0.55, 0.55), uP3 * 0.5);
+      col = mix(col, col * vec3(1.0, 0.85, 1.1), uP3 * 0.5);
       gl_FragColor = vec4(col, 1.0);
     }`;
 
@@ -159,7 +160,7 @@ const RAIDHQ = (() => {
     g.add(rimTop);
 
     // 결계 커튼
-    const barrierMat = smat(BARRIER_FS, { uCol: { value: new THREE.Color(0xff2a2a) } });
+    const barrierMat = smat(BARRIER_FS, { uCol: { value: new THREE.Color(0x7c6bff) } });
     mats.push(barrierMat);
     const barrier = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R + 0.6, ARENA_R + 0.6, 7, 128, 1, true), barrierMat);
     barrier.position.y = 3.5;
@@ -169,7 +170,7 @@ const RAIDHQ = (() => {
     const crystals = [];
     const obMat = toon(0x2d2733);
     const obMat2 = toon(0x413849);
-    const crystalMat = new THREE.MeshBasicMaterial({ color: 0xff3344 });
+    const crystalMat = new THREE.MeshBasicMaterial({ color: 0x9d7bff });
     for (let i = 0; i < 12; i++) {
       const a = (i / 12) * Math.PI * 2 + Math.PI / 12;
       const x = Math.cos(a) * (FLOOR_R + 3.5), z = Math.sin(a) * (FLOOR_R + 3.5);
@@ -184,7 +185,7 @@ const RAIDHQ = (() => {
       cr.scale.y = 1.7;
       g.add(cr);
       const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: typeof fxTex === 'function' ? fxTex('glow') : null, color: 0xff2030, transparent: true, opacity: 0.85,
+        map: typeof fxTex === 'function' ? fxTex('glow') : null, color: 0x8f6bff, transparent: true, opacity: 0.85,
         blending: THREE.AdditiveBlending, depthWrite: false
       }));
       glow.scale.setScalar(6);
@@ -614,8 +615,8 @@ const RAIDHQ = (() => {
       c.cr.position.y = c.base + Math.sin(t * 1.6 + c.i) * 0.5;
       c.cr.rotation.y = t * 0.8 + c.i;
       c.glow.position.y = c.cr.position.y;
-      c.glow.material.opacity = 0.6 + Math.sin(t * 3 + c.i) * 0.25;
-      c.glow.material.color.setHex(phase >= 3 ? 0xb0000f : 0xff2030);
+      c.glow.material.opacity = 0.7;
+      c.glow.material.color.setHex(phase >= 3 ? 0xa23cff : 0x8f6bff);
     });
     if (aura) {
       const m = aura.m;
