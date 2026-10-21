@@ -2356,3 +2356,69 @@ body.raid-mode #field-event-hud, body.raid-mode #jump-hud { display: none !impor
 }
 .nick-edit-box button:disabled { opacity: 0.5; cursor: default; }
 .nick-edit-box .nick-hint { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+
+
+/* 💬 협동 방 채팅 */
+#coop-chat {
+  position: fixed;
+  left: 16px;
+  bottom: 150px;
+  width: min(340px, 64vw);
+  z-index: 45;
+  pointer-events: none;
+  font-size: 13px;
+}
+#coop-chat .cc-log {
+  max-height: 170px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 14px;
+  scrollbar-width: thin;
+}
+#coop-chat .cc-line {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.62);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-all;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+#coop-chat .cc-line b { color: #86efac; font-weight: 900; }
+#coop-chat .cc-line.mine b { color: #f9a8d4; }
+#coop-chat .cc-line.system { background: rgba(100, 116, 139, 0.55); font-style: italic; }
+#coop-chat .cc-line.fresh { opacity: 1; }
+#coop-chat.open { pointer-events: auto; }
+#coop-chat.open .cc-log { background: rgba(15, 23, 42, 0.25); }
+#coop-chat.open .cc-line { opacity: 1; }
+#coop-chat .cc-form { display: none; gap: 6px; margin-top: 6px; }
+#coop-chat.open .cc-form { display: flex; }
+#coop-chat .cc-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 12px;
+  border: 2px solid #86efac;
+  background: rgba(255, 255, 255, 0.95);
+  font-size: 13.5px;
+  font-weight: 700;
+  outline: none;
+}
+#coop-chat .cc-send {
+  padding: 0 14px;
+  border-radius: 12px;
+  border: none;
+  background: #22c55e;
+  color: #fff;
+  font-weight: 900;
+  cursor: pointer;
+}
+.coop-pill-chat { margin-left: 2px; background: rgba(134, 239, 172, 0.28) !important; }
+body.raid-mode #coop-chat { bottom: 120px; }

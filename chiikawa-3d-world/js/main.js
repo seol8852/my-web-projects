@@ -4306,6 +4306,9 @@ class Chiikawa3DWorldApp {
     });
 
     window.addEventListener('keydown', e => {
+      // 채팅·닉네임 등 입력칸에 타이핑 중이면 게임 조작 무시
+      const tgt = e.target;
+      if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
       if (this.isAnyModalOpen()) {
         this.clearAllInputKeys();
         return;

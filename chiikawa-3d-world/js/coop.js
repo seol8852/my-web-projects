@@ -57,6 +57,7 @@ export class CoopManager {
     this.pendingPlayers = null;
 
     this.buildUI();
+    this.buildChat();
     if (this.db) {
       onValue(ref(this.db, '.info/serverTimeOffset'), s => { this.serverOffset = s.val() || 0; });
     }
@@ -274,6 +275,7 @@ export class CoopManager {
       const left = await get(ref(this.db, `rooms/${code}/players`));
       if (!left.exists()) await remove(ref(this.db, `rooms/${code}`));
     } catch (e) { /* 이미 정리됨 */ }
+    this.closeChat && this.closeChat();
     if (!silent) toast('🚪 협동 방에서 나왔어요.');
     this.renderModal();
     this.renderHudPill();
@@ -413,6 +415,7 @@ export class CoopManager {
   onEvent(ev) {
     if (!ev || !ev.type || ev.uid === this.uid) return;
     if ((ev.ts || 0) < this.joinedAt - 500) return; // 입장 전 이벤트는 무시
+    if (ev.type === 'chat') { this.onChatEvent(ev); return; }
     if (this.onPartyEvent(ev)) return;
     if (this.onRaidEvent(ev)) return;
     const r = this.remotes.get(ev.uid);
@@ -1526,6 +1529,7 @@ export class CoopManager {
     this.pill.addEventListener('click', e => {
       const act = e.target.closest('[data-act]');
       if (act && act.dataset.act === 'emote') { this.emote(act.dataset.e); return; }
+      if (act && act.dataset.act === 'chat') { this.openChat(); return; }
       this.openModal();
     });
     this.renderModal();
@@ -1628,5 +1632,133 @@ export class CoopManager {
       b.textContent = e;
       this.pill.append(b);
     });
+    const chatBtn = document.createElement('button');
+    chatBtn.type = 'button';
+    chatBtn.className = 'coop-pill-emote coop-pill-chat';
+    chatBtn.dataset.act = 'chat';
+    chatBtn.title = '채팅 (Enter)';
+    chatBtn.textContent = '💬';
+    this.pill.append(chatBtn);
+  }
+
+  // ------------------------------------------------------------------
+  // 💬 실시간 채팅 (같은 협동 방 안에서만)
+  // ------------------------------------------------------------------
+  buildChat() {
+    const box = document.createElement('div');
+    box.id = 'coop-chat';
+    box.innerHTML = `<div class="cc-log"></div>
+      <form class="cc-form" autocomplete="off">
+        <input class="cc-input" type="text" maxlength="80" placeholder="메시지 입력 · Enter 전송 · Esc 닫기">
+        <button type="submit" class="cc-send">전송</button>
+      </form>`;
+    document.body.appendChild(box);
+    this.chatBox = box;
+    this.chatLog = box.querySelector('.cc-log');
+    this.chatInput = box.querySelector('.cc-input');
+    this.chatLastSent = 0;
+    box.querySelector('.cc-form').addEventListener('submit', e => {
+      e.preventDefault();
+      this.sendChat(this.chatInput.value);
+    });
+    this.chatInput.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Escape') { e.preventDefault(); this.closeChat(); }
+    });
+    this.chatInput.addEventListener('blur', () => setTimeout(() => {
+      if (document.activeElement !== this.chatInput) this.closeChat(true);
+    }, 120));
+    // Enter: 채팅 열기 (게임 중, 다른 입력칸/모달이 아닐 때)
+    window.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const g = this.game;
+      if (!g || !g.gameStarted) return;
+      if (typeof g.isAnyModalOpen === 'function' && g.isAnyModalOpen()) return;
+      e.preventDefault();
+      if (!this.room) {
+        const now = Date.now();
+        if (!this._chatHintAt || now - this._chatHintAt > 4000) {
+          this._chatHintAt = now;
+          toast('💬 채팅은 협동 방에 들어가면 쓸 수 있어요! (상단 👥 협동 플레이)');
+        }
+        return;
+      }
+      this.openChat();
+    }, true);
+  }
+
+  openChat() {
+    if (!this.chatBox) return;
+    if (!this.room) { toast('💬 채팅은 협동 방에 들어가면 쓸 수 있어요!'); return; }
+    if (this.game && typeof this.game.clearAllInputKeys === 'function') this.game.clearAllInputKeys();
+    this.chatBox.classList.add('open');
+    this.chatInput.focus();
+    this.chatLog.scrollTop = this.chatLog.scrollHeight;
+  }
+
+  closeChat(keepText = false) {
+    if (!this.chatBox) return;
+    this.chatBox.classList.remove('open');
+    if (!keepText) this.chatInput.value = '';
+    if (document.activeElement === this.chatInput) this.chatInput.blur();
+  }
+
+  cleanChat(text) {
+    return String(text || '')
+      .replace(/[\u0000-\u001f\u007f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 80);
+  }
+
+  sendChat(raw) {
+    const text = this.cleanChat(raw);
+    if (!text) { this.closeChat(); return; }
+    if (!this.room) { toast('💬 협동 방에 들어가 있지 않아요.'); this.closeChat(); return; }
+    const now = Date.now();
+    if (now - this.chatLastSent < 800) { toast('⏳ 너무 빨라요! 잠시 후 보내 주세요.'); return; }
+    this.chatLastSent = now;
+    this.sendEvent('chat', { m: text });
+    const myName = cleanName(this.auth.currentUser && this.auth.currentUser.displayName);
+    this.addChatLine(myName, text, { mine: true });
+    const g = this.game;
+    if (g && g.playerPos) this.showBubble(g.playerPos, text, 4.5, true);
+    this.chatInput.value = '';
+    this.closeChat();
+  }
+
+  onChatEvent(ev) {
+    const text = this.cleanChat(ev.m);
+    if (!text) return;
+    const info = this.players[ev.uid];
+    const name = cleanName(info && info.name);
+    this.addChatLine(name, text, { host: ev.uid === this.hostUid });
+    const r = this.remotes.get(ev.uid);
+    if (r && r.hasPos && r.area === this.area() && r.mesh.visible !== false) this.showBubble(r.mesh.position, text, 4.5, true);
+    if (typeof soundFx !== 'undefined' && soundFx.playCoin && !this.chatBox.classList.contains('open')) {
+      try { soundFx.playJump(); } catch (e) {}
+    }
+  }
+
+  addChatLine(name, text, opts = {}) {
+    if (!this.chatLog) return;
+    const line = document.createElement('div');
+    line.className = 'cc-line' + (opts.mine ? ' mine' : '') + (opts.system ? ' system' : '');
+    if (name) {
+      const n = document.createElement('b');
+      n.textContent = (opts.host ? '👑 ' : '') + name;
+      line.append(n, document.createTextNode(' '));
+    }
+    const t = document.createElement('span');
+    t.textContent = text; // HTML 주입 방지: 항상 텍스트로만 출력
+    line.append(t);
+    this.chatLog.append(line);
+    while (this.chatLog.children.length > 40) this.chatLog.firstChild.remove();
+    this.chatLog.scrollTop = this.chatLog.scrollHeight;
+    // 채팅창이 닫혀 있으면 잠시 보였다가 흐려짐
+    line.classList.add('fresh');
+    setTimeout(() => line.classList.remove('fresh'), 9000);
   }
 }
