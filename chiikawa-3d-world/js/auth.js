@@ -145,8 +145,9 @@ export class FirebaseManager {
       this.updateAuthUI(user);
 
       if (user) {
-        toast(`☁️ [${displayNameOf(user)}]님 계정으로 클라우드에 연결되었습니다!`);
+        this.nickname = null;
         await this.reconcileOnLogin(user);
+        toast(`☁️ [${displayNameOf(user)}]님 계정으로 클라우드에 연결되었습니다!`);
         this.closeAuthModal();
         this.maybePromptNickname(user);
       } else if (isInitialCheck) {
@@ -278,6 +279,7 @@ export class FirebaseManager {
       const snap = await getDoc(doc(db, 'users', uid));
       const cloud = snap.exists() ? snap.data() : null;
       const cloudStats = cloud && cloud.stats ? cloud.stats : null;
+      await this.restoreNickname(user, cloud);
 
       if (cloudStats) {
         if (owner === uid) {
@@ -346,6 +348,7 @@ export class FirebaseManager {
       batch.set(doc(db, 'users', user.uid), {
         uid: user.uid,
         displayName: name,
+        ...(this.nickname ? { nickname: this.nickname } : {}),
         activeCharKey: this.gameApp.activeCharKey,
         stats,
         updatedAt: serverTimestamp()
@@ -431,10 +434,40 @@ export class FirebaseManager {
 
   nickFlagKey(uid) { return `chiikawa_nick_set_${uid}`; }
 
+  // ☁️ 클라우드에 저장된 닉네임을 계정 프로필에 다시 적용
+  //  (구글 로그인은 접속할 때마다 프로필 이름이 구글 실명으로 되돌아가기 때문)
+  async restoreNickname(user, cloud) {
+    try {
+      const isGoogle = (user.providerData || []).some(p => p && p.providerId === 'google.com');
+      let nick = cloud && typeof cloud.nickname === 'string' ? sanitizeName(cloud.nickname) : null;
+      // 예전 버전에서 바꾼 닉네임(저장 문서의 이름이 구글 이름과 다르면 직접 정한 것)
+      if (!nick && cloud && typeof cloud.displayName === 'string' && cloud.displayName) {
+        const prev = sanitizeName(cloud.displayName);
+        if (!isGoogle || prev !== sanitizeName(user.displayName || '')) nick = prev;
+      }
+      // 이 기기에서 마지막으로 쓴 닉네임 (클라우드 기록이 아직 없을 때)
+      if (!nick) {
+        const localNick = localStorage.getItem(`chiikawa_nick_${user.uid}`);
+        if (localNick) nick = sanitizeName(localNick);
+      }
+      if (!nick && !isGoogle && user.displayName) nick = sanitizeName(user.displayName);
+      if (!nick) return;
+      this.nickname = nick;
+      try { localStorage.setItem(`chiikawa_nick_${user.uid}`, nick); localStorage.setItem(this.nickFlagKey(user.uid), '1'); } catch (e) {}
+      if (user.displayName !== nick) {
+        await updateProfile(user, { displayName: nick });
+      }
+      this.updateAuthUI(user);
+      if (window.coop && typeof window.coop.reRegister === 'function') window.coop.reRegister();
+    } catch (e) {
+      console.warn('닉네임 복원 실패:', e);
+    }
+  }
+
   // 구글 계정은 실명이 그대로 보일 수 있으니 처음 한 번 게임 닉네임을 정하도록 안내
   maybePromptNickname(user) {
     try {
-      if (!user || localStorage.getItem(this.nickFlagKey(user.uid))) return;
+      if (!user || this.nickname || localStorage.getItem(this.nickFlagKey(user.uid))) return;
       const isGoogle = (user.providerData || []).some(p => p && p.providerId === 'google.com');
       localStorage.setItem(this.nickFlagKey(user.uid), '1');
       if (!isGoogle) return;
@@ -472,7 +505,8 @@ export class FirebaseManager {
     this._nickChangedAt = now;
     try {
       await updateProfile(user, { displayName: cleaned });
-      try { localStorage.setItem(this.nickFlagKey(user.uid), '1'); } catch (e) {}
+      this.nickname = cleaned;
+      try { localStorage.setItem(this.nickFlagKey(user.uid), '1'); localStorage.setItem(`chiikawa_nick_${user.uid}`, cleaned); } catch (e) {}
       this.updateAuthUI(user);
       this.dirty = true;
       await this.flush(true); // 랭킹 이름 즉시 갱신
