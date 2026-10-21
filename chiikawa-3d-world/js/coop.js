@@ -739,7 +739,10 @@ export class CoopManager {
     R.bq = [];
     R.fly = null;
     if (typeof RAIDHQ !== 'undefined') { RAIDHQ.reset(g); RAIDHQ.ensureArena(g); if (RAIDHQ.setTheme) RAIDHQ.setTheme(R.kind); }
-    if (typeof loadCleanCharacterTexture === 'function') loadCleanCharacterTexture(R.cfg.p3tex); // 3페이즈 미리 로드
+    if (typeof loadCleanCharacterTexture === 'function') {
+      loadCleanCharacterTexture(R.cfg.p3tex); // 3페이즈 미리 로드
+      if (R.kind === 'bird') ['assets/raid_bird_dive.png', 'assets/raid_bird_dive_phase3.png'].forEach(u => loadCleanCharacterTexture(u));
+    }
 
     // 진행 중인 스테이지/모달 정리 후 보스 성소로 이동
     if (typeof closeStageSelectModal === 'function') closeStageSelectModal();
@@ -973,7 +976,7 @@ export class CoopManager {
     const tg = g.telegraphs[g.telegraphs.length - 1];
     if (tg) tg.duration = t.dur || tg.duration;
     // 기 모으기 연출 시간을 실제 장판 시간에 맞춤
-    if (t.dur) { R.boss.windupT = t.dur; R.boss.windupMax = t.dur; }
+    if (t.dur && R.kind !== 'bird') { R.boss.windupT = t.dur; R.boss.windupMax = t.dur; } // 새는 붉은 기 모으기 틴트 대신 비행 연출
     R.boss.isWindingUp = false; // 보스는 여러 장판을 동시에 깔 수 있음
   }
 
@@ -1084,7 +1087,7 @@ export class CoopManager {
     R.sendT += dt;
     if (R.sendT >= 0.1) {
       R.sendT = 0;
-      set(this.path('raid/boss'), { x: r2(m.pos.x), z: r2(m.pos.z), yaw: r2(m.facingYaw), hp: Math.max(0, Math.round(m.hp)), ph: phase, h: r2(m.alt || 0), t: this.now() }).catch(() => {});
+      set(this.path('raid/boss'), { x: r2(m.pos.x), z: r2(m.pos.z), yaw: r2(m.facingYaw), hp: Math.max(0, Math.round(m.hp)), ph: phase, h: r2(m.alt || 0), dv: (R.fly || m.landT > 0) ? 1 : 0, t: this.now() }).catch(() => {});
     }
     // 종료 판정
     if (m.hp <= 0) {
@@ -1105,23 +1108,51 @@ export class CoopManager {
   // 🐦 파자마 새 보스 (하늘을 날며 급강하·깃털·회오리·알 폭탄·폭풍)
   // ==================================================================
   // 보스 모습: 고도(alt) + 날갯짓 + 바닥 그림자 (방장/파티원 공통)
+  // 보스 이미지 교체 (평소 ↔ 급강하 자세)
+  setBossTexture(m, url) {
+    if (typeof loadCleanCharacterTexture !== 'function' || !m.mesh) return;
+    if (m._texMesh !== m.mesh) {
+      const bw = m.mesh.userData.bodyWrap;
+      const first = bw && bw.children.find(c => c.material && c.material.map);
+      const base = first && first.material.map;
+      m._texMats = [];
+      if (base) m.mesh.traverse(o => { if (o.material && o.material.map === base) m._texMats.push(o.material); });
+      m._texMesh = m.mesh;
+    }
+    const tex = loadCleanCharacterTexture(url);
+    m._texMats.forEach(mt => { if (mt.map !== tex) mt.map = tex; }); // 같은 종류 텍스처 교체라 재컴파일 불필요 (피격 플래시 셰이더 유지)
+  }
+
   birdVisual(m, dt, t) {
     const R = this.raid;
+    // 피격 플래시가 남아 몸이 분홍빛으로 물들지 않게 서서히 원래 색으로
+    (m.mesh.userData.mats || []).forEach(mm => { const u = mm.userData.fxFlash; if (u && u.uFlash.value > 0 && !mm.userData.fxFlashing) u.uFlash.value = Math.max(0, u.uFlash.value - dt * 4); });
+    // 하늘로 솟구치거나 내리꽂을 때는 날개 편 급강하 이미지
+    const diveNow = (m.alt || 0) > 5;
+    const key = `${diveNow ? 1 : 0}|${R.p3 ? 1 : 0}|${m.mesh && m.mesh.uuid}`;
+    if (m._texKey !== key) {
+      m._texKey = key;
+      this.setBossTexture(m, R.p3 ? (diveNow ? 'assets/raid_bird_dive_phase3.png' : 'assets/raid_bird_phase3.png') : (diveNow ? 'assets/raid_bird_dive.png' : 'assets/raid_bird.png'));
+    }
     const bs = m.baseScale || 1;
     m.sc = THREE.MathUtils.lerp(m.sc || bs, bs, Math.min(1, dt * 6));
     const alt = m.alt || 0;
     const flying = alt > 1.2;
+    // 🦅 급강하 중에는 '날아서 찍는' 이미지로 교체
+    const diving = this.isHost() ? !!(R.fly || (m.landT > 0)) : !!(R.net && R.net.dv);
+    if (m.landT > 0) m.landT -= dt;
+    this.birdPose(m, diving);
     const flapSpd = flying ? 13 : 7;
     const f = Math.sin(t * flapSpd);
-    const diving = R.fly && R.fly.stage === 'down';
-    m.mesh.scale.set(m.sc * (1 + f * 0.05), m.sc * (diving ? 1.12 : 1 - f * 0.06), m.sc);
-    const bob = flying ? Math.sin(t * 2.4) * 0.5 : Math.abs(Math.sin(t * 3)) * 0.25;
+    const plunge = R.fly && R.fly.stage === 'down';
+    m.mesh.scale.set(m.sc * (1 + f * (flying ? 0.05 : 0.02)), m.sc * (plunge ? 1.1 : 1 - f * (flying ? 0.06 : 0.025)), m.sc);
+    const bob = flying ? Math.sin(t * 2.4) * 0.5 : Math.abs(Math.sin(t * 4.5)) * 0.35;
     m.mesh.position.set(m.pos.x, alt + bob, m.pos.z);
     if (R.shadow) {
       R.shadow.position.set(m.pos.x, 0.12, m.pos.z);
       const k = Math.max(0.35, 1 - alt / 26);
       R.shadow.scale.setScalar((m.bodyRadius || 6) * 1.1 * k);
-      R.shadow.material.opacity = 0.25 + 0.3 * (1 - k) + (diving ? 0.2 : 0);
+      R.shadow.material.opacity = 0.25 + 0.3 * (1 - k) + (plunge ? 0.2 : 0);
     }
     // 날갯짓 바람 깃털
     if (typeof FXHQ !== 'undefined' && FXHQ._glow && flying && Math.random() < dt * 8) {
@@ -1129,6 +1160,32 @@ export class CoopManager {
       FXHQ._glow(new THREE.Vector3(m.pos.x + Math.cos(a) * 6, alt + 3 + Math.random() * 6, m.pos.z + Math.sin(a) * 6),
         R.phase >= 3 ? 0xa5b4fc : 0xffffff, new THREE.Vector3(Math.cos(a) * 3, -4, Math.sin(a) * 3), 1.4, 0.7, 6, 'star');
     }
+  }
+
+  birdPose(m, diving) {
+    const R = this.raid;
+    if (typeof loadCleanCharacterTexture !== 'function') return;
+    const p3 = !!R.p3;
+    const key = `${p3 ? 3 : 1}|${diving ? 1 : 0}`;
+    if (m._poseKey === key && m._poseMesh === m.mesh) return;
+    const idleUrl = p3 ? 'assets/raid_bird_phase3.png' : 'assets/raid_bird.png';
+    const diveUrl = p3 ? 'assets/raid_bird_dive_phase3.png' : 'assets/raid_bird_dive.png';
+    const idleTex = loadCleanCharacterTexture(idleUrl);
+    const diveTex = loadCleanCharacterTexture(diveUrl);
+    if (!m._poseMats || m._poseMesh !== m.mesh) {
+      m._poseMats = [];
+      m._poseMesh = m.mesh;
+      m.mesh.traverse(o => {
+        const mats = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+        mats.forEach(mt => {
+          if (mt.map && (mt.map === idleTex || mt.map === diveTex)) m._poseMats.push(mt);
+          else if (mt.uniforms) Object.values(mt.uniforms).forEach(u => { if (u && (u.value === idleTex || u.value === diveTex)) m._poseMats.push({ uni: u }); });
+        });
+      });
+    }
+    const tex = diving ? diveTex : idleTex;
+    m._poseMats.forEach(mt => { if (mt.uni) mt.uni.value = tex; else { mt.map = tex; mt.needsUpdate = true; } });
+    m._poseKey = key;
   }
 
   birdAI(m, dt, phase, t) {
@@ -1166,6 +1223,7 @@ export class CoopManager {
         m.alt = 0;
         m.pos.copy(F.to);
         R.fly = null;
+        m.landT = 0.55; // 착지 직후 잠깐 찍는 자세 유지
         if (g) g.camShake = Math.max(g.camShake || 0, 0.6);
       }
       const dir = F.to.clone().sub(m.pos);
@@ -1182,7 +1240,7 @@ export class CoopManager {
         const L = mv.length();
         if (L > 0.1) m.pos.addScaledVector(mv.normalize(), Math.min(L, spd * dt));
       }
-      m.alt = THREE.MathUtils.lerp(m.alt || 0, phase === 3 ? 4 : 2.6, Math.min(1, dt * 3));
+      m.alt = THREE.MathUtils.lerp(m.alt || 0, 0, Math.min(1, dt * 3)); // 평소엔 땅 위를 뒤뚱뒤뚱
       const dir = best.pos.clone().sub(m.pos).setY(0);
       if (dir.lengthSq() > 0.01) m.facingYaw += g.angleDifference(Math.atan2(dir.x, dir.z), m.facingYaw) * Math.min(1, dt * 4);
       if (Math.random() < dt * 0.15) R.orbitDir = -(R.orbitDir || 1);
