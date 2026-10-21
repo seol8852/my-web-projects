@@ -48,6 +48,10 @@ const googleProvider = new GoogleAuthProvider();
 const SAVE_OWNER_KEY = 'chiikawa_3d_save_owner';
 const GUEST_BACKUP_KEY = 'chiikawa_3d_guest_backup';
 const CLOUD_SAVE_INTERVAL_MS = 30000;
+const ACCT_BACKUP_PREFIX = 'chiikawa_3d_acct_best_'; // 계정별 '가장 많이 진행한' 세이브 (기기 보관용 안전망)
+// Firestore 규칙: 한 번 저장할 때 스테이지 +1, 레벨 +30까지만 오를 수 있음 → 그보다 많이 오르면 나눠서 저장
+const RULE_STAGE_STEP = 1;
+const RULE_LEVEL_STEP = 30;
 const TRANSIENT_STAT_KEYS = ['ramenBuffTimer'];
 
 // ---------- 유틸 ----------
@@ -239,6 +243,7 @@ export class FirebaseManager {
     try {
       await this.flush(true);
       const uid = this.currentUser && this.currentUser.uid;
+      if (uid && this.gameApp) this.backupAccount(uid, this.gameApp.stats);
       await signOut(auth);
       if (this.gameApp && typeof this.gameApp.resetStatsToDefault === 'function') {
         const guestBackup = this.readJson(GUEST_BACKUP_KEY);
@@ -267,9 +272,22 @@ export class FirebaseManager {
     }
   }
 
-  // 로그인 직후: 이 기기의 로컬 세이브와 클라우드 세이브를 '통째로' 하나만 선택 (필드별 섞기 금지 → 코인 복사 차단)
+  // 🛟 계정별 최고 진행도 백업 (클라우드 저장이 실패하거나 다른 기기 세이브에 덮여도 이 기기에서 복구 가능)
+  backupAccount(uid, stats) {
+    try {
+      if (!uid || !stats) return;
+      const key = ACCT_BACKUP_PREFIX + uid;
+      const prev = this.readJson(key);
+      if (!prev || progressScore(stats) >= progressScore(prev)) {
+        localStorage.setItem(key, JSON.stringify(stats));
+      }
+    } catch (e) { /* 저장 공간 부족 등은 무시 */ }
+  }
+
+  // 로그인 직후: 후보 세이브(클라우드 / 이 기기 로컬 / 이 기기 계정 백업) 중 '가장 많이 진행한' 것 하나를 통째로 선택
+  //  (필드별 섞기 금지 → 코인 복사 차단, 진행도가 같으면 더 최근 저장본)
   async reconcileOnLogin(user) {
-    const game = await this.waitForGame();
+    const game = await this.waitForGame(20000);
     if (!game) return;
     const uid = user.uid;
     const owner = localStorage.getItem(SAVE_OWNER_KEY) || 'guest';
@@ -279,25 +297,35 @@ export class FirebaseManager {
       const snap = await getDoc(doc(db, 'users', uid));
       const cloud = snap.exists() ? snap.data() : null;
       const cloudStats = cloud && cloud.stats ? cloud.stats : null;
+      this.cloudBase = cloudStats ? { stage: cloudStats.maxUnlockedStage || 1, level: cloudStats.level || 1 } : null;
       await this.restoreNickname(user, cloud);
 
-      if (cloudStats) {
-        if (owner === uid) {
-          // 같은 계정: 더 최근에 저장된 쪽 사용
-          const useLocal = (local.savedAt || 0) > (cloudStats.savedAt || 0);
-          if (!useLocal) game.applyStats(cloudStats);
-        } else {
-          // 게스트/다른 계정의 로컬 기록은 이 계정에 섞지 않음 (게스트 기록은 기기에 백업)
-          if (owner === 'guest' && progressScore(local) > 1e9 + 1e5) {
-            localStorage.setItem(GUEST_BACKUP_KEY, JSON.stringify(local));
-            toast('💾 이 계정의 클라우드 기록을 불러왔어요. (게스트 기록은 이 기기에 따로 보관됩니다)');
-          }
-          game.applyStats(cloudStats);
+      const cands = [];
+      if (cloudStats) cands.push({ src: 'cloud', stats: cloudStats });
+      if (owner === uid) cands.push({ src: 'local', stats: local });
+      const backup = this.readJson(ACCT_BACKUP_PREFIX + uid);
+      if (backup) cands.push({ src: 'backup', stats: backup });
+      const better = (a, b) => {
+        const pa = progressScore(a.stats), pb = progressScore(b.stats);
+        if (pa !== pb) return pa > pb ? a : b;
+        return (a.stats.savedAt || 0) >= (b.stats.savedAt || 0) ? a : b;
+      };
+      const pick = cands.length ? cands.reduce(better) : null;
+
+      if (pick) {
+        if (owner === 'guest' && pick.src !== 'local' && progressScore(local) > 1e9 + 1e5) {
+          // 게스트 기록은 이 계정에 섞지 않고 기기에 따로 보관
+          localStorage.setItem(GUEST_BACKUP_KEY, JSON.stringify(local));
+          toast('💾 이 계정의 기록을 불러왔어요. (게스트 기록은 이 기기에 따로 보관됩니다)');
         }
-        if (cloud.activeCharKey && game.activeCharKey !== cloud.activeCharKey && owner !== uid) {
+        if (pick.src !== 'local') game.applyStats(pick.stats);
+        if (cloud && cloud.activeCharKey && game.activeCharKey !== cloud.activeCharKey && owner !== uid) {
           if (typeof game.spawnPlayer === 'function') game.spawnPlayer(cloud.activeCharKey);
         }
-        toast('📥 클라우드 세이브 데이터를 동기화했습니다!');
+        if (pick.src === 'cloud') toast('📥 클라우드 세이브 데이터를 동기화했습니다!');
+        else if (cloudStats && progressScore(pick.stats) > progressScore(cloudStats)) {
+          toast(`🛟 이 기기에 남아 있던 더 높은 진행도(Lv.${pick.stats.level || 1} · ${pick.stats.maxUnlockedStage || 1}단계)를 복구해 클라우드에 올려요!`);
+        }
       } else if (owner !== 'guest' && owner !== uid) {
         // 새 계정인데 로컬은 다른 계정의 기록 → 새로 시작
         game.resetStatsToDefault();
@@ -305,6 +333,7 @@ export class FirebaseManager {
       // owner가 guest이고 클라우드 기록이 없으면: 게스트 진행도를 이 새 계정으로 그대로 이전
 
       localStorage.setItem(SAVE_OWNER_KEY, uid);
+      this.backupAccount(uid, game.stats);
       this.ready = true;
       await this.flush(true);
     } catch (err) {
@@ -333,8 +362,18 @@ export class FirebaseManager {
     }
 
     const user = this.currentUser;
+    this.backupAccount(user.uid, this.gameApp.stats);
     const stats = { ...this.gameApp.stats };
     TRANSIENT_STAT_KEYS.forEach(k => delete stats[k]);
+    const full = rankScoreOf(stats);
+    // 협동 클리어·레이드처럼 한 번에 많이 오르면 보안 규칙에 막혀 저장이 영영 실패하던 문제 → 규칙 한도만큼 나눠 저장
+    let clamped = false;
+    if (this.cloudBase) {
+      const maxStage = this.cloudBase.stage + RULE_STAGE_STEP;
+      const maxLevel = this.cloudBase.level + RULE_LEVEL_STEP;
+      if (full.stage > maxStage) { stats.maxUnlockedStage = maxStage; clamped = true; }
+      if (full.level > maxLevel) { stats.level = maxLevel; clamped = true; }
+    }
     const { stage, level, rankScore } = rankScoreOf(stats);
     stats.maxUnlockedStage = stage;
     stats.level = level;
@@ -364,10 +403,25 @@ export class FirebaseManager {
         updatedAt: serverTimestamp()
       });
       await batch.commit();
+      this.cloudBase = { stage, level };
+      this.saveFailCount = 0;
+      if (clamped) {
+        // 남은 진행도는 곧바로 이어서 저장
+        this.dirty = true;
+        setTimeout(() => this.flush(true), 1200);
+      }
       return true;
     } catch (err) {
       this.dirty = true;
+      this.saveFailCount = (this.saveFailCount || 0) + 1;
       console.error('Firestore 저장 실패:', err);
+      // 클라우드 기준값을 다시 읽어서 다음 저장을 맞춤
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        const cs = snap.exists() && snap.data().stats;
+        this.cloudBase = cs ? { stage: cs.maxUnlockedStage || 1, level: cs.level || 1 } : null;
+      } catch (e) { /* 네트워크 문제면 다음에 재시도 */ }
+      if (this.saveFailCount === 3) toast('⚠️ 클라우드 저장이 계속 실패하고 있어요. 진행도는 이 기기에 안전하게 보관 중이에요.');
       return false;
     } finally {
       this.isSyncing = false;
