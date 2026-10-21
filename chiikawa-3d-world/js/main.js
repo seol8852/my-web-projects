@@ -164,6 +164,8 @@ class Chiikawa3DWorldApp {
     this.spawnFieldChests();
     // ☁️ 점프 타워 & 🎪 들판 이벤트 광장 (빈 평원 콘텐츠)
     if (typeof WORLDX !== 'undefined') WORLDX.init(this);
+    // 🏘️ 마을 소품 (가로등·벤치·화분·울타리·이정표 등)
+    if (typeof TOWNHQ !== 'undefined') TOWNHQ.decorate(this);
     // 메인 광장은 평화 구역이므로 시작 시 몬스터를 스폰하지 않음! (전투 스테이지/던전 입장 시 스폰)
     this.bindEvents();
     this.renderCharSelectCards();
@@ -840,7 +842,7 @@ class Chiikawa3DWorldApp {
 
     // 3) 의상실 & 무기 강화 공방
     this.shopPos = new THREE.Vector3(16, 0, -5);
-    const shopStand = this.createBoutiqueStand3D();
+    const shopStand = (typeof TOWNHQ !== 'undefined') ? TOWNHQ.boutique() : this.createBoutiqueStand3D();
     shopStand.position.copy(this.shopPos);
     shopStand.rotation.y = -Math.PI / 5;
     this.scene.add(shopStand);
@@ -999,6 +1001,7 @@ class Chiikawa3DWorldApp {
       [122, -25], [110, 42], [-132, -18], [-110, -68], [68, 88]
     ];
     treePositions.forEach(([tx, tz], idx) => {
+      if (Math.hypot(tx - 150, tz + 5) < 34) return; // 점프 타워와 겹치는 나무 제외
       const isSakura = idx % 2 === 0;
       const tree = this.createTree3D(isSakura, idx + 1);
       tree.position.set(tx, 0, tz);
@@ -3714,6 +3717,7 @@ class Chiikawa3DWorldApp {
 
   updateWeedsAndMonsters(dt) {
     if (typeof WORLDX !== 'undefined') WORLDX.update(this, dt);
+    if (typeof TOWNHQ !== 'undefined') TOWNHQ.update(this, dt);
     if (this.instancedGrass && this.instancedGrass.userData.updateWind) {
       this.instancedGrass.userData.updateWind(this.clock.elapsedTime);
     }
