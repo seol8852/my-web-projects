@@ -24,9 +24,27 @@ const VISUAL_EVENTS = ['atk', 'ult', 'skl', 'emo'];
 // ⚔️ 입장 존: 존 안의 모두가 [E] 준비하면 3초 뒤 함께 출발
 const ZONES = {
   stage: { x: 32, z: -22, r: 8.2, label: '⚔️ 전투 스테이지 출격 존', color: '#f97316' },
-  raid: { x: 8, z: -44, r: 7.5, label: '🐉 아노코 레이드 입장 존', color: '#a855f7' }
+  raid: { x: 8, z: -44, r: 7.5, label: '🐉 레이드 입장 존', color: '#a855f7' }
 };
 const ZONE_COUNTDOWN = 3;
+// 🐉 레이드 보스 목록 (레이드 입장 존에서 리더가 ◀ ▶로 선택)
+const RAID_BOSSES = {
+  anoko: {
+    name: '👹 거대 아노코', p3name: '😈 각성한 아노코', mesh: 'anoko', scale: 2.7, title: '🐉 협동 레이드 · 거대 아노코',
+    hpBase: 45000, hpPer: 32500, color: '#f97316', startMsg: '거대 아노코를 함께 쓰러뜨리세요!',
+    p2msg: '돌진과 대폭발 패턴이 추가돼요. 장판을 잘 피하세요!',
+    p3title: '😈 아노코 각성!!', p3msg: '진짜 모습을 드러냈다! 체력이 절반까지 회복되고 진홍빛 오라에 휩싸였어요!', p3color: '#b0000f',
+    p3tex: 'assets/anoko_phase3.png', reward: [600, 150, 450, 60], shock: 0xef4444
+  },
+  bird: {
+    name: '🐦 거대 파자마 새', p3name: '🌩️ 폭풍의 파자마 새', mesh: 'pjbird', scale: 2.6, title: '🪶 협동 레이드 · 거대 파자마 새',
+    hpBase: 38000, hpPer: 27500, color: '#38bdf8', startMsg: '하늘을 나는 파자마 새! 그림자를 보고 급강하를 피하세요!',
+    p2msg: '연속 급강하·회오리·알 폭탄이 추가돼요!',
+    p3title: '🌩️ 폭풍의 파자마 새!!', p3msg: '폭풍을 부르며 각성했다! 체력이 절반까지 회복되고 번개가 내리쳐요!', p3color: '#4338ca',
+    p3tex: 'assets/raid_bird_phase3.png', reward: [550, 140, 420, 55], shock: 0x38bdf8
+  }
+};
+const RAID_LIST = ['anoko', 'bird'];
 const SEND_INTERVAL = 0.1;      // 위치 전송 주기(초) = 10Hz
 const KEEPALIVE = 1.0;          // 가만히 있어도 1초마다 전송
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -649,18 +667,19 @@ export class CoopManager {
     return Object.keys(this.players).length || 1;
   }
 
-  async startRaid() {
+  async startRaid(kind = 'anoko') {
     if (!this.isHost()) { toast('👑 레이드는 방장만 시작할 수 있어요.'); return; }
     if (this.raid.active) return;
     const g = this.game;
     const n = this.raidPlayerCount();
     const lv = (g && g.stats && g.stats.level) || 1;
-    // 🔥 하드 난이도: 체력 약 3배 (인원·레벨에 비례)
-    const maxHp = Math.round((45000 + 32500 * n) * (1 + (lv - 1) * 0.1)); // 🔥 체력 2.5배
+    const cfg = RAID_BOSSES[kind] || RAID_BOSSES.anoko;
+    // 🔥 체력: 인원·레벨에 비례 (파자마 새는 아노코보다 조금 적음)
+    const maxHp = Math.round((cfg.hpBase + cfg.hpPer * n) * (1 + (lv - 1) * 0.1));
     const id = Date.now().toString(36);
     try {
-      await set(this.path('raid/boss'), { x: RAID_CENTER.x, z: RAID_CENTER.z - 16, yaw: 0, hp: maxHp, ph: 1, t: this.now() });
-      await set(this.path('raid/info'), { active: true, id, maxHp, n, result: null, startedAt: serverTimestamp() });
+      await set(this.path('raid/boss'), { x: RAID_CENTER.x, z: RAID_CENTER.z - 16, yaw: 0, hp: maxHp, ph: 1, h: 0, t: this.now() });
+      await set(this.path('raid/info'), { active: true, id, maxHp, n, boss: RAID_BOSSES[kind] ? kind : 'anoko', result: null, startedAt: serverTimestamp() });
     } catch (e) {
       this.reportError(e);
     }
@@ -691,7 +710,7 @@ export class CoopManager {
     if (m && !this.isHost()) {
       m.hp = Math.max(0, b.hp);
       if (b.ph && b.ph > R.phase && b.ph < 3) {
-        this.showRaidBanner('⚡ 2페이즈 돌입!', '돌진과 대폭발 패턴이 추가돼요. 장판을 잘 피하세요!', '#f97316', 2200);
+        this.showRaidBanner('⚡ 2페이즈 돌입!', R.cfg.p2msg, R.cfg.color, 2200);
       }
       if (b.ph === 3 && !R.p3) this.enterPhase3(m);
       if (b.ph) R.phase = b.ph;
@@ -715,8 +734,12 @@ export class CoopManager {
     R.revive = {};
     R.lastTarget = null;
     R.p3 = false;
-    if (typeof RAIDHQ !== 'undefined') { RAIDHQ.reset(g); RAIDHQ.ensureArena(g); }
-    if (typeof loadCleanCharacterTexture === 'function') loadCleanCharacterTexture('assets/anoko_phase3.png'); // 3페이즈 미리 로드
+    R.kind = RAID_BOSSES[info.boss] ? info.boss : 'anoko';
+    R.cfg = RAID_BOSSES[R.kind];
+    R.bq = [];
+    R.fly = null;
+    if (typeof RAIDHQ !== 'undefined') { RAIDHQ.reset(g); RAIDHQ.ensureArena(g); if (RAIDHQ.setTheme) RAIDHQ.setTheme(R.kind); }
+    if (typeof loadCleanCharacterTexture === 'function') loadCleanCharacterTexture(R.cfg.p3tex); // 3페이즈 미리 로드
 
     // 진행 중인 스테이지/모달 정리 후 보스 성소로 이동
     if (typeof closeStageSelectModal === 'function') closeStageSelectModal();
@@ -728,7 +751,7 @@ export class CoopManager {
     g.battleState = {
       ...g.battleState,
       active: true, mode: 'raid', sectors: null, stageNum: 0,
-      title: '🐉 협동 레이드 · 거대 아노코', totalMonsters: 1, killedMonsters: 0, elapsedTime: 0,
+      title: R.cfg.title, totalMonsters: 1, killedMonsters: 0, elapsedTime: 0,
       currentSectorIdx: 0, currentWaveIdx: 0, waitingAdvance: false
     };
     g.stats.hp = g.stats.maxHp;
@@ -744,8 +767,8 @@ export class CoopManager {
     document.body.classList.add('raid-mode');
 
     // 보스 생성 (기존 몬스터 시스템과 호환되는 객체)
-    const scale = 2.7;
-    const mesh = createMonster3D('anoko');
+    const scale = R.cfg.scale;
+    const mesh = createMonster3D(R.cfg.mesh);
     mesh.scale.setScalar(scale);
     const pos = new THREE.Vector3(RAID_CENTER.x, 0, RAID_CENTER.z - 16);
     mesh.position.copy(pos);
@@ -755,7 +778,7 @@ export class CoopManager {
     labelEl.style.borderColor = '#facc15';
     labelEl.style.background = 'rgba(15, 23, 42, 0.92)';
     const nameDiv = document.createElement('div');
-    nameDiv.textContent = '👹 거대 아노코 ';
+    nameDiv.textContent = R.cfg.name + ' ';
     const status = document.createElement('span');
     status.className = 'monster-status-tag';
     status.style.cssText = 'font-size:10px; color:#38bdf8;';
@@ -769,7 +792,7 @@ export class CoopManager {
     labelEl.append(nameDiv, track);
     document.getElementById('world-labels-layer').appendChild(labelEl);
     const m = {
-      type: 'anoko', name: '👹 거대 아노코', isBoss: true, isRaidBoss: true,
+      type: R.cfg.mesh, name: R.cfg.name, raidKind: R.kind, isBoss: true, isRaidBoss: true, alt: 0, sc: scale,
       hp: R.net ? R.net.hp : info.maxHp, maxHp: info.maxHp, atk: 26, reach: 9, atkPattern: 'circle',
       coin: 0, exp: 0, mesh, pos, homePos: pos.clone(), baseScale: scale, facingYaw: 0,
       bodyRadius: (mesh.userData.bodyRadius || 2.4) * scale, sizeH: (mesh.userData.sizeH || 8.6) * scale,
@@ -780,9 +803,17 @@ export class CoopManager {
     g.monsters.push(m);
     R.boss = m;
     g.updateBattleStageHud();
-    this.showRaidBanner('🐉 협동 레이드 시작!', '거대 아노코를 함께 쓰러뜨리세요! 쓰러진 동료에게 가서 [E]를 누르면 부활! (팀 전체 5회)', '#f97316');
+    // 새 보스: 하늘에 떠 있을 때 위치를 알려주는 바닥 그림자
+    if (R.kind === 'bird') {
+      const sh = new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ color: 0x0f172a, transparent: true, opacity: 0.45, depthWrite: false }));
+      sh.rotation.x = -Math.PI / 2;
+      sh.position.set(pos.x, 0.12, pos.z);
+      g.scene.add(sh);
+      R.shadow = sh;
+    }
+    this.showRaidBanner('🐉 협동 레이드 시작!', `${R.cfg.startMsg} 쓰러진 동료에게 가서 [E]를 누르면 부활! (팀 전체 5회)`, R.cfg.color);
     if (typeof soundFx !== 'undefined') soundFx.playFanfare();
-    if (typeof FXHQ !== 'undefined') FXHQ.shockwave(new THREE.Vector3(pos.x, 0, pos.z), 0xef4444, 30);
+    if (typeof FXHQ !== 'undefined') FXHQ.shockwave(new THREE.Vector3(pos.x, 0, pos.z), R.cfg.shock, 30);
     this.sendState(true);
   }
 
@@ -797,6 +828,9 @@ export class CoopManager {
       if (R.boss.labelEl) R.boss.labelEl.remove();
     }
     R.boss = null;
+    if (R.shadow) { if (R.shadow.parent) R.shadow.parent.remove(R.shadow); R.shadow.geometry.dispose(); R.shadow.material.dispose(); R.shadow = null; }
+    R.bq = [];
+    R.fly = null;
     if (typeof RAIDHQ !== 'undefined') RAIDHQ.reset(g);
   }
 
@@ -834,8 +868,9 @@ export class CoopManager {
     R.finishing = true;
     if (result === 'clear') {
       const n = this.raidPlayerCount();
-      const coins = 600 + 150 * n;
-      const exp = 450 + 60 * n;
+      const rw = (R.cfg || RAID_BOSSES.anoko).reward;
+      const coins = rw[0] + rw[1] * n;
+      const exp = rw[2] + rw[3] * n;
       if (R.boss) {
         R.boss.alive = false;
         R.boss.mesh.visible = false;
@@ -848,7 +883,7 @@ export class CoopManager {
         g.saveData(true);
       }
       if (typeof soundFx !== 'undefined') soundFx.playFanfare();
-      this.showRaidBanner('🏆 레이드 클리어!!', `파티 ${n}명이 거대 아노코를 쓰러뜨렸어요! +${coins}🪙 +${exp}EXP`, '#22c55e');
+      this.showRaidBanner('🏆 레이드 클리어!!', `파티 ${n}명이 ${(R.cfg || RAID_BOSSES.anoko).name.replace(/^\S+\s/, '')}를 쓰러뜨렸어요! +${coins}🪙 +${exp}EXP`, '#22c55e');
     } else if (result === 'fail') {
       this.showRaidBanner('💀 레이드 실패…', '파티 전원이 쓰러졌어요. 장비를 강화하고 다시 도전해 보세요!', '#ef4444');
     } else {
@@ -933,6 +968,7 @@ export class CoopManager {
     const R = this.raid;
     if (!g || !R.boss) return;
     const center = new THREE.Vector3(t.x, 0, t.z);
+    if (t.sk) this.showBubble(R.boss.pos.clone().setY((R.boss.alt || 0) + 14), t.sk, 1.6, true);
     g.spawnMonsterAttackTelegraph(R.boss, t.p, center, t.yaw || 0, t.r, t.d);
     const tg = g.telegraphs[g.telegraphs.length - 1];
     if (tg) tg.duration = t.dur || tg.duration;
@@ -941,8 +977,9 @@ export class CoopManager {
     R.boss.isWindingUp = false; // 보스는 여러 장판을 동시에 깔 수 있음
   }
 
-  hostTelegraph(p, x, z, yaw, r, dur, d) {
+  hostTelegraph(p, x, z, yaw, r, dur, d, sk) {
     const t = { p, x: r2(x), z: r2(z), yaw: r2(yaw), r, dur, d, rid: this.raid.id };
+    if (sk) t.sk = sk;
     this.spawnRaidTelegraph(t);
     this.sendEvent('rtele', t);
   }
@@ -979,7 +1016,10 @@ export class CoopManager {
         if (m.pos.distanceTo(target) > 40) m.pos.copy(target); else m.pos.lerp(target, 1 - Math.exp(-dt * 8));
         m.facingYaw += g.angleDifference(R.net.yaw || 0, m.facingYaw) * Math.min(1, dt * 8);
       }
-      m.mesh.position.set(m.pos.x, 0, m.pos.z);
+      if (R.kind === 'bird') {
+        m.alt = THREE.MathUtils.lerp(m.alt || 0, (R.net && R.net.h) || 0, 1 - Math.exp(-dt * 10));
+        this.birdVisual(m, dt, t);
+      } else m.mesh.position.set(m.pos.x, 0, m.pos.z);
       return;
     }
 
@@ -995,9 +1035,10 @@ export class CoopManager {
       R.aiCd = 2.6; // 변신 연출 동안 잠깐 멈춤
       this.enterPhase3(m);
     } else if (phase !== R.phase && phase === 2) {
-      this.showRaidBanner('⚡ 2페이즈 돌입!', '돌진과 대폭발 패턴이 추가돼요. 장판을 잘 피하세요!', '#f97316', 2200);
+      this.showRaidBanner('⚡ 2페이즈 돌입!', R.cfg.p2msg, R.cfg.color, 2200);
     }
     R.phase = phase;
+    if (R.kind === 'bird') { this.birdAI(m, dt, phase, t); this.raidHostTail(m, dt, phase); return; }
     const members = this.raidMembers();
     const alive = members.filter(p => !p.downed);
     if (alive.length) {
@@ -1032,12 +1073,18 @@ export class CoopManager {
       }
     }
     m.mesh.position.set(m.pos.x, Math.abs(Math.sin(t * 2.2)) * 0.15, m.pos.z);
+    this.raidHostTail(m, dt, phase);
+  }
 
+  // 방장: 보스 상태 전송 + 종료 판정 (공통)
+  raidHostTail(m, dt, phase) {
+    const R = this.raid;
+    const members = this.raidMembers();
     // 상태 전송 (10Hz)
     R.sendT += dt;
     if (R.sendT >= 0.1) {
       R.sendT = 0;
-      set(this.path('raid/boss'), { x: r2(m.pos.x), z: r2(m.pos.z), yaw: r2(m.facingYaw), hp: Math.max(0, Math.round(m.hp)), ph: phase, t: this.now() }).catch(() => {});
+      set(this.path('raid/boss'), { x: r2(m.pos.x), z: r2(m.pos.z), yaw: r2(m.facingYaw), hp: Math.max(0, Math.round(m.hp)), ph: phase, h: r2(m.alt || 0), t: this.now() }).catch(() => {});
     }
     // 종료 판정
     if (m.hp <= 0) {
@@ -1054,6 +1101,206 @@ export class CoopManager {
     }
   }
 
+  // ==================================================================
+  // 🐦 파자마 새 보스 (하늘을 날며 급강하·깃털·회오리·알 폭탄·폭풍)
+  // ==================================================================
+  // 보스 모습: 고도(alt) + 날갯짓 + 바닥 그림자 (방장/파티원 공통)
+  birdVisual(m, dt, t) {
+    const R = this.raid;
+    const bs = m.baseScale || 1;
+    m.sc = THREE.MathUtils.lerp(m.sc || bs, bs, Math.min(1, dt * 6));
+    const alt = m.alt || 0;
+    const flying = alt > 1.2;
+    const flapSpd = flying ? 13 : 7;
+    const f = Math.sin(t * flapSpd);
+    const diving = R.fly && R.fly.stage === 'down';
+    m.mesh.scale.set(m.sc * (1 + f * 0.05), m.sc * (diving ? 1.12 : 1 - f * 0.06), m.sc);
+    const bob = flying ? Math.sin(t * 2.4) * 0.5 : Math.abs(Math.sin(t * 3)) * 0.25;
+    m.mesh.position.set(m.pos.x, alt + bob, m.pos.z);
+    if (R.shadow) {
+      R.shadow.position.set(m.pos.x, 0.12, m.pos.z);
+      const k = Math.max(0.35, 1 - alt / 26);
+      R.shadow.scale.setScalar((m.bodyRadius || 6) * 1.1 * k);
+      R.shadow.material.opacity = 0.25 + 0.3 * (1 - k) + (diving ? 0.2 : 0);
+    }
+    // 날갯짓 바람 깃털
+    if (typeof FXHQ !== 'undefined' && FXHQ._glow && flying && Math.random() < dt * 8) {
+      const a = Math.random() * Math.PI * 2;
+      FXHQ._glow(new THREE.Vector3(m.pos.x + Math.cos(a) * 6, alt + 3 + Math.random() * 6, m.pos.z + Math.sin(a) * 6),
+        R.phase >= 3 ? 0xa5b4fc : 0xffffff, new THREE.Vector3(Math.cos(a) * 3, -4, Math.sin(a) * 3), 1.4, 0.7, 6, 'star');
+    }
+  }
+
+  birdAI(m, dt, phase, t) {
+    const g = this.game;
+    const R = this.raid;
+    const members = this.raidMembers();
+    const alive = members.filter(p => !p.downed);
+    // 예약된 공격 실행 (연속 급강하 등)
+    for (let i = R.bq.length - 1; i >= 0; i--) {
+      R.bq[i].t -= dt;
+      if (R.bq[i].t <= 0) { const job = R.bq.splice(i, 1)[0]; try { job.fn(); } catch (e) { console.warn(e); } }
+    }
+    let best = alive[0] || members[0];
+    let bd = Infinity;
+    alive.forEach(p => { const d = p.pos.distanceTo(m.pos); if (d < bd) { bd = d; best = p; } });
+
+    if (R.fly) {
+      // 급강하: 솟구침 → 목표 위로 이동 → 내리꽂기
+      const F = R.fly;
+      F.t += dt;
+      const k = F.t / F.dur;
+      if (k < 0.38) {
+        F.stage = 'up';
+        m.alt = THREE.MathUtils.lerp(F.alt0, 20, Math.min(1, k / 0.38) ** 0.7);
+        m.pos.lerp(F.from, 0.1);
+      } else if (k < 0.8) {
+        F.stage = 'hang';
+        m.alt = 20 + Math.sin(F.t * 9) * 0.4;
+        m.pos.lerp(F.to, 1 - Math.exp(-dt * 7));
+      } else if (k < 1) {
+        F.stage = 'down';
+        m.pos.lerp(F.to, 1 - Math.exp(-dt * 20));
+        m.alt = 20 * (1 - (k - 0.8) / 0.2) ** 1.6;
+      } else {
+        m.alt = 0;
+        m.pos.copy(F.to);
+        R.fly = null;
+        if (g) g.camShake = Math.max(g.camShake || 0, 0.6);
+      }
+      const dir = F.to.clone().sub(m.pos);
+      if (dir.lengthSq() > 0.5) m.facingYaw += g.angleDifference(Math.atan2(dir.x, dir.z), m.facingYaw) * Math.min(1, dt * 6);
+    } else if (best) {
+      // 평소: 목표 주위를 선회하며 낮게 떠 있음
+      const toB = m.pos.clone().sub(best.pos).setY(0);
+      const ang = Math.atan2(toB.z, toB.x) + dt * (phase === 3 ? 0.55 : 0.38) * (R.orbitDir || 1);
+      const rad = phase === 3 ? 12 : 14;
+      const want = new THREE.Vector3(best.pos.x + Math.cos(ang) * rad, 0, best.pos.z + Math.sin(ang) * rad);
+      const spd = phase === 3 ? 12.5 : phase === 2 ? 10.5 : 8.5;
+      if (R.aiCd > 0.5) {
+        const mv = want.sub(m.pos).setY(0);
+        const L = mv.length();
+        if (L > 0.1) m.pos.addScaledVector(mv.normalize(), Math.min(L, spd * dt));
+      }
+      m.alt = THREE.MathUtils.lerp(m.alt || 0, phase === 3 ? 4 : 2.6, Math.min(1, dt * 3));
+      const dir = best.pos.clone().sub(m.pos).setY(0);
+      if (dir.lengthSq() > 0.01) m.facingYaw += g.angleDifference(Math.atan2(dir.x, dir.z), m.facingYaw) * Math.min(1, dt * 4);
+      if (Math.random() < dt * 0.15) R.orbitDir = -(R.orbitDir || 1);
+    }
+    const off = m.pos.clone().sub(RAID_CENTER).setY(0);
+    if (off.length() > RAID_BOSS_R) m.pos.copy(RAID_CENTER).addScaledVector(off.normalize(), RAID_BOSS_R).setY(0);
+
+    R.aiCd -= dt;
+    if (R.aiCd <= 0 && !R.fly && alive.length) {
+      R.aiCd = phase === 3 ? 1.1 : phase === 2 ? 1.5 : 1.95; // 아노코보다 조금 여유
+      this.birdAttack(m, best, alive, phase);
+    }
+    this.birdVisual(m, dt, t);
+  }
+
+  birdAttack(m, target, alive, phase) {
+    const R = this.raid;
+    const roll = Math.random();
+    const mx = m.pos.x, mz = m.pos.z;
+    const toT = target.pos.clone().sub(m.pos).setY(0);
+    const yawT = Math.atan2(toT.x, toT.z);
+    const dm = (phase === 3 ? 1.45 : phase === 2 ? 1.2 : 1) * 1.6;  // 아노코(1.8 × 1.55)보다 약간 약함
+    const D = v => Math.round(v * dm * 1.45);
+    const T = (p, x, z, yaw, r, dur, d, sk) => this.hostTelegraph(p, x, z, yaw, r, dur, d, sk);
+    const later = (sec, fn) => R.bq.push({ t: sec, fn });
+    const rndIn = (cx, cz, rr) => { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * rr; return [cx + Math.cos(a) * r, cz + Math.sin(a) * r]; };
+
+    // 🪶 깃털 부채: 대상 방향으로 깃털 5~7발
+    const featherFan = (n = 5, spread = 0.5) => {
+      for (let i = 0; i < n; i++) {
+        const o = (i / (n - 1) - 0.5) * spread * 2;
+        T('line', mx, mz, yawT + o, 40, 1.0, D(30), i === 0 ? '🪶 깃털 부채!' : undefined);
+      }
+    };
+    // 🌪️ 날갯짓 돌풍: 앞쪽 넓은 부채꼴
+    const gust = (sk = '🌪️ 날갯짓 돌풍!') => T('sector', mx, mz, yawT, 23, 1.0, D(34), sk);
+    // 🦅 급강하 찍기: 솟구쳤다가 대상 위치로 내리꽂기 (+ 여진)
+    const dive = (p, sk = '🦅 급강하 찍기!') => {
+      const to = new THREE.Vector3(p.pos.x, 0, p.pos.z);
+      const o = to.clone().sub(RAID_CENTER);
+      if (o.length() > RAID_BOSS_R) to.copy(RAID_CENTER).addScaledVector(o.normalize(), RAID_BOSS_R);
+      const dur = 1.65;
+      T('circle', to.x, to.z, 0, 9, dur, D(44), sk);
+      T('circle', to.x, to.z, 0, 15, dur + 0.4, D(16));
+      R.fly = { t: 0, dur, from: m.pos.clone(), to, alt0: m.alt || 0, stage: 'up' };
+    };
+    // 🪶 깃털 비: 각 플레이어 주변에 작은 깃털 낙하
+    const featherRain = (k = 5) => {
+      alive.forEach((p, pi) => {
+        for (let i = 0; i < k; i++) {
+          const [x, z] = rndIn(p.pos.x, p.pos.z, 9);
+          T('circle', x, z, 0, 3.6, 0.95 + i * 0.12, D(22), pi === 0 && i === 0 ? '🪶 깃털 비!' : undefined);
+        }
+      });
+    };
+    // 🌀 회오리: 보스에서 바깥으로 소용돌이치며 퍼지는 바람길
+    const tornado = (arms = 1) => {
+      for (let a = 0; a < arms; a++) {
+        const base = Math.random() * Math.PI * 2 + (a * Math.PI * 2) / arms;
+        for (let i = 0; i < 10; i++) {
+          const ang = base + i * 0.55;
+          const rr = 4 + i * 2.8;
+          T('circle', mx + Math.cos(ang) * rr, mz + Math.sin(ang) * rr, 0, 4.4, 0.85 + i * 0.13, D(26), a === 0 && i === 0 ? '🌀 회오리 바람!' : undefined);
+        }
+      }
+    };
+    // 🥚 알 폭탄: 투기장 곳곳에 늦게 터지는 큰 장판
+    const eggs = (n = 5) => {
+      for (let i = 0; i < n; i++) {
+        const [x, z] = rndIn(RAID_CENTER.x, RAID_CENTER.z, 38);
+        T('circle', x, z, 0, 6.5, 1.9 + i * 0.12, D(46), i === 0 ? '🥚 알 폭탄!' : undefined);
+      }
+      R.aiCd += 0.4;
+    };
+    // 🦅🦅 연속 급강하: 여러 명을 차례로
+    const multiDive = (cnt = 3) => {
+      const list = alive.slice().sort(() => Math.random() - 0.5);
+      for (let i = 0; i < cnt; i++) {
+        const p = list[i % list.length];
+        later(i * 1.8, () => { if (!R.fly && !R.finishing) dive(p, i === 0 ? '🦅 연속 급강하!' : undefined); });
+      }
+      R.aiCd += 1.8 * (cnt - 1);
+    };
+    // ⚡ 폭풍 가르기 (3페이즈): 투기장 중심에서 사방으로 번개 길
+    const stormCross = () => {
+      const off = Math.random() * Math.PI;
+      for (let i = 0; i < 6; i++) T('line', RAID_CENTER.x, RAID_CENTER.z, off + (i * Math.PI) / 3, 48, 1.35, D(40), i === 0 ? '⚡ 폭풍 가르기!' : undefined);
+      R.aiCd += 0.3;
+    };
+    // 🌩️ 폭풍 강림 (3페이즈): 높이 솟구쳐 주변 전체 강타 → 멀리 도망
+    const stormNova = () => {
+      T('circle', mx, mz, 0, 25, 2.0, D(58), '🌩️ 폭풍 강림!');
+      R.fly = { t: 0, dur: 2.0, from: m.pos.clone(), to: m.pos.clone(), alt0: m.alt || 0, stage: 'up' };
+      R.aiCd += 0.5;
+    };
+
+    if (phase === 1) {
+      if (roll < 0.26) featherFan();
+      else if (roll < 0.48) gust();
+      else if (roll < 0.74) dive(target);
+      else featherRain(4);
+    } else if (phase === 2) {
+      if (roll < 0.2) multiDive(alive.length > 1 ? 3 : 2);
+      else if (roll < 0.38) tornado(1);
+      else if (roll < 0.54) { eggs(5); featherFan(5, 0.45); }
+      else if (roll < 0.7) { dive(target); featherRain(3); }
+      else if (roll < 0.85) { gust(); later(0.6, () => featherFan(7, 0.6)); }
+      else featherRain(6);
+    } else {
+      if (roll < 0.18) stormNova();
+      else if (roll < 0.36) { stormCross(); featherRain(3); }
+      else if (roll < 0.52) multiDive(alive.length > 1 ? 4 : 3);
+      else if (roll < 0.68) { tornado(2); }
+      else if (roll < 0.84) { eggs(7); gust('🌪️ 폭풍 날갯짓!'); }
+      else { dive(target); later(0.4, () => featherFan(7, 0.7)); }
+    }
+  }
+
   // 🔥 3페이즈: 진짜 모습으로 변신 (방장/파티원 공통 연출)
   enterPhase3(m) {
     const R = this.raid;
@@ -1061,9 +1308,9 @@ export class CoopManager {
     R.p3 = true;
     R.phase = 3;
     if (typeof RAIDHQ !== 'undefined') RAIDHQ.phase3(this.game, m);
-    if (m.labelEl && m.labelEl.firstChild) m.labelEl.firstChild.firstChild && (m.labelEl.firstChild.firstChild.textContent = '😈 각성한 아노코 ');
-    m.name = '😈 각성한 아노코';
-    this.showRaidBanner('😈 아노코 각성!!', '진짜 모습을 드러냈다! 체력이 절반까지 회복되고 진홍빛 오라에 휩싸였어요!', '#b0000f', 3200);
+    if (m.labelEl && m.labelEl.firstChild) m.labelEl.firstChild.firstChild && (m.labelEl.firstChild.firstChild.textContent = R.cfg.p3name + ' ');
+    m.name = R.cfg.p3name;
+    this.showRaidBanner(R.cfg.p3title, R.cfg.p3msg, R.cfg.p3color, 3200);
     if (typeof soundFx !== 'undefined') soundFx.playFanfare();
   }
 
@@ -1864,7 +2111,7 @@ export class CoopManager {
       Z.id = zid;
       Z.ready = false;
       Z.countdown = null;
-      Z.stage = Math.max(1, Math.min(20, (g.stats && g.stats.maxUnlockedStage) || 1));
+      Z.stage = zid === 'raid' ? 1 : Math.max(1, Math.min(20, (g.stats && g.stats.maxUnlockedStage) || 1));
       if (zid) toast(`${ZONES[zid].label}에 들어왔어요! [E]로 준비하면 존 안의 모두가 준비됐을 때 함께 출발해요.`);
       this.wSendState(true);
     }
@@ -1905,10 +2152,11 @@ export class CoopManager {
   zoneStage(delta) {
     const Z = this.zone;
     const g = this.game;
-    if (!Z.id || Z.id !== 'stage' || !g) return;
+    if (!Z.id || !g) return;
     const mem = Z.members || [];
-    if (mem.length && !mem[0].me) { toast('👑 스테이지는 존의 리더(가장 먼저 접속한 사람)가 골라요.'); return; }
-    Z.stage = Math.max(1, Math.min((g.stats.maxUnlockedStage || 1), Z.stage + delta));
+    if (mem.length && !mem[0].me) { toast(`👑 ${Z.id === 'raid' ? '보스' : '스테이지'}는 존의 리더(가장 먼저 접속한 사람)가 골라요.`); return; }
+    if (Z.id === 'raid') Z.stage = ((Z.stage - 1 + delta + RAID_LIST.length) % RAID_LIST.length) + 1;
+    else Z.stage = Math.max(1, Math.min((g.stats.maxUnlockedStage || 1), Z.stage + delta));
     this.wSendState(true);
     Z.panelT = 0;
   }
@@ -1929,6 +2177,7 @@ export class CoopManager {
       if (this.room) await this.leaveRoom(true);
       const code = await this.createRoom(true);
       if (!code) return;
+      this.hostUid = this.uid; // 방금 만든 방의 방장 (리스너 반영 전에 바로 시작할 수 있도록)
       if (ids.length > 1) {
         push(this.wpath('events'), { type: 'zgo', uid: this.w.uid, ts: this.now(), z: kind, code, m: ids.join(','), s: stage }).catch(() => {});
         toast(`🚀 ${ids.length}명 모두 준비 완료! 파티를 모으는 중…`);
@@ -1937,7 +2186,7 @@ export class CoopManager {
         const missing = ids.filter(id => !this.players[id]).length;
         if (missing) toast(`⚠️ ${missing}명이 연결되지 않아 먼저 출발해요.`);
       }
-      if (kind === 'raid') await this.startRaid();
+      if (kind === 'raid') await this.startRaid(RAID_LIST[stage - 1] || 'anoko');
       else g.startBattleStage(stage);
     } catch (e) {
       this.reportError(e);
@@ -1999,7 +2248,15 @@ export class CoopManager {
       row.append(prev, mk('span', 'zp-stage-num', `${stage}단계`), next);
       el.append(row);
     } else {
-      el.append(mk('div', 'zp-sub', `거대 아노코 · ${mem.length}명 도전`));
+      const row = mk('div', 'zp-stage');
+      const lead = mem[0] && mem[0].me;
+      const prev = mk('button', 'zp-arrow', '◀'); prev.type = 'button'; prev.dataset.z = 'prev'; prev.disabled = !lead;
+      const next = mk('button', 'zp-arrow', '▶'); next.type = 'button'; next.dataset.z = 'next'; next.disabled = !lead;
+      const cfg = RAID_BOSSES[RAID_LIST[stage - 1]] || RAID_BOSSES.anoko;
+      const nm = mk('span', 'zp-stage-num', cfg.name);
+      nm.style.fontSize = '15px';
+      row.append(prev, nm, next);
+      el.append(row, mk('div', 'zp-sub', `${mem.length}명 도전 · ${stage === 2 ? '난이도 ★★★★☆' : '난이도 ★★★★★'}`));
     }
     const list = mk('div', 'zp-list');
     mem.forEach((m, i) => {

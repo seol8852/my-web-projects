@@ -19,6 +19,9 @@ const RAIDHQ = (() => {
   let phase = 1;
   let p3Mix = 0;     // 0 → 1 (3페이즈 분위기 전환)
   let aura = null;
+  let theme = 'anoko'; // 'anoko' | 'bird'
+  const isBird = () => theme === 'bird';
+  let stormT = 0;
 
   const NOISE = `
     float h21(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -260,6 +263,7 @@ const RAIDHQ = (() => {
   // 보스 일러스트의 실루엣(알파)을 따라 진한 빨간 불꽃이 피어오르는 오라
   const SIL_FS = `
     uniform sampler2D uMap; uniform float uT; uniform float uFade; uniform float uSpread; uniform float uMode;
+    uniform vec3 uD1; uniform vec3 uD2; uniform vec3 uG1; uniform vec3 uG2;
     varying vec2 vUv; ${NOISE}
     float A(vec2 uv) { if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return 0.0; return texture2D(uMap, uv).a; }
     void main() {
@@ -280,10 +284,10 @@ const RAIDHQ = (() => {
       vec3 col;
       float alpha;
       if (uMode < 0.5) {
-        col = mix(vec3(0.22, 0.0, 0.02), vec3(0.62, 0.0, 0.04), n2);
+        col = mix(uD1, uD2, n2);
         alpha = flame * 0.95;
       } else {
-        col = mix(vec3(0.95, 0.05, 0.08), vec3(1.0, 0.45, 0.3), n2);
+        col = mix(uG1, uG2, n2);
         alpha = flame * smoothstep(0.55, 0.9, n2) * 0.8;
         col *= alpha;
       }
@@ -293,13 +297,18 @@ const RAIDHQ = (() => {
     removeAura(game);
     const g = new THREE.Group();
     const R = (m.bodyRadius || 7) * 1.05;
-    const tex = typeof loadCleanCharacterTexture === 'function' ? loadCleanCharacterTexture('assets/anoko_phase3.png') : null;
+    const tex = typeof loadCleanCharacterTexture === 'function' ? loadCleanCharacterTexture(isBird() ? 'assets/raid_bird_phase3.png' : 'assets/anoko_phase3.png') : null;
+    const C = v => new THREE.Color(v[0], v[1], v[2]);
+    const pal = isBird()
+      ? { d1: [0.05, 0.05, 0.25], d2: [0.2, 0.25, 0.75], g1: [0.3, 0.75, 1.0], g2: [0.85, 0.95, 1.0], disc: 0x1e3a8a, aura: 0x4f46e5 }
+      : { d1: [0.22, 0.0, 0.02], d2: [0.62, 0.0, 0.04], g1: [0.95, 0.05, 0.08], g2: [1.0, 0.45, 0.3], disc: 0x8b0000, aura: 0xb00010 };
     const sizeW = (m.mesh && m.mesh.userData && m.mesh.userData.sizeW) || 8.6;
     const sizeH = (m.mesh && m.mesh.userData && m.mesh.userData.sizeH) || 8.6;
     const spread = 1.45;
     const mkSil = (mode, z) => {
       const mm = new THREE.ShaderMaterial({
-        uniforms: { uMap: { value: tex }, uT: { value: 0 }, uFade: { value: 0 }, uSpread: { value: spread }, uMode: { value: mode } },
+        uniforms: { uMap: { value: tex }, uT: { value: 0 }, uFade: { value: 0 }, uSpread: { value: spread }, uMode: { value: mode },
+          uD1: { value: C(pal.d1) }, uD2: { value: C(pal.d2) }, uG1: { value: C(pal.g1) }, uG2: { value: C(pal.g2) } },
         vertexShader: VS, fragmentShader: SIL_FS, transparent: true, depthWrite: false, side: THREE.DoubleSide,
         blending: mode < 0.5 ? THREE.NormalBlending : THREE.AdditiveBlending
       });
@@ -313,14 +322,14 @@ const RAIDHQ = (() => {
     const silGlow = mkSil(1, -0.3);
     // 바닥 진홍 원
     const disc = new THREE.Mesh(new THREE.CircleGeometry(R * 2.1, 48), new THREE.MeshBasicMaterial({
-      map: typeof fxTex === 'function' ? fxTex('glow') : null, color: 0x8b0000, transparent: true, opacity: 0.9, depthWrite: false
+      map: typeof fxTex === 'function' ? fxTex('glow') : null, color: pal.disc, transparent: true, opacity: 0.9, depthWrite: false
     }));
     disc.geometry.rotateX(-Math.PI / 2);
     disc.position.y = 0.09;
     g.add(disc);
     let bossAura = null;
     if (typeof fxCreateBossAura === 'function') {
-      bossAura = fxCreateBossAura(R * 1.6, 0xb00010);
+      bossAura = fxCreateBossAura(R * 1.6, pal.aura);
       g.add(bossAura);
     }
     game.scene.add(g);
@@ -345,13 +354,15 @@ const RAIDHQ = (() => {
     const old = m.mesh;
     const p = m.pos.clone();
     // 변신 연출
+    const B = isBird();
+    const cA = B ? 0x60a5fa : 0xff1a2a, cB = B ? 0x1e1b4b : 0x5a0008, cS = B ? 0x0b1030 : 0x1a0006;
     if (hasFx()) {
-      FXHQ.screenFlash(0x5a0008, 0.55, 600);
+      FXHQ.screenFlash(cB, 0.55, 600);
       FXHQ.fovPunch(6, 1.2);
-      FXHQ.shockwave(V(p.x, 0, p.z), 0xff1a2a, 30);
-      FXHQ.shockwave(V(p.x, 0, p.z), 0x5a0008, 18);
+      FXHQ.shockwave(V(p.x, 0, p.z), cA, 30);
+      FXHQ.shockwave(V(p.x, 0, p.z), cB, 18);
       for (let i = 0; i < Math.round(26 * detail()); i++) {
-        const s = FXHQ._sprite('smoke', 0x1a0006, false, 0.85);
+        const s = FXHQ._sprite('smoke', cS, false, 0.85);
         const a = Math.random() * Math.PI * 2;
         s.position.set(p.x + Math.cos(a) * 3, 3 + Math.random() * 12, p.z + Math.sin(a) * 3);
         const v = V(Math.cos(a) * (8 + Math.random() * 10), 2 + Math.random() * 6, Math.sin(a) * (8 + Math.random() * 10));
@@ -364,15 +375,15 @@ const RAIDHQ = (() => {
       }
       for (let i = 0; i < 10; i++) {
         const a = (i / 10) * Math.PI * 2;
-        lightning(V(p.x, 16, p.z), V(p.x + Math.cos(a) * 22, 0.2, p.z + Math.sin(a) * 22), 0xff2030, 0.5, 0.18);
+        lightning(V(p.x, 16, p.z), V(p.x + Math.cos(a) * 22, 0.2, p.z + Math.sin(a) * 22), B ? 0x93c5fd : 0xff2030, 0.5, 0.18);
       }
-      pillar(V(p.x, 0, p.z), 8, 90, 0xb0000f, 1.2);
+      pillar(V(p.x, 0, p.z), 8, 90, B ? 0x3b82f6 : 0xb0000f, 1.2);
     }
     if (game) game.camShake = Math.max(game.camShake || 0, 1.2);
     // 진짜 모습으로 교체
     try {
-      const scale = 4.65; // 3페이즈: 1.5배 더 크게
-      const mesh = createMonster3D('anoko3');
+      const scale = B ? 4.0 : 4.65; // 3페이즈: 더 크게
+      const mesh = createMonster3D(B ? 'pjbird3' : 'anoko3');
       mesh.position.copy(old.position);
       mesh.rotation.y = old.rotation.y;
       mesh.scale.setScalar(scale * 0.45); // 커지면서 등장
@@ -381,6 +392,7 @@ const RAIDHQ = (() => {
       if (game.disposeObject3D) game.disposeObject3D(old);
       m.mesh = mesh;
       m.baseScale = scale;
+      m.sc = scale * 0.45;
       m.bodyRadius = (mesh.userData.bodyRadius || 2.4) * scale;
       m.sizeH = (mesh.userData.sizeH || 8.6) * scale;
       m.heightOffset = 8.8 * scale;
@@ -509,8 +521,62 @@ const RAIDHQ = (() => {
   }
 
   // ---------------- 레이드 보스 공격 임팩트 (기존 이펙트 위에 추가) ----------------
+  // 🐦 파자마 새 공격 임팩트: 깃털·바람·번개 (붉은 불꽃 대신 하늘색·흰색)
+  function birdImpact(game, tg) {
+    const c = tg.center;
+    const R = tg.reach || 5;
+    const g0 = V(c.x, 0, c.z);
+    const p3 = phase >= 3;
+    const col = p3 ? 0x6366f1 : 0x38bdf8;
+    const yaw = tg.yaw || 0;
+    const fwd = V(Math.sin(yaw), 0, Math.cos(yaw));
+    if (tg.patternType === 'circle') {
+      runeFlash(g0, R * 1.05, col, 0.7);
+      FXHQ.shockwave(g0, 0xffffff, R * 1.15);
+      FXHQ.shockwave(g0, col, R * 1.45);
+      sparks(g0, 0xe0f2fe, R > 8 ? 26 : 10, R > 8 ? 24 : 12);
+      // 깃털 흩날림
+      const cnt = Math.round((R > 8 ? 26 : 8) * detail());
+      for (let i = 0; i < cnt; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const sp = 6 + Math.random() * 10;
+        FXHQ._glow(V(c.x + Math.cos(a) * R * 0.3, 1 + Math.random() * 2, c.z + Math.sin(a) * R * 0.3), i % 2 ? 0xffffff : 0xfef3c7,
+          V(Math.cos(a) * sp, 4 + Math.random() * 6, Math.sin(a) * sp), 1.2 + Math.random() * 0.6, 1.1, 3, 'star');
+      }
+      if (R >= 8.5 && R < 12) {
+        // 급강하 착지: 흰 기둥 + 먼지
+        pillar(g0, R * 0.35, 40, p3 ? 0x818cf8 : 0xbae6fd, 0.6);
+        if (game) game.hitStopTimer = Math.max(game.hitStopTimer || 0, 0.05);
+      } else if (R >= 20) {
+        for (let i = 0; i < 10; i++) {
+          const a = (i / 10) * Math.PI * 2;
+          lightning(V(c.x, 26, c.z), V(c.x + Math.cos(a) * R * 0.9, 0.2, c.z + Math.sin(a) * R * 0.9), 0x93c5fd, 0.45, 0.16);
+        }
+        pillar(g0, R * 0.25, 80, col, 0.8);
+        if (typeof FXHQ.screenFlash === 'function') FXHQ.screenFlash(p3 ? 0x312e81 : 0x7dd3fc, 0.3, 450);
+      } else if (R < 5) {
+        lightning(V(c.x + (Math.random() - 0.5) * 4, 30, c.z + (Math.random() - 0.5) * 4), V(c.x, 0.2, c.z), p3 ? 0xa5b4fc : 0xffffff, 0.25, 0.1);
+      }
+    } else if (tg.patternType === 'sector') {
+      for (let i = 0; i < 4; i++) {
+        FXHQ.slash(g0, yaw, i % 2 ? 0xffffff : col, 3, 0, (i - 1.5) * 0.3, { radius: R * (0.4 + i * 0.2), span: Math.PI * 0.7, life: 0.5, y: 1.2 + i * 0.8, noOffset: true, dir: i % 2 ? -1 : 1 });
+      }
+      sparks(g0.clone().addScaledVector(fwd, R * 0.5), 0xffffff, 22, 24);
+    } else {
+      // 깃털 / 번개 직선
+      if (p3) lightning(V(c.x, 2, c.z), V(c.x + fwd.x * R, 0.6, c.z + fwd.z * R), 0xa5b4fc, 0.35, 0.18);
+      const n = Math.max(4, Math.round(R / 5));
+      for (let i = 0; i < n; i++) {
+        const k = (i + 0.5) / n;
+        FXHQ._glow(V(c.x + fwd.x * R * k, 1.2, c.z + fwd.z * R * k), i % 2 ? 0xffffff : col, V(fwd.x * 14, 2, fwd.z * 14), 1.6, 0.45, 0, 'star');
+      }
+      sparks(V(c.x + fwd.x * R, 0, c.z + fwd.z * R), col, 8, 10);
+    }
+  }
+
   function impact(game, tg) {
     if (!hasFx() || !tg || !tg.monster || !tg.monster.isRaidBoss) return;
+    if (tg.monster.raidKind === 'bird') { birdImpact(game, tg); return; }
     const c = tg.center;
     const R = tg.reach || 5;
     const g0 = V(c.x, 0, c.z);
@@ -605,7 +671,17 @@ const RAIDHQ = (() => {
       return;
     }
     const t = performance.now() / 1000;
-    p3Mix += ((phase >= 3 ? 1 : 0) - p3Mix) * Math.min(1, dt * 1.5);
+    p3Mix += ((phase >= 3 && !isBird() ? 1 : 0) - p3Mix) * Math.min(1, dt * 1.5);
+    // 🌩️ 파자마 새 3페이즈: 투기장에 번개가 계속 내리침 (연출)
+    if (isBird() && phase >= 3 && hasFx()) {
+      stormT -= dt;
+      if (stormT <= 0) {
+        stormT = 0.35 + Math.random() * 0.6;
+        const a = Math.random() * Math.PI * 2, r = 10 + Math.random() * 44;
+        const p = V(CENTER.x + Math.cos(a) * r, 0, CENTER.z + Math.sin(a) * r);
+        lightning(V(p.x + (Math.random() - 0.5) * 8, 60, p.z + (Math.random() - 0.5) * 8), V(p.x, 0.2, p.z), Math.random() < 0.5 ? 0xa5b4fc : 0xe0f2fe, 0.22, 0.14);
+      }
+    }
     arena.mats.forEach(m => {
       if (m.uniforms.uT) m.uniforms.uT.value = t;
       if (m.uniforms.uP3) m.uniforms.uP3.value = p3Mix;
@@ -616,8 +692,8 @@ const RAIDHQ = (() => {
       c.cr.rotation.y = t * 0.8 + c.i;
       c.glow.position.y = c.cr.position.y;
       c.glow.material.opacity = 0.7;
-      c.glow.material.color.setHex(phase >= 3 ? 0xff5a1f : 0x8f6bff);
-      c.cr.material.color.setHex(phase >= 3 ? 0xff6a2a : 0x9d7bff);
+      c.glow.material.color.setHex(phase >= 3 ? (isBird() ? 0x60a5fa : 0xff5a1f) : (isBird() ? 0x7dd3fc : 0x8f6bff));
+      c.cr.material.color.setHex(phase >= 3 ? (isBird() ? 0x93c5fd : 0xff6a2a) : (isBird() ? 0xbae6fd : 0x9d7bff));
     });
     if (aura) {
       const m = aura.m;
@@ -633,7 +709,7 @@ const RAIDHQ = (() => {
         const a = Math.random() * Math.PI * 2;
         const rr = (m.bodyRadius || 7) * (0.8 + Math.random() * 0.6);
         FXHQ._glow(V(m.pos.x + Math.cos(a) * rr, 1 + Math.random() * 4, m.pos.z + Math.sin(a) * rr),
-          Math.random() < 0.3 ? 0xff4030 : 0x8b0000, V(0, 8 + Math.random() * 8, 0), 1.0 + Math.random() * 0.8, 0.9, -3);
+          isBird() ? (Math.random() < 0.3 ? 0xe0f2fe : 0x4f46e5) : (Math.random() < 0.3 ? 0xff4030 : 0x8b0000), V(0, 8 + Math.random() * 8, 0), 1.0 + Math.random() * 0.8, 0.9, -3);
       }
     }
   }
@@ -678,6 +754,7 @@ const RAIDHQ = (() => {
   return {
     CENTER, ARENA_R, BOSS_R,
     update, impact, phase3, setPhase, reset, drawMinimap, ensureArena,
+    setTheme(k) { theme = k === 'bird' ? 'bird' : 'anoko'; },
     get phase() { return phase; }
   };
 })();

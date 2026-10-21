@@ -2005,8 +2005,11 @@ const MONSTER_IMAGE_MAP = {
   midboss: 'assets/midboss.png',
   iron_chimera: 'assets/monster_iron_chimera.png',
   anoko: 'assets/anoko.png',
-  anoko3: 'assets/anoko_phase3.png'
+  anoko3: 'assets/anoko_phase3.png',
+  pjbird: 'assets/raid_bird.png',            // 🐦 레이드 보스: 파자마 새 (임시 이미지 → 나중에 교체)
+  pjbird3: 'assets/raid_bird_phase3.png'
 };
+const isRaidBossType = t => t === 'anoko' || t === 'anoko3' || t === 'pjbird' || t === 'pjbird3';
 
 function createMonster3D(type = 'chimera') {
   const group = new THREE.Group();
@@ -2030,7 +2033,7 @@ function createMonster3D(type = 'chimera') {
     sizeH = 6.2;
     bodyRadius = 1.75;
     isArmored = true;
-  } else if (type === 'anoko' || type === 'anoko3') {
+  } else if (isRaidBossType(type)) {
     sizeW = 8.6;
     sizeH = 8.6;
     bodyRadius = 2.4;
@@ -2041,9 +2044,9 @@ function createMonster3D(type = 'chimera') {
   const shadowGeo = new THREE.CircleGeometry(bodyRadius, 28);
   shadowGeo.rotateX(-Math.PI / 2);
   const shadowMat = new THREE.MeshBasicMaterial({
-    color: type === 'anoko3' ? 0x5a0008 : type === 'anoko' ? 0x991b1b : 0x0f172a,
+    color: type === 'anoko3' ? 0x5a0008 : type === 'anoko' ? 0x991b1b : type === 'pjbird3' ? 0x1e1b4b : type === 'pjbird' ? 0x0e7490 : 0x0f172a,
     transparent: true,
-    opacity: (type === 'anoko' || type === 'anoko3') ? 0.42 : 0.26,
+    opacity: isRaidBossType(type) ? 0.42 : 0.26,
     depthWrite: false
   });
   const shadow = new THREE.Mesh(shadowGeo, shadowMat);
@@ -2080,7 +2083,7 @@ function createMonster3D(type = 'chimera') {
   baseCoords.set(posAttr.array);
 
   const layers = 6;
-  const thickness = (type === 'anoko' || type === 'anoko3') ? 0.52 : 0.34;
+  const thickness = isRaidBossType(type) ? 0.52 : 0.34;
   const mats = [];
 
   for (let i = 0; i < layers; i++) {
@@ -2119,8 +2122,8 @@ function createMonster3D(type = 'chimera') {
 
   // [HQ] 보스급 몬스터 발밑 마력 오라 (회전 룬 + 떠오르는 불씨)
   let bossAura = null;
-  if ((isArmored || type === 'anoko' || type === 'anoko3') && typeof fxCreateBossAura === 'function') {
-    bossAura = fxCreateBossAura(bodyRadius * 1.25, type === 'anoko3' ? 0x8b0000 : type === 'anoko' ? 0xef4444 : 0xa855f7);
+  if ((isArmored || isRaidBossType(type)) && typeof fxCreateBossAura === 'function') {
+    bossAura = fxCreateBossAura(bodyRadius * 1.25, type === 'anoko3' ? 0x8b0000 : type === 'anoko' ? 0xef4444 : type === 'pjbird' ? 0x38bdf8 : type === 'pjbird3' ? 0x4338ca : 0xa855f7);
     group.add(bossAura);
   }
 

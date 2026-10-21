@@ -2805,7 +2805,7 @@ const TOWNHQ = (() => {
     { x: -110, z: 18, r: 18, fn: farm, label: '🥕 들판 농장', sy: 7.5 },
     { x: 44, z: 98, r: 13, fn: playground, label: '🛝 놀이터', sy: 6.8 },
     { x: 58, z: -48, r: 11, fn: wellRest, label: '⛲ 우물 & 육각 정자 쉼터', sy: 8.6 },
-    { x: 8, z: -44, r: 10, fn: raidAltar, label: '🐉 아노코 레이드 입장 제단 (원 안에서 [E] 준비)', sy: 8.0, noFace: true }
+    { x: 8, z: -44, r: 10, fn: raidAltar, label: '🐉 레이드 입장 제단 · 아노코 / 파자마 새 (원 안에서 [E] 준비)', sy: 8.0, noFace: true }
   ];
   if (typeof WQ_EXCLUDE !== 'undefined') SITES.forEach(s => WQ_EXCLUDE.push([s.x, s.z, s.r]));
   function blocked(x, z, pad = 0) {
