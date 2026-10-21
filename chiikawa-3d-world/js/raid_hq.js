@@ -56,13 +56,13 @@ const RAIDHQ = (() => {
       // 3페이즈: 바닥 균열에서 용암빛이 새어 나옴
       float crack = smoothstep(0.035, 0.0, abs(fbm(p * 0.12 + 5.0) - 0.5)) * uP3;
       // 룬은 빨강 대신 차분한 청보라 (빨강은 공격 예고 전용)
-      vec3 rune = mix(vec3(0.42, 0.36, 0.95), vec3(0.62, 0.22, 0.85), uP3);
+      vec3 rune = mix(vec3(0.42, 0.36, 0.95), vec3(1.0, 0.38, 0.08), uP3); // 3페이즈: 주황·빨강
       col += rune * (rings + glyph * 0.8 + spokes) * 0.55 * pulse;
-      col += vec3(0.5, 0.18, 0.7) * crack * 0.6;
+      col += mix(vec3(1.0, 0.22, 0.04), vec3(1.0, 0.55, 0.1), fbm(p * 0.05 + uT * 0.15)) * crack * 1.1; // 용암 균열 (천천히 흐름, 깜빡임 없음)
       // 중앙 어두운 그을림 + 바깥 가장자리 어둡게
       col *= 0.82 + 0.18 * smoothstep(0.0, 12.0, r);
       col *= 1.0 - smoothstep(uR - 4.0, uR, r) * 0.6;
-      col = mix(col, col * vec3(1.0, 0.85, 1.1), uP3 * 0.5);
+      col = mix(col, col * vec3(1.2, 0.75, 0.6), uP3 * 0.5);
       gl_FragColor = vec4(col, 1.0);
     }`;
 
@@ -75,7 +75,7 @@ const RAIDHQ = (() => {
       float fade = pow(1.0 - vUv.y, 2.2);
       float lines = smoothstep(0.92, 1.0, fract(vUv.x * 96.0 + uT * 0.2)) * 0.5;
       float a = (fade * (0.25 + f * 0.55) + lines * fade) * (0.55 + uP3 * 0.35);
-      vec3 col = mix(uCol, vec3(1.0, 0.8, 0.7), fade * f * 0.5);
+      vec3 col = mix(mix(uCol, vec3(1.0, 0.32, 0.06), uP3), vec3(1.0, 0.8, 0.7), fade * f * 0.5);
       gl_FragColor = vec4(col * a, a);
     }`;
 
@@ -616,7 +616,8 @@ const RAIDHQ = (() => {
       c.cr.rotation.y = t * 0.8 + c.i;
       c.glow.position.y = c.cr.position.y;
       c.glow.material.opacity = 0.7;
-      c.glow.material.color.setHex(phase >= 3 ? 0xa23cff : 0x8f6bff);
+      c.glow.material.color.setHex(phase >= 3 ? 0xff5a1f : 0x8f6bff);
+      c.cr.material.color.setHex(phase >= 3 ? 0xff6a2a : 0x9d7bff);
     });
     if (aura) {
       const m = aura.m;
