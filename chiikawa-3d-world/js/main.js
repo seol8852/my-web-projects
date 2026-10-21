@@ -2169,7 +2169,8 @@ class Chiikawa3DWorldApp {
     const weaponBonus = (this.stats.weaponLv - 1) * 9;
     const certBonus = this.stats.certLevel * 6;
     const comboMult = this.comboStep === 3 ? 1.25 : this.comboStep === 2 ? 1.1 : 1.0;
-    const baseDmg = (cfg.atk + this.stats.level * 4 + weaponBonus + certBonus) * buffMult * comboMult;
+    const NORMAL_ATK_MULT = 0.7; // 평타 데미지 배율
+    const baseDmg = (cfg.atk + this.stats.level * 4 + weaponBonus + certBonus) * buffMult * comboMult * NORMAL_ATK_MULT;
 
     this.monsters.forEach(m => {
       if (!m.alive) return;

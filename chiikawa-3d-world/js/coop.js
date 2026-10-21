@@ -991,7 +991,7 @@ export class CoopManager {
           R.dash.go -= dt;
           if (R.dash.go <= 0) R.dash = null;
         }
-      } else if (dist > 13 && R.aiCd > 0.6 && !(m.windupT > 0)) {
+      } else if (dist > Math.max(13, (m.bodyRadius || 0) + 5) && R.aiCd > 0.6 && !(m.windupT > 0)) {
         m.pos.addScaledVector(dir.normalize(), dt * (phase === 3 ? 12.5 : phase === 2 ? 10.5 : 9.0));
       }
       // 성소 밖으로 나가지 않게

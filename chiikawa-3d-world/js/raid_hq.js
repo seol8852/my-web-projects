@@ -370,7 +370,7 @@ const RAIDHQ = (() => {
     if (game) game.camShake = Math.max(game.camShake || 0, 1.2);
     // 진짜 모습으로 교체
     try {
-      const scale = 3.1;
+      const scale = 4.65; // 3페이즈: 1.5배 더 크게
       const mesh = createMonster3D('anoko3');
       mesh.position.copy(old.position);
       mesh.rotation.y = old.rotation.y;

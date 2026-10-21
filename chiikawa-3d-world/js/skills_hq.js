@@ -1578,6 +1578,9 @@ const SKILLS = (() => {
   // 실행부
   // ------------------------------------------------------------------
   const casts = [];
+  // 모든 스킬 쿨타임 10초
+  const SKILL_CD = 10;
+  Object.values(DEFS).forEach(list => list.forEach(d => { d.cd = SKILL_CD; }));
 
   function makeCtx(app, local, charKey, slot, o) {
     const cfg = (typeof CHAR_CONFIGS !== 'undefined' && CHAR_CONFIGS[charKey]) || {};
@@ -1634,7 +1637,8 @@ const SKILLS = (() => {
     const cfg = CHAR_CONFIGS[charKey];
     const s = app.stats || {};
     const buff = s.ramenBuffTimer > 0 ? 1.35 : 1.0;
-    const dmg = ((cfg.atk || 20) + (s.level || 1) * 4 + ((s.weaponLv || 1) - 1) * 9 + (s.certLevel || 0) * 6) * buff;
+    // 스킬 1타(배율 1.0) = 평타(0.7배)의 3배
+    const dmg = ((cfg.atk || 20) + (s.level || 1) * 4 + ((s.weaponLv || 1) - 1) * 9 + (s.certLevel || 0) * 6) * buff * 0.7 * 3;
     const seed = (Math.random() * 1e9) | 0;
     const ctx = makeCtx(app, true, charKey, slot, {
       yaw: app.playerYaw, origin: app.playerPos, getPos: () => app.playerPos, seed, dmg
