@@ -6,7 +6,7 @@
   <title>치이카와 3D 오픈월드 타운: 제초 & 토벌 빌리지 | Chiikawa 3D World</title>
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20261021_9">
+  <link rel="stylesheet" href="css/style.css?v=20261021_10">
 </head>
 <body>
 
@@ -619,22 +619,22 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-  <script src="js/sound.js?v=20261021_9"></script>
-  <script src="js/models3d.js?v=20261021_9"></script>
-  <script src="js/world_hq.js?v=20261021_9"></script>
-  <script src="js/town_hq.js?v=20261021_9"></script>
-  <script src="js/fx_hq.js?v=20261021_9"></script>
-  <script src="js/polish_hq.js?v=20261021_9"></script>
-  <script src="js/skills_hq.js?v=20261021_9"></script>
-  <script src="js/world_extra.js?v=20261021_9"></script>
-  <script src="js/raid_hq.js?v=20261021_9"></script>
-  <script src="js/minigames.js?v=20261021_9"></script>
-  <script src="js/main.js?v=20261021_9"></script>
+  <script src="js/sound.js?v=20261021_10"></script>
+  <script src="js/models3d.js?v=20261021_10"></script>
+  <script src="js/world_hq.js?v=20261021_10"></script>
+  <script src="js/town_hq.js?v=20261021_10"></script>
+  <script src="js/fx_hq.js?v=20261021_10"></script>
+  <script src="js/polish_hq.js?v=20261021_10"></script>
+  <script src="js/skills_hq.js?v=20261021_10"></script>
+  <script src="js/world_extra.js?v=20261021_10"></script>
+  <script src="js/raid_hq.js?v=20261021_10"></script>
+  <script src="js/minigames.js?v=20261021_10"></script>
+  <script src="js/main.js?v=20261021_10"></script>
 
   <!-- Firebase Auth Module -->
   <script type="module">
-    import { FirebaseManager } from './js/auth.js?v=20261021_9';
-    import { CoopManager } from './js/coop.js?v=20261021_9';
+    import { FirebaseManager } from './js/auth.js?v=20261021_10';
+    import { CoopManager } from './js/coop.js?v=20261021_10';
     window.firebaseManager = new FirebaseManager(window.gameApp);
     const startCoop = () => { try { window.coop = new CoopManager(); } catch (e) { console.error('협동 초기화 실패:', e); } };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startCoop); else startCoop();

@@ -977,6 +977,8 @@ class Chiikawa3DWorldApp {
         const mx = 34 + Math.random() * 115;
         const mz = -105 + Math.random() * 165;
         if ( mz > 22 && mz < 34) continue;
+        if (typeof TOWNHQ !== 'undefined' && TOWNHQ.blocked(mx, mz, 2)) continue;
+        mush.userData.colliders = [{ c: [0, 0], r: 0.55, h: 2.0 }];
         mush.position.set(mx, 0, mz);
         const s = 0.65 + Math.random() * 0.75;
         mush.scale.setScalar(s);
@@ -1002,12 +1004,14 @@ class Chiikawa3DWorldApp {
     ];
     treePositions.forEach(([tx, tz], idx) => {
       if (Math.hypot(tx - 150, tz + 5) < 34) return; // 점프 타워와 겹치는 나무 제외
+      if (typeof TOWNHQ !== 'undefined' && TOWNHQ.blocked(tx, tz, 2)) return; // 신규 구조물 자리
       const isSakura = idx % 2 === 0;
       const tree = this.createTree3D(isSakura, idx + 1);
       tree.position.set(tx, 0, tz);
       const scale = 0.88 + (idx % 4) * 0.12;
       tree.scale.setScalar(scale);
       tree.rotation.y = idx * 1.37;
+      tree.userData.colliders = [{ c: [0, 0], r: 0.8 }]; // 줄기 충돌
       this.scene.add(tree);
       if (typeof POLISH !== 'undefined') POLISH.registerOccluder(tree, 4.8, 3.6);
     });
@@ -3588,6 +3592,8 @@ class Chiikawa3DWorldApp {
         this.playerPos.x *= scale;
         this.playerPos.z *= scale;
       }
+      // 🧱 구조물·나무 통과 방지
+      if (typeof TOWNHQ !== 'undefined') TOWNHQ.collide(this.playerPos, 0.85);
     }
 
     const wasGrounded = this.isGrounded;
@@ -3617,6 +3623,8 @@ class Chiikawa3DWorldApp {
     checkPuddingBounce(this.pudding2Pos, this.pudding2Mesh);
     // ☁️ 점프 타워 발판
     if (typeof WORLDX !== 'undefined') groundHeight = Math.max(groundHeight, WORLDX.support(this, dt));
+    // 🧱 구조물 위에 올라서기 (벤치·상자·계단·분수 테두리 등)
+    if (typeof TOWNHQ !== 'undefined' && !this.battleState.active && !this.raidMode) groundHeight = Math.max(groundHeight, TOWNHQ.support(this.playerPos));
 
     if (this.puddingMesh) this.puddingMesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 8);
     if (this.pudding2Mesh) this.pudding2Mesh.scale.lerp(new THREE.Vector3(1, 1, 1), dt * 8);
