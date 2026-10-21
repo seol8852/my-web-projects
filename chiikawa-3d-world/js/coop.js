@@ -9,14 +9,24 @@ import { getApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   getDatabase, ref, set, update, get, remove, push, onValue, onChildAdded, onChildChanged,
-  onChildRemoved, onDisconnect, runTransaction, query, limitToLast, serverTimestamp
+  onChildRemoved, onDisconnect, runTransaction, query, limitToLast, limitToFirst, orderByKey, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
 
 // ⚠️ Firebase 콘솔에서 Realtime Database를 만들 때 위치를 '싱가포르(asia-southeast1)'로 선택하면 이 주소 그대로 사용됩니다.
 //    다른 위치를 골랐다면 콘솔의 데이터베이스 주소로 바꿔주세요.
 export const COOP_DB_URL = 'https://chiikawa-world-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-const MAX_PLAYERS = 4;
+const MAX_PLAYERS = 10;          // 파티(전투 인스턴스) 최대 인원
+// 🌐 온라인 월드: 로그인하면 모두가 같은 마을에 접속 (기존 방 규칙 그대로 쓰는 고정 방 'WORLD')
+const WORLD = 'WORLD';
+const WORLD_SEND = 0.15;         // 마을 위치 전송 주기 (≈7Hz)
+const VISUAL_EVENTS = ['atk', 'ult', 'skl', 'emo'];
+// ⚔️ 입장 존: 존 안의 모두가 [E] 준비하면 3초 뒤 함께 출발
+const ZONES = {
+  stage: { x: 32, z: -22, r: 8.2, label: '⚔️ 전투 스테이지 출격 존', color: '#f97316' },
+  raid: { x: 8, z: -44, r: 7.5, label: '🐉 아노코 레이드 입장 존', color: '#a855f7' }
+};
+const ZONE_COUNTDOWN = 3;
 const SEND_INTERVAL = 0.1;      // 위치 전송 주기(초) = 10Hz
 const KEEPALIVE = 1.0;          // 가만히 있어도 1초마다 전송
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -56,14 +66,21 @@ export class CoopManager {
     this.party = null;
     this.pendingJoin = null;
     this.pendingPlayers = null;
+    this.w = { on: false, connecting: false, players: {}, remotes: new Map(), listeners: [], hostUid: null, joinedAt: 0, sendT: 0, keepT: 0, last: null, profile: '', pruneT: 0 };
+    this.zone = { id: null, ready: false, stage: 1, countdown: null, going: false, members: [], panelT: 0 };
+    this.worldOff = localStorage.getItem('chiikawa_world_off') === '1';
 
     this.buildUI();
+    this.buildZonePanel();
+    // 🌐 게임이 시작되고 로그인돼 있으면 자동으로 온라인 월드 접속
+    setInterval(() => this.worldWatch(), 1500);
     this.buildChat();
     if (this.db) {
       onValue(ref(this.db, '.info/serverTimeOffset'), s => { this.serverOffset = s.val() || 0; });
     }
     onAuthStateChanged(this.auth, user => {
       if (!user && this.room) this.leaveRoom(true);
+      if (!user && (this.w.on || this.w.connecting)) this.leaveWorld(true);
       this.renderModal();
       // 새로고침 시 같은 탭에서 있던 방에 자동 재입장
       if (user && !this.room) {
@@ -95,8 +112,8 @@ export class CoopManager {
     return true;
   }
 
-  async createRoom() {
-    if (this.busy || !this.checkReady()) return;
+  async createRoom(silent = false) {
+    if (this.busy || !this.checkReady()) return null;
     if (this.room) await this.leaveRoom(true);
     this.busy = true;
     try {
@@ -111,8 +128,8 @@ export class CoopManager {
         if (res.committed) {
           await set(ref(this.db, `rooms/${code}/createdAt`), serverTimestamp());
           await this.enterRoom(code);
-          toast(`🏠 협동 방을 만들었어요! 친구에게 방 코드 [${code}]를 알려주세요.`);
-          return;
+          if (!silent) toast(`🏠 협동 방을 만들었어요! 친구에게 방 코드 [${code}]를 알려주세요.`);
+          return code;
         }
       }
       toast('⚠️ 방을 만들지 못했어요. 잠시 후 다시 시도해 주세요.');
@@ -121,6 +138,7 @@ export class CoopManager {
     } finally {
       this.busy = false;
     }
+    return null;
   }
 
   async joinRoom(rawCode, silent = false) {
@@ -147,20 +165,9 @@ export class CoopManager {
         toast(`⚠️ 방이 가득 찼어요. (최대 ${MAX_PLAYERS}명)`);
         return;
       }
-      // 같은 캐릭터 금지: 겹치면 캐릭터를 다시 고른 뒤 자동 입장
-      const myChar = this.game.activeCharKey;
-      const clash = Object.entries(players).find(([id, p]) => id !== uid && p && p.charKey === myChar);
-      if (clash) {
-        const cfg = (typeof CHAR_CONFIGS !== 'undefined' && CHAR_CONFIGS[myChar]) || {};
-        this.pendingJoin = code;
-        this.pendingPlayers = players;
-        this.closeModal();
-        toast(`🙅 [${cfg.name || myChar}]는 ${cleanName(clash[1].name)}님이 쓰고 있어요. 다른 캐릭터를 고르면 바로 입장해요!`);
-        this.game.openCharSelectScreen();
-        return;
-      }
+      // (온라인 월드에서는 같은 캐릭터도 함께 플레이 가능)
       await this.enterRoom(code);
-      toast(`👥 [${code}] 방에 입장했어요!`);
+      if (!silent) toast(`👥 [${code}] 방에 입장했어요!`);
     } catch (e) {
       this.reportError(e);
     } finally {
@@ -173,6 +180,7 @@ export class CoopManager {
     this.room = code;
     this.uid = user.uid;
     this.joinedAt = this.now();
+    this.roomJoinedLocal = Date.now();
     sessionStorage.setItem('chiikawa_coop_room', code);
 
     const g = this.game;
@@ -329,6 +337,11 @@ export class CoopManager {
   }
 
   sendEvent(type, data = {}) {
+    // 채팅과 마을에서의 동작 연출은 온라인 월드 전체로, 전투·레이드 진행은 파티 방으로
+    if (this.w.on && (type === 'chat' || (VISUAL_EVENTS.includes(type) && this.area() === 'town'))) {
+      push(this.wpath('events'), { ...data, type, uid: this.w.uid, ts: this.now() }).catch(() => {});
+      return;
+    }
     if (!this.room) return;
     push(this.path('events'), { ...data, type, uid: this.uid, ts: this.now() }).catch(() => {});
   }
@@ -343,7 +356,7 @@ export class CoopManager {
     if (!EMOTES.includes(e)) return;
     const g = this.game;
     if (g && g.playerPos) this.showBubble(g.playerPos, e, 3.0);
-    if (this.room) this.sendEvent('emo', { e });
+    this.sendEvent('emo', { e });
   }
 
   // ------------------------------------------------------------------
@@ -419,7 +432,12 @@ export class CoopManager {
     if (ev.type === 'chat') { this.onChatEvent(ev); return; }
     if (this.onPartyEvent(ev)) return;
     if (this.onRaidEvent(ev)) return;
-    const r = this.remotes.get(ev.uid);
+    if (this.w.on && this.area() === 'town' && VISUAL_EVENTS.includes(ev.type)) return; // 마을 연출은 월드 채널이 담당
+    this.playVisual(this.remotes.get(ev.uid), ev);
+  }
+
+  // 원격 플레이어의 공격·궁극기·스킬·이모티콘 연출
+  playVisual(r, ev) {
     const g = this.game;
     if (!r || !g || !r.hasPos) return;
     const sameArea = r.area === this.area();
@@ -512,7 +530,16 @@ export class CoopManager {
   // ------------------------------------------------------------------
   update(dt) {
     const g = this.game;
-    if (!this.room || !g || !g.camera) return;
+    if (!g || !g.camera) return;
+    this.worldUpdate(dt);
+    this.zoneUpdate(dt);
+    if (!this.room) return;
+    // 전투·레이드가 끝나고 마을로 돌아오면 파티 방은 자동 해산 (마을에서는 온라인 월드로 다 같이)
+    if (this.area() === 'town' && !this.raid.active && !g.partyRole && !this.zone.going && Date.now() - (this.roomJoinedLocal || 0) > 25000) {
+      const res = document.getElementById('stage-result-modal');
+      const resultOpen = res && (res.classList.contains('open') || res.classList.contains('visible') || res.classList.contains('active'));
+      if (!resultOpen) { this.leaveRoom(true); return; }
+    }
 
     // 내 상태 전송
     this.sendTimer += dt;
@@ -546,7 +573,7 @@ export class CoopManager {
     const t = g.clock ? g.clock.elapsedTime : 0;
 
     this.remotes.forEach(r => {
-      const visible = r.hasPos && r.area === myArea;
+      const visible = r.hasPos && r.area === myArea && !(myArea === 'town' && this.w.on);
       r.mesh.visible = visible;
       if (!visible) { r.label.style.display = 'none'; return; }
 
@@ -1201,6 +1228,8 @@ export class CoopManager {
   // 👥 같은 캐릭터 금지
   // ==================================================================
   charOwner(key) {
+    return null; // 온라인 월드: 같은 캐릭터 허용
+    // eslint-disable-next-line no-unreachable
     const players = this.room ? this.players : (this.pendingJoin ? this.pendingPlayers || {} : {});
     for (const [uid, p] of Object.entries(players)) {
       if (uid !== (this.uid || (this.auth.currentUser && this.auth.currentUser.uid)) && p && p.charKey === key) return p;
@@ -1221,6 +1250,8 @@ export class CoopManager {
 
   // 동시에 같은 캐릭터로 들어온 경우: 늦게 들어온 사람이 다시 고름
   checkDuplicateChar() {
+    return; // 온라인 월드: 같은 캐릭터 허용
+    // eslint-disable-next-line no-unreachable
     if (!this.room || !this.uid) return;
     const me = this.players[this.uid];
     if (!me) return;
@@ -1499,6 +1530,494 @@ export class CoopManager {
     return true;
   }
 
+  // ==================================================================
+  // 🌐 온라인 월드 (로그인하면 모두 같은 마을에 접속)
+  // ==================================================================
+  wpath(p) { return ref(this.db, `rooms/${WORLD}${p ? '/' + p : ''}`); }
+
+  worldWatch() {
+    const g = this.game;
+    const user = this.auth.currentUser;
+    if (!this.db || !user || !g || !g.gameStarted) return;
+    if (this.worldOff) { if (this.w.on) this.leaveWorld(true); return; }
+    if (!this.w.on && !this.w.connecting) this.joinWorld();
+  }
+
+  myLevel() { const g = this.game; return (g && g.stats && g.stats.level) || 1; }
+  myName() { const u = this.auth.currentUser; return cleanName(u && (u.displayName || `토벌자${u.uid.slice(0, 4)}`)); }
+
+  async joinWorld() {
+    const user = this.auth.currentUser;
+    const g = this.game;
+    if (!user || !g) return;
+    const W = this.w;
+    W.connecting = true;
+    try {
+      W.uid = user.uid;
+      const me = this.wpath(`players/${W.uid}`);
+      const st = this.wpath(`state/${W.uid}`);
+      await onDisconnect(me).remove();
+      await onDisconnect(st).remove();
+      await set(me, { name: this.myName(), charKey: g.activeCharKey || 'chiikawa', hat: (g.stats && g.stats.equippedHat) || 'none', lv: this.myLevel(), joinedAt: serverTimestamp() });
+      W.profile = `${g.activeCharKey}|${g.stats.equippedHat}|${this.myLevel()}|${this.myName()}`;
+      W.joinedAt = this.now();
+      this._wJoinLocal = Date.now();
+      W.on = true;
+      const L = u => W.listeners.push(u);
+      L(onChildAdded(this.wpath('players'), s => { W.players[s.key] = s.val(); this.wSyncRemote(s.key, false); this.renderModal(); this.renderHudPill(); }));
+      L(onChildChanged(this.wpath('players'), s => { W.players[s.key] = s.val(); this.wSyncRemote(s.key, true); this.renderModal(); }));
+      L(onChildRemoved(this.wpath('players'), s => {
+        const p = W.players[s.key];
+        delete W.players[s.key];
+        this.wRemoveRemote(s.key);
+        if (s.key === W.uid && W.on) { this.wReRegister(); }
+        else if (p) this.addChatLine('', `👋 ${cleanName(p.name)}님이 나갔어요.`, { system: true });
+        this.wCheckHost();
+        this.renderModal();
+        this.renderHudPill();
+      }));
+      L(onChildAdded(this.wpath('state'), s => this.wOnState(s.key, s.val())));
+      L(onChildChanged(this.wpath('state'), s => this.wOnState(s.key, s.val())));
+      L(onValue(this.wpath('host'), s => { W.hostUid = s.val(); this.wCheckHost(); }));
+      L(onChildAdded(query(this.wpath('events'), limitToLast(30)), s => this.wOnEvent(s.val() || {})));
+      this.wSendState(true);
+      this.renderModal();
+      this.renderHudPill();
+      const n = Object.keys(W.players).length;
+      toast(n > 1 ? `🌐 온라인 월드 접속! 지금 ${n}명이 함께 있어요.` : '🌐 온라인 월드에 접속했어요! 친구가 들어오면 같이 돌아다닐 수 있어요.');
+    } catch (e) {
+      W.on = false;
+      this.reportError(e);
+      this.worldRetryAt = Date.now();
+    } finally {
+      W.connecting = false;
+    }
+  }
+
+  async wReRegister() {
+    const W = this.w;
+    const g = this.game;
+    if (!W.on || !g) return;
+    try {
+      await set(this.wpath(`players/${W.uid}`), { name: this.myName(), charKey: g.activeCharKey || 'chiikawa', hat: (g.stats && g.stats.equippedHat) || 'none', lv: this.myLevel(), joinedAt: serverTimestamp() });
+      this.wSendState(true);
+    } catch (e) { /* 무시 */ }
+  }
+
+  async leaveWorld(silent = false) {
+    const W = this.w;
+    const uid = W.uid;
+    W.listeners.forEach(u => { try { u(); } catch (e) {} });
+    W.listeners = [];
+    W.remotes.forEach((r, k) => this.wRemoveRemote(k));
+    W.players = {};
+    W.on = false;
+    W.hostUid = null;
+    W.last = null;
+    if (uid && this.db) {
+      try {
+        await remove(this.wpath(`state/${uid}`));
+        await remove(this.wpath(`players/${uid}`));
+        await onDisconnect(this.wpath(`players/${uid}`)).cancel();
+        await onDisconnect(this.wpath(`state/${uid}`)).cancel();
+      } catch (e) { /* 무시 */ }
+    }
+    if (!silent) toast('🏠 혼자 플레이로 전환했어요. (설정에서 다시 온라인 접속 가능)');
+    this.renderModal();
+    this.renderHudPill();
+  }
+
+  toggleWorld() {
+    this.worldOff = !this.worldOff;
+    try { localStorage.setItem('chiikawa_world_off', this.worldOff ? '1' : '0'); } catch (e) {}
+    if (this.worldOff) this.leaveWorld();
+    else this.worldWatch();
+    this.renderModal();
+  }
+
+  // 월드 이벤트 정리 담당: 가장 먼저 들어온 사람
+  wCheckHost() {
+    const W = this.w;
+    if (!W.on) return;
+    const ids = Object.keys(W.players);
+    if (!ids.length || (W.hostUid && W.players[W.hostUid])) return;
+    const next = ids.sort((a, b) => (W.players[a].joinedAt || 0) - (W.players[b].joinedAt || 0))[0];
+    if (next !== W.uid) return;
+    const old = W.hostUid;
+    runTransaction(this.wpath('host'), cur => (cur === old || cur === null ? W.uid : undefined)).catch(() => {});
+  }
+
+  async wPrune() {
+    const W = this.w;
+    if (!W.on || W.hostUid !== W.uid) return;
+    try {
+      const snap = await get(query(this.wpath('events'), orderByKey(), limitToFirst(80)));
+      const cut = this.now() - 3 * 60 * 1000;
+      const jobs = [];
+      snap.forEach(c => { const v = c.val(); if (!v || (v.ts || 0) < cut) jobs.push(remove(this.wpath(`events/${c.key}`))); });
+      await Promise.all(jobs);
+    } catch (e) { /* 무시 */ }
+  }
+
+  wSendState(force = false) {
+    const W = this.w;
+    const g = this.game;
+    if (!W.on || !g || !g.playerPos) return;
+    const p = g.playerPos;
+    const Z = this.zone;
+    const st = {
+      x: r2(p.x), y: r2(p.y), z: r2(p.z),
+      mv: Math.hypot(g.playerVel.x, g.playerVel.z) > 0.6 || (g.dashTimer > 0) ? 1 : 0,
+      gr: g.isGrounded ? 1 : 0,
+      vy: r2(g.playerVelY || 0),
+      ar: this.area(),
+      zn: Z.id || '',
+      rd: Z.ready ? 1 : 0,
+      sg: Z.stage || 1,
+      t: this.now()
+    };
+    const prev = W.last;
+    const changed = !prev || Math.abs(prev.x - st.x) > 0.05 || Math.abs(prev.z - st.z) > 0.05 || Math.abs(prev.y - st.y) > 0.05 ||
+      prev.mv !== st.mv || prev.gr !== st.gr || prev.ar !== st.ar || prev.zn !== st.zn || prev.rd !== st.rd || prev.sg !== st.sg;
+    if (!changed && !force && W.keepT < 1.0) return;
+    if (!force && st.ar !== 'town' && W.keepT < 1.0 && prev && prev.ar === st.ar) return; // 전투 중엔 1초에 한 번만
+    W.keepT = 0;
+    W.last = st;
+    set(this.wpath(`state/${W.uid}`), st).catch(() => {});
+  }
+
+  wSyncRemote(uid, changed) {
+    const W = this.w;
+    if (uid === W.uid) return;
+    const info = W.players[uid];
+    if (!info) return;
+    let r = W.remotes.get(uid);
+    if (r && changed && r.charKey !== info.charKey) { this.wRemoveRemote(uid); r = null; }
+    if (!r) {
+      const g = this.game;
+      if (!g || typeof createChiikawaPlushie !== 'function') return;
+      const mesh = createChiikawaPlushie(info.charKey);
+      mesh.visible = false;
+      g.scene.add(mesh);
+      const label = document.createElement('div');
+      label.className = 'coop-name-tag world';
+      document.body.appendChild(label);
+      r = { uid, mesh, label, charKey: info.charKey, hat: null, target: null, area: 'town', moving: false, grounded: true, vy: 0,
+        walkTime: 0, atkTimer: 0, combo: 0, maxAtk: 0.28, flip: 1, lastPos: new THREE.Vector3(), hasPos: false, zn: '', rd: 0, seenAt: 0 };
+      W.remotes.set(uid, r);
+      if (!changed && W.joinedAt && Date.now() - (this._wJoinLocal || 0) > 3000 && this.now() - W.joinedAt > 3000) {
+        this.addChatLine('', `🎉 ${cleanName(info.name)}님이 들어왔어요!`, { system: true });
+      }
+    }
+    if (info.hat !== r.hat && r.mesh.userData.equipHat) { r.hat = info.hat; r.mesh.userData.equipHat(info.hat || 'none'); }
+  }
+
+  wRemoveRemote(uid) {
+    const r = this.w.remotes.get(uid);
+    if (!r) return;
+    const g = this.game;
+    if (g) { g.scene.remove(r.mesh); if (typeof g.disposeObject3D === 'function') g.disposeObject3D(r.mesh); }
+    r.label.remove();
+    this.w.remotes.delete(uid);
+  }
+
+  wOnState(uid, st) {
+    if (!st || uid === this.w.uid) return;
+    if (!this.w.remotes.has(uid)) this.wSyncRemote(uid, false);
+    const r = this.w.remotes.get(uid);
+    if (!r) return;
+    r.target = new THREE.Vector3(st.x || 0, st.y || 0, st.z || 0);
+    r.area = st.ar || 'town';
+    r.moving = !!st.mv;
+    r.grounded = st.gr !== 0;
+    r.vy = st.vy || 0;
+    r.zn = st.zn || '';
+    r.rd = st.rd ? 1 : 0;
+    r.sg = st.sg || 1;
+    r.seenAt = Date.now();
+    if (!r.hasPos) { r.mesh.position.copy(r.target); r.lastPos.copy(r.target); r.hasPos = true; }
+  }
+
+  wOnEvent(ev) {
+    const W = this.w;
+    if (!ev || !ev.type || ev.uid === W.uid) return;
+    if ((ev.ts || 0) < W.joinedAt - 500) return;
+    if (ev.type === 'chat') { this.onChatEvent(ev); return; }
+    if (ev.type === 'zgo') { this.onZoneGo(ev); return; }
+    if (VISUAL_EVENTS.includes(ev.type) && this.area() === 'town') this.playVisual(W.remotes.get(ev.uid), ev);
+  }
+
+  worldUpdate(dt) {
+    const W = this.w;
+    const g = this.game;
+    if (!W.on) return;
+    W.sendT += dt;
+    W.keepT += dt;
+    if (W.sendT >= WORLD_SEND) { W.sendT = 0; this.wSendState(false); }
+    W.pruneT += dt;
+    if (W.pruneT > 60) { W.pruneT = 0; this.wPrune(); }
+    const profile = `${g.activeCharKey}|${g.stats.equippedHat}|${this.myLevel()}|${this.myName()}`;
+    if (profile !== W.profile) {
+      W.profile = profile;
+      update(this.wpath(`players/${W.uid}`), { charKey: g.activeCharKey, hat: g.stats.equippedHat || 'none', lv: this.myLevel(), name: this.myName() }).catch(() => {});
+    }
+    const myArea = this.area();
+    const ctx = this.avatarCtx();
+    // 가까운 사람부터 최대 14명까지만 그림 (저사양 기기 보호)
+    const list = [];
+    W.remotes.forEach(r => {
+      const vis = r.hasPos && myArea === 'town' && r.area === 'town' && Date.now() - r.seenAt < 8000;
+      if (!vis) { r.mesh.visible = false; r.label.style.display = 'none'; return; }
+      list.push([r.target ? r.target.distanceTo(g.playerPos) : 0, r]);
+    });
+    list.sort((a, b) => a[0] - b[0]);
+    list.forEach(([d, r], i) => {
+      if (i >= 14 || d > 160) { r.mesh.visible = false; r.label.style.display = 'none'; return; }
+      r.mesh.visible = true;
+      this.animateAvatar(r, dt, ctx);
+      const info = W.players[r.uid] || {};
+      const z = this.zone;
+      const ready = r.zn && r.zn === z.id && r.rd ? '✅ ' : (r.zn && r.zn === z.id ? '⏳ ' : '');
+      this.placeLabel(r, `${ready}${cleanName(info.name)} · Lv.${info.lv || 1}`);
+    });
+  }
+
+  // 원격 캐릭터 이동·모션 공통 처리 (파티 방/월드 공용)
+  avatarCtx() {
+    const g = this.game;
+    return {
+      camFwd: new THREE.Vector3(-Math.sin(g.camYaw), 0, -Math.cos(g.camYaw)),
+      camRight: new THREE.Vector3(Math.cos(g.camYaw), 0, -Math.sin(g.camYaw)),
+      t: g.clock ? g.clock.elapsedTime : 0
+    };
+  }
+  animateAvatar(r, dt, ctx) {
+    const g = this.game;
+    if (r.target) {
+      if (r.mesh.position.distanceTo(r.target) > 18) r.mesh.position.copy(r.target);
+      else r.mesh.position.lerp(r.target, 1 - Math.exp(-dt * 12));
+    }
+    const vel = r.mesh.position.clone().sub(r.lastPos).setY(0);
+    r.lastPos.copy(r.mesh.position);
+    const speed = vel.length() / Math.max(dt, 0.001);
+    const moving = r.moving || speed > 1.2;
+    if (speed > 0.5) {
+      const d = vel.normalize();
+      const side = d.dot(ctx.camRight);
+      if (Math.abs(side) > 0.15) r.flip = side > 0 ? 1 : -1;
+      if (r.mesh.userData.setBackView) r.mesh.userData.setBackView(d.dot(ctx.camFwd) > 0.55 && r.atkTimer <= 0 && !r.skillAnim);
+    } else if (r.mesh.userData.setBackView) r.mesh.userData.setBackView(false);
+    if (moving && r.grounded) r.walkTime += dt * 16; else r.walkTime = 0;
+    if (r.atkTimer > 0) r.atkTimer -= dt;
+    r.mesh.rotation.y = g.camYaw;
+    const parts = r.mesh.userData.parts;
+    if (parts && parts.standeeGroup) parts.standeeGroup.scale.x = THREE.MathUtils.lerp(parts.standeeGroup.scale.x || 1, r.flip, Math.min(1, dt * 16));
+    if (r.mesh.userData.updateMotion) r.mesh.userData.updateMotion(ctx.t, r.walkTime, moving, r.grounded, r.vy, Math.max(0, r.atkTimer), r.combo, r.maxAtk);
+    if (r.skillAnim && typeof SKILLS !== 'undefined' && !SKILLS.applyPose(r.mesh, r.skillAnim)) r.skillAnim = null;
+  }
+  placeLabel(r, text) {
+    const g = this.game;
+    if (r.label.textContent !== text) r.label.textContent = text;
+    const v = r.mesh.position.clone().add(new THREE.Vector3(0, 5.2, 0)).project(g.camera);
+    if (v.z > 1 || Math.abs(v.x) > 1.2 || Math.abs(v.y) > 1.2) { r.label.style.display = 'none'; return; }
+    r.label.style.display = '';
+    r.label.style.left = `${(v.x * 0.5 + 0.5) * window.innerWidth}px`;
+    r.label.style.top = `${(-v.y * 0.5 + 0.5) * window.innerHeight}px`;
+  }
+
+  // ==================================================================
+  // ⚔️ 입장 존: 존 안의 모두가 [E] 준비 → 3초 카운트다운 → 함께 출발
+  // ==================================================================
+  zoneAt(pos) {
+    for (const [id, z] of Object.entries(ZONES)) {
+      if (Math.hypot(pos.x - z.x, pos.z - z.z) < z.r && pos.y < 3) return id;
+    }
+    return null;
+  }
+
+  zoneMembers() {
+    const Z = this.zone;
+    const W = this.w;
+    const g = this.game;
+    const me = { uid: W.uid || 'me', me: true, name: this.myName(), ready: Z.ready, lv: this.myLevel(), sg: Z.stage, joinedAt: (W.players[W.uid] && W.players[W.uid].joinedAt) || 0 };
+    const list = [me];
+    if (W.on) {
+      W.remotes.forEach(r => {
+        if (r.zn === Z.id && r.area === 'town' && Date.now() - r.seenAt < 4000) {
+          const info = W.players[r.uid] || {};
+          list.push({ uid: r.uid, name: cleanName(info.name), ready: !!r.rd, lv: info.lv || 1, sg: r.sg || 1, joinedAt: info.joinedAt || 0 });
+        }
+      });
+    }
+    // 가장 먼저 접속한 사람이 리더 (스테이지 선택 & 출발 처리)
+    list.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0) || (a.uid < b.uid ? -1 : 1));
+    return list;
+  }
+
+  zoneUpdate(dt) {
+    const g = this.game;
+    const Z = this.zone;
+    if (!g || !g.gameStarted) return;
+    const inTown = this.area() === 'town' && !g.isDowned && !g.partyRole && !this.raid.active;
+    const zid = inTown ? this.zoneAt(g.playerPos) : null;
+    if (zid !== Z.id) {
+      Z.id = zid;
+      Z.ready = false;
+      Z.countdown = null;
+      Z.stage = Math.max(1, Math.min(20, (g.stats && g.stats.maxUnlockedStage) || 1));
+      if (zid) toast(`${ZONES[zid].label}에 들어왔어요! [E]로 준비하면 존 안의 모두가 준비됐을 때 함께 출발해요.`);
+      this.wSendState(true);
+    }
+    if (!Z.id) { if (this.zonePanel.style.display !== 'none') this.zonePanel.style.display = 'none'; return; }
+    const mem = this.zoneMembers();
+    Z.members = mem;
+    const leader = mem[0];
+    const stage = leader.me ? Z.stage : leader.sg;
+    const allReady = mem.every(m => m.ready);
+    if (allReady && !Z.going) {
+      if (Z.countdown === null) { Z.countdown = ZONE_COUNTDOWN; if (typeof soundFx !== 'undefined') try { soundFx.playSkill(); } catch (e) {} }
+      else Z.countdown -= dt;
+      if (Z.countdown <= 0 && leader.me) this.zoneGo(mem, stage);
+    } else if (!allReady) Z.countdown = null;
+    Z.panelT -= dt;
+    if (Z.panelT <= 0) { Z.panelT = 0.2; this.renderZonePanel(mem, stage, allReady); }
+  }
+
+  // main.js triggerInteract에서 호출: 존 안이면 준비 토글
+  zoneInteract() {
+    const Z = this.zone;
+    const g = this.game;
+    if (!Z.id || !g) return false;
+    if (!this.auth.currentUser) {
+      if (Z.id === 'raid') { toast('🔑 레이드는 로그인 후 이용할 수 있어요.'); return true; }
+      return false; // 비로그인: 출격 포털은 기존 스테이지 선택창
+    }
+    if (Z.going) return true;
+    if (Z.id === 'stage' && (g.stats.maxUnlockedStage || 1) < 1) return true;
+    Z.ready = !Z.ready;
+    if (!Z.ready) Z.countdown = null;
+    if (typeof soundFx !== 'undefined') try { Z.ready ? soundFx.playCoin() : soundFx.playJump(); } catch (e) {}
+    this.wSendState(true);
+    Z.panelT = 0;
+    return true;
+  }
+
+  zoneStage(delta) {
+    const Z = this.zone;
+    const g = this.game;
+    if (!Z.id || Z.id !== 'stage' || !g) return;
+    const mem = Z.members || [];
+    if (mem.length && !mem[0].me) { toast('👑 스테이지는 존의 리더(가장 먼저 접속한 사람)가 골라요.'); return; }
+    Z.stage = Math.max(1, Math.min((g.stats.maxUnlockedStage || 1), Z.stage + delta));
+    this.wSendState(true);
+    Z.panelT = 0;
+  }
+
+  async zoneGo(mem, stage) {
+    const Z = this.zone;
+    const g = this.game;
+    if (Z.going) return;
+    Z.going = true;
+    const kind = Z.id;
+    const ids = mem.map(m => m.uid);
+    try {
+      if (ids.length === 1 && kind === 'stage') {
+        if (this.room) await this.leaveRoom(true);
+        g.startBattleStage(stage);
+        return;
+      }
+      if (this.room) await this.leaveRoom(true);
+      const code = await this.createRoom(true);
+      if (!code) return;
+      if (ids.length > 1) {
+        push(this.wpath('events'), { type: 'zgo', uid: this.w.uid, ts: this.now(), z: kind, code, m: ids.join(','), s: stage }).catch(() => {});
+        toast(`🚀 ${ids.length}명 모두 준비 완료! 파티를 모으는 중…`);
+        const t0 = Date.now();
+        while (Date.now() - t0 < 10000 && !ids.every(id => this.players[id])) await new Promise(r => setTimeout(r, 250));
+        const missing = ids.filter(id => !this.players[id]).length;
+        if (missing) toast(`⚠️ ${missing}명이 연결되지 않아 먼저 출발해요.`);
+      }
+      if (kind === 'raid') await this.startRaid();
+      else g.startBattleStage(stage);
+    } catch (e) {
+      this.reportError(e);
+    } finally {
+      Z.ready = false;
+      Z.countdown = null;
+      setTimeout(() => { Z.going = false; }, 1500);
+    }
+  }
+
+  async onZoneGo(ev) {
+    const Z = this.zone;
+    const W = this.w;
+    const ids = String(ev.m || '').split(',');
+    if (!ids.includes(W.uid) || !ev.code) return;
+    Z.going = true;
+    Z.ready = false;
+    Z.countdown = null;
+    try {
+      if (this.room && this.room !== ev.code) await this.leaveRoom(true);
+      if (this.room !== ev.code) await this.joinRoom(ev.code, true);
+      toast(ev.z === 'raid' ? '🐉 모두 준비 완료! 레이드로 출발해요!' : `⚔️ 모두 준비 완료! ${ev.s || 1}단계로 함께 출격해요!`);
+    } catch (e) {
+      this.reportError(e);
+    } finally {
+      setTimeout(() => { Z.going = false; }, 12000);
+    }
+  }
+
+  buildZonePanel() {
+    const el = document.createElement('div');
+    el.id = 'zone-panel';
+    el.style.display = 'none';
+    document.body.appendChild(el);
+    this.zonePanel = el;
+    el.addEventListener('click', e => {
+      const a = e.target.closest('[data-z]');
+      if (!a) return;
+      if (a.dataset.z === 'prev') this.zoneStage(-1);
+      else if (a.dataset.z === 'next') this.zoneStage(1);
+      else if (a.dataset.z === 'ready') this.zoneInteract();
+    });
+  }
+
+  renderZonePanel(mem, stage, allReady) {
+    const Z = this.zone;
+    const el = this.zonePanel;
+    const zc = ZONES[Z.id];
+    el.style.display = '';
+    el.style.setProperty('--zc', zc.color);
+    el.textContent = '';
+    const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+    el.append(mk('div', 'zp-title', zc.label));
+    if (Z.id === 'stage') {
+      const row = mk('div', 'zp-stage');
+      const lead = mem[0] && mem[0].me;
+      const prev = mk('button', 'zp-arrow', '◀'); prev.type = 'button'; prev.dataset.z = 'prev'; prev.disabled = !lead;
+      const next = mk('button', 'zp-arrow', '▶'); next.type = 'button'; next.dataset.z = 'next'; next.disabled = !lead;
+      row.append(prev, mk('span', 'zp-stage-num', `${stage}단계`), next);
+      el.append(row);
+    } else {
+      el.append(mk('div', 'zp-sub', `거대 아노코 · ${mem.length}명 도전`));
+    }
+    const list = mk('div', 'zp-list');
+    mem.forEach((m, i) => {
+      const r = mk('div', 'zp-row' + (m.ready ? ' ready' : '') + (m.me ? ' me' : ''));
+      r.append(mk('span', 'zp-st', m.ready ? '✅' : '⏳'), mk('span', 'zp-name', `${i === 0 ? '👑 ' : ''}${m.name}${m.me ? ' (나)' : ''}`), mk('span', 'zp-lv', `Lv.${m.lv}`));
+      list.append(r);
+    });
+    el.append(list);
+    if (Z.going) el.append(mk('div', 'zp-count', '🚀 출발!'));
+    else if (allReady && Z.countdown !== null) el.append(mk('div', 'zp-count', `${Math.max(1, Math.ceil(Z.countdown))}`));
+    const btn = mk('button', 'zp-ready' + (Z.ready ? ' on' : ''), Z.ready ? '준비 취소 [E]' : '준비 [E]');
+    btn.type = 'button';
+    btn.dataset.z = 'ready';
+    el.append(btn);
+    const left = mem.filter(m => !m.ready).length;
+    el.append(mk('div', 'zp-hint', left ? `존 안의 ${mem.length}명이 모두 준비하면 출발해요 (대기 ${left}명)` : '모두 준비 완료!'));
+  }
+
   // ------------------------------------------------------------------
   // UI
   // ------------------------------------------------------------------
@@ -1510,7 +2029,7 @@ export class CoopManager {
       b.type = 'button';
       b.id = 'btn-coop';
       b.className = 'hud-pill-btn coop-btn';
-      b.textContent = '👥 협동 플레이';
+      b.textContent = '🌐 온라인';
       b.addEventListener('click', () => { b.blur(); this.openModal(); });
       controls.insertBefore(b, controls.firstChild);
     }
@@ -1528,8 +2047,8 @@ export class CoopManager {
     modal.innerHTML = `
       <div class="modal-window" style="max-width:460px;">
         <button type="button" class="modal-close-btn" data-act="close">✕</button>
-        <h2 style="font-size:21px; font-weight:900; color:#2563eb;">👥 온라인 협동 플레이</h2>
-        <p style="font-size:12.5px; color:#64748b; margin:4px 0 14px;">방 코드로 친구와 최대 ${MAX_PLAYERS}명이 함께 모험해요. (협동 레이드는 곧 추가돼요!)</p>
+        <h2 style="font-size:21px; font-weight:900; color:#2563eb;">🌐 온라인 월드</h2>
+        <p style="font-size:12.5px; color:#64748b; margin:4px 0 14px;">로그인한 친구들이 모두 같은 마을에서 함께 돌아다녀요.</p>
         <div data-sec="body"></div>
       </div>`;
     document.body.appendChild(modal);
@@ -1548,6 +2067,7 @@ export class CoopManager {
       else if (a === 'emote') this.emote(act.dataset.e);
       else if (a === 'raid') { this.closeModal(); this.startRaid(); }
       else if (a === 'raidstop') { this.closeModal(); this.abortRaid(); }
+      else if (a === 'worldtoggle') this.toggleWorld();
     });
     modal.addEventListener('keydown', e => {
       e.stopPropagation();
@@ -1584,71 +2104,63 @@ export class CoopManager {
     const btn = (text, act, cls = 'choice-btn') => { const b = el('button', cls, text); b.type = 'button'; b.dataset.act = act; return b; };
 
     if (!this.db) {
-      body.append(el('div', 'coop-note', '협동 서버(Realtime Database)가 아직 연결되지 않았어요.'));
+      body.append(el('div', 'coop-note', '온라인 서버(Realtime Database)가 아직 연결되지 않았어요.'));
       return;
     }
     if (!this.auth.currentUser) {
-      body.append(el('div', 'coop-note', '협동 플레이는 친구와 내 캐릭터를 구분하기 위해 로그인이 필요해요.'));
-      const b = btn('🔑 로그인하러 가기', 'login', 'choice-btn coop-primary');
-      body.append(b);
+      body.append(el('div', 'coop-note', '온라인 월드는 친구와 내 캐릭터를 구분하기 위해 로그인이 필요해요.'));
+      body.append(btn('🔑 로그인하러 가기', 'login', 'choice-btn coop-primary'));
       return;
     }
-    if (!this.room) {
-      body.append(btn('🏠 새 방 만들기', 'create', 'choice-btn coop-primary'));
-      const row = el('div', 'coop-join-row');
-      const input = el('input');
-      input.id = 'coop-code-input';
-      input.maxLength = 5;
-      input.placeholder = '방 코드 5자리';
-      input.autocomplete = 'off';
-      input.addEventListener('input', () => { input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
-      row.append(input, btn('입장', 'join', 'choice-btn coop-join-btn'));
-      body.append(el('div', 'coop-divider', '또는 친구의 방에 들어가기'), row);
-      return;
-    }
-    const head = el('div', 'coop-room-head');
-    head.append(el('span', 'coop-room-label', '방 코드'), el('span', 'coop-room-code', this.room), btn('📋 복사', 'copy', 'hud-pill-btn'));
-    body.append(head);
-    const list = el('div', 'coop-member-list');
-    const ids = Object.keys(this.players).sort((a, b) => (this.players[a].joinedAt || 0) - (this.players[b].joinedAt || 0));
-    ids.forEach(id => {
-      const p = this.players[id];
-      const cfg = (typeof CHAR_CONFIGS !== 'undefined' && CHAR_CONFIGS[p.charKey]) || {};
-      const row = el('div', 'coop-member' + (id === this.uid ? ' me' : ''));
-      const img = el('img');
-      img.src = cfg.portrait || 'assets/chiikawa.png';
-      img.alt = '';
-      row.append(img, el('span', 'coop-member-name', `${id === this.hostUid ? '👑 ' : ''}${cleanName(p.name)}${id === this.uid ? ' (나)' : ''}`), el('span', 'coop-member-char', cfg.name || ''));
-      list.append(row);
-    });
-    body.append(el('div', 'coop-divider', `참가자 ${ids.length} / ${MAX_PLAYERS}`), list);
-    // 🐉 레이드
-    body.append(el('div', 'coop-divider', '협동 레이드'));
-    if (this.raid.active) {
-      body.append(el('div', 'coop-note', '🐉 거대 아노코 레이드 진행 중! 장판을 피하고, 쓰러진 동료에게 가서 [E]로 부활시켜 주세요. (팀 전체 5회)'));
-      if (this.isHost()) body.append(btn('🏳️ 레이드 종료 (방장)', 'raidstop', 'choice-btn coop-leave'));
-    } else if (this.isHost()) {
-      body.append(btn(`🐉 거대 아노코 레이드 시작 (${ids.length}명)`, 'raid', 'choice-btn coop-raid'));
-      body.append(el('div', 'coop-hint', '방장이 시작하면 방 안의 모두가 보스 성소로 이동해요. 인원이 많을수록 보스 체력이 늘어나요.'));
+    const W = this.w;
+    // 🌐 접속자 목록
+    if (W.on) {
+      const ids = Object.keys(W.players).sort((a, b) => (W.players[a].joinedAt || 0) - (W.players[b].joinedAt || 0));
+      body.append(el('div', 'coop-divider', `🌐 지금 접속 중 ${ids.length}명`));
+      const list = el('div', 'coop-member-list');
+      ids.forEach(id => {
+        const p = W.players[id];
+        const cfg = (typeof CHAR_CONFIGS !== 'undefined' && CHAR_CONFIGS[p.charKey]) || {};
+        const r = id === W.uid ? null : W.remotes.get(id);
+        const ar = id === W.uid ? this.area() : (r && r.area) || 'town';
+        const where = { town: '🏡 마을', arena: '⚔️ 전투 중', party: '⚔️ 파티 전투', raid: '🐉 레이드 중' }[ar] || '🏡 마을';
+        const row = el('div', 'coop-member' + (id === W.uid ? ' me' : ''));
+        const img = el('img');
+        img.src = cfg.portrait || 'assets/chiikawa.png';
+        img.alt = '';
+        row.append(img, el('span', 'coop-member-name', `${cleanName(p.name)}${id === W.uid ? ' (나)' : ''}`), el('span', 'coop-member-char', `Lv.${p.lv || 1} · ${where}`));
+        list.append(row);
+      });
+      body.append(list);
     } else {
-      body.append(el('div', 'coop-note', '👑 방장이 레이드를 시작하면 다 함께 보스 성소로 이동해요.'));
+      body.append(el('div', 'coop-note', this.worldOff ? '🏠 지금은 혼자 플레이 중이에요.' : (W.connecting ? '🌐 온라인 월드에 접속하는 중…' : '🎮 게임을 시작하면 온라인 월드에 자동으로 접속해요.')));
     }
-    body.append(el('div', 'coop-hint', '⚔️ 방장이 전투 스테이지·성장 던전에 들어가면 파티원도 함께 출격해 같은 몬스터를 같이 잡아요. (같은 캐릭터는 한 방에 한 명만)'));
+    body.append(el('div', 'coop-hint', '⚔️ 출격 포털 / 🐉 레이드 제단의 빛나는 원 안에 들어가 [E]로 준비하세요. 원 안의 모두가 준비하면 3초 뒤 함께 출발해요!'));
+    // 👥 현재 파티 (전투·레이드 중)
+    if (this.room) {
+      const ids = Object.keys(this.players);
+      body.append(el('div', 'coop-divider', `👥 함께하는 파티 ${ids.length}명`));
+      if (this.raid.active) {
+        body.append(el('div', 'coop-note', '🐉 거대 아노코 레이드 진행 중! 쓰러진 동료에게 가서 [E]로 부활 (팀 전체 5회)'));
+        if (this.isHost()) body.append(btn('🏳️ 레이드 종료 (리더)', 'raidstop', 'choice-btn coop-leave'));
+      }
+    }
     const emo = el('div', 'coop-emote-row');
     EMOTES.forEach(e => { const b = btn(e, 'emote', 'coop-emote-btn'); b.dataset.e = e; emo.append(b); });
-    body.append(el('div', 'coop-divider', '이모티콘'), emo, btn('🚪 방 나가기', 'leave', 'choice-btn coop-leave'));
+    body.append(el('div', 'coop-divider', '이모티콘'), emo);
+    body.append(btn(this.worldOff ? '🌐 온라인 월드 접속하기' : '🏠 혼자 플레이로 전환', 'worldtoggle', 'choice-btn ' + (this.worldOff ? 'coop-primary' : 'coop-leave')));
     this.renderHudPill();
   }
 
   renderHudPill() {
     if (!this.pill) return;
-    if (!this.room) { this.pill.style.display = 'none'; return; }
+    if (!this.room && !this.w.on) { this.pill.style.display = 'none'; return; }
     this.pill.style.display = '';
     this.pill.textContent = '';
-    const n = Object.keys(this.players).length;
     const info = document.createElement('span');
     info.className = 'coop-pill-info';
-    info.textContent = `👥 ${this.room} · ${n}/${MAX_PLAYERS}`;
+    const n = Object.keys(this.w.players).length;
+    info.textContent = this.w.on ? `🌐 ${n}명 접속` + (this.room ? ` · 👥 ${Object.keys(this.players).length}` : '') : `👥 파티 ${Object.keys(this.players).length}명`;
     this.pill.append(info);
     EMOTES.slice(0, 4).forEach(e => {
       const b = document.createElement('button');
@@ -1704,11 +2216,11 @@ export class CoopManager {
       if (!g || !g.gameStarted) return;
       if (typeof g.isAnyModalOpen === 'function' && g.isAnyModalOpen()) return;
       e.preventDefault();
-      if (!this.room) {
+      if (!this.room && !this.w.on) {
         const now = Date.now();
         if (!this._chatHintAt || now - this._chatHintAt > 4000) {
           this._chatHintAt = now;
-          toast('💬 채팅은 협동 방에 들어가면 쓸 수 있어요! (상단 👥 협동 플레이)');
+          toast('💬 채팅은 로그인하면 온라인 월드에서 쓸 수 있어요!');
         }
         return;
       }
@@ -1718,7 +2230,7 @@ export class CoopManager {
 
   openChat() {
     if (!this.chatBox) return;
-    if (!this.room) { toast('💬 채팅은 협동 방에 들어가면 쓸 수 있어요!'); return; }
+    if (!this.room && !this.w.on) { toast('💬 채팅은 로그인하면 온라인 월드에서 쓸 수 있어요!'); return; }
     if (this.game && typeof this.game.clearAllInputKeys === 'function') this.game.clearAllInputKeys();
     this.chatBox.classList.add('open');
     this.chatInput.focus();
@@ -1743,7 +2255,7 @@ export class CoopManager {
   sendChat(raw) {
     const text = this.cleanChat(raw);
     if (!text) { this.closeChat(); return; }
-    if (!this.room) { toast('💬 협동 방에 들어가 있지 않아요.'); this.closeChat(); return; }
+    if (!this.room && !this.w.on) { toast('💬 온라인 월드에 접속해 있지 않아요.'); this.closeChat(); return; }
     const now = Date.now();
     if (now - this.chatLastSent < 800) { toast('⏳ 너무 빨라요! 잠시 후 보내 주세요.'); return; }
     this.chatLastSent = now;
@@ -1759,10 +2271,10 @@ export class CoopManager {
   onChatEvent(ev) {
     const text = this.cleanChat(ev.m);
     if (!text) return;
-    const info = this.players[ev.uid];
+    const info = this.players[ev.uid] || this.w.players[ev.uid];
     const name = cleanName(info && info.name);
-    this.addChatLine(name, text, { host: ev.uid === this.hostUid });
-    const r = this.remotes.get(ev.uid);
+    this.addChatLine(name, text, { host: false });
+    const r = (this.w.on && this.area() === 'town' ? this.w.remotes.get(ev.uid) : null) || this.remotes.get(ev.uid);
     if (r && r.hasPos && r.area === this.area() && r.mesh.visible !== false) this.showBubble(r.mesh.position, text, 4.5, true);
     if (typeof soundFx !== 'undefined' && soundFx.playCoin && !this.chatBox.classList.contains('open')) {
       try { soundFx.playJump(); } catch (e) {}

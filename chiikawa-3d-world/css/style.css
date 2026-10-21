@@ -2499,3 +2499,42 @@ body.skill-aiming #webgl-canvas { cursor: crosshair; }
   justify-content: center;
 }
 body.raid-mode #skill-aim-hint { bottom: 120px; }
+
+
+/* ⚔️🐉 입장 존 준비 패널 */
+#zone-panel {
+  position: fixed;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 228px;
+  padding: 12px 12px 10px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.82);
+  border: 2.5px solid var(--zc, #f97316);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  z-index: 57;
+  font-weight: 800;
+  backdrop-filter: blur(6px);
+}
+#zone-panel .zp-title { font-size: 14px; font-weight: 900; color: var(--zc, #f97316); margin-bottom: 6px; }
+#zone-panel .zp-sub { font-size: 12px; color: #cbd5e1; margin-bottom: 6px; }
+#zone-panel .zp-stage { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 8px; }
+#zone-panel .zp-stage-num { font-size: 20px; font-weight: 900; }
+#zone-panel .zp-arrow { width: 34px; height: 30px; border-radius: 10px; border: none; background: rgba(255, 255, 255, 0.15); color: #fff; font-weight: 900; cursor: pointer; }
+#zone-panel .zp-arrow:disabled { opacity: 0.3; cursor: default; }
+#zone-panel .zp-list { display: flex; flex-direction: column; gap: 4px; max-height: 210px; overflow-y: auto; }
+#zone-panel .zp-row { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.07); font-size: 12.5px; }
+#zone-panel .zp-row.ready { background: rgba(34, 197, 94, 0.22); }
+#zone-panel .zp-row.me { outline: 1.5px solid rgba(255, 255, 255, 0.4); }
+#zone-panel .zp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#zone-panel .zp-lv { color: #94a3b8; font-size: 11px; }
+#zone-panel .zp-count { text-align: center; font-size: 40px; font-weight: 900; color: var(--zc, #f97316); margin: 4px 0 0; text-shadow: 0 0 14px var(--zc, #f97316); }
+#zone-panel .zp-ready { width: 100%; margin-top: 8px; padding: 9px 0; border: none; border-radius: 12px; background: var(--zc, #f97316); color: #fff; font-weight: 900; font-size: 14px; cursor: pointer; }
+#zone-panel .zp-ready.on { background: #475569; }
+#zone-panel .zp-hint { margin-top: 6px; font-size: 11px; color: #cbd5e1; text-align: center; }
+.coop-name-tag.world { background: rgba(37, 99, 235, 0.78); }
+@media (max-width: 720px) {
+  #zone-panel { top: auto; bottom: 170px; transform: none; width: 200px; right: 10px; }
+}

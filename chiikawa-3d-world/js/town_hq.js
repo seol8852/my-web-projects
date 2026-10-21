@@ -2719,6 +2719,83 @@ const TOWNHQ = (() => {
     return ground;
   }
 
+  // ------------------------------------------------------------------
+  // 17) 레이드 입장 제단 + 입장 존 바닥 링
+  // ------------------------------------------------------------------
+  function zoneRing(r, color) {
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { uT: { value: 0 }, uC: { value: new THREE.Color(color) } },
+      vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `uniform float uT; uniform vec3 uC; varying vec2 vUv;
+        void main(){ vec2 p = vUv * 2.0 - 1.0; float d = length(p); if (d > 1.0) discard;
+          float edge = smoothstep(0.86, 0.96, d) * smoothstep(1.0, 0.97, d);
+          float a = atan(p.y, p.x);
+          float dash = step(0.5, fract(a * 6.0 / 3.14159 + uT * 0.25));
+          float inner = smoothstep(0.80, 0.84, d) * smoothstep(0.88, 0.84, d) * dash;
+          float fill = (1.0 - smoothstep(0.0, 0.95, d)) * 0.10 * (0.7 + 0.3 * sin(uT * 2.0));
+          float al = edge * 0.95 + inner * 0.7 + fill;
+          gl_FragColor = vec4(uC * (1.2 + edge), al); }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending
+    });
+    const m = new THREE.Mesh(new THREE.CircleGeometry(r, 64), mat);
+    m.rotation.x = -Math.PI / 2;
+    m.renderOrder = 2;
+    animated.push({ type: 'uniform', mat });
+    return m;
+  }
+  function raidAltar() {
+    const g = new THREE.Group();
+    const stoneM = toon(0xffffff, TEX.stone, [3, 1]);
+    const darkM = toon(0x4c3a63);
+    [[7.0, 0.35, 0.17], [5.8, 0.35, 0.52]].forEach(([r, h, y], i) => {
+      const st = mesh(new THREE.CylinderGeometry(r, r + 0.3, h, 8), i ? darkM : stoneM);
+      st.position.y = y;
+      outline(st, 0.015);
+      g.add(st);
+    });
+    // 보랏빛 룬 원판
+    const rune = mesh(new THREE.CircleGeometry(4.6, 48), new THREE.MeshBasicMaterial({ map: typeof fxTex === 'function' ? fxTex('rune') : null, color: 0xc084fc, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }), false);
+    rune.rotation.x = -Math.PI / 2;
+    rune.position.y = 0.72;
+    g.add(rune);
+    animated.push({ type: 'spin2', obj: rune, speed: 0.25 });
+    // 8개의 오벨리스크 + 수정
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
+      const ob = new THREE.Group();
+      const body = mesh(new THREE.CylinderGeometry(0.35, 0.6, 4.2, 4), darkM);
+      body.position.y = 2.1;
+      body.rotation.y = Math.PI / 4;
+      outline(body, 0.04);
+      ob.add(body);
+      const cr = mesh(new THREE.OctahedronGeometry(0.5, 0), basic(0xd8b4fe), false);
+      cr.position.y = 4.9;
+      cr.scale.y = 1.5;
+      ob.add(cr);
+      const gl = glowSprite(0xa855f7, 2.6, 0.6);
+      gl.position.y = 4.9;
+      ob.add(gl);
+      animated.push({ type: 'bob', obj: cr, glow: gl, base: 4.9, phase: i });
+      ob.position.set(Math.cos(a) * 8.6, 0, Math.sin(a) * 8.6);
+      g.add(ob);
+    }
+    // 중앙: 아노코 문양 석판
+    const tab = mesh(roundBox(2.4, 3.0, 0.5, 0.12), darkM);
+    tab.position.set(0, 2.2, -3.2);
+    outline(tab, 0.04);
+    g.add(tab);
+    const sigil = mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: textTex('🐉', { w: 128, h: 128, bg: '#2e1065', fg: '#e9d5ff', border: '#a855f7', font: 90 }) }), false);
+    sigil.position.set(0, 2.3, -2.94);
+    g.add(sigil);
+    const ring = zoneRing(7.5, 0xa855f7);
+    ring.position.y = 0.74;
+    g.add(ring);
+    g.userData.colliders = [{ c: [0, 0], r: 7.2, h: 0.35, stand: true }, { c: [0, 0], r: 6.0, h: 0.7, stand: true },
+      { b: [0, -3.2], w: 2.4, d: 0.6, h: 3.7 },
+      ...Array.from({ length: 8 }, (_, i) => { const a = (i / 8) * Math.PI * 2 + Math.PI / 8; return { c: [Math.cos(a) * 8.6, Math.sin(a) * 8.6], r: 0.6, h: 4.3 }; })];
+    return g;
+  }
+
   // 신규 구조물 위치 (x, z, 반경, 이름)
   const SITES = [
     { x: -60, z: -36, r: 12, fn: hachiCave, label: '🏠 하치와레의 동굴 집', sy: 8.8 },
@@ -2727,7 +2804,8 @@ const TOWNHQ = (() => {
     { x: 26, z: 58, r: 14, fn: market, label: '🍎 마켓 거리 (과일·꽃·빵)', sy: 6.8 },
     { x: -110, z: 18, r: 18, fn: farm, label: '🥕 들판 농장', sy: 7.5 },
     { x: 44, z: 98, r: 13, fn: playground, label: '🛝 놀이터', sy: 6.8 },
-    { x: 58, z: -48, r: 11, fn: wellRest, label: '⛲ 우물 & 육각 정자 쉼터', sy: 8.6 }
+    { x: 58, z: -48, r: 11, fn: wellRest, label: '⛲ 우물 & 육각 정자 쉼터', sy: 8.6 },
+    { x: 8, z: -44, r: 10, fn: raidAltar, label: '🐉 아노코 레이드 입장 제단 (원 안에서 [E] 준비)', sy: 8.0, noFace: true }
   ];
   if (typeof WQ_EXCLUDE !== 'undefined') SITES.forEach(s => WQ_EXCLUDE.push([s.x, s.z, s.r]));
   function blocked(x, z, pad = 0) {
@@ -2815,10 +2893,15 @@ const TOWNHQ = (() => {
     // 🏘️ 신규 구조물 (치이카와 애니 속 장소 + 마을 시설)
     SITES.forEach(st => {
       const obj = st.fn();
-      add(obj, st.x, st.z, Math.atan2(-st.x, -st.z));
+      add(obj, st.x, st.z, st.noFace ? 0 : Math.atan2(-st.x, -st.z));
       if (app.addZoneSign) app.addZoneSign(st.label, st.x, st.sy, st.z);
       if (typeof POLISH !== 'undefined' && POLISH.registerOccluder) { try { POLISH.registerOccluder(obj, st.r * 0.6, 6); } catch (e) {} }
     });
+
+    // ⚔️ 출격 포털 입장 존 링 (coop.js ZONES.stage와 같은 위치·반경)
+    const sring = zoneRing(8.2, 0xf97316);
+    sring.position.set(32, 1.2, -22);
+    scene.add(sring);
 
     // 🧱 충돌 등록: 구조물·소품(userData.colliders) + 기존 시설
     COLS.length = 0;
@@ -2840,6 +2923,7 @@ const TOWNHQ = (() => {
     for (const a of animated) {
       switch (a.type) {
         case 'spin': a.obj.rotation.y += dt * a.speed; break;
+        case 'spin2': a.obj.rotation.z += dt * a.speed; break;
         case 'uniform': a.mat.uniforms.uT.value = t; break;
         case 'lamp':
           a.glow.material.opacity = (night ? 0.85 : 0.35) + Math.sin(t * 2 + a.phase) * 0.05;

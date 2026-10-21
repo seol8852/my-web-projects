@@ -118,6 +118,11 @@ export class FirebaseManager {
     this.dirty = false;
     this.ready = false; // 로그인 직후 세이브 정리(reconcile)가 끝나기 전에는 클라우드에 쓰지 않음
 
+    // 이 기기에 로그인 기록이 있으면 자동 로그인을 기다리는 동안 로그인 창을 띄우지 않음
+    try {
+      const owner = localStorage.getItem(SAVE_OWNER_KEY);
+      if (owner && owner !== 'guest') this.closeAuthModal();
+    } catch (e) { /* 무시 */ }
     this.initAuthListener();
 
     // 30초마다 변경분만 모아서 1회 저장
@@ -150,6 +155,8 @@ export class FirebaseManager {
 
       if (user) {
         this.nickname = null;
+        // 로그인 상태로 접속하면 첫 화면(로그인/내 계정) 창을 바로 닫음 (매번 닉네임 창이 보이던 문제)
+        this.closeAuthModal();
         await this.reconcileOnLogin(user);
         toast(`☁️ [${displayNameOf(user)}]님 계정으로 클라우드에 연결되었습니다!`);
         this.closeAuthModal();

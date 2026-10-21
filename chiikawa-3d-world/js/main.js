@@ -3006,6 +3006,8 @@ class Chiikawa3DWorldApp {
   triggerInteract() {
     // 협동: 쓰러진 동료 옆에서 E → 즉시 부활
     if (window.coop && typeof window.coop.tryReviveNearby === 'function' && window.coop.tryReviveNearby()) return;
+    // ⚔️🐉 입장 존 안이면 [E] = 준비 / 준비 취소
+    if (window.coop && typeof window.coop.zoneInteract === 'function' && window.coop.zoneInteract()) return;
     if (!this.nearestInteractable) {
       this.triggerAttack();
       return;
