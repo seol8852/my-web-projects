@@ -1760,7 +1760,7 @@ export class CoopManager {
   // 방장 → 파티원: 몬스터 공격 예고 장판
   onHostTelegraph(m, patternType, center, yaw, reach, dmg) {
     if (!m || !m.netId || !this.party) return;
-    this.sendEvent('stele', { id: m.netId, p: patternType, x: r2(center.x), z: r2(center.z), yaw: r2(yaw || 0), r: reach, d: dmg, pid: this.party.id });
+    this.sendEvent('stele', { id: m.netId, p: patternType, x: r2(center.x), z: r2(center.z), yaw: r2(yaw || 0), r: reach, d: dmg, du: m._teleDur || 0, pid: this.party.id });
   }
 
   onPartyEvent(ev) {
@@ -1772,7 +1772,11 @@ export class CoopManager {
       if (m) g.damageMonsterPart(m, Math.max(0, Math.min(50000, ev.a || 0)), null, 'net', false);
     } else if (ev.type === 'stele' && g.partyRole === 'member') {
       const m = g.monsters.find(mm => mm.netId === ev.id);
-      if (m && m.alive) g.spawnMonsterAttackTelegraph(m, ev.p, new THREE.Vector3(ev.x, 0, ev.z), ev.yaw || 0, ev.r, ev.d);
+      if (m && m.alive) {
+        g.spawnMonsterAttackTelegraph(m, ev.p, new THREE.Vector3(ev.x, 0, ev.z), ev.yaw || 0, ev.r, ev.d);
+        const tg = g.telegraphs[g.telegraphs.length - 1];
+        if (ev.du && tg && tg.monster === m) { tg.duration = ev.du; m.isWindingUp = false; }
+      }
     }
     return true;
   }

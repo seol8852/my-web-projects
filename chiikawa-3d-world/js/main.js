@@ -3831,6 +3831,8 @@ class Chiikawa3DWorldApp {
         if (window.coop) window.coop.updateRaidBoss(m, dt);
         return;
       }
+      // 👑 스테이지 수문장·보스 전용 패턴 AI (혼자 / 파티 방장)
+      if (m.stageBoss && this.partyRole !== 'member' && typeof STAGEHQ !== 'undefined' && STAGEHQ.updateBoss(this, m, dt, idx)) return;
       if (this.partyRole === 'member' && m.netId) {
         if (window.coop) window.coop.updatePartyMonster(m, dt);
         return;
@@ -3898,11 +3900,11 @@ class Chiikawa3DWorldApp {
         if (dist > triggerDist && !m.isWindingUp) {
           dir.normalize();
           const slowMult = m.slowTimer > 0 ? 0.5 : 1.0;
-          m.pos.addScaledVector(dir, dt * 6.8 * slowMult);
+          m.pos.addScaledVector(dir, dt * 6.8 * slowMult * (m.spdMul || 1));
           const hop = Math.abs(Math.sin(this.clock.elapsedTime * 7 + idx)) * 0.25;
           m.mesh.position.set(m.pos.x, hop, m.pos.z);
         } else if (m.atkCooldown <= 0 && !m.isWindingUp) {
-          m.atkCooldown = m.isBoss ? 2.2 : 2.0;
+          m.atkCooldown = (m.isBoss ? 2.2 : 2.0) * (m.cdMul || 1);
           const center = m.pos.clone();
           this.spawnMonsterAttackTelegraph(m, m.atkPattern, center, m.facingYaw, m.reach, m.atk);
         }
