@@ -541,11 +541,11 @@ const SKILLS = (() => {
         float dz = abs(vL.y - uLen * 0.5) - uLen * 0.5;
         d = max(dx, dz);
       }
-      if (d > 0.25) discard;
-      float edge = smoothstep(0.25, 0.0, abs(d + 0.12));
+      if (d > 0.4) discard;
+      float edge = smoothstep(0.34, 0.0, abs(d + 0.17));
       float inside = step(d, 0.0);
       float stripes = 0.5 + 0.5 * sin((vL.x + vL.y) * 2.2 - uT * 6.0);
-      float a = (edge * 0.95 + inside * (0.13 + stripes * 0.07)) * uFade;
+      float a = (edge * 1.1 + inside * (0.2 + stripes * 0.08)) * uFade;
       vec3 col = mix(uColor, vec3(1.0), edge * 0.45);
       gl_FragColor = vec4(col * a, a);
     }`;
@@ -1571,7 +1571,54 @@ const SKILLS = (() => {
     m.rotation.y = yaw;
     const u = m.userData.m.uniforms;
     u.uT.value += dt;
-    u.uFade.value = 0.75 + Math.sin(u.uT.value * 6) * 0.2;
+    u.uFade.value = 0.95;
+  }
+
+  // ⌨️ 스킬 키를 누르고 있는 동안 범위 미리보기 → 떼면 시전
+  let aimSlot = 0;
+  function aimStart(app, slot) {
+    aimSlot = slot;
+    setPreview(app, slot);
+  }
+  function aimEnd(app, slot) {
+    if (aimSlot !== slot) return false;
+    aimSlot = 0;
+    setPreview(app, null);
+    return true;
+  }
+
+  // ⚔️ 평타 범위 가이드 (다음 콤보의 실제 판정 범위를 바닥에 표시)
+  let atkGuide = null;
+  function shapeArea(shape) {
+    return shape.halfArc >= Math.PI - 0.01 ? { t: 'circle', R: shape.reach } : { t: 'cone', R: shape.reach, arc: shape.halfArc };
+  }
+  function attackGuide(app, shape, color, show) {
+    if (!app || !app.scene || !shape) return;
+    const area = shapeArea(shape);
+    const key = `${area.t}|${area.R}|${area.arc || 0}|${color}`;
+    if (!atkGuide || atkGuide.key !== key) {
+      if (atkGuide) {
+        if (atkGuide.mesh.parent) atkGuide.mesh.parent.remove(atkGuide.mesh);
+        atkGuide.mesh.geometry.dispose();
+        atkGuide.mesh.userData.m.dispose();
+      }
+      const mesh = makeZone(area, color);
+      app.scene.add(mesh);
+      atkGuide = { mesh, key };
+    }
+    const m = atkGuide.mesh;
+    m.visible = !!show;
+    if (!show) return;
+    m.position.set(app.playerPos.x, 0.19, app.playerPos.z);
+    m.rotation.y = app.playerYaw || 0;
+    const u = m.userData.m.uniforms;
+    u.uT.value = performance.now() / 1000;
+    u.uFade.value = 0.42;
+  }
+  // 평타를 휘두른 순간 실제 판정 범위를 진하게 표시
+  function attackFlash(app, shape, color) {
+    if (!shape) return;
+    zoneDecal({ color, local: true }, Object.assign({ force: true }, shapeArea(shape)), app.playerPos, app.playerYaw || 0, 0.32);
   }
 
   // ------------------------------------------------------------------
@@ -1693,6 +1740,7 @@ const SKILLS = (() => {
     if (app.skillCds) for (let i = 0; i < 3; i++) if (app.skillCds[i] > 0) app.skillCds[i] = Math.max(0, app.skillCds[i] - dt);
     if (app.skillLock > 0) app.skillLock = Math.max(0, app.skillLock - dt);
     if (app.skillShieldTimer > 0) app.skillShieldTimer = Math.max(0, app.skillShieldTimer - dt);
+    if (aimSlot && typeof document !== 'undefined' && !document.hasFocus()) { aimSlot = 0; setPreview(app, null); }
     if (app.skillAnim && app.skillAnim.cast.t >= app.skillAnim.dur) app.skillAnim = null;
 
     for (let i = casts.length - 1; i >= 0; i--) {
@@ -1782,6 +1830,9 @@ const SKILLS = (() => {
           const slot = i + 1;
           btn.addEventListener('mouseenter', () => setPreview(window.gameApp, slot));
           btn.addEventListener('mouseleave', () => setPreview(window.gameApp, null));
+          // 모바일: 버튼을 누르고 있는 동안 범위 표시
+          btn.addEventListener('touchstart', () => setPreview(window.gameApp, slot), { passive: true });
+          btn.addEventListener('touchend', () => setTimeout(() => setPreview(window.gameApp, null), 250), { passive: true });
         }
       });
     }
@@ -1867,6 +1918,7 @@ const SKILLS = (() => {
 
   return {
     DEFS, AREAS, RANGE, cast, playRemote, update, applyPose, absorbHit, updateHud, getDefs, setPreview,
+    aimStart, aimEnd, attackGuide, attackFlash,
     get activeCount() { return casts.length + runners.length; }
   };
 })();

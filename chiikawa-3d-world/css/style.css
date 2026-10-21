@@ -2422,3 +2422,45 @@ body.raid-mode #field-event-hud, body.raid-mode #jump-hud { display: none !impor
 }
 .coop-pill-chat { margin-left: 2px; background: rgba(134, 239, 172, 0.28) !important; }
 body.raid-mode #coop-chat { bottom: 120px; }
+
+
+/* ⚙️ 설정 메뉴 (UI 간소화) */
+.settings-wrap { position: relative; }
+.hud-pill-btn.settings-btn {
+  width: 40px;
+  justify-content: center;
+  font-size: 18px;
+  padding-left: 0;
+  padding-right: 0;
+}
+.hud-pill-btn.settings-btn.active { background: #1e293b; color: #fff; }
+.settings-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 220px;
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.22);
+  z-index: 80;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+.settings-menu.open { display: flex; animation: settingsIn 0.15s ease-out; }
+@keyframes settingsIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.settings-menu .hud-pill-btn { width: 100%; justify-content: flex-start; }
+.settings-menu #hud-auth-status { justify-content: center; }
+.settings-sec-title { font-size: 11px; font-weight: 900; color: #94a3b8; margin: 4px 2px 0; }
+/* 조작법 안내는 설정에서 열 때만 표시 */
+.controls-hint-bar { display: none !important; }
+.controls-hint-bar.show { display: block !important; }
+/* 대시·점프·상호작용: 아이콘 + 키만 보이는 작은 버튼 */
+.action-dock .skill-slot-btn.mini { flex-direction: column; gap: 0; padding: 5px 10px; min-width: 58px; }
+.action-dock .skill-slot-btn.mini .skill-name { display: none; }
+.action-dock .skill-slot-btn.mini .skill-text-col { align-items: center; }
+.action-dock .skill-slot-btn.mini .skill-hotkey { font-size: 9.5px; }

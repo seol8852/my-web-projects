@@ -2118,22 +2118,11 @@ class Chiikawa3DWorldApp {
       this.playerMesh.userData.setExpression('attack');
     }
 
-    // 2) 캐릭터별 타격 리치(Reach) & 부채꼴 각도(Sector Angle) 정의
-    let reach = this.comboStep === 1 ? 5.5 : this.comboStep === 2 ? 5.9 : 6.3;
-    let halfArc = this.comboStep === 1 ? Math.PI * 0.4 : this.comboStep === 2 ? Math.PI * 0.35 : Math.PI;
-
-    if (charKey === 'chiikawa' && this.comboStep < 3) {
-      // 사스마타 직선 찌르기: 전방 사거리가 더 길다!
-      reach = 6.2;
-      halfArc = Math.PI * 0.32;
-    } else if (charKey === 'kurimanju' && this.comboStep === 3) {
-      // 대지분쇄: 넓은 충격파 반경!
-      reach = 6.8;
-    } else if (charKey === 'rakko') {
-      // 토벌 랭킹 1위의 검기 리치!
-      reach = this.comboStep === 3 ? 6.8 : 6.2;
-      halfArc = this.comboStep === 3 ? Math.PI : Math.PI * 0.48;
-    }
+    // 2) 캐릭터별 타격 리치(Reach) & 부채꼴 각도(Sector Angle) 정의 (바닥 범위 가이드와 같은 값)
+    const atkShape = this.getAttackShape(charKey, this.comboStep);
+    const reach = atkShape.reach;
+    const halfArc = atkShape.halfArc;
+    if (typeof SKILLS !== 'undefined' && SKILLS.attackFlash) SKILLS.attackFlash(this, atkShape, cfg.accentColor);
 
     const atkCenter = this.playerPos.clone().add(forward.clone().multiplyScalar(2.45));
     this.spawnCharacterAttackEffect3D(charKey, this.comboStep, atkCenter, this.playerYaw, cfg.accentColor);
@@ -2206,6 +2195,22 @@ class Chiikawa3DWorldApp {
       this.hitStopTimer = 0.042;
       this.camShake = this.comboStep === 3 ? 0.52 : 0.28;
     }
+  }
+
+  // 캐릭터·콤보 단계별 평타 판정 범위 (reach: 사거리, halfArc: 부채꼴 반각)
+  getAttackShape(charKey, step) {
+    let reach = step === 1 ? 5.5 : step === 2 ? 5.9 : 6.3;
+    let halfArc = step === 1 ? Math.PI * 0.4 : step === 2 ? Math.PI * 0.35 : Math.PI;
+    if (charKey === 'chiikawa' && step < 3) {
+      reach = 6.2;
+      halfArc = Math.PI * 0.32;
+    } else if (charKey === 'kurimanju' && step === 3) {
+      reach = 6.8;
+    } else if (charKey === 'rakko') {
+      reach = step === 3 ? 6.8 : 6.2;
+      halfArc = step === 3 ? Math.PI : Math.PI * 0.48;
+    }
+    return { reach, halfArc };
   }
 
   // 몬스터 부위별(머리 약점 / 백어택 / 다리 둔화 / 장갑 몸통) 데미지 & 3D 타격 이펙트 처리
@@ -3306,11 +3311,19 @@ class Chiikawa3DWorldApp {
 
     const nextCombo = (this.comboStep % 3) + 1;
     [1, 2, 3].forEach(step => {
-      if (this.aimSectorMeshes[step]) {
-        this.aimSectorMeshes[step].visible = step === nextCombo;
-        this.aimSectorMeshes[step].rotation.y = this.playerYaw;
-      }
+      if (this.aimSectorMeshes[step]) this.aimSectorMeshes[step].visible = false; // 예전 고정 가이드(방향 오차) 숨김
     });
+    if (typeof SKILLS !== 'undefined' && SKILLS.attackGuide) {
+      // 근처에 적이 있거나 전투 중일 때 다음 평타의 실제 범위를 표시
+      let near = this.battleState.active;
+      if (!near) {
+        for (const mm of this.monsters) {
+          if (mm.alive && Math.hypot(mm.pos.x - this.playerPos.x, mm.pos.z - this.playerPos.z) < 22) { near = true; break; }
+        }
+      }
+      const gcfg = CHAR_CONFIGS[this.activeCharKey] || {};
+      SKILLS.attackGuide(this, this.getAttackShape(this.activeCharKey, nextCombo), gcfg.accentColor || 0xff85a2, near && !this.isDowned && !this.skillAnim);
+    }
 
     if (this.playerHurtRingMesh) {
       if (this.dashTimer > 0 || (this.ultTimer && this.ultTimer > 0)) {
@@ -4350,7 +4363,9 @@ class Chiikawa3DWorldApp {
       } else if (e.code === 'KeyR' || e.code === 'Digit4' || e.code === 'Numpad4') {
         this.usePotion();
       } else if (/^(Digit|Numpad)[123]$/.test(e.code)) {
-        this.triggerSkill(Number(e.code.slice(-1)));
+        // 누르고 있는 동안 범위 미리보기 → 키를 떼면 시전
+        if (typeof SKILLS !== 'undefined' && SKILLS.aimStart) { if (!e.repeat) SKILLS.aimStart(this, Number(e.code.slice(-1))); }
+        else this.triggerSkill(Number(e.code.slice(-1)));
       } else if (e.code === 'KeyE' || e.code === 'KeyF') {
         this.triggerInteract();
       } else if (e.code === 'KeyM') {
@@ -4365,6 +4380,10 @@ class Chiikawa3DWorldApp {
     });
 
     window.addEventListener('keyup', e => {
+      if (/^(Digit|Numpad)[123]$/.test(e.code) && typeof SKILLS !== 'undefined' && SKILLS.aimEnd) {
+        const slot = Number(e.code.slice(-1));
+        if (SKILLS.aimEnd(this, slot) && this.gameStarted && !this.isAnyModalOpen()) this.triggerSkill(slot);
+      }
       const normCode = this.normalizeKeyCode(e);
       if (normCode) {
         this.keys[normCode] = false;

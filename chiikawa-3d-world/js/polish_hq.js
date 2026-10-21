@@ -510,7 +510,7 @@ const POLISH = (() => {
       const header = panel.querySelector('.panel-header-title');
       if (!header) return;
       header.classList.add('collapsible');
-      const def = panel.classList.contains('teleport-panel') ? '1' : '0';
+      const def = '1'; // 기본은 접어서 화면을 넓게
       if (lsGet(key, def) === '1') panel.classList.add('collapsed');
       header.addEventListener('click', () => {
         panel.classList.toggle('collapsed');
