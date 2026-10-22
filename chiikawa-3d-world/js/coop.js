@@ -34,14 +34,14 @@ const RAID_BOSSES = {
     hpBase: 45000, hpPer: 32500, color: '#f97316', startMsg: '거대 아노코를 함께 쓰러뜨리세요!',
     p2msg: '돌진과 대폭발 패턴이 추가돼요. 장판을 잘 피하세요!',
     p3title: '😈 아노코 각성!!', p3msg: '진짜 모습을 드러냈다! 체력이 절반까지 회복되고 진홍빛 오라에 휩싸였어요!', p3color: '#b0000f',
-    p3tex: 'assets/anoko_phase3.png', reward: [600, 150, 450, 60], shock: 0xef4444
+    p3tex: 'assets/anoko_phase3.png', reward: [80000, 0, 450, 60], shock: 0xef4444
   },
   bird: {
     name: '🐦 거대 파자마 새', p3name: '🌩️ 폭풍의 파자마 새', mesh: 'pjbird', scale: 2.6, title: '🪶 협동 레이드 · 거대 파자마 새',
     hpBase: 38000, hpPer: 27500, color: '#38bdf8', startMsg: '하늘을 나는 파자마 새! 그림자를 보고 급강하를 피하세요!',
     p2msg: '연속 급강하·회오리·알 폭탄이 추가돼요!',
     p3title: '🌩️ 폭풍의 파자마 새!!', p3msg: '폭풍을 부르며 각성했다! 체력이 절반까지 회복되고 번개가 내리쳐요!', p3color: '#4338ca',
-    p3tex: 'assets/raid_bird_phase3.png', reward: [550, 140, 420, 55], shock: 0x38bdf8
+    p3tex: 'assets/raid_bird_phase3.png', reward: [50000, 0, 420, 55], shock: 0x38bdf8
   }
 };
 const RAID_LIST = ['anoko', 'bird'];

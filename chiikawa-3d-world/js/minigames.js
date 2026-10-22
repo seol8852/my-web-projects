@@ -133,9 +133,9 @@ function submitRamenOrder() {
   if (isMatch) {
     soundFx.playFanfare();
     if (window.gameApp) {
-      const paid = window.gameApp.addReward(90, 50, 'ramen');
+      const paid = window.gameApp.addReward((typeof ECON !== 'undefined' ? ECON.ramen : 90), 50, 'ramen');
       window.gameApp.activateRamenBuff();
-      showToast(paid ? `🍜 대성공! ${currentRamenOrder.name} 손님이 대만족했습니다! (+90 코인 & 활력 버프 발동!)` : `🍜 대성공! ${currentRamenOrder.name} 손님이 대만족! (오늘 장사 보상은 받았어요 · 활력 버프만 발동)`);
+      showToast(paid ? `🍜 대성공! ${currentRamenOrder.name} 손님이 대만족했습니다! (+${(typeof ECON !== 'undefined' ? ECON.ramen : 90).toLocaleString()} 코인 & 활력 버프 발동!)` : `🍜 대성공! ${currentRamenOrder.name} 손님이 대만족! (오늘 장사 보상은 받았어요 · 활력 버프만 발동)`);
     }
     closeRamenMinigame();
   } else {
@@ -465,9 +465,9 @@ function closeNpcDialog(actionType) {
     window.gameApp.togglePartyFollow();
   } else if (actionType === 'gift' && window.gameApp) {
     // 친구마다 하루 1번만 응원 보너스
-    if (window.gameApp.addReward(35, 25, 'talk', 'talk:' + (window.__npcDialogKey || 'npc'))) {
+    if (window.gameApp.addReward((typeof ECON !== 'undefined' ? ECON.talk : 35), 25, 'talk', 'talk:' + (window.__npcDialogKey || 'npc'))) {
       soundFx.playCoin();
-      showToast('💖 친구와 즐겁게 대화를 나누며 응원 보너스 (+35 코인)를 받았습니다!');
+      showToast(`💖 친구와 즐겁게 대화를 나누며 응원 보너스 (+${(typeof ECON !== 'undefined' ? ECON.talk : 35).toLocaleString()} 코인)를 받았습니다!`);
     }
   }
 }

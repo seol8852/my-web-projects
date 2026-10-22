@@ -248,8 +248,8 @@ const WORLDX = (() => {
     let bonus = '';
     if (!(s.jumpCpFirst & (1 << p.cpIdx))) {
       s.jumpCpFirst |= (1 << p.cpIdx);
-      app.addReward(200, 120, 'jump_cp');
-      bonus = ' (첫 도달 보너스 +200🪙)';
+      app.addReward((typeof ECON !== 'undefined' ? ECON.jumpCp : 200), 120, 'jump_cp');
+      bonus = ' (첫 도달 보너스 +' + (typeof ECON !== 'undefined' ? ECON.jumpCp : 200).toLocaleString() + '🪙)';
       app.saveData();
     }
     if (typeof FXHQ !== 'undefined') {
@@ -271,10 +271,10 @@ const WORLDX = (() => {
     const isBest = t < prevBest;
     if (isBest) s.jumpBest = Math.round(t * 10) / 10;
     if (first) {
-      app.addReward(1500, 800, 'jump_first');
+      app.addReward((typeof ECON !== 'undefined' ? ECON.jumpFirst : 1500), 800, 'jump_first');
       s.potions = Math.min(5, (s.potions | 0) + 2);
     } else {
-      app.addReward(isBest ? 500 : 250, 150, 'jump');
+      app.addReward((typeof ECON !== 'undefined' ? ECON.jumpRepeat : 250), 150, 'jump');
     }
     app.saveData(true);
     app.updateHud();
@@ -614,8 +614,8 @@ const WORLDX = (() => {
         if (!m.alive) {
           if (m.isElite && a.rewardLeft && a.rewardLeft('event') > 0) {
             a.stats.potions = Math.min(5, (a.stats.potions | 0) + 1);
-            a.addReward(300, 200, 'event');
-            toast('👑 엘리트 대괴수 토벌 성공!! 보너스 +300🪙 + HP 물약 1개 (하루 1회)');
+            a.addReward((typeof ECON !== 'undefined' ? ECON.event : 300), 200, 'event');
+            toast(`👑 엘리트 대괴수 토벌 성공!! 보너스 +${(typeof ECON !== 'undefined' ? ECON.event : 300).toLocaleString()}🪙 + HP 물약 1개 (하루 1회)`);
             a.saveData();
           }
           removeFrom(a.monsters, m);

@@ -1038,6 +1038,16 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
   const hatSlot = new THREE.Group();
   hatSlot.position.set(0, 4.4, 0.12);
   standeeGroup.add(hatSlot);
+  // 🎀 액세서리 슬롯 (날개·망토·안경·풍선 등, 좌표는 각 소품이 직접 지정)
+  const accSlot = new THREE.Group();
+  standeeGroup.add(accSlot);
+  root.userData.accSlot = accSlot;
+  root.userData.equipAcc = type => {
+    while (accSlot.children.length) accSlot.remove(accSlot.children[0]);
+    if (!type || type === 'none' || typeof createAccessory3D !== 'function') return;
+    const acc = createAccessory3D(type);
+    if (acc) accSlot.add(acc);
+  };
 
   // ========================================================================
   // 🌟 6인 캐릭터별 100% 고유한 3D 궁극기 전용 오브젝트 리그 (ultPropGroup)

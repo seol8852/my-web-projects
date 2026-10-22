@@ -1352,7 +1352,7 @@ class Chiikawa3DWorldApp {
     chest.respawnTimer = 22 + Math.random() * 8;
     soundFx.playFanfare();
 
-    let coinGain = chest.isCrystal ? 85 : 65;
+    let coinGain = chest.isCrystal ? (typeof ECON !== 'undefined' ? ECON.crystal : 85) : (typeof ECON !== 'undefined' ? ECON.chest : 65);
     const expGain = chest.isCrystal ? 55 : 40;
     if (!this.addReward(coinGain, expGain, 'chest')) coinGain = 0;
 
@@ -2169,7 +2169,7 @@ class Chiikawa3DWorldApp {
     const weaponBonus = (this.stats.weaponLv - 1) * 9;
     const certBonus = this.stats.certLevel * 6;
     const comboMult = this.comboStep === 3 ? 1.25 : this.comboStep === 2 ? 1.1 : 1.0;
-    const NORMAL_ATK_MULT = 0.7; // 평타 데미지 배율
+    const NORMAL_ATK_MULT = 0.7 * (typeof SHOPHQ !== 'undefined' ? SHOPHQ.atkMult(this.stats) : 1); // 평타 데미지 배율 × 장비·꾸미기 공격력
     const baseDmg = (cfg.atk + this.stats.level * 4 + weaponBonus + certBonus) * buffMult * comboMult * NORMAL_ATK_MULT;
 
     this.monsters.forEach(m => {
@@ -2351,12 +2351,13 @@ class Chiikawa3DWorldApp {
       if (this.battleState.active) {
         this.battleState.killedMonsters = (this.battleState.killedMonsters || 0) + 1;
       }
-      this.addReward(m.coin, m.exp, 'monster');
+      const killCoin = this.battleState.active ? m.coin : (typeof ECON !== 'undefined' ? ECON.fieldMon : m.coin);
+      this.addReward(killCoin, m.exp, 'monster');
       this.spawnHitImpactEffect3D(m.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xfacc15, true);
       this.spawnBurstParticles(m.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xfacc15, 28);
       this.spawnFloatingText(
         m.pos.clone().add(new THREE.Vector3(0, 4.2, 0)),
-        `🎉 토벌 성공! +${m.coin}🪙 +${m.exp}EXP`,
+        `🎉 토벌 성공! +${killCoin.toLocaleString()}🪙 +${m.exp}EXP`,
         '#facc15'
       );
       this.updateBattleStageHud();
@@ -2727,7 +2728,7 @@ class Chiikawa3DWorldApp {
 
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.35 : 1.0;
     const weaponBonus = (this.stats.weaponLv - 1) * 18;
-    const pulseDmg = Math.round((cfg.atk * 1.5 + this.stats.level * 11 + weaponBonus) * buffMult);
+    const pulseDmg = Math.round((cfg.atk * 1.5 + this.stats.level * 11 + weaponBonus) * buffMult * (typeof SHOPHQ !== 'undefined' ? SHOPHQ.atkMult(this.stats) : 1));
 
     // 캐릭터별 안무 타이밍에 맞춘 고유 타격 스케줄!
     let hitTimings = [150, 480, 820];
@@ -2818,7 +2819,7 @@ class Chiikawa3DWorldApp {
 
     const certMult = 1 + this.stats.certLevel * 0.25;
     const hachiBonus = this.activeCharKey === 'hachiware' ? 1.2 : 1.0;
-    let coinGain = Math.round((w.isGolden ? 40 : 15) * certMult * hachiBonus);
+    let coinGain = Math.min(3000, Math.round((w.isGolden ? (typeof ECON !== 'undefined' ? ECON.goldWeed : 40) : (typeof ECON !== 'undefined' ? ECON.weed : 15)) * (1 + (certMult - 1) * 0.4) * (hachiBonus > 1 ? 1.1 : 1)));
     const expGain = w.isGolden ? 28 : 14;
     this.stats.weedsPulled++;
     if (!this.addReward(coinGain, expGain, 'weed')) coinGain = 0;
@@ -2974,7 +2975,7 @@ class Chiikawa3DWorldApp {
     }
 
     // 3) 범위 끝자락에 살짝 걸친 경우 -> 🛡️ 스침 피격 (피해량 50% 경감)!
-    const actualDmg = isEdgeGraze ? Math.max(1, Math.round(tg.dmg * 0.5)) : tg.dmg;
+    const actualDmg = Math.max(1, Math.round((isEdgeGraze ? Math.max(1, Math.round(tg.dmg * 0.5)) : tg.dmg) * (1 - (this.damageReduction || 0))));
     this.stats.hp = Math.max(this.battleState.active ? 0 : 15, this.stats.hp - actualDmg);
     this.camShake = isEdgeGraze ? 0.2 : 0.42;
     this.invulnTimer = 0.75;
@@ -3052,10 +3053,10 @@ class Chiikawa3DWorldApp {
       }
       soundFx.playCoin();
       this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + 45);
-      this.addReward(45, 30, 'camp');
+      this.addReward((typeof ECON !== 'undefined' ? ECON.camp : 45), 30, 'camp');
       this.spawnBurstParticles(this.campPos.clone().add(new THREE.Vector3(0, 1.8, 0)), 0xf97316, 20);
-      this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 3.5, 0)), '🍠따끈한 군고구마! +45🪙 & 체력회복', '#facc15');
-      showToast('🍠 모닥불에 구운 달콤한 군고구마를 나눠 먹었습니다! (+45 코인 & 체력 회복)');
+      this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 3.5, 0)), `🍠따끈한 군고구마! +${(typeof ECON !== 'undefined' ? ECON.camp : 45).toLocaleString()}🪙 & 체력회복`, '#facc15');
+      showToast(`🍠 모닥불에 구운 달콤한 군고구마를 나눠 먹었습니다! (+${(typeof ECON !== 'undefined' ? ECON.camp : 45).toLocaleString()} 코인 & 체력 회복)`);
     } else if (item.type === 'chest') {
       this.openFieldChest(item.target);
     } else if (item.type === 'weed') {
@@ -3146,7 +3147,8 @@ class Chiikawa3DWorldApp {
       this.stats.exp -= this.stats.maxExp;
       this.stats.level++;
       this.stats.maxExp = Math.round(this.stats.maxExp * 1.25);
-      this.stats.maxHp += 20;
+      this.stats.hpBase = (this.stats.hpBase || this.stats.maxHp) + 20;
+      if (typeof SHOPHQ !== 'undefined') SHOPHQ.recomputeHp(this); else this.stats.maxHp = this.stats.hpBase;
       this.stats.hp = this.stats.maxHp;
       soundFx.playFanfare();
       showToast(`🎊 레벨 업!! Lv.${this.stats.level} 달성! 공격력과 최대 체력이 상승했습니다!`);
@@ -3167,12 +3169,12 @@ class Chiikawa3DWorldApp {
     const ranks = ['🌱 제초 견습생', '🌿 제초 5급', '🍀 제초 3급', '👑 제초 1급 마스터'];
     if (this.stats.certLevel >= 3) {
       // 이미 1급 마스터: 연습 시험은 소액 보상만 (무한 코인 파밍 방지)
-      if (this.addReward(40, 20, 'exam')) showToast('👑 1급 마스터의 연습 시험 합격! (+40 코인 · 연습 시험 보상은 하루 1회)');
+      if (this.addReward((typeof ECON !== 'undefined' ? ECON.exam : 40), 20, 'exam')) showToast(`👑 1급 마스터의 연습 시험 합격! (+${(typeof ECON !== 'undefined' ? ECON.exam : 40).toLocaleString()} 코인 · 하루 1회)`);
       return;
     }
     this.stats.certLevel++;
-    this.addReward(150, 90, 'exam_up');
-    showToast(`🏅 축하합니다! [${ranks[this.stats.certLevel]}] 자격증 승급에 합격했습니다! (+150 코인)`);
+    this.addReward((typeof ECON !== 'undefined' ? ECON.examUp : 150), 90, 'exam_up');
+    showToast(`🏅 축하합니다! [${ranks[this.stats.certLevel]}] 자격증 승급에 합격했습니다! (+${(typeof ECON !== 'undefined' ? ECON.examUp : 150).toLocaleString()} 코인)`);
   }
 
   updateHud() {
@@ -3657,8 +3659,8 @@ class Chiikawa3DWorldApp {
           if (pMesh) pMesh.scale.set(1.18, 0.8, 1.18);
           if (this.stats.puddingClimbed === 0) {
             this.stats.puddingClimbed = 1;
-            this.addReward(100, 60, 'pudding');
-            showToast('🍮 자이언트 푸딩 정상 등반 성공!! 통통 트램펄린 보너스 (+100 코인) 획득!');
+            this.addReward((typeof ECON !== 'undefined' ? ECON.pudding : 100), 60, 'pudding');
+            showToast(`🍮 자이언트 푸딩 정상 등반 성공!! 통통 트램펄린 보너스 (+${(typeof ECON !== 'undefined' ? ECON.pudding : 100).toLocaleString()} 코인) 획득!`);
           }
         }
       }

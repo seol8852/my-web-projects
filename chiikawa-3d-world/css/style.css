@@ -2548,3 +2548,56 @@ body.gfx-low *, body.gfx-low *::before, body.gfx-low *::after {
 body.gfx-low .modal-window, body.gfx-low .hud-panel, body.gfx-low .coop-hud-pill, body.gfx-low #zone-panel {
   box-shadow: none !important;
 }
+
+
+/* 🛍️ 상점 개편 (shop_hq.js) */
+#shop-modal .sh-head { display: flex; align-items: center; justify-content: space-between; padding-right: 36px; }
+#shop-modal .sh-head h2 { font-size: 21px; font-weight: 900; color: #db2777; }
+#shop-modal .sh-coin { background: #fef3c7; border: 2px solid #f59e0b; color: #b45309; padding: 4px 12px; border-radius: 99px; font-weight: 900; font-size: 14px; }
+#shop-modal .sh-power { margin: 8px 0 10px; padding: 8px 12px; border-radius: 12px; background: #f8fafc; border: 1.5px solid #e2e8f0; font-size: 12px; color: #334155; line-height: 1.5; }
+#shop-modal .sh-power b { color: #db2777; }
+#shop-modal .sh-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+#shop-modal .sh-tabs button { flex: 1; min-width: 110px; padding: 9px 6px; border-radius: 12px; border: 2px solid #f9a8d4; background: #fff; font-weight: 900; font-size: 13.5px; color: #be185d; cursor: pointer; }
+#shop-modal .sh-tabs button.active { background: #ec4899; color: #fff; border-color: #ec4899; }
+#shop-modal .sh-body { max-height: 56vh; overflow-y: auto; padding-right: 4px; }
+#shop-modal .sh-gbox { padding: 14px; border-radius: 16px; background: linear-gradient(135deg, #fdf2f8, #eef2ff); border: 2px solid #f9a8d4; text-align: center; }
+#shop-modal .sh-gtitle { font-size: 17px; font-weight: 900; color: #1e293b; }
+#shop-modal .sh-gdesc { font-size: 12px; color: #64748b; margin: 4px 0 10px; }
+#shop-modal .sh-odds { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px; }
+#shop-modal .sh-odds span { padding: 3px 10px; border-radius: 99px; font-weight: 900; font-size: 12px; color: #fff; background: var(--gc); }
+#shop-modal .sh-ranges { font-size: 11.5px; color: #475569; line-height: 1.6; margin-bottom: 10px; }
+#shop-modal .sh-gbtns { display: flex; gap: 10px; justify-content: center; }
+#shop-modal .sh-gbtns button { min-width: 140px; padding: 10px 14px; border-radius: 14px; border: none; background: #ec4899; color: #fff; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 0 #be185d; }
+#shop-modal .sh-gbtns button.ten { background: #8b5cf6; box-shadow: 0 4px 0 #6d28d9; }
+#shop-modal .sh-gbtns button:active { transform: translateY(3px); box-shadow: none; }
+#shop-modal .sh-cur { margin-top: 10px; font-size: 12px; color: #334155; }
+#shop-modal .sh-result, #shop-modal .sh-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
+#shop-modal .sh-result .sh-item { animation: shPop 0.45s both; }
+@keyframes shPop { from { transform: scale(0.4) rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+#shop-modal .sh-item { position: relative; padding: 10px 10px 8px; border-radius: 14px; background: #fff; border: 2.5px solid var(--gc); text-align: center; }
+#shop-modal .sh-item.gS { box-shadow: 0 0 18px rgba(245, 158, 11, 0.7); background: linear-gradient(180deg, #fffbeb, #fff); }
+#shop-modal .sh-item.gA { box-shadow: 0 0 12px rgba(168, 85, 247, 0.5); }
+#shop-modal .sh-item.on { outline: 3px solid #22c55e; }
+#shop-modal .sh-grade { position: absolute; top: -10px; left: -6px; width: 30px; height: 30px; border-radius: 50%; color: #fff; font-weight: 900; font-size: 16px; display: flex; align-items: center; justify-content: center; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+#shop-modal .sh-iname { font-size: 13px; font-weight: 900; color: #1e293b; margin-top: 4px; }
+#shop-modal .sh-islot { font-size: 11px; color: #94a3b8; }
+#shop-modal .sh-ifx { font-size: 11.5px; color: #be185d; font-weight: 800; margin: 4px 0 6px; min-height: 30px; }
+#shop-modal .sh-iact { display: flex; gap: 4px; }
+#shop-modal .sh-iact button, #shop-modal .sh-cos button, #shop-modal .sh-row button, #shop-modal .sh-bagbar button { flex: 1; padding: 6px 4px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #f8fafc; font-weight: 900; font-size: 11.5px; cursor: pointer; }
+#shop-modal .sh-iact button.on, #shop-modal .sh-cos button.on { background: #22c55e; border-color: #22c55e; color: #fff; }
+#shop-modal .sh-iact button.sell { color: #b45309; }
+#shop-modal .sh-bagbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 900; color: #334155; font-size: 13px; }
+#shop-modal .sh-bagbar button { flex: 0 0 auto; padding: 6px 12px; }
+#shop-modal .sh-empty { text-align: center; color: #94a3b8; padding: 30px 0; font-weight: 800; }
+#shop-modal .sh-sub { font-size: 14px; font-weight: 900; color: #1e293b; margin: 10px 0 0; }
+#shop-modal .sh-grid.cos { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+#shop-modal .sh-cos { padding: 10px 8px; border-radius: 14px; border: 2px solid #fbcfe8; background: #fff; text-align: center; }
+#shop-modal .sh-cos.on { border-color: #22c55e; background: #f0fdf4; }
+#shop-modal .sh-cos button.owned { background: #fdf2f8; border-color: #f9a8d4; color: #be185d; }
+#shop-modal .sh-cicon { font-size: 28px; }
+#shop-modal .sh-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border-radius: 14px; border: 2px solid #e2e8f0; margin-bottom: 8px; font-size: 13.5px; color: #1e293b; }
+#shop-modal .sh-row small { color: #64748b; }
+#shop-modal .sh-row button { flex: 0 0 auto; min-width: 130px; padding: 8px 12px; background: #ec4899; border-color: #ec4899; color: #fff; }
+#shop-modal .sh-row button:disabled { background: #e2e8f0; border-color: #e2e8f0; color: #94a3b8; }
+#shop-modal .sh-tag { background: #dcfce7; color: #15803d; border-radius: 99px; padding: 1px 8px; font-size: 12px; font-weight: 900; }
+#shop-modal .sh-econ { margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: #fffbeb; border: 1.5px solid #fde68a; font-size: 11.5px; color: #78350f; line-height: 1.7; }
