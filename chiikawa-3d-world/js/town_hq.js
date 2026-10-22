@@ -2817,7 +2817,7 @@ const TOWNHQ = (() => {
   // ------------------------------------------------------------------
   function decorate(app) {
     const scene = app.scene;
-    const add = (obj, x, z, ry = 0, y = 0) => { obj.position.set(x, y, z); obj.rotation.y = ry; scene.add(obj); return obj; };
+    const add = (obj, x, z, ry = 0, y = 0) => { obj.position.set(x, y, z); obj.rotation.y = ry; obj.userData.townHQ = true; scene.add(obj); return obj; };
     // 광장 가로등 8개 + 벤치 4개 + 화분
     for (let i = 0; i < 8; i++) {
       const a = (i / 8) * Math.PI * 2 + Math.PI / 8;
@@ -2957,7 +2957,7 @@ const TOWNHQ = (() => {
   }
 
   return {
-    house, fountain, ramenStall, boutique, windmill, campsite, onsen, portalGate, ruins,
+    house, fountain, ramenStall, boutique: () => { const g = boutique(); g.userData.townHQ = true; return g; }, windmill, campsite, onsen, portalGate, ruins,
     decorate, update, TEX, SITES, blocked, collide, support, registerColliders, addWorldCollider,
     get colliderCount() { return COLS.length; },
     get animatedCount() { return animated.length; }
@@ -2965,11 +2965,11 @@ const TOWNHQ = (() => {
 })();
 
 // 기존 단순 구조물 생성 함수를 고퀄리티 버전으로 교체 (main.js는 같은 이름으로 호출)
-function createChiikawaHouse3D() { return TOWNHQ.house(); }
-function createPlazaFountain3D() { return TOWNHQ.fountain(); }
-function createRamenStall3D() { return TOWNHQ.ramenStall(); }
-function createWindmill3D() { return TOWNHQ.windmill(); }
-function createStarlightCampsite3D() { return TOWNHQ.campsite(); }
-function createSakuraOnsenLake3D() { return TOWNHQ.onsen(); }
-function createSubjugationPortalGate3D() { return TOWNHQ.portalGate(); }
-function createAncientRuins3D() { return TOWNHQ.ruins(); }
+function createChiikawaHouse3D() { const g = TOWNHQ.house(); g.userData.townHQ = true; return g; }
+function createPlazaFountain3D() { const g = TOWNHQ.fountain(); g.userData.townHQ = true; return g; }
+function createRamenStall3D() { const g = TOWNHQ.ramenStall(); g.userData.townHQ = true; return g; }
+function createWindmill3D() { const g = TOWNHQ.windmill(); g.userData.townHQ = true; return g; }
+function createStarlightCampsite3D() { const g = TOWNHQ.campsite(); g.userData.townHQ = true; return g; }
+function createSakuraOnsenLake3D() { const g = TOWNHQ.onsen(); g.userData.townHQ = true; return g; }
+function createSubjugationPortalGate3D() { const g = TOWNHQ.portalGate(); g.userData.townHQ = true; return g; }
+function createAncientRuins3D() { const g = TOWNHQ.ruins(); g.userData.townHQ = true; return g; }

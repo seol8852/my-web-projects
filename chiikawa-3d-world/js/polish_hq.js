@@ -443,17 +443,54 @@ const POLISH = (() => {
     quality = q;
     lsSet('chiikawa_gfx_quality', q);
     const cfg = {
-      low: { pr: 1.0, shadow: 0, bloom: false, forest: 0.3, grass: 0.45, near: 0, flowers: 0.4, detail: 0.45 },
-      mid: { pr: 1.5, shadow: 2048, bloom: true, forest: 0.6, grass: 0.75, near: 0.5, flowers: 0.7, detail: 0.75 },
-      high: { pr: 2.0, shadow: 4096, bloom: true, forest: 1, grass: 1, near: 1, flowers: 1, detail: 1 }
+      // 낮음: 저사양 노트북용 (후처리·그림자·점광원 끄고 렌더 해상도·풀숲·이펙트 대폭 축소)
+      low: { pr: 0.75, minPr: 0.55, shadow: 0, bloom: false, forest: 0.15, grass: 0.18, near: 0, flowers: 0.15, detail: 0.3, lowPower: true, far: 340, lights: false },
+      mid: { pr: 1.5, minPr: 0.85, shadow: 2048, bloom: true, forest: 0.6, grass: 0.75, near: 0.5, flowers: 0.7, detail: 0.75 },
+      high: { pr: 2.0, minPr: 0.85, shadow: 4096, bloom: true, forest: 1, grass: 1, near: 1, flowers: 1, detail: 1 }
     }[q];
     detail = cfg.detail;
     if (typeof FXHQ !== 'undefined' && FXHQ.setDetail) FXHQ.setDetail(cfg.detail);
     if (!game || !game.renderer) return;
 
+    // 저사양 모드: 후처리(EffectComposer) 없이 바로 그리기 + 화면 흐림 효과 끄기
+    const wasLow = !!game.lowPower;
+    game.lowPower = !!cfg.lowPower;
+    document.body.classList.toggle('gfx-low', !!cfg.lowPower);
+    game.minPixelRatio = cfg.minPr;
+    // 먼 거리 그리기 범위
+    if (game.camera) {
+      const far = cfg.far || 1100;
+      if (game.camera.far !== far) { game.camera.far = far; game.camera.updateProjectionMatrix(); }
+    }
+    // 점광원(라멘 포차·모닥불 등): 낮음에선 끔 → 모든 재질의 조명 계산이 가벼워짐
+    // 만화 외곽선(뒷면 복제 메쉬)·마을의 작은 장식(꽃잎·단추 등)도 낮음에선 숨겨서 그리기 호출 수를 크게 줄임
+    if (game.scene) {
+      const low = !!cfg.lowPower;
+      game.scene.traverse(o => {
+        if (o.isPointLight) o.visible = cfg.lights !== false;
+        else if (o.userData && o.userData.isOutline) o.visible = !low;
+      });
+      game.scene.children.forEach(root => {
+        if (!root.userData || !root.userData.townHQ) return;
+        root.traverse(o => {
+          if (!o.isMesh || o.isInstancedMesh || !o.geometry || (o.userData && o.userData.isOutline)) return;
+          if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+          const r = o.geometry.boundingSphere ? o.geometry.boundingSphere.radius * Math.max(o.scale.x, o.scale.y, o.scale.z) : 1;
+          if (r < 0.32) o.visible = !low;
+        });
+      });
+    }
+    // 낮음: 후처리를 거치지 않고 화면에 바로 그리므로, 후처리 경로와 같은 색이 나오게 출력 인코딩을 맞춤
+    if (game._baseEncoding === undefined) game._baseEncoding = game.renderer.outputEncoding;
+    game.renderer.outputEncoding = cfg.lowPower ? THREE.LinearEncoding : game._baseEncoding;
+    // 낮음: 안개를 조금 짙게 해서 짧아진 그리기 거리가 티 나지 않게
+    if (game.scene && game.scene.fog) {
+      if (game._baseFogDensity === undefined) game._baseFogDensity = game.scene.fog.density;
+      game.scene.fog.density = cfg.lowPower ? Math.max(game._baseFogDensity, 0.0042) : game._baseFogDensity;
+    }
     // 해상도
     game.maxPixelRatio = Math.min(window.devicePixelRatio || 1, cfg.pr);
-    if (game.currentPixelRatio > game.maxPixelRatio) {
+    if (cfg.lowPower || game.currentPixelRatio > game.maxPixelRatio) {
       game.currentPixelRatio = game.maxPixelRatio;
       game.renderer.setPixelRatio(game.currentPixelRatio);
       if (game.composer) {
@@ -483,6 +520,18 @@ const POLISH = (() => {
         }
       });
     };
+    // 그 밖의 대량 배치 장식(바위·덤불·들꽃 등 인스턴스)도 낮음에선 30%만
+    if (game.scene) {
+      game.scene.children.forEach(root => {
+        if (!root.userData || root.userData.stageHQ || root.userData.townHQ || root.name === 'jump-tower') return;
+        root.traverse(o => {
+          if (!o.isInstancedMesh) return;
+          if (o.userData.fullCount === undefined) o.userData.fullCount = o.count;
+          if (o.userData.fullCount <= 40) return;
+          o.count = Math.max(1, Math.floor(o.userData.fullCount * (cfg.lowPower ? 0.3 : 1)));
+        });
+      });
+    }
     setCount(game.forestGroup, cfg.forest);
     setCount(game.instancedGrass, cfg.grass);
     setCount(game.flowerGroup, cfg.flowers);
@@ -490,8 +539,13 @@ const POLISH = (() => {
       nearGrass.visible = cfg.near > 0;
       nearGrass.geometry.instanceCount = Math.floor(nearGrass.userData.fullCount * Math.max(cfg.near, 0.01));
     }
+    // 그림자 계산 자체를 끔
+    if (game.renderer.shadowMap) game.renderer.shadowMap.autoUpdate = cfg.shadow > 0;
     const btn = document.getElementById('btn-gfx-quality');
     if (btn) btn.innerText = `🎨 화질: ${QUALITY_LABEL[q]}`;
+    if (cfg.lowPower && !wasLow && game.gameStarted && typeof showToast === 'function') {
+      showToast('🐢 저사양 모드! 새로고침(F5)하면 계단 현상 보정까지 꺼져서 더 가벼워져요.');
+    }
   }
 
   function cycleQuality(game) {

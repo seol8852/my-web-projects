@@ -166,6 +166,8 @@ class Chiikawa3DWorldApp {
     if (typeof WORLDX !== 'undefined') WORLDX.init(this);
     // 🏘️ 마을 소품 (가로등·벤치·화분·울타리·이정표 등)
     if (typeof TOWNHQ !== 'undefined') TOWNHQ.decorate(this);
+    // 마을 소품(점광원 등)까지 만든 뒤 그래픽 설정을 한 번 더 적용
+    if (typeof POLISH !== 'undefined' && POLISH.applyQuality) POLISH.applyQuality(this);
     // 메인 광장은 평화 구역이므로 시작 시 몬스터를 스폰하지 않음! (전투 스테이지/던전 입장 시 스폰)
     this.bindEvents();
     this.renderCharSelectCards();
@@ -372,7 +374,8 @@ class Chiikawa3DWorldApp {
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: true,
+      // 그래픽 '낮음'이면 계단 현상 보정(MSAA)을 꺼서 저사양 노트북 부담을 줄임
+      antialias: (() => { try { return localStorage.getItem('chiikawa_gfx_quality') !== 'low'; } catch (e) { return true; } })(),
       preserveDrawingBuffer: true,
       powerPreference: 'high-performance'
     });
@@ -510,7 +513,8 @@ class Chiikawa3DWorldApp {
     this.perfSampleFrames = 0;
 
     let next = this.currentPixelRatio;
-    if (fps < 42 && this.currentPixelRatio > 0.85) next = Math.max(0.85, this.currentPixelRatio - 0.25);
+    const minPr = this.minPixelRatio || 0.85;
+    if (fps < 42 && this.currentPixelRatio > minPr) next = Math.max(minPr, this.currentPixelRatio - (this.lowPower ? 0.1 : 0.25));
     else if (fps > 57 && this.currentPixelRatio < this.maxPixelRatio) next = Math.min(this.maxPixelRatio, this.currentPixelRatio + 0.25);
     if (Math.abs(next - this.currentPixelRatio) > 0.01) {
       this.currentPixelRatio = next;
@@ -2788,7 +2792,7 @@ class Chiikawa3DWorldApp {
   takePhotoSnapshot() {
     soundFx.playFanfare();
     this.spawnBurstParticles(this.playerPos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xff85a2, 24);
-    if (this.composer) {
+    if (this.composer && !this.lowPower) {
       this.composer.render();
     } else {
       this.renderer.render(this.scene, this.camera);
@@ -3305,7 +3309,7 @@ class Chiikawa3DWorldApp {
     this.updateCamera(dt);
     this.checkNearestInteraction();
 
-    if (this.composer) {
+    if (this.composer && !this.lowPower) {
       this.composer.render();
     } else {
       this.renderer.render(this.scene, this.camera);

@@ -2538,3 +2538,13 @@ body.raid-mode #skill-aim-hint { bottom: 120px; }
 @media (max-width: 720px) {
   #zone-panel { top: auto; bottom: 170px; transform: none; width: 200px; right: 10px; }
 }
+
+
+/* 🐢 그래픽 낮음: 화면 흐림(backdrop-filter)·큰 그림자 끔 → 저사양 노트북 부담 감소 */
+body.gfx-low *, body.gfx-low *::before, body.gfx-low *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body.gfx-low .modal-window, body.gfx-low .hud-panel, body.gfx-low .coop-hud-pill, body.gfx-low #zone-panel {
+  box-shadow: none !important;
+}

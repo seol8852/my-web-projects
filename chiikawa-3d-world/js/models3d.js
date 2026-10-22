@@ -25,6 +25,7 @@ function addCartoonOutline(mesh, thickness = 0.045, outlineColor = 0x2b1d19) {
   });
   const outlineMesh = new THREE.Mesh(mesh.geometry, outlineMat);
   outlineMesh.scale.setScalar(1 + thickness);
+  outlineMesh.userData.isOutline = true; // 그래픽 '낮음'에서 숨김
   mesh.add(outlineMesh);
 }
 
@@ -2006,7 +2007,7 @@ const MONSTER_IMAGE_MAP = {
   iron_chimera: 'assets/monster_iron_chimera.png',
   anoko: 'assets/anoko.png',
   anoko3: 'assets/anoko_phase3.png',
-  pjbird: 'assets/raid_bird.png',            // 🐦 레이드 보스: 파자마 새 (임시 이미지 → 나중에 교체)
+  pjbird: 'assets/raid_bird.png',            // 🐦 레이드 보스: 파자마 새 (급강하 자세: raid_bird_dive.png)
   pjbird3: 'assets/raid_bird_phase3.png'
 };
 const isRaidBossType = t => t === 'anoko' || t === 'anoko3' || t === 'pjbird' || t === 'pjbird3';
