@@ -76,11 +76,49 @@ def pow2(n):
     return int(2 ** round(math.log2(max(1, n))))
 
 
+MODELS = os.path.join(HERE, 'models')
+
+
+def build_model(key, sc):
+    """models/<key>.py 가 있으면 Blender에서 새로 모델링한 구조물을 사용 (외곽선 .ol.glb도 여기서 만듦)"""
+    import importlib
+    if MODELS not in sys.path:
+        sys.path.insert(0, MODELS)
+    import lib
+    importlib.reload(lib)
+    lib.reset_model()
+    mod = importlib.import_module(key)
+    importlib.reload(mod)
+    mod.lib = lib
+    mod.build()
+    ol_file = None
+    olob = lib.build_outline_object()
+    if olob:
+        bpy.ops.object.select_all(action='DESELECT')
+        olob.select_set(True)
+        bpy.context.view_layer.objects.active = olob
+        olob.data.color_attributes.active_color = olob.data.color_attributes['Tint']
+        ol_file = re.sub(r'[^a-zA-Z0-9]+', '_', key) + '.ol.glb'
+        kw = dict(filepath=os.path.join(OUT, ol_file), export_format='GLB', use_selection=True, export_normals=False,
+                  export_texcoords=False, export_materials='NONE', export_yup=True, export_apply=True, export_animations=False)
+        try:
+            bpy.ops.export_scene.gltf(export_vertex_color='ACTIVE', **kw)
+        except TypeError:
+            bpy.ops.export_scene.gltf(export_colors=True, **kw)
+        bpy.data.objects.remove(olob, do_unlink=True)
+    return [o for o in lib.MODEL_OBJS if o.name in bpy.data.objects], ol_file
+
+
 def bake_one(key, ent):
     t0 = time.time()
     sc = reset()
-    bpy.ops.import_scene.gltf(filepath=os.path.join(IN, ent['file']))
-    meshes = [o for o in sc.objects if o.type == 'MESH']
+    modeled = os.path.exists(os.path.join(MODELS, key + '.py'))
+    ol_file = None
+    if modeled:
+        meshes, ol_file = build_model(key, sc)
+    else:
+        bpy.ops.import_scene.gltf(filepath=os.path.join(IN, ent['file']))
+        meshes = [o for o in sc.objects if o.type == 'MESH']
     if not meshes:
         return None
     # 원본 텍스처는 "원본 값 그대로"(게임과 같은 규칙)로 읽기
@@ -96,12 +134,18 @@ def bake_one(key, ent):
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     me = ob.data
     src_uv = me.uv_layers[0].name if len(me.uv_layers) else None
-
-    # 정점 합치기 → UV 섬이 삼각형 단위로 쪼개지지 않게 (모서리 법선은 유지)
-    bm = bmesh.new(); bm.from_mesh(me)
-    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
-    bm.to_mesh(me); bm.free()
-    if BEVEL > 0:
+    if modeled:
+        # 새 모델은 면적·크기를 직접 계산 (추출본 index.json 대신)
+        ent = dict(ent)
+        ent['area'] = sum(p.area for p in me.polygons) * 0.6   # 숨은 면·작은 부품이 많아 실제 보이는 면적은 더 작음
+        xs = [v.co for v in me.vertices]
+        ent['size'] = [max(c[i] for c in xs) - min(c[i] for c in xs) for i in range(3)]
+    else:
+        # 정점 합치기 → UV 섬이 삼각형 단위로 쪼개지지 않게 (모서리 법선은 유지)
+        bm = bmesh.new(); bm.from_mesh(me)
+        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=0.0005)
+        bm.to_mesh(me); bm.free()
+    if BEVEL > 0 and not modeled:
         # 모서리를 살짝 둥글게 → 빛을 받는 하이라이트 선이 생겨 말랑한 느낌
         bv = ob.modifiers.new('bevel', 'BEVEL')
         bv.width = BEVEL; bv.segments = 2; bv.limit_method = 'ANGLE'; bv.angle_limit = math.radians(50)
@@ -196,7 +240,7 @@ def bake_one(key, ent):
         F = np.clip(A * R, 0, 1)
         out = np.ones((res, res, 4), dtype=np.float32)
         out[..., :3] = F
-        return finish(key, ent, ob, me, res, out, t0)
+        return finish(key, ent, ob, me, res, out, t0, ol_file)
     # 가림 비율(색 번짐 포함) → 원래 색 위에 곱하기. 너무 어둡지 않게 살짝 들어올림
     O = np.clip(L / np.maximum(A, 1e-3), 0.0, 1.25)
     lum = O.mean(axis=2, keepdims=True)
@@ -206,10 +250,10 @@ def bake_one(key, ent):
     F = np.clip(F, 0, 1)
     out = np.ones((res, res, 4), dtype=np.float32)
     out[..., :3] = F
-    return finish(key, ent, ob, me, res, out, t0)
+    return finish(key, ent, ob, me, res, out, t0, ol_file)
 
 
-def finish(key, ent, ob, me, res, out, t0):
+def finish(key, ent, ob, me, res, out, t0, ol_file=None):
     fin = bpy.data.images.new('baked_' + ent['file'][:-4], res, res, alpha=False)
     fin.colorspace_settings.name = 'Non-Color'
     fin.pixels[:] = out.ravel()
@@ -242,7 +286,10 @@ def finish(key, ent, ob, me, res, out, t0):
     with open(out_path, 'rb') as f:
         h = hashlib.sha1(f.read()).hexdigest()[:10]
     print(f'[bake] {key}: {res}px, {len(me.polygons)} faces, {os.path.getsize(out_path)//1024}KB, {time.time()-t0:.1f}s', flush=True)
-    return {'file': ent['file'], 'v': h, 'res': res, 'mode': MODE}
+    r = {'file': ent['file'], 'v': h, 'res': res, 'mode': MODE}
+    if ol_file:
+        r['ol'] = ol_file; r['modeled'] = True
+    return r
 
 
 def main():
@@ -263,7 +310,8 @@ def main():
     man['items'] = {k: v for k, v in man['items'].items() if k in index}
     for k, v in man['items'].items():
         v.pop('outline', None)
-        v['ol'] = index[k].get('ol')
+        if not v.get('modeled'):
+            v['ol'] = index[k].get('ol')
     json.dump(man, open(man_path, 'w'), ensure_ascii=False, indent=1)
     print('[bake] manifest', len(man['items']), flush=True)
 

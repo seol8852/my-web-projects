@@ -56,7 +56,7 @@ const TOWNBAKE = (() => {
     const out = [];
     const walk = (o, live) => {
       if (o !== root && o.userData && o.userData.bakeKey && o.userData._baked) live = true;
-      if (objs.has(o)) live = true;
+      if (objs.has(o) || (o.userData && o.userData.keepLive)) live = true;
       if (o.isMesh && !(o.userData && o.userData.isOutline)) {
         const ms = Array.isArray(o.material) ? o.material : [o.material];
         const dyn = live || o.isInstancedMesh || o.isSkinnedMesh || !o.geometry || !o.geometry.attributes.position ||

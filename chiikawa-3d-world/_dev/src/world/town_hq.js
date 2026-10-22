@@ -664,7 +664,7 @@ const TOWNHQ = (() => {
     winD.position.set(0, 2.3, 0.37);
     doorG.add(winD);
     animated.push({ type: 'window', mat: winD.material });
-    doorG.position.set(0, 0.7, R - 0.55);
+    doorG.position.set(0, 0.7, R + 0.05); // 벽(돔) 앞으로 내놓음: 새 모델링 문과 위치를 맞춤
     g.add(doorG);
     // 차양 (줄무늬 천 + 물결 끝단)
     const awnG = new THREE.Group();
@@ -679,7 +679,7 @@ const TOWNHQ = (() => {
       awnG.add(sc);
     }
     awnG.rotation.x = 0.42;
-    awnG.position.set(0, 4.05, R - 0.45);
+    awnG.position.set(0, 4.4, R + 0.2); // 문 위치 변경에 맞춤
     g.add(awnG);
     // 계단 2단 + 발판
     [0, 1].forEach(i => {
@@ -1070,7 +1070,7 @@ const TOWNHQ = (() => {
           stand.position.set(-1.6 + i * 1.6, 2.32, 0.2);
           g.add(stand);
           const hat = window.createHatAccessory3D(h);
-          if (hat) { hat.position.set(-1.6 + i * 1.6, 2.65, 0.2); g.add(hat); }
+          if (hat) { hat.position.set(-1.6 + i * 1.6, 2.65, 0.2); hat.userData.keepLive = true; g.add(hat); } // 진열 모자는 굽지 않고 실시간 유지
         } catch (e) {}
       });
     }
