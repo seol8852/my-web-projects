@@ -1,3 +1,16 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { soundFx } from '../core/sound.js';
+import { CHAR_CONFIGS, addCartoonOutline, createAmbientMotes3D, createAnimeSkyDome3D, createChiikawaPlushie, createForestMushroom3D, createGiantPudding3D, createGrassCanvasTexture, createHitImpactBurst3D, createInstancedGrassField3D, createMonster3D, createPlazaCanvasTexture, createRiverAndBridge3D, createTreasureChest3D, createWaterCanvasTexture, createWeedPatch3D, getToonGradientMap, loadCleanCharacterTexture } from '../core/models3d.js';
+import { createHQCloud3D, createHQTree3D, createInstancedFlowerField3D, createInstancedForest3D, createOuterTerrain3D } from '../world/world_hq.js';
+import { TOWNHQ } from '../world/town_hq.js';
+import { FXHQ, FX_STANDEE_MATS, fxSetStandeeTint } from '../world/fx_hq.js';
+import { POLISH } from '../world/polish_hq.js';
+import { SKILLS } from '../combat/skills_hq.js';
+import { WORLDX } from '../world/world_extra.js';
+import { RAIDHQ } from '../combat/raid_hq.js';
+import { STAGE_CAMPAIGN_DATA, closeStageResultModal, closeStageSelectModal, openCostumeShopModal, openNpcDialog, openRamenMinigame, openStageSelectModal, openWeedExamModal, showToast } from './minigames.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 오픈월드 타운: 제초 & 토벌 빌리지 - 메인 3D 액션 엔진 (main.js)
 // [정밀 타격 범위(부채꼴/원형/고도) + 부위별 피격 판정(머리 약점·백어택·다리 둔화·장갑)
@@ -764,8 +777,8 @@ class Chiikawa3DWorldApp {
       this.forestGroup = createInstancedForest3D();
       this.scene.add(this.forestGroup);
     }
-    if (typeof createScatterDetails3D === 'function') {
-      this.scene.add(createScatterDetails3D());
+    if (typeof window.createScatterDetails3D === 'function') {
+      this.scene.add(window.createScatterDetails3D());
     }
 
     if (typeof createInstancedGrassField3D === 'function') {
@@ -790,7 +803,7 @@ class Chiikawa3DWorldApp {
     plaza.receiveShadow = true;
     this.scene.add(plaza);
 
-    this.fountainMesh = createPlazaFountain3D();
+    this.fountainMesh = window.createPlazaFountain3D();
     this.fountainMesh.position.set(0, 0.1, 0);
     this.scene.add(this.fountainMesh);
 
@@ -824,13 +837,13 @@ class Chiikawa3DWorldApp {
     }
 
     // 1) 중앙 치이카와 하우스
-    const house = createChiikawaHouse3D();
+    const house = window.createChiikawaHouse3D();
     house.position.set(0, 0, -16);
     this.scene.add(house);
     this.addZoneSign('🏡 치이카와 하우스 & 중앙 분수 광장', 0, 11.8, -16);
 
     // 2) 동남쪽 라멘 랑(郎) 본점 & 야시장 거리
-    const ramenStall = createRamenStall3D();
+    const ramenStall = window.createRamenStall3D();
     ramenStall.position.set(36, 0, 16);
     ramenStall.rotation.y = -Math.PI / 4;
     this.scene.add(ramenStall);
@@ -838,7 +851,7 @@ class Chiikawa3DWorldApp {
     this.addZoneSign('🍜 라멘 랑(郎) 포차 [E]', 36, 8.2, 16);
 
     // 남동쪽 확장 구역: 쿠리만쥬의 낭만 포장마차 분점
-    const subStall = createRamenStall3D();
+    const subStall = window.createRamenStall3D();
     subStall.position.set(78, 0, 56);
     subStall.rotation.y = -Math.PI / 2.5;
     this.scene.add(subStall);
@@ -854,12 +867,12 @@ class Chiikawa3DWorldApp {
 
     // 4) 서쪽 제초 알바 대평원 & 쌍둥이 풍차 언덕
     this.weedZonePos = new THREE.Vector3(-38, 0, 20);
-    this.windmillMesh = createWindmill3D();
+    this.windmillMesh = window.createWindmill3D();
     this.windmillMesh.position.set(-44, 0, 15);
     this.windmillMesh.rotation.y = Math.PI / 6;
     this.scene.add(this.windmillMesh);
 
-    this.windmill2Mesh = createWindmill3D();
+    this.windmill2Mesh = window.createWindmill3D();
     this.windmill2Mesh.position.set(-96, 0, 42);
     this.windmill2Mesh.rotation.y = Math.PI / 4;
     this.scene.add(this.windmill2Mesh);
@@ -919,16 +932,16 @@ class Chiikawa3DWorldApp {
     });
 
     // 6) 신규 확장 구역 A: 🌸 북서쪽 벚꽃 노천온천 & 치유 호수 (-82, 0, -68)
-    if (typeof createSakuraOnsenLake3D === 'function') {
-      const onsen = createSakuraOnsenLake3D();
+    if (typeof window.createSakuraOnsenLake3D === 'function') {
+      const onsen = window.createSakuraOnsenLake3D();
       onsen.position.copy(this.onsenPos);
       this.scene.add(onsen);
       this.addZoneSign('🌸 벚꽃 노천온천 치유 호수 [E: 체력회복·버프]', -82, 8.2, -68);
     }
 
     // 7) 신규 확장 구역 B: ⛺ 남서쪽 별빛 캠핑장 & 모닥불 언덕 (-92, 0, 62)
-    if (typeof createStarlightCampsite3D === 'function') {
-      this.campsiteMesh = createStarlightCampsite3D();
+    if (typeof window.createStarlightCampsite3D === 'function') {
+      this.campsiteMesh = window.createStarlightCampsite3D();
       this.campsiteMesh.position.copy(this.campPos);
       this.scene.add(this.campsiteMesh);
       this.addZoneSign('⛺ 별빛 캠핑장 & 군고구마 모닥불 [E]', -92, 7.2, 62);
@@ -950,8 +963,8 @@ class Chiikawa3DWorldApp {
     });
 
     // 8) 북동쪽 전투 스테이지(1~20단계) & 성장 던전 출격 포털 게이트 (광장 평화구역 -> 아레나 이동!)
-    if (typeof createSubjugationPortalGate3D === 'function') {
-      this.portalGateMesh = createSubjugationPortalGate3D();
+    if (typeof window.createSubjugationPortalGate3D === 'function') {
+      this.portalGateMesh = window.createSubjugationPortalGate3D();
       this.portalGateMesh.position.copy(this.portalGatePos);
       this.portalGateMesh.rotation.y = -Math.PI / 4;
       this.scene.add(this.portalGateMesh);
@@ -959,15 +972,15 @@ class Chiikawa3DWorldApp {
     }
 
     // 9) 메인 광장과 완전히 분리된 3D 전투 스테이지 & 스페셜 던전 전용 콜로세움 아레나 (0, 0, -340)
-    if (typeof createBattleColosseumArena3D === 'function') {
-      this.battleArenaMesh = createBattleColosseumArena3D();
+    if (typeof window.createBattleColosseumArena3D === 'function') {
+      this.battleArenaMesh = window.createBattleColosseumArena3D();
       this.battleArenaMesh.position.copy(this.arenaCenter);
       this.scene.add(this.battleArenaMesh);
       this.addZoneSign('⚔️ 치이카와 토벌 결투장 (Battle Arena)', 0, 11.5, -378);
     }
 
-    if (typeof createAncientRuins3D === 'function') {
-      const ruins = createAncientRuins3D();
+    if (typeof window.createAncientRuins3D === 'function') {
+      const ruins = window.createAncientRuins3D();
       ruins.position.set(108, 0, -64);
       this.scene.add(ruins);
       this.addZoneSign('🏛️ 고대 유적지 전망대 (평화 탐방 구역)', 108, 10.5, -64);
@@ -1081,13 +1094,13 @@ class Chiikawa3DWorldApp {
       group.add(pole);
     });
 
-    if (typeof createHatAccessory3D === 'function') {
-      const sampleCrown = createHatAccessory3D('crown');
+    if (typeof window.createHatAccessory3D === 'function') {
+      const sampleCrown = window.createHatAccessory3D('crown');
       if (sampleCrown) {
         sampleCrown.position.set(-1.1, 2.1, 0.3);
         group.add(sampleCrown);
       }
-      const sampleFlower = createHatAccessory3D('flower');
+      const sampleFlower = window.createHatAccessory3D('flower');
       if (sampleFlower) {
         sampleFlower.position.set(1.1, 2.15, 0.3);
         group.add(sampleFlower);
@@ -1352,7 +1365,7 @@ class Chiikawa3DWorldApp {
     chest.respawnTimer = 22 + Math.random() * 8;
     soundFx.playFanfare();
 
-    let coinGain = chest.isCrystal ? (typeof ECON !== 'undefined' ? ECON.crystal : 85) : (typeof ECON !== 'undefined' ? ECON.chest : 65);
+    let coinGain = chest.isCrystal ? (typeof window.ECON !== 'undefined' ? window.ECON.crystal : 85) : (typeof window.ECON !== 'undefined' ? window.ECON.chest : 65);
     const expGain = chest.isCrystal ? 55 : 40;
     if (!this.addReward(coinGain, expGain, 'chest')) coinGain = 0;
 
@@ -2169,7 +2182,7 @@ class Chiikawa3DWorldApp {
     const weaponBonus = (this.stats.weaponLv - 1) * 9;
     const certBonus = this.stats.certLevel * 6;
     const comboMult = this.comboStep === 3 ? 1.25 : this.comboStep === 2 ? 1.1 : 1.0;
-    const NORMAL_ATK_MULT = 0.7 * (typeof SHOPHQ !== 'undefined' ? SHOPHQ.atkMult(this.stats) : 1); // 평타 데미지 배율 × 장비·꾸미기 공격력
+    const NORMAL_ATK_MULT = 0.7 * (typeof window.SHOPHQ !== 'undefined' ? window.SHOPHQ.atkMult(this.stats) : 1); // 평타 데미지 배율 × 장비·꾸미기 공격력
     const baseDmg = (cfg.atk + this.stats.level * 4 + weaponBonus + certBonus) * buffMult * comboMult * NORMAL_ATK_MULT;
 
     this.monsters.forEach(m => {
@@ -2351,7 +2364,7 @@ class Chiikawa3DWorldApp {
       if (this.battleState.active) {
         this.battleState.killedMonsters = (this.battleState.killedMonsters || 0) + 1;
       }
-      const killCoin = this.battleState.active ? m.coin : (typeof ECON !== 'undefined' ? ECON.fieldMon : m.coin);
+      const killCoin = this.battleState.active ? m.coin : (typeof window.ECON !== 'undefined' ? window.ECON.fieldMon : m.coin);
       this.addReward(killCoin, m.exp, 'monster');
       this.spawnHitImpactEffect3D(m.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xfacc15, true);
       this.spawnBurstParticles(m.pos.clone().add(new THREE.Vector3(0, 2.5, 0)), 0xfacc15, 28);
@@ -2728,7 +2741,7 @@ class Chiikawa3DWorldApp {
 
     const buffMult = this.stats.ramenBuffTimer > 0 ? 1.35 : 1.0;
     const weaponBonus = (this.stats.weaponLv - 1) * 18;
-    const pulseDmg = Math.round((cfg.atk * 1.5 + this.stats.level * 11 + weaponBonus) * buffMult * (typeof SHOPHQ !== 'undefined' ? SHOPHQ.atkMult(this.stats) : 1));
+    const pulseDmg = Math.round((cfg.atk * 1.5 + this.stats.level * 11 + weaponBonus) * buffMult * (typeof window.SHOPHQ !== 'undefined' ? window.SHOPHQ.atkMult(this.stats) : 1));
 
     // 캐릭터별 안무 타이밍에 맞춘 고유 타격 스케줄!
     let hitTimings = [150, 480, 820];
@@ -2819,7 +2832,7 @@ class Chiikawa3DWorldApp {
 
     const certMult = 1 + this.stats.certLevel * 0.25;
     const hachiBonus = this.activeCharKey === 'hachiware' ? 1.2 : 1.0;
-    let coinGain = Math.min(3000, Math.round((w.isGolden ? (typeof ECON !== 'undefined' ? ECON.goldWeed : 40) : (typeof ECON !== 'undefined' ? ECON.weed : 15)) * (1 + (certMult - 1) * 0.4) * (hachiBonus > 1 ? 1.1 : 1)));
+    let coinGain = Math.min(3000, Math.round((w.isGolden ? (typeof window.ECON !== 'undefined' ? window.ECON.goldWeed : 40) : (typeof window.ECON !== 'undefined' ? window.ECON.weed : 15)) * (1 + (certMult - 1) * 0.4) * (hachiBonus > 1 ? 1.1 : 1)));
     const expGain = w.isGolden ? 28 : 14;
     this.stats.weedsPulled++;
     if (!this.addReward(coinGain, expGain, 'weed')) coinGain = 0;
@@ -3053,10 +3066,10 @@ class Chiikawa3DWorldApp {
       }
       soundFx.playCoin();
       this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + 45);
-      this.addReward((typeof ECON !== 'undefined' ? ECON.camp : 45), 30, 'camp');
+      this.addReward((typeof window.ECON !== 'undefined' ? window.ECON.camp : 45), 30, 'camp');
       this.spawnBurstParticles(this.campPos.clone().add(new THREE.Vector3(0, 1.8, 0)), 0xf97316, 20);
-      this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 3.5, 0)), `🍠따끈한 군고구마! +${(typeof ECON !== 'undefined' ? ECON.camp : 45).toLocaleString()}🪙 & 체력회복`, '#facc15');
-      showToast(`🍠 모닥불에 구운 달콤한 군고구마를 나눠 먹었습니다! (+${(typeof ECON !== 'undefined' ? ECON.camp : 45).toLocaleString()} 코인 & 체력 회복)`);
+      this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 3.5, 0)), `🍠따끈한 군고구마! +${(typeof window.ECON !== 'undefined' ? window.ECON.camp : 45).toLocaleString()}🪙 & 체력회복`, '#facc15');
+      showToast(`🍠 모닥불에 구운 달콤한 군고구마를 나눠 먹었습니다! (+${(typeof window.ECON !== 'undefined' ? window.ECON.camp : 45).toLocaleString()} 코인 & 체력 회복)`);
     } else if (item.type === 'chest') {
       this.openFieldChest(item.target);
     } else if (item.type === 'weed') {
@@ -3148,7 +3161,7 @@ class Chiikawa3DWorldApp {
       this.stats.level++;
       this.stats.maxExp = Math.round(this.stats.maxExp * 1.25);
       this.stats.hpBase = (this.stats.hpBase || this.stats.maxHp) + 20;
-      if (typeof SHOPHQ !== 'undefined') SHOPHQ.recomputeHp(this); else this.stats.maxHp = this.stats.hpBase;
+      if (typeof window.SHOPHQ !== 'undefined') window.SHOPHQ.recomputeHp(this); else this.stats.maxHp = this.stats.hpBase;
       this.stats.hp = this.stats.maxHp;
       soundFx.playFanfare();
       showToast(`🎊 레벨 업!! Lv.${this.stats.level} 달성! 공격력과 최대 체력이 상승했습니다!`);
@@ -3169,12 +3182,12 @@ class Chiikawa3DWorldApp {
     const ranks = ['🌱 제초 견습생', '🌿 제초 5급', '🍀 제초 3급', '👑 제초 1급 마스터'];
     if (this.stats.certLevel >= 3) {
       // 이미 1급 마스터: 연습 시험은 소액 보상만 (무한 코인 파밍 방지)
-      if (this.addReward((typeof ECON !== 'undefined' ? ECON.exam : 40), 20, 'exam')) showToast(`👑 1급 마스터의 연습 시험 합격! (+${(typeof ECON !== 'undefined' ? ECON.exam : 40).toLocaleString()} 코인 · 하루 1회)`);
+      if (this.addReward((typeof window.ECON !== 'undefined' ? window.ECON.exam : 40), 20, 'exam')) showToast(`👑 1급 마스터의 연습 시험 합격! (+${(typeof window.ECON !== 'undefined' ? window.ECON.exam : 40).toLocaleString()} 코인 · 하루 1회)`);
       return;
     }
     this.stats.certLevel++;
-    this.addReward((typeof ECON !== 'undefined' ? ECON.examUp : 150), 90, 'exam_up');
-    showToast(`🏅 축하합니다! [${ranks[this.stats.certLevel]}] 자격증 승급에 합격했습니다! (+${(typeof ECON !== 'undefined' ? ECON.examUp : 150).toLocaleString()} 코인)`);
+    this.addReward((typeof window.ECON !== 'undefined' ? window.ECON.examUp : 150), 90, 'exam_up');
+    showToast(`🏅 축하합니다! [${ranks[this.stats.certLevel]}] 자격증 승급에 합격했습니다! (+${(typeof window.ECON !== 'undefined' ? window.ECON.examUp : 150).toLocaleString()} 코인)`);
   }
 
   updateHud() {
@@ -3659,8 +3672,8 @@ class Chiikawa3DWorldApp {
           if (pMesh) pMesh.scale.set(1.18, 0.8, 1.18);
           if (this.stats.puddingClimbed === 0) {
             this.stats.puddingClimbed = 1;
-            this.addReward((typeof ECON !== 'undefined' ? ECON.pudding : 100), 60, 'pudding');
-            showToast(`🍮 자이언트 푸딩 정상 등반 성공!! 통통 트램펄린 보너스 (+${(typeof ECON !== 'undefined' ? ECON.pudding : 100).toLocaleString()} 코인) 획득!`);
+            this.addReward((typeof window.ECON !== 'undefined' ? window.ECON.pudding : 100), 60, 'pudding');
+            showToast(`🍮 자이언트 푸딩 정상 등반 성공!! 통통 트램펄린 보너스 (+${(typeof window.ECON !== 'undefined' ? window.ECON.pudding : 100).toLocaleString()} 코인) 획득!`);
           }
         }
       }
@@ -3877,7 +3890,7 @@ class Chiikawa3DWorldApp {
         return;
       }
       // 👑 스테이지 수문장·보스 전용 패턴 AI (혼자 / 파티 방장)
-      if (m.stageBoss && this.partyRole !== 'member' && typeof STAGEHQ !== 'undefined' && STAGEHQ.updateBoss(this, m, dt, idx)) return;
+      if (m.stageBoss && this.partyRole !== 'member' && typeof window.STAGEHQ !== 'undefined' && window.STAGEHQ.updateBoss(this, m, dt, idx)) return;
       if (this.partyRole === 'member' && m.netId) {
         if (window.coop) window.coop.updatePartyMonster(m, dt);
         return;
@@ -4564,4 +4577,10 @@ class Chiikawa3DWorldApp {
 
 window.addEventListener('DOMContentLoaded', () => {
   window.gameApp = new Chiikawa3DWorldApp();
+});
+
+export { Chiikawa3DWorldApp };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get Chiikawa3DWorldApp() { return Chiikawa3DWorldApp; }
 });

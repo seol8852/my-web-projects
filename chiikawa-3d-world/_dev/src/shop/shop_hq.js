@@ -1,3 +1,10 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { soundFx } from '../core/sound.js';
+import { addCartoonOutline, getToonGradientMap } from '../core/models3d.js';
+import { HAT_CATALOG, STAGE_CAMPAIGN_DATA, showToast } from '../game/minigames.js';
+import { Chiikawa3DWorldApp } from '../game/main.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - 상점 & 경제 개편 (shop_hq.js)
 //  · 재화 물가표(ECON): 쉬운 보상 1,000~3,000 / 스테이지 1,000→30,000 / 레이드 새 50,000 · 아노코 80,000
@@ -961,8 +968,8 @@ const SHOPHQ = (() => {
   // ------------------------------------------------------------------
   function install() {
     // 머리 장식 모델 확장
-    if (typeof createHatAccessory3D === 'function') {
-      const orig = createHatAccessory3D;
+    if (typeof window.createHatAccessory3D === 'function') {
+      const orig = window.createHatAccessory3D;
       window.createHatAccessory3D = function (t) { return orig(t) || makeHat(t); };
     }
     window.createAccessory3D = makeAcc;
@@ -1020,3 +1027,10 @@ const SHOPHQ = (() => {
 })();
 SHOPHQ.install();
 document.addEventListener('DOMContentLoaded', () => setTimeout(() => { if (window.gameApp) SHOPHQ.apply(window.gameApp); }, 0));
+
+export { SHOPHQ };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get ECON() { return ECON; },
+  get SHOPHQ() { return SHOPHQ; }
+});

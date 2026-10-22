@@ -1,3 +1,10 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { soundFx } from '../core/sound.js';
+import { CHAR_CONFIGS } from '../core/models3d.js';
+import { FXHQ } from '../world/fx_hq.js';
+import { POLISH } from '../world/polish_hq.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - 캐릭터별 액티브 스킬 3종 (키 1 / 2 / 3) (skills_hq.js)
 //  · 6명 × 3개 = 18개 스킬, 각각 고유 모션 · 이펙트 · 판정
@@ -1617,7 +1624,7 @@ const SKILLS = (() => {
     const def = getDefs(app.activeCharKey)[slot - 1];
     if (!def) return;
     if (app.skillCds && app.skillCds[slot - 1] > 0) {
-      if (typeof showToast === 'function') showToast(`⏳ [${slot}] ${def.name} 재사용 대기 중… (${app.skillCds[slot - 1].toFixed(1)}초)`);
+      if (typeof window.showToast === 'function') window.showToast(`⏳ [${slot}] ${def.name} 재사용 대기 중… (${app.skillCds[slot - 1].toFixed(1)}초)`);
       return;
     }
     aimSlot = slot;
@@ -1745,7 +1752,7 @@ const SKILLS = (() => {
     if (!def) return false;
     if (!app.skillCds) app.skillCds = [0, 0, 0];
     if (app.skillCds[slot - 1] > 0) {
-      if (typeof showToast === 'function') showToast(`⏳ [${slot}] ${def.name} 재사용 대기 중… (${app.skillCds[slot - 1].toFixed(1)}초)`);
+      if (typeof window.showToast === 'function') window.showToast(`⏳ [${slot}] ${def.name} 재사용 대기 중… (${app.skillCds[slot - 1].toFixed(1)}초)`);
       return false;
     }
     app.skillCds[slot - 1] = def.cd;
@@ -1769,7 +1776,7 @@ const SKILLS = (() => {
     const s = app.stats || {};
     const buff = s.ramenBuffTimer > 0 ? 1.35 : 1.0;
     // 스킬 1타(배율 1.0) = 평타(0.7배)의 3배
-    const dmg = ((cfg.atk || 20) + (s.level || 1) * 4 + ((s.weaponLv || 1) - 1) * 9 + (s.certLevel || 0) * 6) * buff * 0.7 * 3 * (typeof SHOPHQ !== 'undefined' ? SHOPHQ.atkMult(s) : 1);
+    const dmg = ((cfg.atk || 20) + (s.level || 1) * 4 + ((s.weaponLv || 1) - 1) * 9 + (s.certLevel || 0) * 6) * buff * 0.7 * 3 * (typeof window.SHOPHQ !== 'undefined' ? window.SHOPHQ.atkMult(s) : 1);
     const seed = (Math.random() * 1e9) | 0;
     const ctx = makeCtx(app, true, charKey, slot, {
       yaw: app.playerYaw, origin: app.playerPos, getPos: () => app.playerPos, seed, dmg,
@@ -2006,3 +2013,9 @@ const SKILLS = (() => {
     get activeCount() { return casts.length + runners.length; }
   };
 })();
+
+export { SKILLS };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get SKILLS() { return SKILLS; }
+});

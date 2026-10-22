@@ -1,3 +1,6 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from './three.js';
+import { expose } from './expose.js';
 // ==========================================================================
 // 치이카와 3D 오픈월드 타운 - 고품질 3D 캐릭터/몬스터/월드 에셋 빌더 (models3d.js)
 // [Live2D/Spine 스타일 실시간 버텍스 스켈레탈 변형 모션 + 3D 손/무기 관절 리그
@@ -979,7 +982,7 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     standeeMaterials.push(mat);
     // [HQ] 반투명 슬라이스 겹침 대신 앞/뒷면 2장 + 실루엣 두께 테두리(Rim)로 꽉 찬 입체감
     if (!isFrontOrBack) continue;
-    if (typeof fxRegisterStandeeMat === 'function') fxRegisterStandeeMat(mat);
+    if (typeof window.fxRegisterStandeeMat === 'function') window.fxRegisterStandeeMat(mat);
 
     const slice = new THREE.Mesh(sharedDeformGeo, mat);
     slice.position.z = ((i / (layerCount - 1)) - 0.5) * totalThickness;
@@ -1474,8 +1477,8 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
     posAttr.needsUpdate = true;
 
     // [HQ] 일러스트 실루엣을 따라가는 말랑 입체 테두리 (텍스처 로드 완료 후 1회 생성, 매 프레임 변형 추종)
-    if (!root.userData.rimUpdate && !root.userData.rimFailed && charTex.userData && charTex.userData.cleanReady && typeof fxAttachStandeeRim === 'function') {
-      root.userData.rimUpdate = fxAttachStandeeRim(standeeGroup, charTex, {
+    if (!root.userData.rimUpdate && !root.userData.rimFailed && charTex.userData && charTex.userData.cleanReady && typeof window.fxAttachStandeeRim === 'function') {
+      root.userData.rimUpdate = window.fxAttachStandeeRim(standeeGroup, charTex, {
         gridGeo: sharedDeformGeo, baseCoords, ws: 20, hs: 24, planeW, planeH, yMin: 0, thickness: totalThickness, color: cfg.bodyColor
       });
       if (!root.userData.rimUpdate) root.userData.rimFailed = true;
@@ -2001,7 +2004,7 @@ function createChiikawaPlushie(charKey = 'chiikawa') {
   };
 
   // [HQ] 카메라 반대쪽으로 걸어갈 때 '뒷모습' 일러스트로 전환
-  if (typeof POLISH !== 'undefined') POLISH.attachBackView(root, charTex);
+  if (typeof window.POLISH !== 'undefined') window.POLISH.attachBackView(root, charTex);
 
   return root;
 }
@@ -2107,8 +2110,8 @@ function createMonster3D(type = 'chimera') {
     // [HQ] 앞/뒷면 2장 + 실루엣 테두리, 시간대 틴트, 하얀 피격 플래시 셰이더
     if (i !== 0 && i !== layers - 1) continue;
     mats.push(mat);
-    if (typeof fxRegisterStandeeMat === 'function') fxRegisterStandeeMat(mat);
-    if (typeof fxApplyFlashShader === 'function') fxApplyFlashShader(mat);
+    if (typeof window.fxRegisterStandeeMat === 'function') window.fxRegisterStandeeMat(mat);
+    if (typeof window.fxApplyFlashShader === 'function') window.fxApplyFlashShader(mat);
     const mesh = new THREE.Mesh(sharedGeo, mat);
     mesh.position.z = ((i / (layers - 1)) - 0.5) * thickness;
     mesh.castShadow = i === 0;
@@ -2133,8 +2136,8 @@ function createMonster3D(type = 'chimera') {
 
   // [HQ] 보스급 몬스터 발밑 마력 오라 (회전 룬 + 떠오르는 불씨)
   let bossAura = null;
-  if ((isArmored || isRaidBossType(type)) && typeof fxCreateBossAura === 'function') {
-    bossAura = fxCreateBossAura(bodyRadius * 1.25, type === 'anoko3' ? 0x8b0000 : type === 'anoko' ? 0xef4444 : type === 'pjbird' ? 0x38bdf8 : type === 'pjbird3' ? 0x4338ca : 0xa855f7);
+  if ((isArmored || isRaidBossType(type)) && typeof window.fxCreateBossAura === 'function') {
+    bossAura = window.fxCreateBossAura(bodyRadius * 1.25, type === 'anoko3' ? 0x8b0000 : type === 'anoko' ? 0xef4444 : type === 'pjbird' ? 0x38bdf8 : type === 'pjbird3' ? 0x4338ca : 0xa855f7);
     group.add(bossAura);
   }
 
@@ -2212,8 +2215,8 @@ function createMonster3D(type = 'chimera') {
     }
     posAttr.needsUpdate = true;
 
-    if (!group.userData.rimUpdate && !group.userData.rimFailed && tex.userData && tex.userData.cleanReady && typeof fxAttachStandeeRim === 'function') {
-      group.userData.rimUpdate = fxAttachStandeeRim(bodyWrap, tex, {
+    if (!group.userData.rimUpdate && !group.userData.rimFailed && tex.userData && tex.userData.cleanReady && typeof window.fxAttachStandeeRim === 'function') {
+      group.userData.rimUpdate = window.fxAttachStandeeRim(bodyWrap, tex, {
         gridGeo: sharedGeo, baseCoords, ws: 14, hs: 16, planeW: sizeW, planeH: sizeH, yMin: -sizeH * 0.02, thickness
       });
       if (!group.userData.rimUpdate) group.userData.rimFailed = true;
@@ -2246,7 +2249,7 @@ function createMonster3D(type = 'chimera') {
     });
     setTimeout(() => {
       mats.forEach(m => {
-        if (typeof FX_STANDEE_TINT !== 'undefined') m.color.copy(FX_STANDEE_TINT);
+        if (typeof window.FX_STANDEE_TINT !== 'undefined') m.color.copy(window.FX_STANDEE_TINT);
         else m.color.setHex(0xffffff);
       });
     }, 130);
@@ -3205,5 +3208,41 @@ function createBattleColosseumArena3D() {
   return group;
 }
 
-
-
+export { CHAR_CONFIGS, addCartoonOutline, createAmbientMotes3D, createAnimeSkyDome3D, createChiikawaPlushie, createForestMushroom3D, createGiantPudding3D, createGrassCanvasTexture, createHitImpactBurst3D, createInstancedGrassField3D, createMonster3D, createPlazaCanvasTexture, createRiverAndBridge3D, createTreasureChest3D, createWaterCanvasTexture, createWeedPatch3D, getToonGradientMap, loadCleanCharacterTexture };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get sharedToonGradientMap() { return sharedToonGradientMap; }, set sharedToonGradientMap(v) { sharedToonGradientMap = v; },
+  get getToonGradientMap() { return getToonGradientMap; }, set getToonGradientMap(v) { getToonGradientMap = v; },
+  get addCartoonOutline() { return addCartoonOutline; }, set addCartoonOutline(v) { addCartoonOutline = v; },
+  get CHAR_CONFIGS() { return CHAR_CONFIGS; },
+  get createAnimeSkyDome3D() { return createAnimeSkyDome3D; }, set createAnimeSkyDome3D(v) { createAnimeSkyDome3D = v; },
+  get createInstancedGrassField3D() { return createInstancedGrassField3D; }, set createInstancedGrassField3D(v) { createInstancedGrassField3D = v; },
+  get createAmbientMotes3D() { return createAmbientMotes3D; }, set createAmbientMotes3D(v) { createAmbientMotes3D = v; },
+  get createGrassCanvasTexture() { return createGrassCanvasTexture; }, set createGrassCanvasTexture(v) { createGrassCanvasTexture = v; },
+  get createPlazaCanvasTexture() { return createPlazaCanvasTexture; }, set createPlazaCanvasTexture(v) { createPlazaCanvasTexture = v; },
+  get createWaterCanvasTexture() { return createWaterCanvasTexture; }, set createWaterCanvasTexture(v) { createWaterCanvasTexture = v; },
+  get cleanTextureCache() { return cleanTextureCache; },
+  get loadCleanCharacterTexture() { return loadCleanCharacterTexture; }, set loadCleanCharacterTexture(v) { loadCleanCharacterTexture = v; },
+  get createWeapon3D() { return createWeapon3D; }, set createWeapon3D(v) { createWeapon3D = v; },
+  get createHatAccessory3D() { return createHatAccessory3D; }, set createHatAccessory3D(v) { createHatAccessory3D = v; },
+  get createChiikawaPlushie() { return createChiikawaPlushie; }, set createChiikawaPlushie(v) { createChiikawaPlushie = v; },
+  get MONSTER_IMAGE_MAP() { return MONSTER_IMAGE_MAP; },
+  get isRaidBossType() { return isRaidBossType; },
+  get createMonster3D() { return createMonster3D; }, set createMonster3D(v) { createMonster3D = v; },
+  get createWeedPatch3D() { return createWeedPatch3D; }, set createWeedPatch3D(v) { createWeedPatch3D = v; },
+  get createPlazaFountain3D() { return createPlazaFountain3D; }, set createPlazaFountain3D(v) { createPlazaFountain3D = v; },
+  get createChiikawaHouse3D() { return createChiikawaHouse3D; }, set createChiikawaHouse3D(v) { createChiikawaHouse3D = v; },
+  get createRamenStall3D() { return createRamenStall3D; }, set createRamenStall3D(v) { createRamenStall3D = v; },
+  get createWindmill3D() { return createWindmill3D; }, set createWindmill3D(v) { createWindmill3D = v; },
+  get createGiantPudding3D() { return createGiantPudding3D; }, set createGiantPudding3D(v) { createGiantPudding3D = v; },
+  get createRiverAndBridge3D() { return createRiverAndBridge3D; }, set createRiverAndBridge3D(v) { createRiverAndBridge3D = v; },
+  get createToriiGate3D() { return createToriiGate3D; }, set createToriiGate3D(v) { createToriiGate3D = v; },
+  get createSakuraOnsenLake3D() { return createSakuraOnsenLake3D; }, set createSakuraOnsenLake3D(v) { createSakuraOnsenLake3D = v; },
+  get createStarlightCampsite3D() { return createStarlightCampsite3D; }, set createStarlightCampsite3D(v) { createStarlightCampsite3D = v; },
+  get createAncientRuins3D() { return createAncientRuins3D; }, set createAncientRuins3D(v) { createAncientRuins3D = v; },
+  get createTreasureChest3D() { return createTreasureChest3D; }, set createTreasureChest3D(v) { createTreasureChest3D = v; },
+  get createForestMushroom3D() { return createForestMushroom3D; }, set createForestMushroom3D(v) { createForestMushroom3D = v; },
+  get createHitImpactBurst3D() { return createHitImpactBurst3D; }, set createHitImpactBurst3D(v) { createHitImpactBurst3D = v; },
+  get createSubjugationPortalGate3D() { return createSubjugationPortalGate3D; }, set createSubjugationPortalGate3D(v) { createSubjugationPortalGate3D = v; },
+  get createBattleColosseumArena3D() { return createBattleColosseumArena3D; }, set createBattleColosseumArena3D(v) { createBattleColosseumArena3D = v; }
+});

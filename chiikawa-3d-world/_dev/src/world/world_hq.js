@@ -1,3 +1,7 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { addCartoonOutline, getToonGradientMap } from '../core/models3d.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - [HQ] 배경 월드 퀄리티 업그레이드 모듈 (world_hq.js)
 //  · 섬을 감싸는 절차적 구릉 + 원경 설산 지형 (전투 가도 협곡 포함)
@@ -722,3 +726,43 @@ function createHQTree3D(isSakura = false, seed = 1) {
 
   return tree;
 }
+
+export { WQ_EXCLUDE, createHQCloud3D, createHQTree3D, createInstancedFlowerField3D, createInstancedForest3D, createOuterTerrain3D };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get wqHash() { return wqHash; }, set wqHash(v) { wqHash = v; },
+  get wqNoise() { return wqNoise; }, set wqNoise(v) { wqNoise = v; },
+  get wqFbm() { return wqFbm; }, set wqFbm(v) { wqFbm = v; },
+  get wqRidge() { return wqRidge; }, set wqRidge(v) { wqRidge = v; },
+  get wqSmooth() { return wqSmooth; }, set wqSmooth(v) { wqSmooth = v; },
+  get wqRng() { return wqRng; }, set wqRng(v) { wqRng = v; },
+  get WQ_ISLAND_R() { return WQ_ISLAND_R; },
+  get WQ_BASE_Y() { return WQ_BASE_Y; },
+  get WQ_RIVER_Z() { return WQ_RIVER_Z; },
+  get wqCorridorDist() { return wqCorridorDist; }, set wqCorridorDist(v) { wqCorridorDist = v; },
+  get wqMaskDist() { return wqMaskDist; }, set wqMaskDist(v) { wqMaskDist = v; },
+  get wqRiverFactor() { return wqRiverFactor; }, set wqRiverFactor(v) { wqRiverFactor = v; },
+  get wqTerrainHeight() { return wqTerrainHeight; }, set wqTerrainHeight(v) { wqTerrainHeight = v; },
+  get wqSurfaceY() { return wqSurfaceY; }, set wqSurfaceY(v) { wqSurfaceY = v; },
+  get WQ_EXCLUDE() { return WQ_EXCLUDE; },
+  get WQ_PATHS() { return WQ_PATHS; },
+  get wqSegDist() { return wqSegDist; }, set wqSegDist(v) { wqSegDist = v; },
+  get wqIsBlocked() { return wqIsBlocked; }, set wqIsBlocked(v) { wqIsBlocked = v; },
+  get wqNonIndexed() { return wqNonIndexed; }, set wqNonIndexed(v) { wqNonIndexed = v; },
+  get wqMergeColored() { return wqMergeColored; }, set wqMergeColored(v) { wqMergeColored = v; },
+  get wqBlobGeo() { return wqBlobGeo; }, set wqBlobGeo(v) { wqBlobGeo = v; },
+  get wqGradient() { return wqGradient; }, set wqGradient(v) { wqGradient = v; },
+  get wqJaggedCone() { return wqJaggedCone; }, set wqJaggedCone(v) { wqJaggedCone = v; },
+  get createOuterTerrain3D() { return createOuterTerrain3D; }, set createOuterTerrain3D(v) { createOuterTerrain3D = v; },
+  get wqPineGeo() { return wqPineGeo; }, set wqPineGeo(v) { wqPineGeo = v; },
+  get wqRoundTreeGeo() { return wqRoundTreeGeo; }, set wqRoundTreeGeo(v) { wqRoundTreeGeo = v; },
+  get createInstancedForest3D() { return createInstancedForest3D; }, set createInstancedForest3D(v) { createInstancedForest3D = v; },
+  get wqRockGeo() { return wqRockGeo; }, set wqRockGeo(v) { wqRockGeo = v; },
+  get createScatterDetails3D() { return createScatterDetails3D; }, set createScatterDetails3D(v) { createScatterDetails3D = v; },
+  get createInstancedFlowerField3D() { return createInstancedFlowerField3D; }, set createInstancedFlowerField3D(v) { createInstancedFlowerField3D = v; },
+  get wqCloudMat() { return wqCloudMat; }, set wqCloudMat(v) { wqCloudMat = v; },
+  get createHQCloud3D() { return createHQCloud3D; }, set createHQCloud3D(v) { createHQCloud3D = v; },
+  get wqPetalDecalTex() { return wqPetalDecalTex; }, set wqPetalDecalTex(v) { wqPetalDecalTex = v; },
+  get wqGetPetalDecalTexture() { return wqGetPetalDecalTexture; }, set wqGetPetalDecalTexture(v) { wqGetPetalDecalTexture = v; },
+  get createHQTree3D() { return createHQTree3D; }, set createHQTree3D(v) { createHQTree3D = v; }
+});

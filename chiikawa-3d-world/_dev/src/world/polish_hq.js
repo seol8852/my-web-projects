@@ -1,3 +1,7 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { FXHQ } from './fx_hq.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - [HQ] 체감 품질 폴리싱 모듈 (polish_hq.js)
 //  1) 카메라를 가리는 나무 자동 반투명      2) 뒤돌아 걸을 때 '뒷모습' 일러스트
@@ -556,8 +560,8 @@ const POLISH = (() => {
     if (game.renderer.shadowMap) game.renderer.shadowMap.autoUpdate = cfg.shadow > 0;
     const btn = document.getElementById('btn-gfx-quality');
     if (btn) btn.innerText = `🎨 화질: ${QUALITY_LABEL[q]}`;
-    if (cfg.lowPower && !wasLow && game.gameStarted && typeof showToast === 'function') {
-      showToast('🐢 저사양 모드! 새로고침(F5)하면 계단 현상 보정까지 꺼져서 더 가벼워져요.');
+    if (cfg.lowPower && !wasLow && game.gameStarted && typeof window.showToast === 'function') {
+      window.showToast('🐢 저사양 모드! 새로고침(F5)하면 계단 현상 보정까지 꺼져서 더 가벼워져요.');
     }
   }
 
@@ -565,7 +569,7 @@ const POLISH = (() => {
     const order = ['high', 'mid', 'low'];
     const next = order[(order.indexOf(quality) + 1) % order.length];
     applyQuality(game, next);
-    if (typeof showToast === 'function') showToast(`🎨 그래픽 품질: ${QUALITY_LABEL[next]}`);
+    if (typeof window.showToast === 'function') window.showToast(`🎨 그래픽 품질: ${QUALITY_LABEL[next]}`);
   }
 
   // ------------------------------------------------------------------
@@ -1046,3 +1050,9 @@ const POLISH = (() => {
     get quality() { return quality; }, get detail() { return detail; }, _camera: null
   };
 })();
+
+export { POLISH };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get POLISH() { return POLISH; }
+});

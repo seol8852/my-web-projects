@@ -1,3 +1,12 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { soundFx } from '../core/sound.js';
+import { addCartoonOutline, getToonGradientMap } from '../core/models3d.js';
+import { FXHQ, fxCreateBossAura, fxTex } from '../world/fx_hq.js';
+import { POLISH } from '../world/polish_hq.js';
+import { STAGE_CAMPAIGN_DATA, showToast } from '../game/minigames.js';
+import { Chiikawa3DWorldApp } from '../game/main.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - 전투 스테이지 고퀄리티 & 난이도 개편 (stage_hq.js)
 //  · 난이도 곡선 재설계: 15단계 보스 ≈ 레이드 아노코, 20단계는 진짜 어렵게
@@ -731,8 +740,8 @@ const STAGEHQ = (() => {
   let fogSaved = null;
   let scatterGroup = null;
   // 마을 풀숲 장식 그룹을 기억해 두었다가 전투 중엔 숨김 (투기장 바닥을 뚫고 보이지 않게)
-  if (typeof createScatterDetails3D === 'function') {
-    const _csd = createScatterDetails3D;
+  if (typeof window.createScatterDetails3D === 'function') {
+    const _csd = window.createScatterDetails3D;
     window.createScatterDetails3D = function () { const g = _csd.apply(this, arguments); scatterGroup = g; return g; };
   }
   function update(g, dt) {
@@ -850,3 +859,9 @@ const STAGEHQ = (() => {
 // 전투 맵 생성 함수 교체 (main.js가 같은 이름으로 호출)
 function createBattleColosseumArena3D() { return STAGEHQ.buildArena(); }
 STAGEHQ.install();
+
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get STAGEHQ() { return STAGEHQ; },
+  get createBattleColosseumArena3D() { return createBattleColosseumArena3D; }, set createBattleColosseumArena3D(v) { createBattleColosseumArena3D = v; }
+});

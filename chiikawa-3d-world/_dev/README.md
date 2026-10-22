@@ -39,10 +39,12 @@ npm run build                              # 4) 다시 빌드
 ```
 _dev/
   index.html          화면(HTML) 원본
-  scripts.config.js   게임 스크립트 로드 순서 (전역 스크립트)
   vite.config.js      빌드 설정
   src/
-    boot.js           ES 모듈 진입점 (로그인·온라인)
+    app.js            진입점: 모듈 실행 순서 (뒤 모듈이 앞 모듈을 확장)
+    boot.js           로그인·온라인 (따로 불러옴 → Firebase가 막혀도 게임은 실행)
+    core/three.js     Three.js 한 곳에서 불러오기 (버전 올릴 때 여기만)
+    core/expose.js    모듈 이름을 window에 연결 (HTML onclick·덮어쓰기 호환)
     core/             사운드, 3D 모델(캐릭터·몬스터·무기)
     world/            오픈월드 맵, 마을 건물·충돌, 이펙트, 그래픽 품질, 점프맵
     combat/           스킬, 레이드 연출, 전투 스테이지
@@ -55,7 +57,9 @@ _dev/
 ```
 이미지 등 리소스는 배포 폴더의 `assets/`를 그대로 써요.
 
-## 앞으로의 정리 계획
-아직 `scripts.config.js`의 파일들은 전역 스크립트(서로의 함수를 이름으로 덮어쓰는 방식)예요.
-하나씩 ES 모듈(`import`/`export`)로 바꿔서 `boot.js` 쪽으로 옮기는 중이에요.
-그 다음 단계로 Three.js를 최신 버전으로 올릴 예정이에요.
+## 모듈 규칙
+- 모든 파일은 ES 모듈이에요. **앞쪽 모듈**(app.js 순서 기준)의 이름은 `import`로 가져와요.
+- **뒤쪽 모듈**의 이름(예: `window.SHOPHQ`)이나 **다른 모듈이 덮어쓰는 함수**(예: `window.createHatAccessory3D`)는 `window.이름`으로 실행 중에 찾아요.
+- 각 모듈 끝의 `expose({...})`가 최상위 이름을 window에 살아있는 연결로 걸어둬요.
+  `window.X = 새함수`로 바꾸면 원래 모듈 안의 X도 같이 바뀌어요.
+- 새 파일을 만들면 `src/app.js`에 순서대로 import 한 줄을 추가하세요.

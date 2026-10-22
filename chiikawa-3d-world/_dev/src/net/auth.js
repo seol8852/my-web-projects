@@ -29,6 +29,9 @@ import {
   writeBatch,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import { showToast } from '../game/minigames.js';
+import { expose } from '../core/expose.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAlcCCyDQPx-YdgKJaQnFu8mDuN9OI2pqI",
@@ -631,3 +634,27 @@ window.backupNowToCloud = async () => {
   const ok = await window.firebaseManager.flush(true);
   toast(ok ? '☁️ 클라우드에 최신 데이터가 즉시 저장되었습니다!' : '⚠️ 지금은 저장할 수 없어요. 로그인 상태와 네트워크를 확인해 주세요.');
 };
+
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get firebaseConfig() { return firebaseConfig; },
+  get app() { return app; },
+  get auth() { return auth; },
+  get db() { return db; },
+  get googleProvider() { return googleProvider; },
+  get SAVE_OWNER_KEY() { return SAVE_OWNER_KEY; },
+  get GUEST_BACKUP_KEY() { return GUEST_BACKUP_KEY; },
+  get CLOUD_SAVE_INTERVAL_MS() { return CLOUD_SAVE_INTERVAL_MS; },
+  get ACCT_BACKUP_PREFIX() { return ACCT_BACKUP_PREFIX; },
+  get RULE_STAGE_STEP() { return RULE_STAGE_STEP; },
+  get RULE_LEVEL_STEP() { return RULE_LEVEL_STEP; },
+  get TRANSIENT_STAT_KEYS() { return TRANSIENT_STAT_KEYS; },
+  get toast() { return toast; }, set toast(v) { toast = v; },
+  get sanitizeName() { return sanitizeName; }, set sanitizeName(v) { sanitizeName = v; },
+  get displayNameOf() { return displayNameOf; }, set displayNameOf(v) { displayNameOf = v; },
+  get rankScoreOf() { return rankScoreOf; }, set rankScoreOf(v) { rankScoreOf = v; },
+  get progressScore() { return progressScore; }, set progressScore(v) { progressScore = v; },
+  get AUTH_ERRORS_KO() { return AUTH_ERRORS_KO; },
+  get authErrorKo() { return authErrorKo; }, set authErrorKo(v) { authErrorKo = v; },
+  get FirebaseManager() { return FirebaseManager; }
+});

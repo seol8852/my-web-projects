@@ -1,3 +1,9 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { MeshoptDecoder } from 'meshoptimizer';
+import { getToonGradientMap } from '../core/models3d.js';
+import { TOWNHQ } from './town_hq.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 🏘️ TOWNBAKE: 마을 구조물·소품을 Blender에서 라이트맵(GI·AO)을 구운 모델로 교체
 //  - town_hq.js 빌더 결과물(userData.bakeKey)에서 "정적인" 메시만 떼어내 구운 1개 메시로 바꿈
@@ -166,7 +172,7 @@ const TOWNBAKE = (() => {
     root.add(mesh);
     root.userData._baked = true;
     swaps++;
-    if (typeof POLISH !== 'undefined' && POLISH.rescanOccluder) { try { POLISH.rescanOccluder(root); } catch (e) { /* 무시 */ } }
+    if (typeof window.POLISH !== 'undefined' && window.POLISH.rescanOccluder) { try { window.POLISH.rescanOccluder(root); } catch (e) { /* 무시 */ } }
   }
   function outermost(scene, fn) {
     const walk = o => {
@@ -224,3 +230,8 @@ const TOWNBAKE = (() => {
   };
 })();
 TOWNBAKE.install();
+
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get TOWNBAKE() { return TOWNBAKE; }
+});

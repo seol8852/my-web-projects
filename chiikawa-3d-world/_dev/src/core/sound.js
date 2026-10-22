@@ -1,3 +1,5 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import { expose } from './expose.js';
 // ==========================================================================
 // 치이카와 3D 오픈월드 타운 - Web Audio API 사운드 & BGM 신시사이저 (sound.js)
 // ==========================================================================
@@ -202,3 +204,10 @@ class SoundManager {
 }
 
 const soundFx = new SoundManager();
+
+export { soundFx };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get SoundManager() { return SoundManager; },
+  get soundFx() { return soundFx; }
+});

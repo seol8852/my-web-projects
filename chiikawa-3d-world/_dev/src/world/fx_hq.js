@@ -1,3 +1,7 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { getToonGradientMap } from '../core/models3d.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - [HQ] 캐릭터·몬스터 외형 & 전투 이펙트 업그레이드 모듈 (fx_hq.js)
 //  · 일러스트 실루엣을 따라 만든 '말랑 플러시' 입체 테두리(두께) + 시간대 조명 틴트
@@ -1007,3 +1011,20 @@ const FXHQ = (() => {
     get count() { return items.length; }
   };
 })();
+
+export { FXHQ, FX_STANDEE_MATS, fxCreateBossAura, fxSetStandeeTint, fxTex };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get FX_TEX() { return FX_TEX; },
+  get fxCanvasTex() { return fxCanvasTex; }, set fxCanvasTex(v) { fxCanvasTex = v; },
+  get fxTex() { return fxTex; }, set fxTex(v) { fxTex = v; },
+  get FX_STANDEE_TINT() { return FX_STANDEE_TINT; },
+  get FX_STANDEE_MATS() { return FX_STANDEE_MATS; },
+  get fxRegisterStandeeMat() { return fxRegisterStandeeMat; }, set fxRegisterStandeeMat(v) { fxRegisterStandeeMat = v; },
+  get fxSetStandeeTint() { return fxSetStandeeTint; }, set fxSetStandeeTint(v) { fxSetStandeeTint = v; },
+  get fxApplyFlashShader() { return fxApplyFlashShader; }, set fxApplyFlashShader(v) { fxApplyFlashShader = v; },
+  get fxExtractContour() { return fxExtractContour; }, set fxExtractContour(v) { fxExtractContour = v; },
+  get fxAttachStandeeRim() { return fxAttachStandeeRim; }, set fxAttachStandeeRim(v) { fxAttachStandeeRim = v; },
+  get fxCreateBossAura() { return fxCreateBossAura; }, set fxCreateBossAura(v) { fxCreateBossAura = v; },
+  get FXHQ() { return FXHQ; }
+});

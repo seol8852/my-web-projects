@@ -1,3 +1,8 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { addCartoonOutline, getToonGradientMap } from '../core/models3d.js';
+import { WQ_EXCLUDE } from './world_hq.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - 마을 구조물 & 소품 고퀄리티 리메이크 (town_hq.js)
 //  · 기존 단순 도형(박스·원뿔) 구조물을 디테일한 툰 모델로 교체
@@ -255,7 +260,7 @@ const TOWNHQ = (() => {
   }
   function glowSprite(color, size, opacity = 0.8) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: typeof fxTex === 'function' ? fxTex('glow') : null, color, transparent: true, opacity,
+      map: typeof window.fxTex === 'function' ? window.fxTex('glow') : null, color, transparent: true, opacity,
       blending: THREE.AdditiveBlending, depthWrite: false
     }));
     sp.scale.setScalar(size);
@@ -560,7 +565,7 @@ const TOWNHQ = (() => {
     const puffs = [];
     for (let i = 0; i < 5; i++) {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-        map: typeof fxTex === 'function' ? fxTex('smoke') : null, color, transparent: true, opacity: 0.6, depthWrite: false
+        map: typeof window.fxTex === 'function' ? window.fxTex('smoke') : null, color, transparent: true, opacity: 0.6, depthWrite: false
       }));
       sp.position.copy(pos);
       parent.add(sp);
@@ -758,7 +763,7 @@ const TOWNHQ = (() => {
     g.add(basin);
     // 물
     let waterMat = basic(0x7dd3fc, { transparent: true, opacity: 0.9 });
-    if (typeof POLISH !== 'undefined' && POLISH.getWaterMaterial) { try { waterMat = POLISH.getWaterMaterial(); } catch (e) {} }
+    if (typeof window.POLISH !== 'undefined' && window.POLISH.getWaterMaterial) { try { waterMat = window.POLISH.getWaterMaterial(); } catch (e) {} }
     const water = new THREE.Mesh(new THREE.CircleGeometry(3.72, 40), waterMat);
     water.rotation.x = -Math.PI / 2;
     water.position.y = 0.62;
@@ -1058,13 +1063,13 @@ const TOWNHQ = (() => {
     outline(sign, 0.03);
     g.add(sign);
     // 모자 진열 (기존 모자 모델)
-    if (typeof createHatAccessory3D === 'function') {
+    if (typeof window.createHatAccessory3D === 'function') {
       ['crown', 'flower', 'ribbon'].forEach((h, i) => {
         try {
           const stand = mesh(new THREE.CylinderGeometry(0.08, 0.25, 0.5, 10), toon(0xffffff), false);
           stand.position.set(-1.6 + i * 1.6, 2.32, 0.2);
           g.add(stand);
-          const hat = createHatAccessory3D(h);
+          const hat = window.createHatAccessory3D(h);
           if (hat) { hat.position.set(-1.6 + i * 1.6, 2.65, 0.2); g.add(hat); }
         } catch (e) {}
       });
@@ -1375,7 +1380,7 @@ const TOWNHQ = (() => {
   function onsen() {
     const g = new THREE.Group();
     let waterMat = basic(0x67e8f9);
-    if (typeof POLISH !== 'undefined' && POLISH.getWaterMaterial) { try { waterMat = POLISH.getWaterMaterial(); } catch (e) {} }
+    if (typeof window.POLISH !== 'undefined' && window.POLISH.getWaterMaterial) { try { waterMat = window.POLISH.getWaterMaterial(); } catch (e) {} }
     const pool = new THREE.Mesh(new THREE.CircleGeometry(12.6, 48), waterMat);
     pool.rotation.x = -Math.PI / 2;
     pool.position.y = 0.22;
@@ -2755,7 +2760,7 @@ const TOWNHQ = (() => {
       g.add(st);
     });
     // 보랏빛 룬 원판
-    const rune = mesh(new THREE.CircleGeometry(4.6, 48), new THREE.MeshBasicMaterial({ map: typeof fxTex === 'function' ? fxTex('rune') : null, color: 0xc084fc, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }), false);
+    const rune = mesh(new THREE.CircleGeometry(4.6, 48), new THREE.MeshBasicMaterial({ map: typeof window.fxTex === 'function' ? window.fxTex('rune') : null, color: 0xc084fc, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }), false);
     rune.rotation.x = -Math.PI / 2;
     rune.position.y = 0.72;
     g.add(rune);
@@ -2896,7 +2901,7 @@ const TOWNHQ = (() => {
       const obj = st.fn();
       add(obj, st.x, st.z, st.noFace ? 0 : Math.atan2(-st.x, -st.z));
       if (app.addZoneSign) app.addZoneSign(st.label, st.x, st.sy, st.z);
-      if (typeof POLISH !== 'undefined' && POLISH.registerOccluder) { try { POLISH.registerOccluder(obj, st.r * 0.6, 6); } catch (e) {} }
+      if (typeof window.POLISH !== 'undefined' && window.POLISH.registerOccluder) { try { window.POLISH.registerOccluder(obj, st.r * 0.6, 6); } catch (e) {} }
     });
 
     // ⚔️ 출격 포털 입장 존 링 (coop.js ZONES.stage와 같은 위치·반경)
@@ -3002,3 +3007,17 @@ function createStarlightCampsite3D() { const g = TOWNHQ.campsite(); g.userData.t
 function createSakuraOnsenLake3D() { const g = TOWNHQ.onsen(); g.userData.townHQ = true; return g; }
 function createSubjugationPortalGate3D() { const g = TOWNHQ.portalGate(); g.userData.townHQ = true; return g; }
 function createAncientRuins3D() { const g = TOWNHQ.ruins(); g.userData.townHQ = true; return g; }
+
+export { TOWNHQ };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get TOWNHQ() { return TOWNHQ; },
+  get createChiikawaHouse3D() { return createChiikawaHouse3D; }, set createChiikawaHouse3D(v) { createChiikawaHouse3D = v; },
+  get createPlazaFountain3D() { return createPlazaFountain3D; }, set createPlazaFountain3D(v) { createPlazaFountain3D = v; },
+  get createRamenStall3D() { return createRamenStall3D; }, set createRamenStall3D(v) { createRamenStall3D = v; },
+  get createWindmill3D() { return createWindmill3D; }, set createWindmill3D(v) { createWindmill3D = v; },
+  get createStarlightCampsite3D() { return createStarlightCampsite3D; }, set createStarlightCampsite3D(v) { createStarlightCampsite3D = v; },
+  get createSakuraOnsenLake3D() { return createSakuraOnsenLake3D; }, set createSakuraOnsenLake3D(v) { createSakuraOnsenLake3D = v; },
+  get createSubjugationPortalGate3D() { return createSubjugationPortalGate3D; }, set createSubjugationPortalGate3D(v) { createSubjugationPortalGate3D = v; },
+  get createAncientRuins3D() { return createAncientRuins3D; }, set createAncientRuins3D(v) { createAncientRuins3D = v; }
+});

@@ -1,3 +1,10 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { soundFx } from '../core/sound.js';
+import { addCartoonOutline, createGiantPudding3D, createMonster3D, createTreasureChest3D, createWeedPatch3D, getToonGradientMap } from '../core/models3d.js';
+import { WQ_EXCLUDE } from './world_hq.js';
+import { FXHQ, fxTex } from './fx_hq.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - 빈 공간 콘텐츠 (world_extra.js)
 //  1) ☁️ 구름 푸딩 점프 타워 (동쪽 평원) : 쉬움→보통→어려움 3구간, 체크포인트, 기록, 보상
@@ -25,7 +32,7 @@ const WORLDX = (() => {
     const r = s - m * 60;
     return `${String(m).padStart(2, '0')}:${r.toFixed(1).padStart(4, '0')}`;
   };
-  const toast = msg => { if (typeof showToast === 'function') showToast(msg); };
+  const toast = msg => { if (typeof window.showToast === 'function') window.showToast(msg); };
 
   // ======================================================================
   // 1) 점프 타워
@@ -248,8 +255,8 @@ const WORLDX = (() => {
     let bonus = '';
     if (!(s.jumpCpFirst & (1 << p.cpIdx))) {
       s.jumpCpFirst |= (1 << p.cpIdx);
-      app.addReward((typeof ECON !== 'undefined' ? ECON.jumpCp : 200), 120, 'jump_cp');
-      bonus = ' (첫 도달 보너스 +' + (typeof ECON !== 'undefined' ? ECON.jumpCp : 200).toLocaleString() + '🪙)';
+      app.addReward((typeof window.ECON !== 'undefined' ? window.ECON.jumpCp : 200), 120, 'jump_cp');
+      bonus = ' (첫 도달 보너스 +' + (typeof window.ECON !== 'undefined' ? window.ECON.jumpCp : 200).toLocaleString() + '🪙)';
       app.saveData();
     }
     if (typeof FXHQ !== 'undefined') {
@@ -271,10 +278,10 @@ const WORLDX = (() => {
     const isBest = t < prevBest;
     if (isBest) s.jumpBest = Math.round(t * 10) / 10;
     if (first) {
-      app.addReward((typeof ECON !== 'undefined' ? ECON.jumpFirst : 1500), 800, 'jump_first');
+      app.addReward((typeof window.ECON !== 'undefined' ? window.ECON.jumpFirst : 1500), 800, 'jump_first');
       s.potions = Math.min(5, (s.potions | 0) + 2);
     } else {
-      app.addReward((typeof ECON !== 'undefined' ? ECON.jumpRepeat : 250), 150, 'jump');
+      app.addReward((typeof window.ECON !== 'undefined' ? window.ECON.jumpRepeat : 250), 150, 'jump');
     }
     app.saveData(true);
     app.updateHud();
@@ -614,8 +621,8 @@ const WORLDX = (() => {
         if (!m.alive) {
           if (m.isElite && a.rewardLeft && a.rewardLeft('event') > 0) {
             a.stats.potions = Math.min(5, (a.stats.potions | 0) + 1);
-            a.addReward((typeof ECON !== 'undefined' ? ECON.event : 300), 200, 'event');
-            toast(`👑 엘리트 대괴수 토벌 성공!! 보너스 +${(typeof ECON !== 'undefined' ? ECON.event : 300).toLocaleString()}🪙 + HP 물약 1개 (하루 1회)`);
+            a.addReward((typeof window.ECON !== 'undefined' ? window.ECON.event : 300), 200, 'event');
+            toast(`👑 엘리트 대괴수 토벌 성공!! 보너스 +${(typeof window.ECON !== 'undefined' ? window.ECON.event : 300).toLocaleString()}🪙 + HP 물약 1개 (하루 1회)`);
             a.saveData();
           }
           removeFrom(a.monsters, m);
@@ -701,3 +708,9 @@ const WORLDX = (() => {
     JUMP_CENTER: JC, EVENT_CENTER: EC
   };
 })();
+
+export { WORLDX };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get WORLDX() { return WORLDX; }
+});

@@ -11,6 +11,16 @@ import {
   getDatabase, ref, set, update, get, remove, push, onValue, onChildAdded, onChildChanged,
   onChildRemoved, onDisconnect, runTransaction, query, limitToLast, limitToFirst, orderByKey, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { soundFx } from '../core/sound.js';
+import { CHAR_CONFIGS, createChiikawaPlushie, createMonster3D, loadCleanCharacterTexture } from '../core/models3d.js';
+import { FXHQ } from '../world/fx_hq.js';
+import { SKILLS } from '../combat/skills_hq.js';
+import { RAIDHQ } from '../combat/raid_hq.js';
+import { closeStageResultModal, closeStageSelectModal, showToast } from '../game/minigames.js';
+import { SHOPHQ } from '../shop/shop_hq.js';
+import { expose } from '../core/expose.js';
 
 // ⚠️ Firebase 콘솔에서 Realtime Database를 만들 때 위치를 '싱가포르(asia-southeast1)'로 선택하면 이 주소 그대로 사용됩니다.
 //    다른 위치를 골랐다면 콘솔의 데이터베이스 주소로 바꿔주세요.
@@ -2639,3 +2649,26 @@ export class CoopManager {
     setTimeout(() => line.classList.remove('fresh'), 9000);
   }
 }
+
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get COOP_DB_URL() { return COOP_DB_URL; },
+  get MAX_PLAYERS() { return MAX_PLAYERS; },
+  get WORLD() { return WORLD; },
+  get WORLD_SEND() { return WORLD_SEND; },
+  get VISUAL_EVENTS() { return VISUAL_EVENTS; },
+  get ZONES() { return ZONES; },
+  get ZONE_COUNTDOWN() { return ZONE_COUNTDOWN; },
+  get RAID_BOSSES() { return RAID_BOSSES; },
+  get RAID_LIST() { return RAID_LIST; },
+  get SEND_INTERVAL() { return SEND_INTERVAL; },
+  get KEEPALIVE() { return KEEPALIVE; },
+  get CODE_CHARS() { return CODE_CHARS; },
+  get EMOTES() { return EMOTES; },
+  get RAID_CENTER() { return RAID_CENTER; },
+  get RAID_BOSS_R() { return RAID_BOSS_R; },
+  get toast() { return toast; },
+  get cleanName() { return cleanName; },
+  get r2() { return r2; },
+  get CoopManager() { return CoopManager; }
+});

@@ -1,3 +1,7 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import { soundFx } from '../core/sound.js';
+import { CHAR_CONFIGS } from '../core/models3d.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 오픈월드 타운 - 미니게임, 코스튬 상점 & NPC 대화 시스템 (minigames.js)
 // ==========================================================================
@@ -133,9 +137,9 @@ function submitRamenOrder() {
   if (isMatch) {
     soundFx.playFanfare();
     if (window.gameApp) {
-      const paid = window.gameApp.addReward((typeof ECON !== 'undefined' ? ECON.ramen : 90), 50, 'ramen');
+      const paid = window.gameApp.addReward((typeof window.ECON !== 'undefined' ? window.ECON.ramen : 90), 50, 'ramen');
       window.gameApp.activateRamenBuff();
-      showToast(paid ? `🍜 대성공! ${currentRamenOrder.name} 손님이 대만족했습니다! (+${(typeof ECON !== 'undefined' ? ECON.ramen : 90).toLocaleString()} 코인 & 활력 버프 발동!)` : `🍜 대성공! ${currentRamenOrder.name} 손님이 대만족! (오늘 장사 보상은 받았어요 · 활력 버프만 발동)`);
+      showToast(paid ? `🍜 대성공! ${currentRamenOrder.name} 손님이 대만족했습니다! (+${(typeof window.ECON !== 'undefined' ? window.ECON.ramen : 90).toLocaleString()} 코인 & 활력 버프 발동!)` : `🍜 대성공! ${currentRamenOrder.name} 손님이 대만족! (오늘 장사 보상은 받았어요 · 활력 버프만 발동)`);
     }
     closeRamenMinigame();
   } else {
@@ -465,9 +469,9 @@ function closeNpcDialog(actionType) {
     window.gameApp.togglePartyFollow();
   } else if (actionType === 'gift' && window.gameApp) {
     // 친구마다 하루 1번만 응원 보너스
-    if (window.gameApp.addReward((typeof ECON !== 'undefined' ? ECON.talk : 35), 25, 'talk', 'talk:' + (window.__npcDialogKey || 'npc'))) {
+    if (window.gameApp.addReward((typeof window.ECON !== 'undefined' ? window.ECON.talk : 35), 25, 'talk', 'talk:' + (window.__npcDialogKey || 'npc'))) {
       soundFx.playCoin();
-      showToast(`💖 친구와 즐겁게 대화를 나누며 응원 보너스 (+${(typeof ECON !== 'undefined' ? ECON.talk : 35).toLocaleString()} 코인)를 받았습니다!`);
+      showToast(`💖 친구와 즐겁게 대화를 나누며 응원 보너스 (+${(typeof window.ECON !== 'undefined' ? window.ECON.talk : 35).toLocaleString()} 코인)를 받았습니다!`);
     }
   }
 }
@@ -704,4 +708,42 @@ function renderStageSelectModal() {
   }).join('');
 }
 
-
+export { HAT_CATALOG, STAGE_CAMPAIGN_DATA, closeStageResultModal, closeStageSelectModal, openCostumeShopModal, openNpcDialog, openRamenMinigame, openStageSelectModal, openWeedExamModal, showToast };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get RAMEN_INGREDIENTS() { return RAMEN_INGREDIENTS; },
+  get RAMEN_GUESTS() { return RAMEN_GUESTS; },
+  get HAT_CATALOG() { return HAT_CATALOG; },
+  get currentRamenOrder() { return currentRamenOrder; }, set currentRamenOrder(v) { currentRamenOrder = v; },
+  get selectedRamenIngs() { return selectedRamenIngs; }, set selectedRamenIngs(v) { selectedRamenIngs = v; },
+  get openRamenMinigame() { return openRamenMinigame; }, set openRamenMinigame(v) { openRamenMinigame = v; },
+  get closeRamenMinigame() { return closeRamenMinigame; }, set closeRamenMinigame(v) { closeRamenMinigame = v; },
+  get nextRamenOrder() { return nextRamenOrder; }, set nextRamenOrder(v) { nextRamenOrder = v; },
+  get renderRamenIngredients() { return renderRamenIngredients; }, set renderRamenIngredients(v) { renderRamenIngredients = v; },
+  get toggleRamenIng() { return toggleRamenIng; }, set toggleRamenIng(v) { toggleRamenIng = v; },
+  get submitRamenOrder() { return submitRamenOrder; }, set submitRamenOrder(v) { submitRamenOrder = v; },
+  get weedExamState() { return weedExamState; }, set weedExamState(v) { weedExamState = v; },
+  get openWeedExamModal() { return openWeedExamModal; }, set openWeedExamModal(v) { openWeedExamModal = v; },
+  get closeWeedExamModal() { return closeWeedExamModal; }, set closeWeedExamModal(v) { closeWeedExamModal = v; },
+  get startWeedExam() { return startWeedExam; }, set startWeedExam(v) { startWeedExam = v; },
+  get randomWeedCellType() { return randomWeedCellType; }, set randomWeedCellType(v) { randomWeedCellType = v; },
+  get renderWeedExamGrid() { return renderWeedExamGrid; }, set renderWeedExamGrid(v) { renderWeedExamGrid = v; },
+  get clickWeedExamCell() { return clickWeedExamCell; }, set clickWeedExamCell(v) { clickWeedExamCell = v; },
+  get updateWeedExamUI() { return updateWeedExamUI; }, set updateWeedExamUI(v) { updateWeedExamUI = v; },
+  get finishWeedExam() { return finishWeedExam; }, set finishWeedExam(v) { finishWeedExam = v; },
+  get openCostumeShopModal() { return openCostumeShopModal; }, set openCostumeShopModal(v) { openCostumeShopModal = v; },
+  get closeCostumeShopModal() { return closeCostumeShopModal; }, set closeCostumeShopModal(v) { closeCostumeShopModal = v; },
+  get renderCostumeShop() { return renderCostumeShop; }, set renderCostumeShop(v) { renderCostumeShop = v; },
+  get POTION_PRICE() { return POTION_PRICE; },
+  get buyHpPotion() { return buyHpPotion; }, set buyHpPotion(v) { buyHpPotion = v; },
+  get upgradeSasumataWeapon() { return upgradeSasumataWeapon; }, set upgradeSasumataWeapon(v) { upgradeSasumataWeapon = v; },
+  get buyOrEquipHat() { return buyOrEquipHat; }, set buyOrEquipHat(v) { buyOrEquipHat = v; },
+  get openNpcDialog() { return openNpcDialog; }, set openNpcDialog(v) { openNpcDialog = v; },
+  get closeNpcDialog() { return closeNpcDialog; }, set closeNpcDialog(v) { closeNpcDialog = v; },
+  get showToast() { return showToast; }, set showToast(v) { showToast = v; },
+  get STAGE_CAMPAIGN_DATA() { return STAGE_CAMPAIGN_DATA; },
+  get openStageSelectModal() { return openStageSelectModal; }, set openStageSelectModal(v) { openStageSelectModal = v; },
+  get closeStageSelectModal() { return closeStageSelectModal; }, set closeStageSelectModal(v) { closeStageSelectModal = v; },
+  get closeStageResultModal() { return closeStageResultModal; }, set closeStageResultModal(v) { closeStageResultModal = v; },
+  get renderStageSelectModal() { return renderStageSelectModal; }, set renderStageSelectModal(v) { renderStageSelectModal = v; }
+});

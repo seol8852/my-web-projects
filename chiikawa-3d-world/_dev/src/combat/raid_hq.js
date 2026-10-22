@@ -1,3 +1,9 @@
+// ⚙️ ES 모듈 (자동 변환): 앞쪽 모듈은 import, 뒤쪽 모듈·덮어쓰기 되는 이름은 window.이름 으로 참조
+import THREE from '../core/three.js';
+import { addCartoonOutline, createMonster3D, getToonGradientMap, loadCleanCharacterTexture } from '../core/models3d.js';
+import { FXHQ, fxCreateBossAura, fxTex } from '../world/fx_hq.js';
+import { POLISH } from '../world/polish_hq.js';
+import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - 레이드 전용 원형 투기장 & 보스 연출 (raid_hq.js)
 //  · 전투 스테이지와 분리된 넓은 원형 결투장 (중심 0, -820 / 반경 46m)
@@ -758,3 +764,9 @@ const RAIDHQ = (() => {
     get phase() { return phase; }
   };
 })();
+
+export { RAIDHQ };
+// 전역(window)으로도 노출: HTML onclick, 다른 모듈의 런타임 참조, 디버그 콘솔용
+expose({
+  get RAIDHQ() { return RAIDHQ; }
+});
