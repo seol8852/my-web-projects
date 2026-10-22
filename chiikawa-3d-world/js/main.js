@@ -1352,9 +1352,9 @@ class Chiikawa3DWorldApp {
     chest.respawnTimer = 22 + Math.random() * 8;
     soundFx.playFanfare();
 
-    const coinGain = chest.isCrystal ? 85 : 65;
+    let coinGain = chest.isCrystal ? 85 : 65;
     const expGain = chest.isCrystal ? 55 : 40;
-    this.addReward(coinGain, expGain, 'chest');
+    if (!this.addReward(coinGain, expGain, 'chest')) coinGain = 0;
 
     const hitPos = chest.pos.clone().add(new THREE.Vector3(0, 1.5, 0));
     this.spawnHitImpactEffect3D(hitPos, chest.isCrystal ? 0x38bdf8 : 0xfacc15, true);
@@ -2818,10 +2818,10 @@ class Chiikawa3DWorldApp {
 
     const certMult = 1 + this.stats.certLevel * 0.25;
     const hachiBonus = this.activeCharKey === 'hachiware' ? 1.2 : 1.0;
-    const coinGain = Math.round((w.isGolden ? 40 : 15) * certMult * hachiBonus);
+    let coinGain = Math.round((w.isGolden ? 40 : 15) * certMult * hachiBonus);
     const expGain = w.isGolden ? 28 : 14;
     this.stats.weedsPulled++;
-    this.addReward(coinGain, expGain, 'weed');
+    if (!this.addReward(coinGain, expGain, 'weed')) coinGain = 0;
 
     this.spawnBurstParticles(w.pos.clone().add(new THREE.Vector3(0, 1, 0)), w.isGolden ? 0xfacc15 : 0x4ade80, 12);
     this.spawnFloatingText(
@@ -3046,6 +3046,10 @@ class Chiikawa3DWorldApp {
       this.spawnFloatingText(this.playerPos.clone().add(new THREE.Vector3(0, 3.5, 0)), '🌸온천 힐링! 체력 100% & 활력 버프!', '#ff85a2');
       showToast('🌸 따뜻한 벚꽃 노천온천에서 피로를 풀었습니다! (체력 100% 회복 + 45초 공/이속 버프)');
     } else if (item.type === 'camp') {
+      if (this.rewardLeft('camp') <= 0) {
+        showToast('🍠 오늘은 이미 군고구마를 먹었어요! 내일 다시 와 주세요. (하루 1회)');
+        return;
+      }
       soundFx.playCoin();
       this.stats.hp = Math.min(this.stats.maxHp, this.stats.hp + 45);
       this.addReward(45, 30, 'camp');
@@ -3096,7 +3100,42 @@ class Chiikawa3DWorldApp {
   // ========================================================================
   // 6. 보상, 레벨업, 버프, UI 갱신
   // ========================================================================
-  addReward(coins, exp, source) {
+  // 📅 하루 보상 한도 (반복 가능한 소소한 보상의 무한 파밍 방지, 자정에 초기화)
+  dailyDay() { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+  dailyUsed(key) {
+    const s = this.stats;
+    const day = this.dailyDay();
+    if (!s.daily || typeof s.daily !== 'object' || s.daily.day !== day) s.daily = { day, c: {} };
+    return s.daily.c[key] || 0;
+  }
+  dailyRule(source, key) {
+    const R = {
+      camp: [1, '🍠 모닥불 군고구마'], talk: [1, '💖 친구 응원 보너스'], ramen: [1, '🍜 라멘 장사'], exam: [1, '📝 연습 시험'],
+      jump: [1, '☁️ 점프 타워 반복 클리어'], event: [1, '👑 엘리트 대괴수'], chest: [5, '🎁 보물상자'], weed: [30, '🌿 제초'], fieldmon: [20, '👾 들판 몬스터']
+    };
+    const r = R[source];
+    return r ? { limit: r[0], label: r[1], key: key || source } : null;
+  }
+  rewardLeft(source, key) {
+    const r = this.dailyRule(source, key);
+    return r ? Math.max(0, r.limit - this.dailyUsed(r.key)) : Infinity;
+  }
+
+  addReward(coins, exp, source, key) {
+    // 마을(전투 밖)에서 잡은 몬스터는 들판 몬스터 한도 적용
+    if (source === 'monster' && !(this.battleState && this.battleState.active)) source = 'fieldmon';
+    const rule = this.dailyRule(source, key);
+    if (rule) {
+      if (this.dailyUsed(rule.key) >= rule.limit) {
+        const now = Date.now();
+        if (!this._dailyToastAt || now - this._dailyToastAt > 6000) {
+          this._dailyToastAt = now;
+          showToast(`⏰ 오늘 ${rule.label} 보상은 다 받았어요! (하루 ${rule.limit}회 · 자정에 초기화)`);
+        }
+        return false;
+      }
+      this.stats.daily.c[rule.key] = this.dailyUsed(rule.key) + 1;
+    }
     this.stats.coins += coins;
     this.stats.exp += exp;
     if (source === 'ramen') {
@@ -3115,6 +3154,7 @@ class Chiikawa3DWorldApp {
 
     this.saveData();
     this.updateHud();
+    return true;
   }
 
   activateRamenBuff() {
@@ -3127,12 +3167,11 @@ class Chiikawa3DWorldApp {
     const ranks = ['🌱 제초 견습생', '🌿 제초 5급', '🍀 제초 3급', '👑 제초 1급 마스터'];
     if (this.stats.certLevel >= 3) {
       // 이미 1급 마스터: 연습 시험은 소액 보상만 (무한 코인 파밍 방지)
-      this.addReward(40, 20, 'exam');
-      showToast('👑 1급 마스터의 연습 시험 합격! (+40 코인 · 다음 시험까지 3분)');
+      if (this.addReward(40, 20, 'exam')) showToast('👑 1급 마스터의 연습 시험 합격! (+40 코인 · 연습 시험 보상은 하루 1회)');
       return;
     }
     this.stats.certLevel++;
-    this.addReward(150, 90, 'exam');
+    this.addReward(150, 90, 'exam_up');
     showToast(`🏅 축하합니다! [${ranks[this.stats.certLevel]}] 자격증 승급에 합격했습니다! (+150 코인)`);
   }
 
