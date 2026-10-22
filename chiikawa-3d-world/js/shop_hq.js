@@ -137,6 +137,7 @@ const SHOPHQ = (() => {
   function applyVisual(game) {
     const pm = game.playerMesh;
     if (pm && pm.userData.equipAcc) pm.userData.equipAcc(game.stats.equippedAcc || 'none');
+    try { const k = gearKeys(game.stats); dressMesh(pm, k.wv, k.av); } catch (e) { console.warn('SHOPHQ gear', e); }
   }
 
   // ------------------------------------------------------------------
@@ -604,6 +605,358 @@ const SHOPHQ = (() => {
   }
 
   // ------------------------------------------------------------------
+  // ⚔️🛡️ 장착 장비 외형 (무기: 손에 드는 3D 모델 / 방어구: 어깨·허리·망토 + 발밑 오라)
+  // ------------------------------------------------------------------
+  const W_SHAPES = [['사스마타', 'sasumata'], ['쌍검', 'dual'], ['대검', 'great'], ['발톱', 'claw'], ['언월도', 'scythe'], ['낫', 'scythe'],
+    ['빗자루', 'broom'], ['칫솔', 'broom'], ['장궁', 'bow'], ['활', 'bow'], ['지팡이', 'staff'], ['낚싯대', 'staff'], ['장대', 'staff'],
+    ['젓가락', 'staff'], ['채찍', 'staff'], ['삼지창', 'trident'], ['꼬치', 'spear'], ['창', 'spear'], ['도끼', 'axe'], ['망치', 'hammer'],
+    ['몽둥이', 'hammer'], ['방망이', 'hammer'], ['쌍절곤', 'hammer'], ['바게트', 'hammer'], ['사다리', 'hammer'], ['국자', 'ladle'],
+    ['숟가락', 'ladle'], ['프라이팬', 'pan'], ['우산', 'umbrella'], ['부메랑', 'boomerang']];
+  const A_STYLES = [['망토', 'cape'], ['로브', 'cape'], ['코트', 'cape'], ['하오리', 'cape'], ['닌자복', 'cape'], ['비행복', 'light'],
+    ['갑옷', 'plate'], ['판금', 'plate'], ['갑주', 'plate'], ['성갑', 'plate'], ['흉갑', 'plate'], ['방패', 'plate'], ['경갑', 'plate'], ['철모', 'plate']];
+  const weaponShape = name => (W_SHAPES.find(([k]) => name.includes(k)) || [0, 'sword'])[1];
+  const armorStyle = name => (A_STYLES.find(([k]) => name.includes(k)) || [0, 'light'])[1];
+  // 등급 팔레트: 날(밝은색) / 장식(등급색) / 손잡이
+  const PAL = {
+    C: { blade: 0xcbd5e1, acc: 0x94a3b8, grip: 0x8b5a2b, glow: 0x94a3b8 },
+    B: { blade: 0xe0f2fe, acc: 0x3b82f6, grip: 0x1e3a8a, glow: 0x60a5fa },
+    A: { blade: 0xf5f3ff, acc: 0xa855f7, grip: 0x4c1d95, glow: 0xc084fc },
+    S: { blade: 0xfffbeb, acc: 0xf59e0b, grip: 0x7c2d12, glow: 0xfbbf24 }
+  };
+  let _glowTex = null;
+  function glowTex() {
+    if (_glowTex) return _glowTex;
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const x = c.getContext('2d');
+    const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = gr; x.fillRect(0, 0, 64, 64);
+    _glowTex = new THREE.CanvasTexture(c);
+    return _glowTex;
+  }
+  function glowSprite(color, size, opacity = 0.8) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(), color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false }));
+    sp.scale.setScalar(size);
+    sp.userData.noShadow = true;
+    return sp;
+  }
+  const mesh = (geo, mat, x = 0, y = 0, z = 0, outline = 0.04) => {
+    const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z);
+    if (outline) ol(m, outline);
+    return m;
+  };
+  const basic = c => new THREE.MeshBasicMaterial({ color: c });
+
+  function buildWeaponHead(shape, P) {
+    const g = new THREE.Group();
+    const blade = tm(P.blade), acc = tm(P.acc), grip = tm(P.grip);
+    const shaft = (len, r = 0.09, mat = grip) => { const s = mesh(new THREE.CylinderGeometry(r, r, len, 10), mat, 0, len / 2 - 0.65); g.add(s); return s; };
+    const swordBlade = (w, h, y0) => {
+      const sh = new THREE.Shape();
+      sh.moveTo(-w / 2, 0); sh.lineTo(w / 2, 0); sh.lineTo(w / 2, h); sh.lineTo(0, h + w * 0.9); sh.lineTo(-w / 2, h); sh.closePath();
+      const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.08, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 });
+      geo.translate(0, y0, -0.04);
+      const b = mesh(geo, blade, 0, 0, 0, 0.035); g.add(b);
+      const fuller = new THREE.Mesh(new THREE.BoxGeometry(w * 0.18, h * 0.8, 0.17), acc);
+      fuller.position.set(0, y0 + h * 0.45, 0); g.add(fuller);
+      return h + w * 0.9 + y0;
+    };
+    let tip = 2.6;
+    switch (shape) {
+      case 'sword': case 'dual': {
+        g.add(mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.9, 10), grip, 0, 0));
+        g.add(mesh(new THREE.SphereGeometry(0.14, 10, 8), acc, 0, -0.5));
+        g.add(mesh(new THREE.BoxGeometry(0.85, 0.16, 0.24), acc, 0, 0.5));
+        tip = swordBlade(0.38, 1.75, 0.58);
+        break;
+      }
+      case 'great': case 'claw': {
+        g.add(mesh(new THREE.CylinderGeometry(0.11, 0.11, 1.1, 10), grip, 0, -0.05));
+        g.add(mesh(new THREE.BoxGeometry(1.15, 0.22, 0.3), acc, 0, 0.55));
+        if (shape === 'claw') {
+          [-0.28, 0, 0.28].forEach((x, i) => {
+            const c = mesh(new THREE.ConeGeometry(0.15, 2.0 - Math.abs(i - 1) * 0.4, 6), blade, x, 1.6 - Math.abs(i - 1) * 0.2, 0, 0.035);
+            c.rotation.z = -x * 0.35; g.add(c);
+          });
+          tip = 2.6;
+        } else tip = swordBlade(0.62, 2.15, 0.66);
+        break;
+      }
+      case 'spear': case 'trident': {
+        shaft(3.5, 0.08);
+        if (shape === 'trident') {
+          g.add(mesh(new THREE.BoxGeometry(0.75, 0.12, 0.12), acc, 0, 2.85));
+          [-0.33, 0, 0.33].forEach(x => g.add(mesh(new THREE.ConeGeometry(0.09, x ? 0.55 : 0.75, 6), blade, x, x ? 3.18 : 3.28, 0, 0.03)));
+        } else {
+          const h = mesh(new THREE.ConeGeometry(0.2, 0.85, 4), blade, 0, 3.27, 0, 0.035); h.scale.z = 0.45; g.add(h);
+          const collar = mesh(new THREE.TorusGeometry(0.13, 0.05, 6, 14), acc, 0, 2.85, 0, 0); collar.rotation.x = Math.PI / 2; g.add(collar);
+        }
+        tip = 3.6;
+        break;
+      }
+      case 'sasumata': {
+        shaft(3.4, 0.09, acc);
+        const f = mesh(new THREE.TorusGeometry(0.5, 0.1, 10, 22, Math.PI), blade, 0, 2.75); f.rotation.z = Math.PI; g.add(f);
+        g.add(mesh(new THREE.SphereGeometry(0.16, 10, 8), acc, 0, 2.3));
+        tip = 2.9;
+        break;
+      }
+      case 'axe': {
+        shaft(2.9, 0.09);
+        const sh = new THREE.Shape(); sh.moveTo(0, -0.35); sh.quadraticCurveTo(0.95, -0.75, 1.0, 0); sh.quadraticCurveTo(0.95, 0.75, 0, 0.35); sh.closePath();
+        const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.12, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 1 }); geo.translate(0.05, 1.95, -0.06);
+        g.add(mesh(geo, blade, 0, 0, 0, 0.035));
+        g.add(mesh(new THREE.BoxGeometry(0.3, 0.55, 0.26), acc, 0, 1.95));
+        tip = 2.5;
+        break;
+      }
+      case 'hammer': {
+        shaft(2.7, 0.1);
+        const hd = mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.05, 12), blade, 0, 2.05); hd.rotation.z = Math.PI / 2; g.add(hd);
+        [-0.55, 0.55].forEach(x => { const r = mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.12, 12), acc, x, 2.05, 0, 0); r.rotation.z = Math.PI / 2; g.add(r); });
+        tip = 2.5;
+        break;
+      }
+      case 'bow': {
+        const arc = mesh(new THREE.TorusGeometry(1.35, 0.08, 6, 26, Math.PI * 0.9), blade, -1.35, 0.6, 0, 0.03);
+        arc.rotation.z = -Math.PI * 0.45; g.add(arc);
+        const str = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 2.67, 4), basic(0xffffff)); str.position.set(-1.14, 0.6, 0); g.add(str);
+        g.add(mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.55, 10), grip, 0, 0.6));
+        [1.93, -0.73].forEach(y => g.add(mesh(new THREE.SphereGeometry(0.12, 8, 6), acc, -1.14, y, 0, 0)));
+        tip = 1.9;
+        break;
+      }
+      case 'staff': {
+        shaft(3.3, 0.085);
+        const gem = mesh(new THREE.OctahedronGeometry(0.34, 0), acc, 0, 2.95, 0, 0.03); g.add(gem);
+        const ring = mesh(new THREE.TorusGeometry(0.48, 0.05, 6, 20), blade, 0, 2.95, 0, 0); g.add(ring);
+        g.userData.spin = gem; g.userData.ring = ring;
+        tip = 3.0;
+        break;
+      }
+      case 'scythe': {
+        shaft(3.3, 0.085);
+        const sh = new THREE.Shape(); sh.absarc(0, 0, 1.2, Math.PI * 0.05, Math.PI * 0.62, false); sh.absarc(0.12, -0.25, 1.05, Math.PI * 0.6, Math.PI * 0.08, true);
+        const geo = new THREE.ExtrudeGeometry(sh, { depth: 0.07, bevelEnabled: false }); geo.translate(-1.05, 1.8, -0.035);
+        g.add(mesh(geo, blade, 0, 0, 0, 0.03));
+        g.add(mesh(new THREE.SphereGeometry(0.15, 8, 6), acc, 0, 2.66));
+        tip = 2.9;
+        break;
+      }
+      case 'broom': {
+        shaft(2.9, 0.08);
+        const b = mesh(new THREE.ConeGeometry(0.42, 1.0, 12), tm(0xfcd34d), 0, -0.75); g.add(b);
+        const band = mesh(new THREE.TorusGeometry(0.2, 0.06, 6, 14), acc, 0, -0.32, 0, 0); band.rotation.x = Math.PI / 2; g.add(band);
+        g.rotation.z = Math.PI; g.position.y = 1.0;
+        tip = 1.8;
+        break;
+      }
+      case 'ladle': {
+        shaft(2.6, 0.08, blade);
+        const bowl = mesh(new THREE.SphereGeometry(0.48, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), acc, 0, 2.2); bowl.rotation.x = Math.PI * 0.6; g.add(bowl);
+        tip = 2.4;
+        break;
+      }
+      case 'pan': {
+        shaft(1.6, 0.1, grip);
+        const disc = mesh(new THREE.CylinderGeometry(0.85, 0.7, 0.22, 18), tm(0x334155), 0, 1.75); disc.rotation.x = Math.PI / 2; g.add(disc);
+        const rim = mesh(new THREE.TorusGeometry(0.85, 0.06, 6, 22), acc, 0, 1.75, 0.1, 0); g.add(rim);
+        tip = 2.5;
+        break;
+      }
+      case 'umbrella': {
+        shaft(3.0, 0.07);
+        g.add(mesh(new THREE.ConeGeometry(1.1, 0.75, 10, 1, true), new THREE.MeshToonMaterial({ color: P.acc, side: THREE.DoubleSide }), 0, 2.4, 0, 0));
+        const hook = mesh(new THREE.TorusGeometry(0.2, 0.05, 6, 12, Math.PI), grip, 0.2, -0.65, 0, 0); hook.rotation.z = Math.PI; g.add(hook);
+        tip = 2.8;
+        break;
+      }
+      case 'boomerang': {
+        const b1 = mesh(new THREE.BoxGeometry(0.28, 1.6, 0.12), blade, -0.3, 0.9, 0); b1.rotation.z = 0.5; g.add(b1);
+        const b2 = mesh(new THREE.BoxGeometry(0.28, 1.6, 0.12), acc, 0.3, 0.9, 0); b2.rotation.z = -0.5; g.add(b2);
+        tip = 1.7;
+        break;
+      }
+    }
+    g.userData.tip = tip;
+    return g;
+  }
+  function makeWeaponModel(shape, grade, enh) {
+    const P = PAL[grade] || PAL.C;
+    const root = new THREE.Group();
+    const head = buildWeaponHead(shape === 'dual' ? 'sword' : shape, P);
+    root.add(head);
+    const tip = head.userData.tip;
+    const lv = (grade === 'S' ? 3 : grade === 'A' ? 2 : grade === 'B' ? 1 : 0) + Math.floor((enh || 0) / 4);
+    if (lv >= 1) {
+      const gl = glowSprite(P.glow, 1.2 + lv * 0.45, Math.min(0.95, 0.35 + lv * 0.15));
+      gl.position.y = tip * 0.72; root.add(gl); root.userData.glow = gl;
+    }
+    if (lv >= 3) { // S급(또는 고강화): 무기 주위를 도는 반짝이
+      const sp = [];
+      for (let i = 0; i < 4 + Math.min(4, lv - 3) * 2; i++) {
+        const s = glowSprite(i % 2 ? 0xffffff : P.glow, 0.32, 0.95);
+        s.userData.ph = i / (4 + Math.min(4, lv - 3) * 2); root.add(s); sp.push(s);
+      }
+      root.userData.sparks = sp; root.userData.tip = tip;
+    }
+    root.userData.gearAnim = t => {
+      if (root.userData.glow) { const k = 1 + Math.sin(t * 4) * 0.12; root.userData.glow.material.opacity = Math.min(1, (0.35 + lv * 0.15) * k); }
+      if (head.userData.spin) { head.userData.spin.rotation.y = t * 2.2; head.userData.ring.rotation.x = Math.PI / 2 + Math.sin(t * 1.5) * 0.3; }
+      (root.userData.sparks || []).forEach(s => {
+        const a = (s.userData.ph + t * 0.35) % 1;
+        s.position.set(Math.cos(a * Math.PI * 6) * 0.45, a * tip * 1.05 - 0.3, Math.sin(a * Math.PI * 6) * 0.45);
+        s.material.opacity = Math.sin(a * Math.PI);
+      });
+    };
+    return root;
+  }
+
+  function makeArmorParts(style, grade) {
+    const P = PAL[grade] || PAL.C;
+    const g = new THREE.Group();
+    const main = tm(P.acc), trim = tm(grade === 'C' ? 0x78716c : P.blade), gem = basic(grade === 'C' ? 0x64748b : P.glow);
+    const plate = style === 'plate' || grade === 'S';
+    // 허리 벨트 + 버클 (모든 방어구)
+    const belt = mesh(new THREE.TorusGeometry(0.98, 0.09, 6, 26), style === 'light' && grade === 'C' ? tm(0x8b5a2b) : main, 0, 1.08, 0, 0.03);
+    belt.rotation.x = Math.PI / 2; belt.scale.y = 0.42; g.add(belt);
+    const buckle = mesh(new THREE.BoxGeometry(0.34, 0.26, 0.1), trim, 0, 1.08, 0.44, 0.03); g.add(buckle);
+    g.add(mesh(new THREE.OctahedronGeometry(0.09, 0), gem, 0, 1.08, 0.51, 0));
+    // 어깨 보호대
+    if (plate || grade !== 'C') {
+      [-1, 1].forEach(s => {
+        const pad = mesh(new THREE.SphereGeometry(plate ? 0.5 : 0.36, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), main, s * 1.22, 1.98, 0.05, 0.04);
+        pad.scale.set(1.05, 0.7, 0.9); pad.rotation.z = -s * 0.45; g.add(pad);
+        if (plate) {
+          const rim = mesh(new THREE.TorusGeometry(0.5, 0.05, 6, 18), trim, s * 1.22, 1.98, 0.05, 0);
+          rim.rotation.x = Math.PI / 2; rim.rotation.y = -s * 0.45; rim.scale.set(1.05, 0.9, 1); g.add(rim);
+        }
+        if (grade === 'S' || grade === 'A') g.add(mesh(new THREE.ConeGeometry(0.1, 0.38, 6), trim, s * 1.38, 2.32, 0.05, 0.02));
+      });
+    }
+    // 망토 (망토/로브 계열, A·S 등급)
+    if (style === 'cape' || grade === 'A' || grade === 'S') {
+      const capeGeo = new THREE.CylinderGeometry(1.0, 1.55, 2.0, 16, 4, true, Math.PI * 0.62, Math.PI * 0.76);
+      capeGeo.translate(0, -1.0, 0);
+      const cape = mesh(capeGeo, new THREE.MeshToonMaterial({ color: P.acc, side: THREE.DoubleSide, gradientMap: typeof getToonGradientMap === 'function' ? getToonGradientMap() : null }), 0, 0, 0, 0.03);
+      cape.position.set(0, 0, 0);
+      const pivot = new THREE.Group(); pivot.position.set(0, 2.15, -0.2); pivot.add(cape); g.add(pivot); g.userData.cape = pivot;
+      const edge = mesh(new THREE.TorusGeometry(1.0, 0.06, 6, 20, Math.PI * 0.76), trim, 0, 2.15, -0.2, 0);
+      edge.rotation.x = Math.PI / 2; edge.rotation.z = Math.PI * 0.12 + Math.PI; g.add(edge);
+    }
+    // 발밑 등급 오라 (B 이상)
+    if (grade !== 'C') {
+      const ringMat = new THREE.MeshBasicMaterial({ color: P.acc, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(new THREE.RingGeometry(1.25, 1.6, 36), ringMat);
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.2; ring.renderOrder = 2; g.add(ring); g.userData.ring = ring;
+      if (grade === 'A' || grade === 'S') {
+        const ring2 = new THREE.Mesh(new THREE.RingGeometry(1.7, 1.78, 6), ringMat.clone());
+        ring2.rotation.x = -Math.PI / 2; ring2.position.y = 0.21; ring2.renderOrder = 2; g.add(ring2); g.userData.ring2 = ring2;
+      }
+      if (grade === 'S') {
+        const motes = [];
+        for (let i = 0; i < 8; i++) { const m = glowSprite(i % 2 ? 0xffffff : P.glow, 0.34, 0.9); m.userData.ph = i / 8; g.add(m); motes.push(m); }
+        g.userData.motes = motes;
+      }
+    }
+    g.userData.gearAnim = t => {
+      if (g.userData.cape) g.userData.cape.rotation.x = 0.12 + Math.sin(t * 2.6) * 0.07;
+      if (g.userData.ring) { g.userData.ring.material.opacity = 0.5 + Math.sin(t * 3) * 0.15; g.userData.ring.rotation.z = t * 0.4; }
+      if (g.userData.ring2) g.userData.ring2.rotation.z = -t * 0.8;
+      (g.userData.motes || []).forEach(m => {
+        const a = (m.userData.ph + t * 0.25) % 1, ang = m.userData.ph * Math.PI * 2 + t * 0.6;
+        m.position.set(Math.cos(ang) * 1.45, 0.1 + a * 3.2, Math.sin(ang) * 1.45);
+        m.material.opacity = Math.sin(a * Math.PI) * 0.95;
+      });
+    };
+    return g;
+  }
+
+  const gearAnimated = new Set();
+  function disposeTree(o) {
+    o.traverse(c => {
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) (Array.isArray(c.material) ? c.material : [c.material]).forEach(m => { if (m.map && m.map === _glowTex) m.map = null; m.dispose(); });
+    });
+  }
+  // 시각 키: 무기 "모양|등급|강화", 방어구 "스타일|등급"
+  function gearKeys(s) {
+    if (!s) return { wv: '', av: '' };
+    const w = equippedGear(s, 'weapon'), a = equippedGear(s, 'armor');
+    return {
+      wv: w ? `${weaponShape(w.name)}|${w.grade}|${w.enh || 0}` : '',
+      av: a ? `${armorStyle(a.name)}|${a.grade}` : ''
+    };
+  }
+  const eqString = s => { const k = gearKeys(s); return `${(s && s.equippedAcc) || 'none'}~${k.wv}~${k.av}`; };
+  function dressMesh(pm, wv, av) {
+    if (!pm || !pm.userData || !pm.userData.parts) return;
+    const ud = pm.userData, parts = ud.parts;
+    const low = !!(window.gameApp && window.gameApp.lowPower);
+    const hideOutlines = o => { if (low) o.traverse(c => { if (c.userData && c.userData.isOutline) c.visible = false; }); };
+    if (ud._gearW !== wv) {
+      ud._gearW = wv;
+      const wm = parts.weaponMesh, la = parts.leftArmPivot;
+      [ud._gearWObj, ud._gearWObj2].forEach(o => { if (o) { o.parent && o.parent.remove(o); gearAnimated.delete(o); disposeTree(o); } });
+      ud._gearWObj = ud._gearWObj2 = null;
+      if (wm) {
+        // 기본 무기(첫 번째 자식 = 손)를 제외하고 숨김/복원
+        wm.children.forEach((c, i) => {
+          if (i === 0 || c.userData.gearPart) return;
+          if (c.userData.defVis === undefined) c.userData.defVis = c.visible;
+          c.visible = wv ? false : c.userData.defVis;
+        });
+        if (wv) {
+          const [shape, grade, enh] = wv.split('|');
+          const w = makeWeaponModel(shape, grade, +enh || 0);
+          w.userData.gearPart = true; w.scale.setScalar(1.15); hideOutlines(w);
+          wm.add(w); ud._gearWObj = w; gearAnimated.add(w);
+          if (shape === 'dual' && la) {
+            const w2 = makeWeaponModel('sword', grade, +enh || 0);
+            w2.userData.gearPart = true; w2.position.set(-0.05, -0.2, 0.15); w2.rotation.set(Math.PI / 7, 0, 0.22); w2.scale.setScalar(0.9);
+            hideOutlines(w2); la.add(w2); ud._gearWObj2 = w2; gearAnimated.add(w2);
+          }
+        }
+      }
+    }
+    if (ud._gearA !== av) {
+      ud._gearA = av;
+      const o = ud._gearAObj;
+      if (o) { o.parent && o.parent.remove(o); gearAnimated.delete(o); if (o.userData.cleanup) o.userData.cleanup(); disposeTree(o); }
+      ud._gearAObj = null;
+      if (av && parts.standeeGroup) {
+        const [style, grade] = av.split('|');
+        const a = makeArmorParts(style, grade);
+        hideOutlines(a);
+        // 발밑 오라는 몸이 기울어도 땅에 붙도록 루트에, 나머지는 몸(standee)에
+        const ground = new THREE.Group();
+        ['ring', 'ring2'].forEach(k => { if (a.userData[k]) ground.add(a.userData[k]); });
+        (a.userData.motes || []).forEach(m => ground.add(m));
+        parts.standeeGroup.add(a); pm.add(ground);
+        a.userData.ground = ground;
+        ud._gearAObj = a; gearAnimated.add(a);
+        a.userData.cleanup = () => { ground.parent && ground.parent.remove(ground); disposeTree(ground); };
+      }
+    }
+  }
+  function updateGearAnim(t) {
+    gearAnimated.forEach(o => {
+      let p = o, inScene = false;
+      while (p) { if (p.isScene) { inScene = true; break; } p = p.parent; }
+      if (!o.parent) { gearAnimated.delete(o); return; }
+      if (!inScene) { o.userData._off = (o.userData._off || 0) + 1; if (o.userData._off > 900) gearAnimated.delete(o); return; }
+      o.userData._off = 0;
+      if (o.userData.gearAnim) o.userData.gearAnim(t);
+    });
+  }
+  function dressRemote(mesh, eq) {
+    if (!mesh || typeof eq !== 'string') return;
+    const [acc, wv, av] = eq.split('~');
+    if (mesh.userData._gearAcc !== acc && mesh.userData.equipAcc) { mesh.userData._gearAcc = acc; mesh.userData.equipAcc(acc || 'none'); }
+    dressMesh(mesh, wv || '', av || '');
+  }
+
+  // ------------------------------------------------------------------
   // 연결
   // ------------------------------------------------------------------
   function install() {
@@ -651,6 +1004,7 @@ const SHOPHQ = (() => {
     const origFx = P.updateEffects;
     P.updateEffects = function (dt) {
       const r = origFx.call(this, dt);
+      try { updateGearAnim(this.clock ? this.clock.elapsedTime : performance.now() / 1000); } catch (e) { /* 무시 */ }
       const pm = this.playerMesh;
       const acc = pm && pm.userData.accSlot && pm.userData.accSlot.children[0];
       if (acc) {
@@ -662,7 +1016,7 @@ const SHOPHQ = (() => {
     };
   }
 
-  return { install, apply, atkMult, totals, recomputeHp, render, pull, makeItem, COSMETICS, GRADE, ECON };
+  return { install, apply, dressRemote, eqString, gearKeys, weaponShape, armorStyle, NAMES, atkMult, totals, recomputeHp, render, pull, makeItem, COSMETICS, GRADE, ECON };
 })();
 SHOPHQ.install();
 document.addEventListener('DOMContentLoaded', () => setTimeout(() => { if (window.gameApp) SHOPHQ.apply(window.gameApp); }, 0));

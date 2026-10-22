@@ -210,9 +210,10 @@ export class CoopManager {
       name: cleanName(user.displayName || `토벌자${user.uid.slice(0, 4)}`),
       charKey: g.activeCharKey || 'chiikawa',
       hat: (g.stats && g.stats.equippedHat) || 'none',
+      eq: (typeof SHOPHQ !== 'undefined' && g.stats) ? SHOPHQ.eqString(g.stats) : '',
       joinedAt: serverTimestamp()
     });
-    this.lastProfile = `${g.activeCharKey}|${g.stats.equippedHat}`;
+    this.lastProfile = `${g.activeCharKey}|${g.stats.equippedHat}|${typeof SHOPHQ !== 'undefined' && g.stats ? SHOPHQ.eqString(g.stats) : ''}`;
     this.sendState(true);
 
     const playersRef = this.path('players');
@@ -268,6 +269,7 @@ export class CoopManager {
         name: cleanName(this.auth.currentUser.displayName || `토벌자${this.uid.slice(0, 4)}`),
         charKey: g.activeCharKey || 'chiikawa',
         hat: (g.stats && g.stats.equippedHat) || 'none',
+        eq: (typeof SHOPHQ !== 'undefined' && g.stats) ? SHOPHQ.eqString(g.stats) : '',
         joinedAt: serverTimestamp()
       });
     } catch (e) { /* 무시 */ }
@@ -412,6 +414,7 @@ export class CoopManager {
       r.hat = info.hat;
       r.mesh.userData.equipHat(info.hat || 'none');
     }
+    if (info.eq !== r.eq && typeof SHOPHQ !== 'undefined') { r.eq = info.eq; try { SHOPHQ.dressRemote(r.mesh, info.eq || ''); } catch (e) { /* 무시 */ } }
   }
 
   removeRemote(uid) {
@@ -567,10 +570,10 @@ export class CoopManager {
       this.sendState(false);
     }
     // 캐릭터/모자 변경 반영
-    const profile = `${g.activeCharKey}|${g.stats.equippedHat}`;
+    const profile = `${g.activeCharKey}|${g.stats.equippedHat}|${typeof SHOPHQ !== 'undefined' && g.stats ? SHOPHQ.eqString(g.stats) : ''}`;
     if (profile !== this.lastProfile) {
       this.lastProfile = profile;
-      update(this.path(`players/${this.uid}`), { charKey: g.activeCharKey, hat: g.stats.equippedHat || 'none' }).catch(() => {});
+      update(this.path(`players/${this.uid}`), { charKey: g.activeCharKey, hat: g.stats.equippedHat || 'none', eq: (typeof SHOPHQ !== 'undefined' && g.stats) ? SHOPHQ.eqString(g.stats) : '' }).catch(() => {});
     }
 
     const myArea = this.area();
@@ -1882,8 +1885,8 @@ export class CoopManager {
       const st = this.wpath(`state/${W.uid}`);
       await onDisconnect(me).remove();
       await onDisconnect(st).remove();
-      await set(me, { name: this.myName(), charKey: g.activeCharKey || 'chiikawa', hat: (g.stats && g.stats.equippedHat) || 'none', lv: this.myLevel(), joinedAt: serverTimestamp() });
-      W.profile = `${g.activeCharKey}|${g.stats.equippedHat}|${this.myLevel()}|${this.myName()}`;
+      await set(me, { name: this.myName(), charKey: g.activeCharKey || 'chiikawa', hat: (g.stats && g.stats.equippedHat) || 'none', lv: this.myLevel(), eq: (typeof SHOPHQ !== 'undefined' && g.stats) ? SHOPHQ.eqString(g.stats) : '', joinedAt: serverTimestamp() });
+      W.profile = `${g.activeCharKey}|${g.stats.equippedHat}|${this.myLevel()}|${this.myName()}|${typeof SHOPHQ !== 'undefined' && g.stats ? SHOPHQ.eqString(g.stats) : ''}`;
       W.joinedAt = this.now();
       this._wJoinLocal = Date.now();
       W.on = true;
@@ -1923,7 +1926,7 @@ export class CoopManager {
     const g = this.game;
     if (!W.on || !g) return;
     try {
-      await set(this.wpath(`players/${W.uid}`), { name: this.myName(), charKey: g.activeCharKey || 'chiikawa', hat: (g.stats && g.stats.equippedHat) || 'none', lv: this.myLevel(), joinedAt: serverTimestamp() });
+      await set(this.wpath(`players/${W.uid}`), { name: this.myName(), charKey: g.activeCharKey || 'chiikawa', hat: (g.stats && g.stats.equippedHat) || 'none', lv: this.myLevel(), eq: (typeof SHOPHQ !== 'undefined' && g.stats) ? SHOPHQ.eqString(g.stats) : '', joinedAt: serverTimestamp() });
       this.wSendState(true);
     } catch (e) { /* 무시 */ }
   }
@@ -2034,6 +2037,7 @@ export class CoopManager {
       }
     }
     if (info.hat !== r.hat && r.mesh.userData.equipHat) { r.hat = info.hat; r.mesh.userData.equipHat(info.hat || 'none'); }
+    if (info.eq !== r.eq && typeof SHOPHQ !== 'undefined') { r.eq = info.eq; try { SHOPHQ.dressRemote(r.mesh, info.eq || ''); } catch (e) { /* 무시 */ } }
   }
 
   wRemoveRemote(uid) {
@@ -2080,10 +2084,10 @@ export class CoopManager {
     if (W.sendT >= WORLD_SEND) { W.sendT = 0; this.wSendState(false); }
     W.pruneT += dt;
     if (W.pruneT > 60) { W.pruneT = 0; this.wPrune(); }
-    const profile = `${g.activeCharKey}|${g.stats.equippedHat}|${this.myLevel()}|${this.myName()}`;
+    const profile = `${g.activeCharKey}|${g.stats.equippedHat}|${this.myLevel()}|${this.myName()}|${typeof SHOPHQ !== 'undefined' && g.stats ? SHOPHQ.eqString(g.stats) : ''}`;
     if (profile !== W.profile) {
       W.profile = profile;
-      update(this.wpath(`players/${W.uid}`), { charKey: g.activeCharKey, hat: g.stats.equippedHat || 'none', lv: this.myLevel(), name: this.myName() }).catch(() => {});
+      update(this.wpath(`players/${W.uid}`), { charKey: g.activeCharKey, hat: g.stats.equippedHat || 'none', lv: this.myLevel(), name: this.myName(), eq: (typeof SHOPHQ !== 'undefined' && g.stats) ? SHOPHQ.eqString(g.stats) : '' }).catch(() => {});
     }
     const myArea = this.area();
     const ctx = this.avatarCtx();
