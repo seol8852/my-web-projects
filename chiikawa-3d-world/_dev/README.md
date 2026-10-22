@@ -20,6 +20,21 @@ npm install
 빌드 후 `git add -A && git commit && git push` 하면 사이트에 반영돼요.
 예전처럼 `?v=날짜`를 손으로 바꿀 필요 없어요 (내용이 바뀐 파일만 자동으로 새로 받음).
 
+## 🏘️ 마을 구조물 라이트맵 굽기 (Blender)
+마을 건물·소품은 코드(`src/world/town_hq.js`)로 만든 뒤, Blender(Cycles)에서 햇빛·하늘빛·그림자를 텍스처에 구워
+`../assets/baked/*.glb`로 바꿔 끼워요 (`src/world/town_baked.js`). 움직이는 부품(풍차 날개, 물, 불꽃, 등불 등)은 그대로 실시간이에요.
+
+건물 모양을 `town_hq.js`에서 고쳤다면 다시 구워야 해요:
+```
+npm run build && npm run preview          # (다른 창에서 켜둔 채로)
+npm run bake:export                        # 1) 게임에서 정적 부분을 tools/bake/in/*.glb 로 추출
+npm run bake -- "^house$"                  # 2) Blender로 굽기 (키 필터 생략 시 전부, Blender 5.x 필요)
+npm run bake:pack                          # 3) 용량 압축 (meshopt)
+npm run build                              # 4) 다시 빌드
+```
+- 비교용으로 끄기: 브라우저 콘솔에서 `localStorage.setItem('chiikawa_baked','off')` 후 새로고침
+- 조명 세기 조절: 환경변수 `BAKE_SUN`(햇빛), `BAKE_SAMPLES`(품질), `BAKE_DENSITY`(텍스처 해상도), `BAKE_BEVEL`(모서리 둥글기)
+
 ## 폴더 구조
 ```
 _dev/
@@ -35,6 +50,7 @@ _dev/
     shop/             상점·가챠·장비·강화
     net/              로그인(Firebase), 온라인 협동·월드
     styles/           CSS
+  tools/bake/         라이트맵 굽기 도구 (추출 → Blender 굽기 → 압축)
   tests/smoke.mjs     자동 점검
 ```
 이미지 등 리소스는 배포 폴더의 `assets/`를 그대로 써요.

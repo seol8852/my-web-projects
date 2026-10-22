@@ -36,6 +36,19 @@ const POLISH = (() => {
     occluders.push({ obj, centerOffsetY, radius, mats, outlines, fade: 0, faded: false });
   }
 
+  // 구조물 모델이 바뀌었을 때(구운 모델로 교체) 페이드용 재질 목록 다시 수집
+  function rescanOccluder(obj) {
+    const oc = occluders.find(o => o.obj === obj);
+    if (!oc) return;
+    const mats = [], outlines = [];
+    obj.traverse(o => {
+      if (!o.isMesh || !o.material) return;
+      if (o.material.side === THREE.BackSide) { outlines.push(o); return; }
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (!mats.includes(m)) mats.push(m); });
+    });
+    oc.mats = mats; oc.outlines = outlines;
+  }
+
   function distPointSegment(p, a, b) {
     const abx = b.x - a.x, aby = b.y - a.y, abz = b.z - a.z;
     const len2 = abx * abx + aby * aby + abz * abz || 1;
@@ -1027,7 +1040,7 @@ const POLISH = (() => {
   }
 
   return {
-    registerOccluder, attachBackView, makeBackTexture, damageNumber, createNearGrass,
+    registerOccluder, rescanOccluder, attachBackView, makeBackTexture, damageNumber, createNearGrass,
     playerHurt, telegraphMaterial, dust, landing, dashBurst, getWaterMaterial,
     applyQuality, cycleQuality, initHud, toggleCompact, update, onTelegraph, attackImpact,
     get quality() { return quality; }, get detail() { return detail; }, _camera: null

@@ -11,7 +11,8 @@ const TOWNHQ = (() => {
   const GM = () => (typeof getToonGradientMap === 'function' ? getToonGradientMap() : null);
   const outline = (m, t = 0.03, c) => { if (typeof addCartoonOutline === 'function') addCartoonOutline(m, t, c); return m; };
   const shadow = (m, cast = true, recv = true) => { m.castShadow = cast; m.receiveShadow = recv; return m; };
-  const rnd = (() => { let s = 12345; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; })();
+  let RS = 12345; // 난수 상태 (빌더마다 이름으로 고정 → 구운 모델과 실제 배치·충돌이 항상 일치)
+  const rnd = () => { RS = (RS * 16807) % 2147483647; return RS / 2147483647; };
   const animated = []; // 매 프레임 갱신할 소품 (연기, 불꽃, 물줄기, 등불)
 
   // ------------------------------------------------------------------
@@ -2798,14 +2799,14 @@ const TOWNHQ = (() => {
 
   // 신규 구조물 위치 (x, z, 반경, 이름)
   const SITES = [
-    { x: -60, z: -36, r: 12, fn: hachiCave, label: '🏠 하치와레의 동굴 집', sy: 8.8 },
-    { x: 54, z: -8, r: 11, fn: laborOffice, label: '🛠️ 노동 안내소 (일거리 게시판)', sy: 9.2 },
-    { x: -30, z: -62, r: 13, fn: sento, label: '♨️ 대중목욕탕', sy: 10.5 },
-    { x: 26, z: 58, r: 14, fn: market, label: '🍎 마켓 거리 (과일·꽃·빵)', sy: 6.8 },
-    { x: -110, z: 18, r: 18, fn: farm, label: '🥕 들판 농장', sy: 7.5 },
-    { x: 44, z: 98, r: 13, fn: playground, label: '🛝 놀이터', sy: 6.8 },
-    { x: 58, z: -48, r: 11, fn: wellRest, label: '⛲ 우물 & 육각 정자 쉼터', sy: 8.6 },
-    { x: 8, z: -44, r: 10, fn: raidAltar, label: '🐉 레이드 입장 제단 · 아노코 / 파자마 새 (원 안에서 [E] 준비)', sy: 8.0, noFace: true }
+    { x: -60, z: -36, r: 12, fn: () => hachiCave(), label: '🏠 하치와레의 동굴 집', sy: 8.8 },
+    { x: 54, z: -8, r: 11, fn: () => laborOffice(), label: '🛠️ 노동 안내소 (일거리 게시판)', sy: 9.2 },
+    { x: -30, z: -62, r: 13, fn: () => sento(), label: '♨️ 대중목욕탕', sy: 10.5 },
+    { x: 26, z: 58, r: 14, fn: () => market(), label: '🍎 마켓 거리 (과일·꽃·빵)', sy: 6.8 },
+    { x: -110, z: 18, r: 18, fn: () => farm(), label: '🥕 들판 농장', sy: 7.5 },
+    { x: 44, z: 98, r: 13, fn: () => playground(), label: '🛝 놀이터', sy: 6.8 },
+    { x: 58, z: -48, r: 11, fn: () => wellRest(), label: '⛲ 우물 & 육각 정자 쉼터', sy: 8.6 },
+    { x: 8, z: -44, r: 10, fn: () => raidAltar(), label: '🐉 레이드 입장 제단 · 아노코 / 파자마 새 (원 안에서 [E] 준비)', sy: 8.0, noFace: true }
   ];
   if (typeof WQ_EXCLUDE !== 'undefined') SITES.forEach(s => WQ_EXCLUDE.push([s.x, s.z, s.r]));
   function blocked(x, z, pad = 0) {
@@ -2956,9 +2957,37 @@ const TOWNHQ = (() => {
     }
   }
 
+  // 🧱 베이크 태그: 각 빌더 결과물에 이름(+인자)을 붙여, town_baked.js가 Blender에서 구운 모델로 교체할 수 있게 함
+  const ANIM_OF = new WeakMap();
+  const seedOf = str => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return (h % 2147483646) + 1; };
+  const tagB = (name, fn) => function (...args) {
+    const n0 = animated.length;
+    const key = name + (args.length ? ':' + args.map(a => (typeof a === 'number' ? +a.toFixed(3) : a)).join(',') : '');
+    const saved = RS;
+    RS = seedOf(key);
+    let o;
+    try { o = fn.apply(this, args); } finally { RS = saved; }
+    if (o && o.userData) {
+      o.userData.bakeKey = key;
+      if (animated.length > n0) ANIM_OF.set(o, animated.slice(n0));
+    }
+    return o;
+  };
+  house = tagB('house', house); fountain = tagB('fountain', fountain); ramenStall = tagB('ramenStall', ramenStall);
+  boutique = tagB('boutique', boutique); windmill = tagB('windmill', windmill); tent = tagB('tent', tent);
+  campsite = tagB('campsite', campsite); stoneLantern = tagB('stoneLantern', stoneLantern); onsen = tagB('onsen', onsen);
+  portalGate = tagB('portalGate', portalGate); ruins = tagB('ruins', ruins); hachiCave = tagB('hachiCave', hachiCave);
+  laborOffice = tagB('laborOffice', laborOffice); sento = tagB('sento', sento); marketStall = tagB('marketStall', marketStall);
+  market = tagB('market', market); farm = tagB('farm', farm); playground = tagB('playground', playground);
+  wellRest = tagB('wellRest', wellRest); raidAltar = tagB('raidAltar', raidAltar);
+  streetLamp = tagB('streetLamp', streetLamp); bench = tagB('bench', bench); barrel = tagB('barrel', barrel);
+  crate = tagB('crate', crate); fence = tagB('fence', fence); bush = tagB('bush', bush); mailbox = tagB('mailbox', mailbox);
+  pot = tagB('pot', pot); flowerBox = tagB('flowerBox', flowerBox);
+
   return {
     house, fountain, ramenStall, boutique: () => { const g = boutique(); g.userData.townHQ = true; return g; }, windmill, campsite, onsen, portalGate, ruins,
     decorate, update, TEX, SITES, blocked, collide, support, registerColliders, addWorldCollider,
+    animOf: o => ANIM_OF.get(o) || [],
     get colliderCount() { return COLS.length; },
     get animatedCount() { return animated.length; }
   };

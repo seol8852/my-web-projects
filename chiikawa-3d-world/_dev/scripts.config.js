@@ -11,7 +11,10 @@ export const VENDOR_SCRIPTS = [
   'node_modules/three/examples/js/postprocessing/EffectComposer.js',
   'node_modules/three/examples/js/postprocessing/RenderPass.js',
   'node_modules/three/examples/js/postprocessing/ShaderPass.js',
-  'node_modules/three/examples/js/postprocessing/UnrealBloomPass.js'
+  'node_modules/three/examples/js/postprocessing/UnrealBloomPass.js',
+  // 구운 구조물 모델(.glb) 불러오기
+  'node_modules/three/examples/js/loaders/GLTFLoader.js',
+  'node_modules/meshoptimizer/meshopt_decoder.cjs'
 ];
 
 export const GAME_SCRIPTS = [
@@ -21,6 +24,7 @@ export const GAME_SCRIPTS = [
   // world: 오픈월드 맵, 마을 건물·충돌, 이펙트, 그래픽 품질
   'src/world/world_hq.js',
   'src/world/town_hq.js',
+  'src/world/town_baked.js', // Blender에서 라이트맵 구운 모델로 교체
   'src/world/fx_hq.js',
   'src/world/polish_hq.js',
   // combat: 스킬

@@ -1,1 +1,3 @@
 node_modules/
+tools/bake/in/
+tools/bake/debug_*.png

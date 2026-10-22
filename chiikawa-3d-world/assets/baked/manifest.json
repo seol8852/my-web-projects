@@ -1,0 +1,322 @@
+{
+ "items": {
+  "fountain": {
+   "file": "fountain.glb",
+   "v": "afc0ca516c",
+   "res": 1024,
+   "mode": "full",
+   "ol": "fountain.ol.glb",
+   "olv": "d8821da5ce",
+   "packedFrom": "afc0ca516c",
+   "packed": true,
+   "webp": true
+  },
+  "house": {
+   "file": "house.glb",
+   "v": "a5816c61d3",
+   "res": 2048,
+   "mode": "full",
+   "ol": "house.ol.glb",
+   "olv": "97edfe5a00",
+   "packedFrom": "a5816c61d3",
+   "packed": true,
+   "webp": true
+  },
+  "ramenStall": {
+   "file": "ramenStall.glb",
+   "v": "48681f5982",
+   "res": 1024,
+   "mode": "full",
+   "ol": "ramenStall.ol.glb",
+   "olv": "f090771aed",
+   "packedFrom": "48681f5982",
+   "packed": true,
+   "webp": true
+  },
+  "boutique": {
+   "file": "boutique.glb",
+   "v": "cef0089fe6",
+   "res": 1024,
+   "mode": "full",
+   "ol": "boutique.ol.glb",
+   "olv": "c204f8dba4",
+   "packedFrom": "cef0089fe6",
+   "packed": true,
+   "webp": true
+  },
+  "windmill": {
+   "file": "windmill.glb",
+   "v": "5bc7a604a5",
+   "res": 1024,
+   "mode": "full",
+   "ol": "windmill.ol.glb",
+   "olv": "d1a6094946",
+   "packedFrom": "5bc7a604a5",
+   "packed": true,
+   "webp": true
+  },
+  "onsen": {
+   "file": "onsen.glb",
+   "v": "b575ba9f06",
+   "res": 2048,
+   "mode": "full",
+   "ol": "onsen.ol.glb",
+   "olv": "2fe0958b66",
+   "packedFrom": "b575ba9f06",
+   "packed": true,
+   "webp": true
+  },
+  "campsite": {
+   "file": "campsite.glb",
+   "v": "913391a4d2",
+   "res": 1024,
+   "mode": "full",
+   "ol": "campsite.ol.glb",
+   "olv": "9f149a1ba1",
+   "packedFrom": "913391a4d2",
+   "packed": true,
+   "webp": true
+  },
+  "portalGate": {
+   "file": "portalGate.glb",
+   "v": "9c556a1a79",
+   "res": 2048,
+   "mode": "full",
+   "ol": "portalGate.ol.glb",
+   "olv": "36fa4ea075",
+   "packedFrom": "9c556a1a79",
+   "packed": true,
+   "webp": true
+  },
+  "ruins": {
+   "file": "ruins.glb",
+   "v": "078b2efc57",
+   "res": 2048,
+   "mode": "full",
+   "ol": "ruins.ol.glb",
+   "olv": "be7def9348",
+   "packedFrom": "078b2efc57",
+   "packed": true,
+   "webp": true
+  },
+  "streetLamp": {
+   "file": "streetLamp.glb",
+   "v": "a463f9e876",
+   "res": 256,
+   "mode": "full",
+   "ol": "streetLamp.ol.glb",
+   "olv": "21fa216af1",
+   "packedFrom": "a463f9e876",
+   "packed": true,
+   "webp": true
+  },
+  "bench": {
+   "file": "bench.glb",
+   "v": "ec22b51cd2",
+   "res": 256,
+   "mode": "full",
+   "ol": "bench.ol.glb",
+   "olv": "e59c575aeb",
+   "packedFrom": "ec22b51cd2",
+   "packed": true,
+   "webp": true
+  },
+  "pot:14711391": {
+   "file": "pot_14711391.glb",
+   "v": "d3fc57fa76",
+   "res": 256,
+   "mode": "full",
+   "ol": "pot_14711391.ol.glb",
+   "olv": "4e62b2b442",
+   "packedFrom": "d3fc57fa76",
+   "packed": true,
+   "webp": true
+  },
+  "barrel": {
+   "file": "barrel.glb",
+   "v": "aea8fc4ecd",
+   "res": 256,
+   "mode": "full",
+   "ol": "barrel.ol.glb",
+   "olv": "364cf47385",
+   "packedFrom": "aea8fc4ecd",
+   "packed": true,
+   "webp": true
+  },
+  "fence:6,4": {
+   "file": "fence_6_4.glb",
+   "v": "93c9a34c7c",
+   "res": 256,
+   "mode": "full",
+   "ol": null,
+   "packedFrom": "93c9a34c7c",
+   "packed": true,
+   "webp": true
+  },
+  "bush:0.9": {
+   "file": "bush_0_9.glb",
+   "v": "e021ce9e40",
+   "res": 256,
+   "mode": "full",
+   "ol": "bush_0_9.ol.glb",
+   "olv": "b2bd6af8e9",
+   "packedFrom": "e021ce9e40",
+   "packed": true,
+   "webp": true
+  },
+  "bush:1.15": {
+   "file": "bush_1_15.glb",
+   "v": "cc650a2a35",
+   "res": 256,
+   "mode": "full",
+   "ol": "bush_1_15.ol.glb",
+   "olv": "fa1a852b93",
+   "packedFrom": "cc650a2a35",
+   "packed": true,
+   "webp": true
+  },
+  "bush:1.4": {
+   "file": "bush_1_4.glb",
+   "v": "c4d63b04de",
+   "res": 512,
+   "mode": "full",
+   "ol": "bush_1_4.ol.glb",
+   "olv": "8fadd93f80",
+   "packedFrom": "c4d63b04de",
+   "packed": true,
+   "webp": true
+  },
+  "crate:1.1": {
+   "file": "crate_1_1.glb",
+   "v": "136eaea73c",
+   "res": 256,
+   "mode": "full",
+   "ol": "crate_1_1.ol.glb",
+   "olv": "02fa325e23",
+   "packedFrom": "136eaea73c",
+   "packed": true,
+   "webp": true
+  },
+  "crate:0.8": {
+   "file": "crate_0_8.glb",
+   "v": "541ca41dc6",
+   "res": 256,
+   "mode": "full",
+   "ol": "crate_0_8.ol.glb",
+   "olv": "d5be22d345",
+   "packedFrom": "541ca41dc6",
+   "packed": true,
+   "webp": true
+  },
+  "crate:0.7": {
+   "file": "crate_0_7.glb",
+   "v": "24aee0b8ea",
+   "res": 256,
+   "mode": "full",
+   "ol": "crate_0_7.ol.glb",
+   "olv": "3c7f1d7d5c",
+   "packedFrom": "24aee0b8ea",
+   "packed": true,
+   "webp": true
+  },
+  "crate:1": {
+   "file": "crate_1.glb",
+   "v": "e4a478bb92",
+   "res": 256,
+   "mode": "full",
+   "ol": "crate_1.ol.glb",
+   "olv": "e61edbe634",
+   "packedFrom": "e4a478bb92",
+   "packed": true,
+   "webp": true
+  },
+  "hachiCave": {
+   "file": "hachiCave.glb",
+   "v": "35c2717f21",
+   "res": 2048,
+   "mode": "full",
+   "ol": "hachiCave.ol.glb",
+   "olv": "2607fda745",
+   "packedFrom": "35c2717f21",
+   "packed": true,
+   "webp": true
+  },
+  "laborOffice": {
+   "file": "laborOffice.glb",
+   "v": "a4d6a57b90",
+   "res": 2048,
+   "mode": "full",
+   "ol": "laborOffice.ol.glb",
+   "olv": "0919adc8d7",
+   "packedFrom": "a4d6a57b90",
+   "packed": true,
+   "webp": true
+  },
+  "sento": {
+   "file": "sento.glb",
+   "v": "4ba4f0c61e",
+   "res": 2048,
+   "mode": "full",
+   "ol": "sento.ol.glb",
+   "olv": "de62afb574",
+   "packedFrom": "4ba4f0c61e",
+   "packed": true,
+   "webp": true
+  },
+  "market": {
+   "file": "market.glb",
+   "v": "43a4e9cbbe",
+   "res": 2048,
+   "mode": "full",
+   "ol": "market.ol.glb",
+   "olv": "ffef698d74",
+   "packedFrom": "43a4e9cbbe",
+   "packed": true,
+   "webp": true
+  },
+  "farm": {
+   "file": "farm.glb",
+   "v": "75b27e8d3a",
+   "res": 2048,
+   "mode": "full",
+   "ol": "farm.ol.glb",
+   "olv": "2f13eea7b8",
+   "packedFrom": "75b27e8d3a",
+   "packed": true,
+   "webp": true
+  },
+  "playground": {
+   "file": "playground.glb",
+   "v": "d3a857b07f",
+   "res": 2048,
+   "mode": "full",
+   "ol": "playground.ol.glb",
+   "olv": "78a4645c01",
+   "packedFrom": "d3a857b07f",
+   "packed": true,
+   "webp": true
+  },
+  "wellRest": {
+   "file": "wellRest.glb",
+   "v": "ad98aa2a02",
+   "res": 1024,
+   "mode": "full",
+   "ol": "wellRest.ol.glb",
+   "olv": "33d66ce98d",
+   "packedFrom": "ad98aa2a02",
+   "packed": true,
+   "webp": true
+  },
+  "raidAltar": {
+   "file": "raidAltar.glb",
+   "v": "f1e1539d60",
+   "res": 2048,
+   "mode": "full",
+   "ol": "raidAltar.ol.glb",
+   "olv": "7481050982",
+   "packedFrom": "f1e1539d60",
+   "packed": true,
+   "webp": true
+  }
+ }
+}
