@@ -11,7 +11,7 @@ let sharedToonGradientMap = null;
 function getToonGradientMap() {
   if (sharedToonGradientMap) return sharedToonGradientMap;
   const colors = new Uint8Array([80, 130, 178, 222]);
-  const texture = new THREE.DataTexture(colors, colors.length, 1, THREE.LuminanceFormat);
+  const texture = new THREE.DataTexture(colors, colors.length, 1, THREE.RedFormat); // (r128의 LuminanceFormat 대체)
   texture.minFilter = THREE.NearestFilter;
   texture.magFilter = THREE.NearestFilter;
   texture.generateMipmaps = false;

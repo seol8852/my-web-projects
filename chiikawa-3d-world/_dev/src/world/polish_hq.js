@@ -498,8 +498,7 @@ const POLISH = (() => {
       });
     }
     // 낮음: 후처리를 거치지 않고 화면에 바로 그리므로, 후처리 경로와 같은 색이 나오게 출력 인코딩을 맞춤
-    if (game._baseEncoding === undefined) game._baseEncoding = game.renderer.outputEncoding;
-    game.renderer.outputEncoding = cfg.lowPower ? THREE.LinearEncoding : game._baseEncoding;
+    game.renderer.outputColorSpace = THREE.LinearSRGBColorSpace; // 낮음/후처리 모두 같은 색감
     // 낮음: 안개를 조금 짙게 해서 짧아진 그리기 거리가 티 나지 않게
     if (game.scene && game.scene.fog) {
       if (game._baseFogDensity === undefined) game._baseFogDensity = game.scene.fog.density;

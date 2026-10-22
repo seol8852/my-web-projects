@@ -24,7 +24,7 @@ await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 180000 });
 await page.waitForFunction(() => window.gameApp && window.gameApp.scene, null, { timeout: 180000 });
 await page.evaluate(() => { gameApp.selectedCharInLobby = 'chiikawa'; gameApp.startGameWithSelectedChar(); });
 await page.waitForTimeout(2500);
-await page.addScriptTag({ content: readFileSync(resolve(here, '../../node_modules/three/examples/js/exporters/GLTFExporter.js'), 'utf8') });
+await page.evaluate(async () => { window.__GLTFExporter = await THREE.loadGLTFExporter(); });
 
 const keys = await page.evaluate(() => {
   const seen = {};
@@ -123,9 +123,9 @@ for (const key of Object.keys(keys)) {
       og.setAttribute('position', new THREE.Float32BufferAttribute(olPos, 3));
       og.setAttribute('color', new THREE.Float32BufferAttribute(olCol, 3));
       const os = new THREE.Scene(); os.add(new THREE.Mesh(og, new THREE.MeshBasicMaterial({ vertexColors: true })));
-      ol = toB64(await new Promise(res => new THREE.GLTFExporter().parse(os, res, { binary: true })));
+      ol = toB64(await new Promise(res => new window.__GLTFExporter().parse(os, res, e => { throw e; }, { binary: true })));
     }
-    const buf = await new Promise(res => new THREE.GLTFExporter().parse(scene, res, { binary: true, maxTextureSize: 1024 }));
+    const buf = await new Promise(res => new window.__GLTFExporter().parse(scene, res, e => { throw e; }, { binary: true, maxTextureSize: 1024 }));
     const s = atob(toB64(buf));
     const box = new THREE.Box3().setFromObject(scene);
     return { glb: btoa(s), ol, meshes: list.length, area: Math.round(area), tris: Math.round(tris), size: box.getSize(new THREE.Vector3()).toArray().map(v => +v.toFixed(2)) };

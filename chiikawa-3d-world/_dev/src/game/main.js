@@ -397,8 +397,9 @@ class Chiikawa3DWorldApp {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setPixelRatio(this.currentPixelRatio);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap; // 최신 버전은 PCF + shadow.radius 로 부드러운 그림자
+    // r128 시절 화면 유지: 후처리(composer) 경로가 감마 변환 없이 출력했으므로 선형 출력으로 고정
+    this.renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     // 눈이 피로하지 않도록 노출도를 차분하고 부드러운 0.8로 조정
     this.renderer.toneMappingExposure = 0.8;
@@ -409,14 +410,7 @@ class Chiikawa3DWorldApp {
       let composerTarget;
       const w = window.innerWidth * this.currentPixelRatio;
       const h = window.innerHeight * this.currentPixelRatio;
-      if (this.renderer.capabilities.isWebGL2 && THREE.WebGLMultisampleRenderTarget) {
-        composerTarget = new THREE.WebGLMultisampleRenderTarget(w, h, {
-          format: THREE.RGBAFormat,
-          minFilter: THREE.LinearFilter,
-          magFilter: THREE.LinearFilter
-        });
-        composerTarget.samples = 4;
-      }
+      composerTarget = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, samples: 4 });
       this.composer = composerTarget
         ? new THREE.EffectComposer(this.renderer, composerTarget)
         : new THREE.EffectComposer(this.renderer);

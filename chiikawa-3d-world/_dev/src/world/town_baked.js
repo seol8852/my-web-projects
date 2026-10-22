@@ -102,7 +102,8 @@ const TOWNBAKE = (() => {
       const at = src.geometry.attributes[name];
       const arr = new Float32Array(at.count * at.itemSize);
       const raw = at.isInterleavedBufferAttribute ? at.data.array : at.array;
-      const div = !at.normalized ? 1 : raw instanceof Int8Array ? 127 : raw instanceof Uint8Array ? 255 : raw instanceof Int16Array ? 32767 : raw instanceof Uint16Array ? 65535 : 1;
+      // three r139+ 는 getX가 정규화를 이미 풀어줌 (r128은 원시 정수값)
+      const div = (!at.normalized || parseInt(THREE.REVISION, 10) >= 139) ? 1 : raw instanceof Int8Array ? 127 : raw instanceof Uint8Array ? 255 : raw instanceof Int16Array ? 32767 : raw instanceof Uint16Array ? 65535 : 1;
       const get = [at.getX, at.getY, at.getZ, at.getW];
       for (let i = 0; i < at.count; i++) for (let c = 0; c < at.itemSize; c++) {
         const v = get[c].call(at, i);
@@ -127,7 +128,7 @@ const TOWNBAKE = (() => {
       const geo = floatGeometry(src);
       if (geo.attributes.normal) geo.normalizeNormals();
       const map = src.material.map;
-      if (map) { map.encoding = THREE.LinearEncoding; map.anisotropy = 4; map.needsUpdate = true; }
+      if (map) { map.colorSpace = THREE.NoColorSpace; map.anisotropy = 4; map.needsUpdate = true; }
       // full: 햇빛·하늘빛·그림자까지 구워져 있으므로 조명 계산 없는 재질(가볍고 저사양에서도 같은 모습)
       const mat = ent.mode === 'full'
         ? new THREE.MeshBasicMaterial({ map, color: tint.clone() })

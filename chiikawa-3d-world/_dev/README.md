@@ -43,7 +43,7 @@ _dev/
   src/
     app.js            진입점: 모듈 실행 순서 (뒤 모듈이 앞 모듈을 확장)
     boot.js           로그인·온라인 (따로 불러옴 → Firebase가 막혀도 게임은 실행)
-    core/three.js     Three.js 한 곳에서 불러오기 (버전 올릴 때 여기만)
+    core/three.js     Three.js(r186) 한 곳에서 불러오기 + r128 화면 호환 설정 (버전 올릴 때 여기만)
     core/expose.js    모듈 이름을 window에 연결 (HTML onclick·덮어쓰기 호환)
     core/             사운드, 3D 모델(캐릭터·몬스터·무기)
     world/            오픈월드 맵, 마을 건물·충돌, 이펙트, 그래픽 품질, 점프맵
@@ -63,3 +63,10 @@ _dev/
 - 각 모듈 끝의 `expose({...})`가 최상위 이름을 window에 살아있는 연결로 걸어둬요.
   `window.X = 새함수`로 바꾸면 원래 모듈 안의 X도 같이 바뀌어요.
 - 새 파일을 만들면 `src/app.js`에 순서대로 import 한 줄을 추가하세요.
+
+## Three.js r186 호환 메모
+r128에서 올리면서 화면이 예전과 같게 보이도록 `src/core/three.js`에서 맞춰둔 것:
+- 색 관리 끔 (`ColorManagement.enabled = false`): 코드의 색값(0xff85a2 등)을 그대로 사용
+- 조명 세기: 예전 "레거시 조명"의 ×π를 자동 보정 (코드에서는 예전 숫자 그대로)
+- 톤매핑: 예전처럼 기본 재질마다 적용 (후처리 렌더 타깃에서도), 출력은 선형(`LinearSRGBColorSpace`)
+- 점광원: 새 물리 감쇠 대신 예전과 비슷한 곡선 (decay 0)
