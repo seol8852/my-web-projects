@@ -1225,9 +1225,16 @@ export class CoopManager {
         R.fly = null;
         m.landT = 0.55; // 착지 직후 잠깐 찍는 자세 유지
         if (g) g.camShake = Math.max(g.camShake || 0, 0.6);
+        // 💫 착지 빈틈: 잠깐 땅에 박혀서 공격·이동을 안 함 → 때릴 타이밍
+        R.stunT = phase === 3 ? 2.2 : 2.8;
+        R.aiCd = Math.max(R.aiCd, R.stunT + 0.3);
+        this.showBubble(m.pos.clone().setY(6), '💫 착지 빈틈! 지금 공격!', 1.8, true);
       }
       const dir = F.to.clone().sub(m.pos);
       if (dir.lengthSq() > 0.5) m.facingYaw += g.angleDifference(Math.atan2(dir.x, dir.z), m.facingYaw) * Math.min(1, dt * 6);
+    } else if (R.stunT > 0) {
+      R.stunT -= dt;
+      m.alt = 0;
     } else if (best) {
       // 평소: 목표 주위를 선회하며 낮게 떠 있음
       const toB = m.pos.clone().sub(best.pos).setY(0);
@@ -1266,6 +1273,10 @@ export class CoopManager {
     const D = v => Math.round(v * dm * 1.45);
     const T = (p, x, z, yaw, r, dur, d, sk) => this.hostTelegraph(p, x, z, yaw, r, dur, d, sk);
     const later = (sec, fn) => R.bq.push({ t: sec, fn });
+    // 공중 기술(급강하·연속 급강하·폭풍 강림) 사이에는 최소 간격 → 땅에서 때릴 시간 확보
+    const airGap = phase === 3 ? 6500 : phase === 2 ? 8000 : 9500;
+    const airReady = performance.now() - (R.lastAir || 0) > airGap;
+    const markAir = (extra = 0) => { R.lastAir = performance.now() + extra; };
     const rndIn = (cx, cz, rr) => { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * rr; return [cx + Math.cos(a) * r, cz + Math.sin(a) * r]; };
 
     // 🪶 깃털 부채: 대상 방향으로 깃털 5~7발
@@ -1279,6 +1290,7 @@ export class CoopManager {
     const gust = (sk = '🌪️ 날갯짓 돌풍!') => T('sector', mx, mz, yawT, 23, 1.0, D(34), sk);
     // 🦅 급강하 찍기: 솟구쳤다가 대상 위치로 내리꽂기 (+ 여진)
     const dive = (p, sk = '🦅 급강하 찍기!') => {
+      markAir();
       const to = new THREE.Vector3(p.pos.x, 0, p.pos.z);
       const o = to.clone().sub(RAID_CENTER);
       if (o.length() > RAID_BOSS_R) to.copy(RAID_CENTER).addScaledVector(o.normalize(), RAID_BOSS_R);
@@ -1320,9 +1332,9 @@ export class CoopManager {
       const list = alive.slice().sort(() => Math.random() - 0.5);
       for (let i = 0; i < cnt; i++) {
         const p = list[i % list.length];
-        later(i * 1.8, () => { if (!R.fly && !R.finishing) dive(p, i === 0 ? '🦅 연속 급강하!' : undefined); });
+        later(i * 4.7, () => { if (!R.fly && !R.finishing) dive(p, i === 0 ? '🦅 연속 급강하!' : undefined); });
       }
-      R.aiCd += 1.8 * (cnt - 1);
+      R.aiCd += 4.7 * (cnt - 1);
     };
     // ⚡ 폭풍 가르기 (3페이즈): 투기장 중심에서 사방으로 번개 길
     const stormCross = () => {
@@ -1332,30 +1344,33 @@ export class CoopManager {
     };
     // 🌩️ 폭풍 강림 (3페이즈): 높이 솟구쳐 주변 전체 강타 → 멀리 도망
     const stormNova = () => {
+      markAir();
       T('circle', mx, mz, 0, 25, 2.0, D(58), '🌩️ 폭풍 강림!');
       R.fly = { t: 0, dur: 2.0, from: m.pos.clone(), to: m.pos.clone(), alt0: m.alt || 0, stage: 'up' };
       R.aiCd += 0.5;
     };
 
+    // 공중 기술은 확률을 낮추고, 간격이 안 찼으면 땅 기술로 대체
     if (phase === 1) {
-      if (roll < 0.26) featherFan();
-      else if (roll < 0.48) gust();
-      else if (roll < 0.74) dive(target);
+      if (roll < 0.14 && airReady) dive(target);
+      else if (roll < 0.45) featherFan();
+      else if (roll < 0.75) gust();
       else featherRain(4);
     } else if (phase === 2) {
-      if (roll < 0.2) multiDive(alive.length > 1 ? 3 : 2);
+      if (roll < 0.1 && airReady) { markAir(4700); multiDive(2); }
+      else if (roll < 0.2 && airReady) { dive(target); featherRain(3); }
       else if (roll < 0.38) tornado(1);
-      else if (roll < 0.54) { eggs(5); featherFan(5, 0.45); }
-      else if (roll < 0.7) { dive(target); featherRain(3); }
-      else if (roll < 0.85) { gust(); later(0.6, () => featherFan(7, 0.6)); }
+      else if (roll < 0.56) { eggs(5); featherFan(5, 0.45); }
+      else if (roll < 0.78) { gust(); later(0.6, () => featherFan(7, 0.6)); }
       else featherRain(6);
     } else {
-      if (roll < 0.18) stormNova();
-      else if (roll < 0.36) { stormCross(); featherRain(3); }
-      else if (roll < 0.52) multiDive(alive.length > 1 ? 4 : 3);
-      else if (roll < 0.68) { tornado(2); }
-      else if (roll < 0.84) { eggs(7); gust('🌪️ 폭풍 날갯짓!'); }
-      else { dive(target); later(0.4, () => featherFan(7, 0.7)); }
+      if (roll < 0.1 && airReady) stormNova();
+      else if (roll < 0.2 && airReady) { markAir(4700 * (alive.length > 1 ? 2 : 1)); multiDive(alive.length > 1 ? 3 : 2); }
+      else if (roll < 0.28 && airReady) { dive(target); later(0.4, () => featherFan(7, 0.7)); }
+      else if (roll < 0.46) { stormCross(); featherRain(3); }
+      else if (roll < 0.64) tornado(2);
+      else if (roll < 0.82) { eggs(7); gust('🌪️ 폭풍 날갯짓!'); }
+      else { gust(); later(0.5, () => featherRain(4)); }
     }
   }
 
