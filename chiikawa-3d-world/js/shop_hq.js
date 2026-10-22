@@ -77,6 +77,14 @@ const SHOPHQ = (() => {
   const FX_LABEL = { atk: '공격력', hp: '최대 체력', crit: '치명타 확률', dr: '받는 피해 감소', coin: '코인 획득', exp: '경험치 획득' };
   const fxText = fx => Object.entries(fx).filter(([, v]) => v).map(([k, v]) => `${FX_LABEL[k]} +${v}%`).join(' · ');
   const INV_MAX = 60;
+  // 🔨 뽑기 무기 강화: 최대 +12, 1회 5,000🪙, 갈수록 성공률이 극단적으로 낮아짐 (실패해도 단계는 유지)
+  const ENH_MAX = 12;
+  const ENH_COST = 5000;
+  const ENH_RATE = [0.95, 0.9, 0.8, 0.68, 0.55, 0.4, 0.27, 0.16, 0.08, 0.035, 0.012, 0.003];
+  const effAtk = it => Math.round((it.atk || 0) * (1 + 0.1 * (it.enh || 0)) + 2 * (it.enh || 0));
+  const effCrit = it => (it.crit || 0) + Math.floor((it.enh || 0) / 3);
+  const sellPrice = it => Math.round(GRADE[it.grade].sell * (1 + 0.5 * (it.enh || 0)));
+  const dispName = it => (it.enh ? `+${it.enh} ` : '') + it.name;
   const rnd = (a, b) => Math.round(a + Math.random() * (b - a));
   const esc = s => String(s).replace(/[<>&"']/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -100,7 +108,7 @@ const SHOPHQ = (() => {
     const t = { atk: 0, hp: 0, crit: 0, dr: 0, coin: 0, exp: 0 };
     const add = fx => Object.entries(fx || {}).forEach(([k, v]) => { t[k] = (t[k] || 0) + (v || 0); });
     const w = equippedGear(s, 'weapon'), a = equippedGear(s, 'armor');
-    if (w) add({ atk: w.atk, crit: w.crit });
+    if (w) add({ atk: effAtk(w), crit: effCrit(w) });
     if (a) add({ hp: a.hp, dr: a.dr });
     [s.equippedHat, s.equippedAcc].forEach(id => { const c = COSMETICS.find(x => x.id === id); if (c) add(c.fx); });
     t.dr = Math.min(50, t.dr);
@@ -152,7 +160,7 @@ const SHOPHQ = (() => {
   }
   function itemFx(it) {
     return it.slot === 'weapon'
-      ? `공격력 +${it.atk}%${it.crit ? ` · 치명타 +${it.crit}%` : ''}`
+      ? `공격력 +${effAtk(it)}%${effCrit(it) ? ` · 치명타 +${effCrit(it)}%` : ''}`
       : `최대 체력 +${it.hp}% · 받는 피해 -${it.dr}%`;
   }
   function pull(n) {
@@ -202,9 +210,9 @@ const SHOPHQ = (() => {
     if (it.uid === s.equipWeapon || it.uid === s.equipArmor) { showToast('🛡️ 장착 중인 장비는 팔 수 없어요. 먼저 해제해 주세요.'); return; }
     if ((it.grade === 'S' || it.grade === 'A') && !confirmSell(it)) return;
     s.gear.splice(i, 1);
-    s.coins += GRADE[it.grade].sell;
+    s.coins += sellPrice(it);
     apply(g); g.saveData(); soundFx.playCoin();
-    showToast(`💰 [${it.name}] 판매 +${GRADE[it.grade].sell.toLocaleString()}🪙`);
+    showToast(`💰 [${dispName(it)}] 판매 +${sellPrice(it).toLocaleString()}🪙`);
     render();
   }
   // 브라우저 확인창 대신 두 번 누르기로 확인
@@ -227,6 +235,37 @@ const SHOPHQ = (() => {
     g.saveData(); soundFx.playCoin();
     showToast(`💰 C급 장비 ${sold.length}개 판매 +${gain.toLocaleString()}🪙`);
     render();
+  }
+
+  // ------------------------------------------------------------------
+  // 🔨 무기 강화
+  // ------------------------------------------------------------------
+  let enhSel = null;
+  let enhFx = null; // 직전 결과 연출 ('ok' | 'fail')
+  function enhance(uid) {
+    const g = window.gameApp; const s = g.stats; ensure(s);
+    const it = s.gear.find(x => x.uid === uid && x.slot === 'weapon');
+    if (!it) { showToast('🔨 강화할 무기를 먼저 골라 주세요.'); return; }
+    it.enh = it.enh || 0;
+    if (it.enh >= ENH_MAX) { showToast('👑 이미 최대 +12강이에요!'); return; }
+    if (s.coins < ENH_COST) { soundFx.playAttack(); showToast(`🪙 코인이 부족해요! (1회 ${ENH_COST.toLocaleString()}🪙)`); return; }
+    s.coins -= ENH_COST;
+    s.enhTries = (s.enhTries || 0) + 1;
+    const rate = ENH_RATE[it.enh];
+    if (Math.random() < rate) {
+      it.enh++;
+      enhFx = 'ok';
+      soundFx.playFanfare();
+      showToast(`🔨✨ 강화 성공!! [+${it.enh} ${it.name}] 공격력 +${effAtk(it)}%`);
+      if (it.enh >= 9 && window.coop && window.coop.w && window.coop.w.on) {
+        try { window.coop.sendEvent('chat', { m: `🔨 [${it.name.replace(/^\S+\s/, '')}] +${it.enh}강 성공!!` }); } catch (e) {}
+      }
+    } else {
+      enhFx = 'fail';
+      soundFx.playAttack();
+      showToast(`💥 강화 실패… (+${it.enh} 유지 · 성공 확률 ${(rate * 100).toFixed(rate < 0.01 ? 1 : 0)}%)`);
+    }
+    apply(g); g.saveData(); render();
   }
 
   // ------------------------------------------------------------------
@@ -272,7 +311,8 @@ const SHOPHQ = (() => {
         <button type="button" data-tab="gacha">🎲 장비 뽑기</button>
         <button type="button" data-tab="bag">🎒 내 장비</button>
         <button type="button" data-tab="cos">👒 꾸미기</button>
-        <button type="button" data-tab="etc">🧪 소모품·강화</button>
+        <button type="button" data-tab="enh">🔨 무기 강화</button>
+        <button type="button" data-tab="etc">🧪 소모품</button>
       </div>
       <div class="sh-body" id="sh-body"></div>`;
     win.addEventListener('click', e => {
@@ -288,6 +328,8 @@ const SHOPHQ = (() => {
       else if (a === 'cos') buyOrWear(id);
       else if (a === 'potion') buyPotion();
       else if (a === 'wup') weaponUp();
+      else if (a === 'enhsel') { enhSel = id; render(); }
+      else if (a === 'enh') enhance(enhSel);
     });
   }
   function itemCard(it, s, actions = true) {
@@ -295,12 +337,12 @@ const SHOPHQ = (() => {
     const on = it.uid === s.equipWeapon || it.uid === s.equipArmor;
     return `<div class="sh-item g${it.grade}${on ? ' on' : ''}" style="--gc:${G.color}">
       <div class="sh-grade" style="background:${G.bg}">${it.grade}</div>
-      <div class="sh-iname">${esc(it.name)}</div>
+      <div class="sh-iname">${it.enh ? `<span class="sh-enh">+${it.enh}</span> ` : ''}${esc(it.name)}</div>
       <div class="sh-islot">${it.slot === 'weapon' ? '⚔️ 무기' : '🛡️ 방어구'}</div>
       <div class="sh-ifx">${itemFx(it)}</div>
       ${actions ? `<div class="sh-iact">
         <button type="button" data-act="equip" data-id="${it.uid}" class="${on ? 'on' : ''}">${on ? '✅ 장착 중' : '장착'}</button>
-        <button type="button" data-act="sell" data-id="${it.uid}" class="sell">판매 ${G.sell.toLocaleString()}</button>
+        <button type="button" data-act="sell" data-id="${it.uid}" class="sell">판매 ${sellPrice(it).toLocaleString()}</button>
       </div>` : ''}
     </div>`;
   }
@@ -347,6 +389,31 @@ const SHOPHQ = (() => {
       body.innerHTML = `
         <div class="sh-bagbar">🎒 ${s.gear.length} / ${INV_MAX}칸 <button type="button" data-act="sellc">C급 일괄 판매 (장착 제외)</button></div>
         ${list.length ? `<div class="sh-grid">${list.map(it => itemCard(it, s)).join('')}</div>` : '<div class="sh-empty">아직 장비가 없어요. 🎲 장비 뽑기에서 뽑아 보세요!</div>'}`;
+    } else if (tab === 'enh') {
+      const order = { S: 0, A: 1, B: 2, C: 3 };
+      const ws = s.gear.filter(x => x.slot === 'weapon').sort((x, y) => order[x.grade] - order[y.grade] || (y.enh || 0) - (x.enh || 0) || effAtk(y) - effAtk(x));
+      if (!enhSel || !ws.find(x => x.uid === enhSel)) enhSel = (equippedGear(s, 'weapon') || ws[0] || {}).uid || null;
+      const it = ws.find(x => x.uid === enhSel);
+      const rateRow = ENH_RATE.map((r, i) => `<span class="${it && (it.enh || 0) === i ? 'cur' : ''}${it && (it.enh || 0) > i ? ' done' : ''}">+${i + 1}<b>${(r * 100) < 1 ? (r * 100).toFixed(1) : Math.round(r * 100)}%</b></span>`).join('');
+      let panel = '<div class="sh-empty">강화할 무기가 없어요. 🎲 장비 뽑기에서 무기를 뽑아 보세요!</div>';
+      if (it) {
+        const e = it.enh || 0;
+        const next = Object.assign({}, it, { enh: Math.min(ENH_MAX, e + 1) });
+        const G = GRADE[it.grade];
+        panel = `<div class="sh-enhbox ${enhFx || ''}" style="--gc:${G.color}">
+          <div class="sh-grade big" style="background:${G.bg}">${it.grade}</div>
+          <div class="sh-enhname"><span class="sh-enh">+${e}</span> ${esc(it.name)}</div>
+          <div class="sh-enhstat">공격력 <b>+${effAtk(it)}%</b>${effCrit(it) ? ` · 치명타 <b>+${effCrit(it)}%</b>` : ''}
+            ${e < ENH_MAX ? `<span class="arrow">→</span> <b class="nx">+${effAtk(next)}%</b>${effCrit(next) > effCrit(it) ? ` · 치명 <b class="nx">+${effCrit(next)}%</b>` : ''}` : ''}</div>
+          ${e < ENH_MAX ? `<div class="sh-enhrate">+${e + 1}강 성공 확률 <b>${(ENH_RATE[e] * 100) < 1 ? (ENH_RATE[e] * 100).toFixed(1) : Math.round(ENH_RATE[e] * 100)}%</b> · 실패해도 단계는 유지돼요</div>
+          <button type="button" class="sh-enhbtn" data-act="enh">🔨 강화하기 (${ENH_COST.toLocaleString()}🪙)</button>` : '<div class="sh-enhrate">👑 최대 강화 +12 달성!</div>'}
+        </div>`;
+      }
+      body.innerHTML = `${panel}
+        <div class="sh-rates">${rateRow}</div>
+        <div class="sh-sub">⚔️ 내 무기 (눌러서 선택)</div>
+        <div class="sh-wlist">${ws.map(x => `<button type="button" data-act="enhsel" data-id="${x.uid}" class="${x.uid === enhSel ? 'sel' : ''}" style="--gc:${GRADE[x.grade].color}"><b>${x.grade}</b> ${x.enh ? `+${x.enh} ` : ''}${esc(x.name)}${x.uid === s.equipWeapon ? ' ✅' : ''}</button>`).join('') || ''}</div>`;
+      enhFx = null;
     } else if (tab === 'cos') {
       const card = c => {
         const owned = s.ownedCos.includes(c.id);
@@ -367,7 +434,7 @@ const SHOPHQ = (() => {
       body.innerHTML = `
         <div class="sh-row"><div><b>🧪 HP 물약</b> <span class="sh-tag">${n} / 5개</span><br><small>[R]키로 사용 · 최대 체력의 50% 회복</small></div>
           <button type="button" data-act="potion" ${n >= 5 ? 'disabled' : ''}>${n >= 5 ? '가방이 가득 찼어요' : `1개 ${ECON.potion.toLocaleString()}🪙`}</button></div>
-        <div class="sh-row"><div><b>🔱 기본 사스마타 강화</b> <span class="sh-tag">+${wl}강</span><br><small>모든 공격의 기본 공격력이 올라가요 (최대 +10강)</small></div>
+        <div class="sh-row"><div><b>🔱 기본 사스마타 단련</b> <span class="sh-tag">+${wl}강</span><br><small>모든 공격의 기본 공격력이 올라가요 (최대 +10강)</small></div>
           <button type="button" data-act="wup" ${wl >= 10 ? 'disabled' : ''}>${wl >= 10 ? '👑 최고 단계' : `+${wl + 1}강 ${ECON.weaponUp(wl).toLocaleString()}🪙`}</button></div>
         <div class="sh-econ"><b>💰 코인 얻는 법</b><br>
           쉬운 보상: 제초 ${ECON.weed.toLocaleString()}~${ECON.goldWeed.toLocaleString()} · 보물상자 ${ECON.chest.toLocaleString()}~${ECON.crystal.toLocaleString()} · 들판 몬스터 ${ECON.fieldMon.toLocaleString()} · 모닥불 ${ECON.camp.toLocaleString()} · 친구 대화 ${ECON.talk.toLocaleString()} · 연습 시험 ${ECON.exam.toLocaleString()} · 라멘 ${ECON.ramen.toLocaleString()} · 점프 타워 ${ECON.jumpRepeat.toLocaleString()} · 엘리트 ${ECON.event.toLocaleString()} (하루 횟수 제한)<br>

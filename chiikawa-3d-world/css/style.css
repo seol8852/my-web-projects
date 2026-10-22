@@ -2601,3 +2601,30 @@ body.gfx-low .modal-window, body.gfx-low .hud-panel, body.gfx-low .coop-hud-pill
 #shop-modal .sh-row button:disabled { background: #e2e8f0; border-color: #e2e8f0; color: #94a3b8; }
 #shop-modal .sh-tag { background: #dcfce7; color: #15803d; border-radius: 99px; padding: 1px 8px; font-size: 12px; font-weight: 900; }
 #shop-modal .sh-econ { margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: #fffbeb; border: 1.5px solid #fde68a; font-size: 11.5px; color: #78350f; line-height: 1.7; }
+
+/* 🔨 무기 강화 */
+#shop-modal .sh-enh { color: #e11d48; font-weight: 900; }
+#shop-modal .sh-enhbox { position: relative; padding: 16px; border-radius: 16px; border: 3px solid var(--gc); background: linear-gradient(135deg, #fff7ed, #fdf2f8); text-align: center; }
+#shop-modal .sh-enhbox.ok { animation: shEnhOk 0.7s; }
+#shop-modal .sh-enhbox.fail { animation: shEnhFail 0.5s; }
+@keyframes shEnhOk { 0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.9); transform: scale(1.04); } 100% { box-shadow: 0 0 0 26px rgba(250, 204, 21, 0); transform: none; } }
+@keyframes shEnhFail { 0%, 100% { transform: none; } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+#shop-modal .sh-grade.big { position: static; margin: 0 auto 6px; width: 40px; height: 40px; font-size: 20px; }
+#shop-modal .sh-enhname { font-size: 18px; font-weight: 900; color: #1e293b; }
+#shop-modal .sh-enhstat { margin: 6px 0; font-size: 13.5px; color: #334155; }
+#shop-modal .sh-enhstat b { color: #be185d; }
+#shop-modal .sh-enhstat b.nx { color: #16a34a; }
+#shop-modal .sh-enhstat .arrow { margin: 0 6px; color: #94a3b8; font-weight: 900; }
+#shop-modal .sh-enhrate { font-size: 12.5px; color: #64748b; margin-bottom: 10px; }
+#shop-modal .sh-enhrate b { color: #dc2626; font-size: 15px; }
+#shop-modal .sh-enhbtn { padding: 11px 26px; border-radius: 14px; border: none; background: #f97316; color: #fff; font-weight: 900; font-size: 15px; cursor: pointer; box-shadow: 0 4px 0 #c2410c; }
+#shop-modal .sh-enhbtn:active { transform: translateY(3px); box-shadow: none; }
+#shop-modal .sh-rates { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin: 10px 0 4px; }
+#shop-modal .sh-rates span { padding: 4px 2px; border-radius: 8px; background: #f1f5f9; font-size: 11px; font-weight: 900; color: #475569; text-align: center; }
+#shop-modal .sh-rates span b { display: block; color: #dc2626; font-size: 11px; }
+#shop-modal .sh-rates span.done { background: #dcfce7; color: #15803d; }
+#shop-modal .sh-rates span.cur { background: #fde68a; outline: 2px solid #f59e0b; }
+#shop-modal .sh-wlist { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+#shop-modal .sh-wlist button { padding: 6px 10px; border-radius: 10px; border: 2px solid var(--gc); background: #fff; font-size: 12px; font-weight: 800; cursor: pointer; }
+#shop-modal .sh-wlist button b { color: var(--gc); }
+#shop-modal .sh-wlist button.sel { background: #fef3c7; }
