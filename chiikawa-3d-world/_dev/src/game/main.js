@@ -2600,7 +2600,7 @@ class Chiikawa3DWorldApp {
       for (let i = 0; i < 8; i++) {
         const ang = (i / 8) * Math.PI * 2;
         const boomPos = center.clone().add(new THREE.Vector3(Math.cos(ang) * 5.2, 1.2, Math.sin(ang) * 5.2));
-        this.spawnHitImpactEffect3D(boomPos, i % 2 === 0 ? 0xfacc15 : 0xf43f5e, true);
+        this.spawnHitImpactEffect3D(boomPos, i % 2 === 0 ? 0xfacc15 : 0xf43f5e, false);
       }
     } else if (charKey === 'momonga') {
       // 💜 [모몽가] 6m 거대 복실 꼬리가 쓸고 지나가는 보랏빛 회오리 궤적!

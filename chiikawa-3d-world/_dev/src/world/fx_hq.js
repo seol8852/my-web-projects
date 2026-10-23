@@ -595,6 +595,7 @@ const FXHQ = (() => {
   }
 
   function slash(center, yaw, colorHex, comboStep = 1, tiltX = 0, tiltZ = 0, opts = {}) {
+    const sg = crowdGain(2);
     const r = opts.radius || (comboStep === 3 ? 5.4 : 4.4);
     const span = opts.span || (comboStep === 3 ? Math.PI * 1.75 : Math.PI * 0.95);
     const dir = opts.dir || (comboStep === 2 ? -1 : 1);
@@ -618,7 +619,7 @@ const FXHQ = (() => {
     const startRot = -dir * 0.35;
     add(holder, life, (it, dt, k) => {
       mat.uniforms.uProg.value = easeOut(k / 0.62) * 1.18;
-      mat.uniforms.uFade.value = 1 - Math.max(0, (k - 0.55) / 0.45);
+      mat.uniforms.uFade.value = sg * (1 - Math.max(0, (k - 0.55) / 0.45));
       mesh.rotation.y = startRot + dir * easeOut(k) * 0.55;
       const s = 1 + k * 0.12;
       mesh.scale.set(s, 1, s);
@@ -719,14 +720,24 @@ const FXHQ = (() => {
     });
   }
 
+  // 한꺼번에 여러 개가 터지면(궁극기 8방향 폭발 등) 빛이 겹쳐 화면이 하얗게 날아가므로, 동시에 터지는 수만큼 밝기·개수를 나눔
+  const recentFx = [];
+  function crowdGain(w = 1) {
+    const now = performance.now();
+    while (recentFx.length && now - recentFx[0] > 180) recentFx.shift();
+    recentFx.push(now);
+    let n = 0; for (let i = 0; i < recentFx.length; i++) n++;
+    return Math.max(0.2, Math.pow(Math.max(1, n / w), -0.75));
+  }
   function hitSpark(pos, colorHex = 0xfacc15, isCrit = false) {
     const big = isCrit ? 1.35 : 1.0;
+    const g = crowdGain(1.5);
     // 1) 하얀 섬광
     const flash = sprite('glow', 0xffffff, true);
     flash.position.copy(pos);
     add(flash, 0.1, (it, dt, k) => {
       flash.scale.setScalar((1.1 + easeOut(k) * 1.9) * big);   // 몬스터가 하얀 덩어리에 가려지지 않게 작고 짧게
-      flash.material.opacity = (1 - k) * 0.75;
+      flash.material.opacity = (1 - k) * 0.75 * g;
     });
     // 2) 애니메 별 스타버스트
     const star = sprite('star', mixWhite(colorHex, 0.05), true);
@@ -737,23 +748,23 @@ const FXHQ = (() => {
       const pop = k < 0.25 ? easeOut(k / 0.25) : 1 + (k - 0.25) * 0.25;
       star.scale.setScalar(3.0 * big * pop);
       star.material.rotation += dt * spin;
-      star.material.opacity = 0.85 * (1 - Math.max(0, (k - 0.3) / 0.7));
+      star.material.opacity = 0.85 * g * (1 - Math.max(0, (k - 0.3) / 0.7));
     });
     // 3) 충격 링
     const ring = sprite('ring', colorHex, true);
     ring.position.copy(pos);
     add(ring, 0.3, (it, dt, k) => {
       ring.scale.setScalar((1 + easeOut(k) * 4.6) * big);
-      ring.material.opacity = (1 - k) * 0.75;
+      ring.material.opacity = (1 - k) * 0.75 * g;
     });
     // 4) 사방으로 튀는 스파크 줄기
-    const n = Math.max(3, Math.round((isCrit ? 14 : 9) * DETAIL));
+    const n = Math.max(2, Math.round((isCrit ? 14 : 9) * DETAIL * g));
     for (let i = 0; i < n; i++) {
       const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() * 0.9 - 0.2, Math.random() - 0.5).normalize();
       streakSpark(pos, i % 3 === 0 ? 0xffffff : mixWhite(colorHex, 0.3), dir.multiplyScalar(16 + Math.random() * 14), 2.2 * big, 0.22 + Math.random() * 0.16);
     }
     // 5) 떨어지는 불씨
-    for (let i = 0; i < (isCrit ? 8 : 5); i++) {
+    for (let i = 0; i < Math.round((isCrit ? 8 : 5) * g); i++) {
       const a = Math.random() * Math.PI * 2;
       glowParticle(pos, colorHex, new THREE.Vector3(Math.cos(a) * 6, 4 + Math.random() * 6, Math.sin(a) * 6), 0.45, 0.45 + Math.random() * 0.3, 18);
     }
@@ -761,7 +772,7 @@ const FXHQ = (() => {
 
   // ---------- 글로우 파티클 폭발 ----------
   function burst(pos, colorHex, count = 14) {
-    count = Math.max(3, Math.round(count * DETAIL));
+    count = Math.max(3, Math.round(count * DETAIL * crowdGain(2)));
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
       const spd = 4.5 + Math.random() * 9;
@@ -786,6 +797,7 @@ const FXHQ = (() => {
       vec3 col = mix(uColor, vec3(1.0), ring * 0.45);
       gl_FragColor = vec4(col * a, a);
     }`;
+  let smokeLive = 0;
   function shockwave(center, colorHex, maxR = 4) {
     const y = center.y || 0;
     if (y > 1.4) {
@@ -815,7 +827,8 @@ const FXHQ = (() => {
       mat.uniforms.uFade.value = 1 - k * k;
     });
     if (maxR >= 5.5) {
-      const n = Math.min(18, Math.round(maxR * 1.1));
+      // 흙먼지: 큰 충격파가 연달아 터지면(궁극기) 하얀 연기가 화면을 덮으므로 동시에 떠 있는 개수를 제한
+      const n = Math.min(Math.max(0, 22 - smokeLive), Math.min(10, Math.round(maxR * 0.7)));
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2 + Math.random() * 0.3;
         const s = sprite('smoke', 0xf1ece4, false, 0.75);
@@ -826,9 +839,10 @@ const FXHQ = (() => {
           s.position.x += Math.cos(a) * spd * dt * (1 - k);
           s.position.z += Math.sin(a) * spd * dt * (1 - k);
           s.position.y += dt * 1.2;
-          s.scale.setScalar(size * (1 + k * 1.4));
-          s.material.opacity = 0.7 * (1 - k);
-        });
+          s.scale.setScalar(size * (1 + k * 1.2));
+          s.material.opacity = 0.5 * (1 - k);
+        }, () => { smokeLive--; });
+        smokeLive++;
       }
     }
   }
