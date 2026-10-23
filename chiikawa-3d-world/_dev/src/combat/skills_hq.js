@@ -156,8 +156,8 @@ const SKILLS = (() => {
       vec2 q = vec2(vUv.x * 10.0 + vUv.y * uTwist, vUv.y * 3.0 - uT * 6.0);
       float f = fbm(q);
       float ends = smoothstep(0.0, 0.06, vUv.y) * (1.0 - smoothstep(0.45, 1.0, vUv.y));
-      float a = (0.25 + f * 1.05) * ends * uFade;
-      vec3 col = mix(uColor, vec3(1.0), smoothstep(0.55, 0.95, f) * 0.75);
+      float a = (0.18 + f * 0.78) * ends * uFade;
+      vec3 col = mix(uColor, vec3(1.0), smoothstep(0.6, 0.95, f) * 0.45);
       gl_FragColor = vec4(col * a, a);
     }`;
   // 프레넬 보호막
@@ -168,8 +168,8 @@ const SKILLS = (() => {
       float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);
       float hex = fbm(vUv * vec2(18.0, 9.0) + vec2(uT * 0.6, -uT * 0.4));
       float shimmer = smoothstep(0.62, 0.8, hex) * 0.35;
-      float a = (fr * 1.15 + 0.07 + shimmer * fr) * uFade;
-      vec3 col = mix(uColor, vec3(1.0), fr * 0.55);
+      float a = (fr * 0.9 + 0.05 + shimmer * fr) * uFade;
+      vec3 col = mix(uColor, vec3(1.0), fr * 0.35);
       gl_FragColor = vec4(col * a, a);
     }`;
   // 회오리
@@ -180,8 +180,8 @@ const SKILLS = (() => {
       float s = fbm(vec2(vUv.x * 6.0 - vUv.y * 4.0 + uT * 3.2, vUv.y * 2.0 - uT * 1.5));
       float band = smoothstep(0.45, 0.85, s);
       float ends = smoothstep(0.0, 0.12, vUv.y) * (1.0 - smoothstep(0.75, 1.0, vUv.y));
-      float a = (band * 1.5 + 0.22) * ends * uFade;
-      vec3 col = mix(uColor, vec3(1.0), band * 0.45);
+      float a = (band * 1.1 + 0.15) * ends * uFade;
+      vec3 col = mix(uColor, vec3(1.0), band * 0.28);
       gl_FragColor = vec4(col * a, a);
     }`;
   // 직선 빔
@@ -194,8 +194,8 @@ const SKILLS = (() => {
       float glow = pow(across, 2.0);
       float flow = fbm(vec2(vUv.y * uLen * 0.3 - uT * 16.0, vUv.x * 3.0));
       float ends = smoothstep(0.0, 0.04, vUv.y) * (1.0 - smoothstep(0.9, 1.0, vUv.y));
-      float a = (glow * 0.7 * (0.5 + 0.7 * flow) + core * 1.5) * ends * uFade;
-      vec3 col = mix(uColor, vec3(1.0), clamp(core * 1.2, 0.0, 1.0));
+      float a = (glow * 0.55 * (0.5 + 0.7 * flow) + core * 1.1) * ends * uFade;
+      vec3 col = mix(uColor, vec3(1.0), clamp(core * 0.85, 0.0, 1.0));
       gl_FragColor = vec4(col * a, a);
     }`;
   // 바닥 마법진/원형 문양
@@ -227,7 +227,7 @@ const SKILLS = (() => {
     const g = new THREE.Group();
     g.position.set(pos.x, 0, pos.z);
     const mats = [];
-    [[r, color, 1], [r * 0.38, 0xffffff, 0.9]].forEach(([rr, col, al]) => {
+    [[r, color, 1], [r * 0.38, 0xffffff, 0.5]].forEach(([rr, col, al]) => {
       const geo = new THREE.CylinderGeometry(rr, rr * 1.15, h, 36, 1, true);
       geo.translate(0, h / 2, 0);
       const m = mat(PILLAR_FS, { uColor: { value: C(col) }, uTwist: { value: opts.twist || 0 } });
@@ -282,7 +282,7 @@ const SKILLS = (() => {
     if (!hasFx()) return;
     const g = new THREE.Group();
     const layers = [];
-    [[R, H, color, 1], [R * 0.62, H * 0.9, 0xffffff, 0.55]].forEach(([r, h, col, al], i) => {
+    [[R, H, color, 1], [R * 0.62, H * 0.9, 0xffffff, 0.3]].forEach(([r, h, col, al], i) => {
       const geo = new THREE.CylinderGeometry(r, r * 0.3, h, 40, 6, true);
       geo.translate(0, h / 2, 0);
       const m = mat(TORNADO_FS, { uColor: { value: C(col) } });
@@ -360,7 +360,7 @@ const SKILLS = (() => {
       g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 40, r, 6, false), m));
       return m;
     };
-    const core = mk(thick, 0xffffff, 1);
+    const core = mk(thick * 0.8, 0xffffff, 0.85);
     const halo = mk(thick * 3.2, color, 0.45);
     FXHQ._add(g, life, (it, dt, k) => {
       const flick = Math.random() < 0.3 ? 0.35 : 1;
@@ -400,7 +400,7 @@ const SKILLS = (() => {
         float across = 1.0 - abs(vUv.x - 0.5) * 2.0;
         float tip = smoothstep(1.0, 0.7, vUv.y);
         float edge = pow(across, 1.6) * tip * smoothstep(0.0, 0.2, vUv.y);
-        float a = (edge * 0.9 + pow(across, 10.0) * 1.2 * tip) * uFade;
+        float a = (edge * 0.75 + pow(across, 10.0) * 0.9 * tip) * uFade;
         gl_FragColor = vec4(mix(uColor, vec3(1.0), pow(across, 6.0)) * a, a);
       }`, { uColor: { value: C(color) } });
     const geo = new THREE.PlaneGeometry(0.55, 3.2);
@@ -419,8 +419,8 @@ const SKILLS = (() => {
     for (let i = 0; i < cnt; i++) {
       const a = Math.random() * Math.PI * 2;
       const sp = power * (0.4 + Math.random() * 0.7);
-      glow(pos, i % 3 === 0 ? 0xffffff : i % 3 === 1 ? color : 0xff6a00,
-        V(Math.cos(a) * sp, power * (0.4 + Math.random() * 0.9), Math.sin(a) * sp), 0.8 + Math.random() * 0.7, 0.55 + Math.random() * 0.3, -3);
+      glow(pos, i % 5 === 0 ? 0xffffff : i % 2 ? color : 0xff6a00,
+        V(Math.cos(a) * sp, power * (0.4 + Math.random() * 0.9), Math.sin(a) * sp), 0.6 + Math.random() * 0.5, 0.55 + Math.random() * 0.3, -3);
     }
     if (!hasFx()) return;
     for (let i = 0; i < Math.round(6 * detail()); i++) {
@@ -449,7 +449,7 @@ const SKILLS = (() => {
     });
     const core = FXHQ._sprite('glow', 0xffffff, true, 1);
     core.position.set(pos.x, 1.2, pos.z);
-    FXHQ._add(core, 0.3, (it, dt, k) => { core.scale.setScalar(R * 1.6 * (0.5 + k)); core.material.opacity = 1 - k; });
+    FXHQ._add(core, 0.22, (it, dt, k) => { core.scale.setScalar(R * 1.05 * (0.5 + k)); core.material.opacity = (1 - k) * 0.7; });
     FXHQ.shockwave(V(pos.x, 0, pos.z), color, R * 1.6);
     fireBurst(V(pos.x, 1, pos.z), color, 22, R * 2);
   }
