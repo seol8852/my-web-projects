@@ -80,7 +80,10 @@ const FEEL = (() => {
   function updateTrail(app, now) {
     if (!trail) { makeTrail(); }
     if (trail.parent !== app.scene) app.scene.add(trail);
-    const swinging = (app.attackTimer > 0 || !!app.skillAnim) && !app.isDowned && app.playerMesh && app.playerMesh.visible;
+    // 궁극기(Q) 중엔 캐릭터가 빠르게 돌진하며 무기를 돌려서, 궤적이 땅 위에 커다란 빛 판처럼 펼쳐짐 → 궁극기 중엔 끔
+    const inUlt = app.ultTimer > 0 || app.comboStep === 99;
+    const swinging = !inUlt && (app.attackTimer > 0 || !!app.skillAnim) && !app.isDowned && app.playerMesh && app.playerMesh.visible;
+    if (inUlt && samples.length) samples.length = 0;
     if (swinging && weaponPoints(app, _b, _t)) {
       if (!lastSwinging) {
         samples.length = 0;
@@ -89,7 +92,9 @@ const FEEL = (() => {
         trailCol.setHex(wv[1] ? GRADE_COL[wv[1]] || 0xffffff : (cfg && cfg.accentColor) || 0xffffff);
       }
       // 프레임이 띄엄띄엄이어도 부드럽게: 직전 샘플과 사이를 나눠 채움
-      const last = samples[samples.length - 1];
+      let last = samples[samples.length - 1];
+      // 순간이동·빠른 돌진처럼 한 프레임에 크게 움직이면 이어 붙이지 않고 새로 시작 (빈 공간에 넓은 판이 생기지 않게)
+      if (last && (last.b.distanceTo(_b) > 2.2 || last.t.distanceTo(_t) > 3.2)) { samples.length = 0; last = null; }
       if (last) {
         const gap = last.t.distanceTo(_t);
         const n = Math.min(4, Math.floor(gap / 0.45));

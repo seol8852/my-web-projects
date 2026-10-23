@@ -20,6 +20,11 @@ function fxCanvasTex(name, size, draw) {
   const ctx = c.getContext('2d');
   draw(ctx, size);
   const t = new THREE.CanvasTexture(c);
+  if (name === 'rune') {
+    // 바닥에 비스듬히 깔리는 마법진: 작은 밉맵은 무늬가 평균내져 네모 전체가 뿌옇게 빛나므로 밉맵 끔
+    t.generateMipmaps = false;
+    t.minFilter = THREE.LinearFilter;
+  }
   t.needsUpdate = true;
   FX_TEX[name] = t;
   return t;
@@ -470,11 +475,46 @@ const FXHQ = (() => {
   const v1 = new THREE.Vector3();
   const v2 = new THREE.Vector3();
 
+  // 📷 카메라 바로 앞의 빛 이펙트는 흐리게: 궁극기·스킬이 카메라 쪽으로 나가면 화면 전체가 한 색으로 덮이던 문제
+  //  - 더하기(빛) 혼합 / 반투명 이펙트 재질에 '카메라 거리 페이드'를 넣음 (픽셀 깊이 = 1/gl_FragCoord.w)
+  const NEAR_FADE = 'float _nfD = 1.0 / gl_FragCoord.w; gl_FragColor *= smoothstep(2.0, 8.5, _nfD);';
+  function nearFadeMat(m) {
+    if (!m || m.userData._nearFade || !m.transparent) return;
+    if (!(m.blending === THREE.AdditiveBlending || m.depthWrite === false)) return;
+    if (m.isMeshDepthMaterial || m.isMeshDistanceMaterial) return;
+    m.userData._nearFade = true;
+    // 빛(더하기) 이펙트에 안개를 섞으면 투명한 부분에도 안개색(하늘색)이 더해져 네모난 하늘색 판이 생김 → 안개 끔
+    if (m.blending === THREE.AdditiveBlending) m.fog = false;
+    const prev = m.onBeforeCompile;
+    m.onBeforeCompile = function (sh, r) {
+      if (prev) prev.call(this, sh, r);
+      const fs = sh.fragmentShader;
+      const i = fs.lastIndexOf('}');
+      if (i > 0 && fs.indexOf('void main') >= 0) sh.fragmentShader = fs.slice(0, i) + '\n  ' + NEAR_FADE + '\n' + fs.slice(i);
+    };
+    const key = m.customProgramCacheKey ? m.customProgramCacheKey.bind(m) : () => '';
+    m.customProgramCacheKey = () => key() + '|nf';
+    m.needsUpdate = true;
+  }
+  function nearFadeTree(o) {
+    o.traverse(x => {
+      if (!x.material || x.isSprite) return;
+      if (Array.isArray(x.material)) x.material.forEach(nearFadeMat); else nearFadeMat(x.material);
+    });
+  }
   function init(sc, cam) {
     scene = sc;
     camera = cam;
     baseFov = cam.fov;
     ensureOverlay();
+    if (!sc._nfWrapped) {
+      sc._nfWrapped = true;
+      const add0 = sc.add.bind(sc);
+      sc.add = function (...objs) {
+        objs.forEach(o => { try { if (o && !(o.userData && (o.userData.stageHQ || o.userData.raidHQ || o.userData.townHQ || o.userData.bakeKey))) nearFadeTree(o); } catch (e) {} });
+        return add0(...objs);
+      };
+    }
   }
 
   function add(obj, life, update, onEnd) {
@@ -737,12 +777,12 @@ const FXHQ = (() => {
 
   // ---------- 지면 충격파 ----------
   const shockFS = `
-    uniform vec3 uColor; uniform float uFade; varying vec2 vUv;
+    uniform vec3 uColor; uniform float uFade; uniform float uFill; varying vec2 vUv;
     void main() {
       float d = length(vUv - 0.5) * 2.0;
       float ring = smoothstep(0.72, 0.95, d) * (1.0 - smoothstep(0.95, 1.0, d));
-      float fill = (1.0 - smoothstep(0.0, 1.0, d)) * 0.12 + smoothstep(0.4, 0.95, d) * 0.18 * (1.0 - step(1.0, d));
-      float a = (ring * 1.3 + fill) * uFade;
+      float fill = ((1.0 - smoothstep(0.0, 1.0, d)) * 0.12 + smoothstep(0.4, 0.95, d) * 0.18 * (1.0 - step(1.0, d))) * uFill;
+      float a = (ring * mix(0.7, 1.3, uFill) + fill) * uFade;
       vec3 col = mix(uColor, vec3(1.0), ring * 0.45);
       gl_FragColor = vec4(col * a, a);
     }`;
@@ -759,7 +799,8 @@ const FXHQ = (() => {
       return;
     }
     const mat = new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new THREE.Color(colorHex) }, uFade: { value: 1 } },
+      // 큰 충격파(궁극기 등)는 안쪽 채움을 거의 없애서 땅 전체가 한 색으로 덮이지 않게
+      uniforms: { uColor: { value: new THREE.Color(colorHex) }, uFade: { value: 1 }, uFill: { value: Math.max(0.08, Math.min(1, 4.5 / Math.max(1, maxR))) } },
       vertexShader: slashVS, fragmentShader: shockFS,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
     });
@@ -939,7 +980,7 @@ const FXHQ = (() => {
     // 마법진
     const runeMat = new THREE.MeshBasicMaterial({
       map: fxTex('rune'), color: color, transparent: true, opacity: 0,
-      depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+      depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false
     });
     const rune = new THREE.Mesh(new THREE.PlaneGeometry(16, 16), runeMat);
     rune.rotation.x = -Math.PI / 2;
@@ -960,10 +1001,10 @@ const FXHQ = (() => {
       const fout = Math.min(1, (life - tt) / 0.35);
       const f = Math.min(fin, fout);
       auraMat.uniforms.uTime.value = tt;
-      auraMat.uniforms.uFade.value = f * 0.9;
+      auraMat.uniforms.uFade.value = f * 0.75;
       aura.scale.set(0.6 + easeOut(fin) * 0.4, 0.4 + easeOut(fin) * 0.6, 0.6 + easeOut(fin) * 0.4);
-      runeMat.opacity = f * 0.9;
-      rune2.material.opacity = f * 0.7;
+      runeMat.opacity = f * 0.7;
+      rune2.material.opacity = f * 0.5;
       rune.scale.setScalar(0.2 + easeOut(tt / 0.35) * 0.8);
       rune2.scale.setScalar(0.2 + easeOut(tt / 0.25) * 0.8);
       rune.rotation.z = tt * 1.6;
@@ -1006,7 +1047,7 @@ const FXHQ = (() => {
   function setDetail(d) { DETAIL = Math.max(0.2, Math.min(1, d)); }
 
   return {
-    init, update, slash, thrust, hitSpark, burst, shockwave, deathPoof, ultimate, screenFlash, fovPunch, setDetail,
+    nearFadeTree, init, update, slash, thrust, hitSpark, burst, shockwave, deathPoof, ultimate, screenFlash, fovPunch, setDetail,
     _add: add, _sprite: sprite, _glow: glowParticle,
     get count() { return items.length; }
   };
