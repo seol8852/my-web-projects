@@ -524,8 +524,8 @@ const FXHQ = (() => {
       float thin = mix(0.55, 0.0, along);            // 꼬리로 갈수록 얇아짐
       float body = smoothstep(thin, 0.92, r) * (1.0 - smoothstep(0.96, 1.0, r));
       float edge = smoothstep(0.82, 0.95, r) * (1.0 - smoothstep(0.95, 1.0, r));
-      float a = along * (body * 0.85 + edge * 1.7) * uFade;
-      vec3 col = mix(uColor, vec3(1.0), clamp(edge * 1.1 + pow(along, 3.0) * 0.45, 0.0, 1.0));
+      float a = along * (body * 0.55 + edge * 1.25) * uFade;   // 겹쳐도 하얗게 타지 않게 (색이 보이도록)
+      vec3 col = mix(uColor, vec3(1.0), clamp(edge * 0.75 + pow(along, 3.0) * 0.3, 0.0, 1.0));
       gl_FragColor = vec4(col * a, a);
     }`;
   function arcGeometry(rIn, rOut, span, seg = 56) {
@@ -684,27 +684,27 @@ const FXHQ = (() => {
     // 1) 하얀 섬광
     const flash = sprite('glow', 0xffffff, true);
     flash.position.copy(pos);
-    add(flash, 0.14, (it, dt, k) => {
-      flash.scale.setScalar((1.5 + easeOut(k) * 3.4) * big);
-      flash.material.opacity = 1 - k;
+    add(flash, 0.1, (it, dt, k) => {
+      flash.scale.setScalar((1.1 + easeOut(k) * 1.9) * big);   // 몬스터가 하얀 덩어리에 가려지지 않게 작고 짧게
+      flash.material.opacity = (1 - k) * 0.75;
     });
     // 2) 애니메 별 스타버스트
-    const star = sprite('star', mixWhite(colorHex, 0.2), true);
+    const star = sprite('star', mixWhite(colorHex, 0.05), true);
     star.position.copy(pos);
     star.material.rotation = Math.random() * Math.PI;
     const spin = (Math.random() > 0.5 ? 1 : -1) * 4;
     add(star, isCrit ? 0.26 : 0.2, (it, dt, k) => {
       const pop = k < 0.25 ? easeOut(k / 0.25) : 1 + (k - 0.25) * 0.25;
-      star.scale.setScalar(4.2 * big * pop);
+      star.scale.setScalar(3.0 * big * pop);
       star.material.rotation += dt * spin;
-      star.material.opacity = 1 - Math.max(0, (k - 0.3) / 0.7);
+      star.material.opacity = 0.85 * (1 - Math.max(0, (k - 0.3) / 0.7));
     });
     // 3) 충격 링
     const ring = sprite('ring', colorHex, true);
     ring.position.copy(pos);
     add(ring, 0.3, (it, dt, k) => {
-      ring.scale.setScalar((1 + easeOut(k) * 5.5) * big);
-      ring.material.opacity = (1 - k) * 0.9;
+      ring.scale.setScalar((1 + easeOut(k) * 4.6) * big);
+      ring.material.opacity = (1 - k) * 0.75;
     });
     // 4) 사방으로 튀는 스파크 줄기
     const n = Math.max(3, Math.round((isCrit ? 14 : 9) * DETAIL));

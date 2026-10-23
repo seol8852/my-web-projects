@@ -2318,7 +2318,7 @@ class Chiikawa3DWorldApp {
     // 실제로 맞은 부위의 정확한 3D 높이(hitHeightY)에서 입체 3D 타격 임팩트 & 스파크 폭발!
     const exactHitWorldPos = m.pos.clone().add(new THREE.Vector3(0, hitHeightY, 0));
     this.spawnHitImpactEffect3D(exactHitWorldPos, sparkColor, isCrit);
-    this.spawnBurstParticles(exactHitWorldPos, sparkColor, isCrit ? 22 : 14);
+    this.spawnBurstParticles(exactHitWorldPos, sparkColor, isCrit ? 12 : 7);
     if (typeof POLISH !== 'undefined') {
       // 숫자는 크게, 부위는 작은 아이콘으로 (머리 🎯 · 백어택 ⚡ · 다리 🦵 · 장갑 🛡️)
       const isArmorBody = hitPart === 'body' && m.isArmored;
