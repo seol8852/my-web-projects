@@ -79,6 +79,21 @@ def pow2(n):
 MODELS = os.path.join(HERE, 'models')
 
 
+def model_name(key):
+    """'bush:1.4' → ('bush', [1.4]) : 인자가 있는 소품은 models/<이름>.py 의 build(*인자) 로 만듦"""
+    base, _, rest = key.partition(':')
+    args = []
+    for a in (rest.split(',') if rest else []):
+        try:
+            args.append(int(a))
+        except ValueError:
+            try:
+                args.append(float(a))
+            except ValueError:
+                args.append(a)
+    return base, args
+
+
 def build_model(key, sc):
     """models/<key>.py 가 있으면 Blender에서 새로 모델링한 구조물을 사용 (외곽선 .ol.glb도 여기서 만듦)"""
     import importlib
@@ -87,10 +102,11 @@ def build_model(key, sc):
     import lib
     importlib.reload(lib)
     lib.reset_model()
-    mod = importlib.import_module(key)
+    base, args = model_name(key)
+    mod = importlib.import_module(base)
     importlib.reload(mod)
     mod.lib = lib
-    mod.build()
+    mod.build(*args)
     ol_file = None
     olob = lib.build_outline_object()
     if olob:
@@ -112,7 +128,7 @@ def build_model(key, sc):
 def bake_one(key, ent):
     t0 = time.time()
     sc = reset()
-    modeled = os.path.exists(os.path.join(MODELS, key + '.py'))
+    modeled = os.path.exists(os.path.join(MODELS, model_name(key)[0] + '.py'))
     ol_file = None
     if modeled:
         meshes, ol_file = build_model(key, sc)
@@ -293,8 +309,14 @@ def finish(key, ent, ob, me, res, out, t0, ol_file=None):
 
 
 def main():
-    index = json.load(open(os.path.join(IN, 'index.json')))
-    man_path = os.path.join(OUT, 'manifest.json')
+    if os.environ.get('KIT'):
+        # 조립식 부품(전투 스테이지·레이드): models/kit_*.py → assets/baked/kit_*.glb + kit.json (가림만 굽고 색은 게임에서 테마대로)
+        names = sorted(f[:-3] for f in os.listdir(MODELS) if f.startswith('kit_') and f.endswith('.py'))
+        index = {n: {'file': n + '.glb'} for n in names}
+        man_path = os.path.join(OUT, 'kit.json')
+    else:
+        index = json.load(open(os.path.join(IN, 'index.json')))
+        man_path = os.path.join(OUT, 'manifest.json')
     man = {'items': {}}
     if os.path.exists(man_path):
         man = json.load(open(man_path))
@@ -312,6 +334,8 @@ def main():
         v.pop('outline', None)
         if not v.get('modeled'):
             v['ol'] = index[k].get('ol')
+        if os.environ.get('KIT'):
+            v.pop('ol', None)   # 부품은 외곽선을 게임에서 따로 처리
     json.dump(man, open(man_path, 'w'), ensure_ascii=False, indent=1)
     print('[bake] manifest', len(man['items']), flush=True)
 

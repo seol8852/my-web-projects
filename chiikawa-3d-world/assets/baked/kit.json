@@ -1,0 +1,88 @@
+{
+ "items": {
+  "kit_gate": {
+   "file": "kit_gate.glb",
+   "v": "629e739830",
+   "res": 2048,
+   "mode": "ao",
+   "packedFrom": "629e739830",
+   "packed": true,
+   "webp": true
+  },
+  "kit_obelisk": {
+   "file": "kit_obelisk.glb",
+   "v": "10624f6486",
+   "res": 512,
+   "mode": "ao",
+   "modeled": true,
+   "packedFrom": "10624f6486",
+   "packed": true,
+   "webp": true
+  },
+  "kit_tower": {
+   "file": "kit_tower.glb",
+   "v": "46103f11f3",
+   "res": 1024,
+   "mode": "ao",
+   "packedFrom": "46103f11f3",
+   "packed": true,
+   "webp": true
+  },
+  "kit_wall": {
+   "file": "kit_wall.glb",
+   "v": "954782f0ac",
+   "res": 1024,
+   "mode": "ao",
+   "packedFrom": "954782f0ac",
+   "packed": true,
+   "webp": true
+  },
+  "kit_rock": {
+   "file": "kit_rock.glb",
+   "v": "f5b7d77f18",
+   "res": 256,
+   "mode": "ao",
+   "packedFrom": "f5b7d77f18",
+   "packed": true,
+   "webp": true
+  },
+  "kit_rubble": {
+   "file": "kit_rubble.glb",
+   "v": "34a457b1fd",
+   "res": 256,
+   "mode": "ao",
+   "packedFrom": "34a457b1fd",
+   "packed": true,
+   "webp": true
+  },
+  "kit_spire": {
+   "file": "kit_spire.glb",
+   "v": "1d0f4cd9df",
+   "res": 256,
+   "mode": "ao",
+   "packedFrom": "1d0f4cd9df",
+   "packed": true,
+   "webp": true
+  },
+  "kit_rimseg": {
+   "file": "kit_rimseg.glb",
+   "v": "2473c9e5d7",
+   "res": 512,
+   "mode": "ao",
+   "modeled": true,
+   "packedFrom": "2473c9e5d7",
+   "packed": true,
+   "webp": true
+  },
+  "kit_robelisk": {
+   "file": "kit_robelisk.glb",
+   "v": "ba14b9dcfb",
+   "res": 512,
+   "mode": "ao",
+   "modeled": true,
+   "packedFrom": "ba14b9dcfb",
+   "packed": true,
+   "webp": true
+  }
+ }
+}

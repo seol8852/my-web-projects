@@ -202,6 +202,54 @@ const TOWNBAKE = (() => {
     getManifest().then(m => { if (m && m.items) Object.keys(m.items).forEach(loadKey); });
   }
 
+  // ------------------------------------------------------------------
+  // 조립식 부품 (전투 스테이지·레이드): kit.json → { 이름: { geo, map } }
+  //  - 가림(AO)만 구운 텍스처 → 게임에서 툰 재질 + 테마 색을 곱해 씀
+  // ------------------------------------------------------------------
+  let kitP = null;
+  function loadKit() {
+    if (!enabled) return Promise.resolve(null);
+    if (kitP) return kitP;
+    kitP = fetch(BASE + 'kit.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null).then(async m => {
+      if (!m || !m.items || typeof THREE.GLTFLoader === 'undefined') return null;
+      const out = {};
+      await Promise.all(Object.entries(m.items).map(async ([k, ent]) => {
+        try {
+          const src = firstMesh(await loadGlb(`${BASE}${ent.file}?v=${ent.v}`));
+          if (!src) return;
+          const geo = floatGeometry(src);
+          if (geo.attributes.normal) geo.normalizeNormals();
+          const map = src.material.map;
+          if (map) { map.colorSpace = THREE.NoColorSpace; map.anisotropy = 4; map.needsUpdate = true; }
+          out[k] = { geo, map };
+        } catch (e) { /* 이 부품만 원래 모양 유지 */ }
+      }));
+      return out;
+    });
+    return kitP;
+  }
+  // 부품용 툰 외곽선 (인스턴스도 그대로 따라감): 법선 방향으로 부풀린 뒷면
+  const KIT_OL = new THREE.MeshBasicMaterial({ color: 0x2b1d19, side: THREE.BackSide });
+  KIT_OL.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * 0.035;'); };
+  function kitMesh(part, mat, matrices, outline = true) {
+    const n = matrices.length;
+    const m = new THREE.InstancedMesh(part.geo, mat, n);
+    matrices.forEach((M, i) => m.setMatrixAt(i, M));
+    m.instanceMatrix.needsUpdate = true;
+    m.castShadow = true; m.receiveShadow = true;
+    m.computeBoundingSphere && m.computeBoundingSphere();
+    m.frustumCulled = false;
+    if (outline) {
+      const o = new THREE.InstancedMesh(part.geo, KIT_OL, n);
+      matrices.forEach((M, i) => o.setMatrixAt(i, M));
+      o.userData.isOutline = true;
+      o.frustumCulled = false;
+      o.visible = !(window.gameApp && window.gameApp.lowPower);
+      m.add(o);
+    }
+    return m;
+  }
+
   function install() {
     if (typeof TOWNHQ === 'undefined') return;
     const origDecorate = TOWNHQ.decorate;
@@ -226,7 +274,7 @@ const TOWNBAKE = (() => {
   }
 
   return {
-    install, process, preload, staticMeshes, liveRefs,
+    install, process, preload, staticMeshes, liveRefs, loadKit, kitMesh,
     get enabled() { return enabled; }, get swaps() { return swaps; }, get manifest() { return manifest; }
   };
 })();

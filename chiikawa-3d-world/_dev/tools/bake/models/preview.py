@@ -9,8 +9,10 @@ dist = float(sys.argv[4]) if len(sys.argv) > 4 else 1.0
 bpy.ops.wm.read_factory_settings(use_empty=True)
 import lib
 lib.reset_model()
-mod = importlib.import_module(key)
-mod.build()
+base, _, rest = key.partition(':')
+args = [float(a) if '.' in a else int(a) for a in rest.split(',')] if rest else []
+mod = importlib.import_module(base)
+mod.build(*args)
 sc = bpy.context.scene
 sc.render.engine = 'CYCLES'; sc.cycles.samples = int(os.environ.get('PS', '24')); sc.cycles.use_denoising = False
 sc.render.resolution_x = 960; sc.render.resolution_y = 600

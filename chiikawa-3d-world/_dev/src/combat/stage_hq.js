@@ -261,6 +261,7 @@ const STAGEHQ = (() => {
       spires.setMatrixAt(i, dm.matrix);
     }
     group.add(spires);
+    const KR0 = { spires };
     // 바깥 세상을 가리는 절벽 띠 (진격로 양옆 · 앞뒤)
     const cliffSpots = [];
     for (let z = 46; z > -268; z -= 6.5) [-1, 1].forEach(sd => cliffSpots.push([sd * (33 + Math.random() * 10), z]));
@@ -275,6 +276,7 @@ const STAGEHQ = (() => {
       cliffs.setMatrixAt(i, dm.matrix);
     });
     group.add(cliffs);
+    KR0.cliffs = cliffs;
     // ---- 하늘 돔
     const skyMat = new THREE.ShaderMaterial({
       uniforms: { uTop: { value: col3(0) }, uBot: { value: col3(0) }, uStars: { value: 0 }, uT: { value: 0 } },
@@ -298,6 +300,7 @@ const STAGEHQ = (() => {
     ];
     const merlonGeo = new THREE.BoxGeometry(1.1, 0.9, 1.9);
     const merlonList = [];
+    const KR = Object.assign(KR0, { walls: [], wallSegs: [], gates: [], gateZ: [], obs: [], obPos: [] }); // 조립 부품으로 바꿀 원래 메시들
     segs.forEach(([x1, z1, x2, z2]) => {
       const len = Math.hypot(x2 - x1, z2 - z1);
       const ang = Math.atan2(x2 - x1, z2 - z1);
@@ -317,6 +320,8 @@ const STAGEHQ = (() => {
       cap.position.set(cx + ox, 4.35, cz + oz);
       cap.rotation.y = ang;
       group.add(cap);
+      KR.walls.push(wall, cap);
+      KR.wallSegs.push({ x1, z1, x2, z2, len, cx: cx + ox, cz: cz + oz, nx, nz });
       const n = Math.floor(len / 2.4);
       for (let i = 0; i <= n; i++) {
         const k = i / Math.max(1, n);
@@ -327,6 +332,7 @@ const STAGEHQ = (() => {
     merlonList.forEach(([x, z, a], i) => { dm.position.set(x, 4.95, z); dm.rotation.set(0, a, 0); dm.scale.set(1, 1, 1); dm.updateMatrix(); merlons.setMatrixAt(i, dm.matrix); });
     merlons.castShadow = true;
     group.add(merlons);
+    KR.walls.push(merlons);
 
     // ---- 망루 + 화로 + 깃발
     const towerPos = [];
@@ -378,6 +384,7 @@ const STAGEHQ = (() => {
     });
     towers.castShadow = true;
     group.add(towers, bowls);
+    KR.towers = [towers, bowls]; KR.towerPos = towerPos;
     mats.fire.push(fireMat);
 
     // ---- 구역 관문 아치 (돌 기둥 + 상인방 + 룬 문장)
@@ -398,6 +405,7 @@ const STAGEHQ = (() => {
         const cap = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.8, 3.4), capMat);
         cap.position.set(s * 18.4, 13.3, az);
         group.add(cap);
+        KR.gates.push(p, cap);
       });
       const lintel = new THREE.Mesh(new THREE.BoxGeometry(40, 2.0, 2.8), lintelMat);
       lintel.position.set(0, 14.4, az);
@@ -407,6 +415,7 @@ const STAGEHQ = (() => {
       key.position.set(0, 14.6, az);
       key.rotation.z = Math.PI / 4;
       group.add(key);
+      KR.gates.push(lintel, key); KR.gateZ.push(az);
       const rune = new THREE.Mesh(new THREE.CircleGeometry(1.6, 24), runeMat);
       rune.position.set(0, 14.6, az + 1.55);
       group.add(rune);
@@ -426,6 +435,7 @@ const STAGEHQ = (() => {
       ob.castShadow = true;
       if (typeof addCartoonOutline === 'function') addCartoonOutline(ob, 0.04);
       group.add(ob);
+      KR.obs.push(ob); KR.obPos.push([x, z]);
       const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.7, 0), crMat);
       cr.position.set(x, 7.6, z);
       cr.scale.y = 1.6;
@@ -485,7 +495,76 @@ const STAGEHQ = (() => {
       runeMat, crystals, crMat, obMat, partMat, barrierTex: hx, theme: -1 };
     group.userData.stageHQ = true;
     applyTheme(0);
+    // 🧱 Blender로 만든 조립 부품(돌 블록 성벽·망루·관문·오벨리스크)으로 교체 — 불러오기 전/실패 시엔 원래 모양 그대로
+    if (typeof window.TOWNBAKE !== 'undefined' && window.TOWNBAKE.loadKit) {
+      const handle = A;
+      window.TOWNBAKE.loadKit().then(kit => { if (kit && A === handle) { try { applyKit(kit, KR, group); } catch (e) { console.warn('STAGE kit', e); } } });
+    }
     return group;
+  }
+
+  // 조립 부품 배치: 원래 메시와 같은 자리·크기 (성벽은 6.5m 칸을 이어 붙임, 안쪽 = 진격로 쪽)
+  function applyKit(kit, KR, group) {
+    const TB = window.TOWNBAKE;
+    const T = THEMES[curTheme] || THEMES[0];
+    const M4 = (x, y, z, ry, sz = 1) => new THREE.Matrix4().compose(V(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0)), V(1, 1, sz));
+    const themed = part => {
+      const m = new THREE.MeshToonMaterial({ map: part.map, color: T.wall, gradientMap: GM() });
+      A.wallMats.push(m);
+      return m;
+    };
+    if (kit.kit_wall) {
+      const list = [];
+      KR.wallSegs.forEach(sg => {
+        const Lt = sg.len + 1.6, n = Math.max(1, Math.round(Lt / 6.5)), sz = Lt / (n * 6.5);
+        const dx = (sg.x2 - sg.x1) / sg.len, dz = (sg.z2 - sg.z1) / sg.len;
+        const ry = Math.atan2(-sg.nz, sg.nx);
+        for (let k = 0; k < n; k++) {
+          const t = -Lt / 2 + (k + 0.5) * Lt / n;
+          list.push(M4(sg.cx + dx * t, 0, sg.cz + dz * t, ry, sz));
+        }
+      });
+      group.add(TB.kitMesh(kit.kit_wall, themed(kit.kit_wall), list));
+      KR.walls.forEach(o => { o.visible = false; });
+    }
+    if (kit.kit_tower && KR.towerPos) {
+      group.add(TB.kitMesh(kit.kit_tower, themed(kit.kit_tower), KR.towerPos.map(([x, z, inward]) => M4(x, 0, z, inward ? inward * Math.PI / 2 : 0))));
+      KR.towers.forEach(o => { o.visible = false; });
+    }
+    if (kit.kit_gate) {
+      group.add(TB.kitMesh(kit.kit_gate, themed(kit.kit_gate), KR.gateZ.map(z => M4(0, 0, z, 0))));
+      KR.gates.forEach(o => { o.visible = false; });
+    }
+    // 바깥 절벽·첨탑: 같은 자리(인스턴스 행렬)에 모양만 층층 바위로 교체
+    if (kit.kit_spire || kit.kit_rock) {
+      A.spireMats = A.spireMats || [];
+      [[KR.spires, kit.kit_spire], [KR.cliffs, kit.kit_rock]].forEach(([im, part]) => {
+        if (!im || !part) return;
+        const m = new THREE.MeshToonMaterial({ map: part.map, color: T.spire, gradientMap: GM() });
+        A.spireMats.push(m);
+        im.geometry = part.geo;
+        im.material = m;
+        im.computeBoundingSphere && im.computeBoundingSphere();
+      });
+    }
+    // 성벽 밑 돌무더기 (망루 사이, 관문 근처는 비움)
+    if (kit.kit_rubble) {
+      const list = [];
+      for (let i = 0; i < 13; i++) {
+        const z = 16 - i * 13.5 - 6.75;
+        if (z < -170 || KR.gateZ.some(gz => Math.abs(gz - z) < 6)) continue;
+        const side = i % 2 ? 1 : -1;
+        list.push(M4(side * 16.95, 0, z + (i % 3 - 1) * 2, side > 0 ? 0 : Math.PI));
+        if (i % 3 === 0) list.push(M4(-side * 16.95, 0, z - 3, -side > 0 ? 0 : Math.PI));
+      }
+      group.add(TB.kitMesh(kit.kit_rubble, themed(kit.kit_rubble), list));
+    }
+    if (kit.kit_obelisk) {
+      const om = new THREE.MeshToonMaterial({ map: kit.kit_obelisk.map, color: 0xffffff, gradientMap: GM() });
+      group.add(TB.kitMesh(kit.kit_obelisk, om, KR.obPos.map(([x, z]) => M4(x, 0, z, 0))));
+      KR.obs.forEach(o => { o.visible = false; });
+    }
+    applyTheme(curTheme);
   }
 
   let curTheme = 0;
@@ -499,6 +578,7 @@ const STAGEHQ = (() => {
     u.uTrim.value.setHex(T.trim); u.uGlow.value.setHex(T.glow); u.uCrack.value = T.crack;
     A.outerMat.color.setHex(T.outer);
     A.spireMat.color.setHex(T.spire);
+    (A.spireMats || []).forEach(m => m.color.setHex(T.spire));
     A.skyMat.uniforms.uTop.value.setHex(T.skyTop); A.skyMat.uniforms.uBot.value.setHex(T.skyBot); A.skyMat.uniforms.uStars.value = T.stars;
     A.wallMats.forEach(m => m.color.setHex(T.wall));
     A.capMat.color.setHex(new THREE.Color(T.wall).multiplyScalar(0.8).getHex());
@@ -738,6 +818,7 @@ const STAGEHQ = (() => {
   // 6) 매 프레임
   // ------------------------------------------------------------------
   let fogSaved = null;
+  const RAID_ATMO = { fog: 0x2a1626, fogD: 0.0045, skyBot: 0x2a1020 };   // 레이드 투기장: 어두운 자줏빛 안개
   let scatterGroup = null;
   // 마을 풀숲 장식 그룹을 기억해 두었다가 전투 중엔 숨김 (투기장 바닥을 뚫고 보이지 않게)
   if (typeof window.createScatterDetails3D === 'function') {
@@ -748,7 +829,8 @@ const STAGEHQ = (() => {
     if (!A || !g) return;
     const t = performance.now() / 1000;
     const inStage = g.battleState && g.battleState.active && !g.raidMode;
-    A.group.visible = true;
+    const inRaid = !!g.raidMode;
+    A.group.visible = !inRaid;   // 레이드 투기장 근처에 있어서 레이드 중엔 숨김
     A.floorMat.uniforms.uT.value = t;
     A.fireMat.uniforms.uT.value = t;
     A.skyMat.uniforms.uT.value = t;
@@ -757,7 +839,7 @@ const STAGEHQ = (() => {
     A.crystals.forEach(c => { c.cr.position.y = c.base + Math.sin(t * 1.5 + c.i) * 0.35; c.cr.rotation.y = t + c.i; if (c.gl) c.gl.position.y = c.cr.position.y; });
     A.banners.forEach(b => { b.rotation.z = Math.sin(t * 1.3 + b.userData.sway) * 0.05; });
     A.skyMat.visible = inStage;
-    const hideTown = inStage;
+    const hideTown = inStage || inRaid;   // 레이드: 분화구 절벽·밤하늘만 보이게 마을 지형·풀숲도 숨김
     if (g.instancedGrass) g.instancedGrass.visible = !hideTown;
     if (scatterGroup) scatterGroup.visible = !hideTown;
     if (g.outerTerrain) g.outerTerrain.visible = !hideTown;
@@ -768,9 +850,9 @@ const STAGEHQ = (() => {
     }
     // 전투 중엔 테마 안개, 끝나면 원래대로
     if (g.scene.fog) {
-      if (inStage) {
+      if (inStage || inRaid) {
         if (!fogSaved) fogSaved = { c: g.scene.fog.color.getHex(), d: g.scene.fog.density, bg: g.scene.background && g.scene.background.getHex ? g.scene.background.getHex() : null };
-        const T = THEMES[curTheme];
+        const T = inRaid ? RAID_ATMO : THEMES[curTheme];
         g.scene.fog.color.lerp(col3(T.fog), Math.min(1, dt * 2));
         g.scene.fog.density += (T.fogD - g.scene.fog.density) * Math.min(1, dt * 2);
         if (g.scene.background && g.scene.background.lerp) g.scene.background.lerp(col3(T.skyBot), Math.min(1, dt * 2));

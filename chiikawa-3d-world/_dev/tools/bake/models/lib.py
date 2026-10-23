@@ -562,8 +562,6 @@ def fence_model(G, wood, length=6, posts=4):
         x = -length / 2 + (i / (posts - 1)) * length
         finish(G(box(0.22, 1.3, 0.22, pos=(x, 0.65, 0), rot=(0, random.uniform(-0.05, 0.05), random.uniform(-0.03, 0.03)))), wood, bevel=0.03, seg=1, smooth=False, jitter=0.07, ol=True, ol_t=0.03)
         finish(G(cyl(0.0, 0.16, 0.25, seg=4, pos=(x, 1.42, 0), rot=(0, math.pi / 4, 0))), wood, smooth=False, jitter=0.07)
-        for y in (0.45, 0.95):
-            finish(G(cyl(0.03, 0.03, 0.04, seg=6, pos=(x, y, 0.17), rot=(math.pi / 2, 0, 0))), material('nail', 0x52525b))
     for y in (0.45, 0.95):
         nseg = max(1, int(length / 2.2))
         sl = length / nseg
@@ -575,10 +573,15 @@ def bush_model(G, r, leaf_mats, seed=0, berries=None):
     """둥근 잎 뭉치 덤불 (부모 G 기준, 바닥 y0)"""
     rnd = random.Random(seed)
     for i in range(5):
-        rr = r * (0.55 + rnd.random() * 0.35)
-        pos = ((rnd.random() - 0.5) * r * 1.1, r * 0.45 + rnd.random() * r * 0.25, (rnd.random() - 0.5) * r * 1.1)
+        rr = r * (0.5 + rnd.random() * 0.3)
+        pos = ((rnd.random() - 0.5) * r * 1.0, r * 0.45 + rnd.random() * r * 0.25, (rnd.random() - 0.5) * r * 1.0)
         b = rounded_pebble(rr, seed=seed * 7 + i, pos=pos, scale=(1, 0.82, 1))
         finish(G(b), leaf_mats[i % len(leaf_mats)], jitter=0.08, ol=(i < 3), ol_t=0.03)
+    for i in range(16):  # 겉면 작은 잎뭉치 → 몽글몽글한 실루엣
+        a = rnd.uniform(0, TAU); el = rnd.uniform(-0.2, 1.1)
+        rr = r * 0.78
+        pos = (math.cos(a) * math.cos(el) * rr * 0.95, r * 0.55 + math.sin(el) * rr * 0.75, math.sin(a) * math.cos(el) * rr * 0.95)
+        finish(G(sphere(r * rnd.uniform(0.2, 0.3), seg=8, rings=6, pos=pos)), leaf_mats[i % len(leaf_mats)], jitter=0.1)
     if berries:
         for k in range(5):
             a = rnd.uniform(0, TAU)

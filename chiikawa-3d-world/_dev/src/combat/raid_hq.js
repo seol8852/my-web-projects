@@ -167,6 +167,7 @@ const RAIDHQ = (() => {
     rimTop.geometry.rotateX(-Math.PI / 2);
     rimTop.position.y = 0.12;
     g.add(rimTop);
+    const KR = { rim: [rim, rimTop], obs: [], spires: [] }; // 조립 부품으로 바꿀 원래 메시들
 
     // 결계 커튼
     const barrierMat = smat(BARRIER_FS, { uCol: { value: new THREE.Color(0x7c6bff) } });
@@ -189,6 +190,7 @@ const RAIDHQ = (() => {
       ob.rotation.y = -a + Math.PI / 4;
       if (typeof addCartoonOutline === 'function') addCartoonOutline(ob, 0.04);
       g.add(ob);
+      KR.obs.push({ ob, x, z, h, a });
       const cr = new THREE.Mesh(new THREE.OctahedronGeometry(1.1, 0), crystalMat);
       cr.position.set(x, h + 2.2, z);
       cr.scale.y = 1.7;
@@ -212,6 +214,7 @@ const RAIDHQ = (() => {
       sp.position.set(Math.cos(a) * rr, h / 2 - 0.5, Math.sin(a) * rr);
       sp.rotation.set((i % 3 - 1) * 0.12, i, (i % 2 - 0.5) * 0.2);
       g.add(sp);
+      KR.spires.push({ sp, r: 3 + (i % 4), h });
     }
     // 하늘 소용돌이
     const vortexMat = smat(VORTEX_FS, {});
@@ -251,9 +254,75 @@ const RAIDHQ = (() => {
     embers.frustumCulled = false;
     g.add(embers);
 
+    // ---- 분화구 절벽 고리 + 어두운 땅 + 밤하늘 돔 (레이드 동안만 보임: 바깥 풀밭·파란 하늘을 가림)
+    const darkGround = new THREE.Mesh(new THREE.RingGeometry(FLOOR_R + 1.5, 330, 64, 1), toon(0x1c1722));
+    darkGround.geometry.rotateX(-Math.PI / 2);
+    darkGround.position.y = 0.02;
+    g.add(darkGround);
+    const craterMat = toon(0x2a2430);
+    const craterGeo = new THREE.DodecahedronGeometry(1, 0);
+    const NC = 46;
+    const crater = new THREE.InstancedMesh(craterGeo, craterMat, NC);
+    const dm = new THREE.Object3D();
+    for (let i = 0; i < NC; i++) {
+      const a = (i / NC) * Math.PI * 2 + ((i * 53) % 7) * 0.02;
+      const rr = 104 + ((i * 29) % 5) * 7;
+      dm.position.set(Math.cos(a) * rr, 4 + ((i * 13) % 6), Math.sin(a) * rr);
+      dm.rotation.set(((i * 7) % 5) * 0.6, i * 1.7, ((i * 11) % 5) * 0.6);
+      dm.scale.set(14 + ((i * 17) % 7) * 2, 26 + ((i * 23) % 9) * 4, 14 + ((i * 19) % 7) * 2);
+      dm.updateMatrix();
+      crater.setMatrixAt(i, dm.matrix);
+    }
+    g.add(crater);
+    KR.crater = crater;
+    const skyMat = new THREE.ShaderMaterial({
+      uniforms: { uT: { value: 0 } },
+      vertexShader: `varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `uniform float uT; varying vec3 vD;
+        float h(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
+        void main(){ vec3 d = normalize(vD); float k = clamp(d.y * 1.4 + 0.12, 0.0, 1.0);
+          vec3 col = mix(vec3(0.30, 0.10, 0.16), vec3(0.06, 0.04, 0.13), pow(k, 0.7));
+          vec3 sp = floor(d * 240.0); float st = step(0.9972, h(sp)) * smoothstep(0.15, 0.5, d.y) * (0.6 + 0.4 * sin(uT * 2.0 + h(sp) * 30.0));
+          gl_FragColor = vec4(col + vec3(st * 0.8), 1.0); }`,
+      side: THREE.BackSide, depthWrite: true, fog: false
+    });
+    mats.push(skyMat);
+    const sky = new THREE.Mesh(new THREE.SphereGeometry(340, 32, 16), skyMat);
+    sky.renderOrder = -10;
+    g.add(sky);
+
     g.visible = false;
     scene.add(g);
     arena = { group: g, mats, crystals, vortex, floorMat };
+    // 🧱 Blender로 만든 조립 부품(오벨리스크·바닥 테두리·바위)으로 교체 — 불러오기 전/실패 시엔 원래 모양 그대로
+    if (typeof window.TOWNBAKE !== 'undefined' && window.TOWNBAKE.loadKit) {
+      window.TOWNBAKE.loadKit().then(kit => { if (kit) { try { applyKit(kit, KR, g); } catch (e) { console.warn('RAID kit', e); } } });
+    }
+  }
+
+  function applyKit(kit, KR, g) {
+    const TB = window.TOWNBAKE;
+    const GMap = typeof getToonGradientMap === 'function' ? getToonGradientMap() : null;
+    const kmat = (part, col = 0xffffff) => new THREE.MeshToonMaterial({ map: part.map, color: col, gradientMap: GMap });
+    const M4 = (x, y, z, rx, ry, rz, sx, sy, sz) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
+    if (kit.kit_robelisk) {
+      g.add(TB.kitMesh(kit.kit_robelisk, kmat(kit.kit_robelisk), KR.obs.map(o => M4(o.x, 0, o.z, 0, -o.a, 0, 1, o.h / 12, 1))));
+      KR.obs.forEach(o => { o.ob.visible = false; });
+    }
+    if (kit.kit_rimseg) {
+      g.add(TB.kitMesh(kit.kit_rimseg, kmat(kit.kit_rimseg), Array.from({ length: 24 }, (_, k) => M4(0, 0, 0, 0, (k / 24) * Math.PI * 2, 0, 1, 1, 1))));
+      KR.rim.forEach(o => { o.visible = false; });
+    }
+    if (kit.kit_spire) {
+      const list = KR.spires.map(({ sp, r, h }) => M4(sp.position.x, -0.5, sp.position.z, sp.rotation.x, sp.rotation.y, sp.rotation.z, r, h, r));
+      g.add(TB.kitMesh(kit.kit_spire, kmat(kit.kit_spire, 0x3a3242), list, false));
+      KR.spires.forEach(o => { o.sp.visible = false; });
+    }
+    if (kit.kit_rock && KR.crater) {
+      KR.crater.geometry = kit.kit_rock.geo;
+      KR.crater.material = kmat(kit.kit_rock, 0x3a3242);
+      KR.crater.computeBoundingSphere && KR.crater.computeBoundingSphere();
+    }
   }
 
   function ensureArena(game) {

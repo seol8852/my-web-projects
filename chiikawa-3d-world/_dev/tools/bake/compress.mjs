@@ -14,7 +14,7 @@ const OUT = resolve(here, '../../../assets/baked');
 const FILTER = process.argv[2] ? new RegExp(process.argv[2]) : null;
 await MeshoptEncoder.ready; await MeshoptDecoder.ready;
 const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
-const manPath = resolve(OUT, 'manifest.json');
+const manPath = resolve(OUT, process.env.KIT ? 'kit.json' : 'manifest.json');
 const man = JSON.parse(readFileSync(manPath, 'utf8'));
 async function packFile(file) {
   const doc = await io.read(file);
