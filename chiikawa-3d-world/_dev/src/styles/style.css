@@ -2628,3 +2628,44 @@ body.gfx-low .modal-window, body.gfx-low .hud-panel, body.gfx-low .coop-hud-pill
 #shop-modal .sh-wlist button { padding: 6px 10px; border-radius: 10px; border: 2px solid var(--gc); background: #fff; font-size: 12px; font-weight: 800; cursor: pointer; }
 #shop-modal .sh-wlist button b { color: var(--gc); }
 #shop-modal .sh-wlist button.sel { background: #fef3c7; }
+
+
+/* ⚔️ 전투 중 상단 HUD 축소 — 화면 가운데 위를 가리지 않도록 얇은 반투명 띠로 */
+body.battle-mode .battle-stage-hud {
+  top: 8px;
+  padding: 5px 12px 6px;
+  min-width: 0;
+  width: min(400px, 38vw);
+  gap: 4px;
+  border-width: 1.5px;
+  border-color: rgba(250, 204, 21, 0.55);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+}
+body.battle-mode .battle-stage-top-row { gap: 6px; }
+body.battle-mode .battle-stage-badge {
+  font-size: 12px; flex: 1; min-width: 0; display: block;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body.battle-mode .battle-remain-pill { font-size: 11px; padding: 1px 7px; white-space: nowrap; }
+body.battle-mode .btn-return-town-mini { font-size: 10.5px; padding: 2px 8px; white-space: nowrap; pointer-events: auto; opacity: 0.85; }
+body.battle-mode .stage-boss-bar-wrap { padding: 0; gap: 2px; background: transparent !important; border: none !important; }
+body.battle-mode .stage-boss-label-row { font-size: 10.5px; line-height: 1.2; }
+body.battle-mode .stage-boss-label-row > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+body.battle-mode .stage-boss-track { height: 7px !important; }
+body.battle-mode #battle-progress-wrap .stage-boss-track { height: 4px !important; }
+/* 전투 중 알림은 작게, 화면 위쪽 가장자리에 */
+body.battle-mode #toast-container { top: 74px; gap: 4px; }
+body.battle-mode .game-toast {
+  font-size: 11.5px; padding: 5px 12px; max-width: min(440px, 70vw);
+  background: rgba(15, 23, 42, 0.62); border-width: 1px; box-shadow: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body.battle-mode.raid-mode .battle-stage-hud { transform: translateX(-50%); }
+@media (max-width: 720px) {
+  body.battle-mode .battle-stage-hud { width: min(360px, 62vw); }
+}

@@ -292,6 +292,7 @@ const RAIDHQ = (() => {
     g.add(sky);
 
     g.visible = false;
+    g.userData.raidHQ = true;
     scene.add(g);
     arena = { group: g, mats, crystals, vortex, floorMat };
     // 🧱 Blender로 만든 조립 부품(오벨리스크·바닥 테두리·바위)으로 교체 — 불러오기 전/실패 시엔 원래 모양 그대로

@@ -1756,6 +1756,7 @@ class Chiikawa3DWorldApp {
     const hudEl = document.getElementById('battle-stage-hud');
     if (!hudEl) return;
 
+    document.body.classList.toggle('battle-mode', !!this.battleState.active);
     if (!this.battleState.active) {
       hudEl.classList.remove('active');
       return;
@@ -1770,7 +1771,7 @@ class Chiikawa3DWorldApp {
     const remainEl = document.getElementById('battle-stage-remain');
     const timerEl = document.getElementById('battle-stage-timer');
     if (titleEl) titleEl.innerText = this.battleState.title;
-    if (remainEl) remainEl.innerText = `남은 적군: ${remainTotal} / ${total}마리`;
+    if (remainEl) remainEl.innerText = `👾 ${remainTotal}/${total}`;
 
     if (timerEl) {
       const sec = Math.floor(this.battleState.elapsedTime || 0);
@@ -1790,12 +1791,12 @@ class Chiikawa3DWorldApp {
 
     if (secTxtEl) {
       if (this.battleState.waitingAdvance) {
-        secTxtEl.innerText = `🔓 제 ${curSecNum}구역 돌파 완료!! ⬆️ 전방(W키)으로 진격하여 제 ${curSecNum + 1}구역에 진입하세요!`;
+        secTxtEl.innerText = `🔓 ${curSecNum}구역 돌파! ⬆️ W로 다음 구역`;
       } else {
-        secTxtEl.innerText = `🏃 진격 구역: 제 ${curSecNum} / 5 구역 (웨이브 ${waveNum}/${maxWaves} 교전 중!)`;
+        secTxtEl.innerText = `🏃 구역 ${curSecNum}/5 · 웨이브 ${waveNum}/${maxWaves}`;
       }
     }
-    if (distTxtEl) distTxtEl.innerText = `진행도 ${pct}%`;
+    if (distTxtEl) distTxtEl.innerText = `${pct}%`;
     if (progFillEl) progFillEl.style.width = `${Math.max(8, pct)}%`;
 
     const bossWrap = document.getElementById('stage-boss-bar-wrap');

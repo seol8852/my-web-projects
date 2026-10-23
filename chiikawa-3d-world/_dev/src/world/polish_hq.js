@@ -129,6 +129,81 @@ const POLISH = (() => {
     e.outlines.forEach(o => { o.visible = o.userData._ocVis !== false; delete o.userData._ocVis; });
     sfade.delete(root);
   }
+  // 전투·레이드 맵: 조립 부품(인스턴스)은 인스턴스별 디더 페이드, 일반 메쉬는 재질 복사 페이드
+  const ifade = new Map();   // InstancedMesh → { cur: Float32Array, want: Uint8Array }
+  const flatOf = new WeakMap();
+  let bMeshes = [], bInst = [], bT = 0;
+  function tallEnough(o) {
+    let v = flatOf.get(o);
+    if (v === undefined) {
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      const bb = o.geometry.boundingBox;
+      v = bb ? (bb.max.y - bb.min.y) * o.getWorldScale(_d).y > 1.2 : false;
+      flatOf.set(o, v);
+    }
+    return v;
+  }
+  function battleOcclusion(game, dt, cam, tgt, rayTick) {
+    bT -= dt;
+    if (bT <= 0) {
+      bMeshes = []; bInst = [];
+      game.scene.children.forEach(root => {
+        if (!root.userData || !(root.userData.stageHQ || root.userData.raidHQ) || !root.visible) return;
+        root.traverse(o => {
+          if (!o.isMesh || !o.visible || (o.userData && o.userData.isOutline) || !o.geometry) return;
+          if (o.isInstancedMesh) { if (o.userData.kitFade) bInst.push(o); return; }
+          if (o.material && (o.material.transparent || o.material.side === THREE.BackSide)) return;
+          if (o.geometry.attributes.position && o.geometry.attributes.position.count > 40000) return;
+          if (tallEnough(o)) bMeshes.push(o);
+        });
+      });
+      bT = bMeshes.length || bInst.length ? 1.5 : 0.3;
+    }
+    if (rayTick) {
+      const hit = new Set();
+      ifade.forEach(e => e.want.fill(0));
+      const near = bMeshes.filter(o => { const sp = rootSphere(o); return distPointSegment(sp.center, cam.position, _p[1]) < sp.radius + 1.0; });
+      const cands = near.concat(bInst);
+      if (cands.length) {
+        rayc.camera = cam;
+        for (const p of _p) {
+          _d.copy(p).sub(cam.position);
+          const len = _d.length();
+          rayc.set(cam.position, _d.normalize());
+          rayc.far = Math.max(0.1, len - 0.8);
+          for (const h of rayc.intersectObjects(cands, false)) {
+            if (h.point.y < 0.6) continue;   // 바닥은 제외
+            const o = h.object;
+            if (o.isInstancedMesh) {
+              if (h.instanceId === undefined) continue;
+              let e = ifade.get(o);
+              if (!e) { e = { cur: new Float32Array(o.count), want: new Uint8Array(o.count) }; ifade.set(o, e); }
+              e.want[h.instanceId] = 1;
+            } else hit.add(o);
+          }
+        }
+      }
+      return hit;
+    }
+    return null;
+  }
+  function stepInstFade(dt) {
+    ifade.forEach((e, m) => {
+      const attr = m.userData.kitFade;
+      if (!attr) { ifade.delete(m); return; }
+      let changed = false, any = false;
+      for (let i = 0; i < e.cur.length; i++) {
+        const w = e.want[i], c = e.cur[i];
+        if (c === w) continue;
+        let nv = c + (w - c) * Math.min(1, dt * 10);
+        if (Math.abs(nv - w) < 0.02) nv = w;
+        e.cur[i] = nv; attr.array[i] = nv; changed = true;
+        if (nv > 0) any = true;
+      }
+      if (changed) attr.needsUpdate = true;
+      if (!changed && !e.want.some(v => v)) ifade.delete(m);
+    });
+  }
   function updateStructOcclusion(game, dt) {
     const cam = game.camera, scene = game.scene, tgt = game.playerPos;
     if (!cam || !scene || !tgt) return;
@@ -137,11 +212,16 @@ const POLISH = (() => {
     if (sRootsT <= 0) { sRootsT = 3; sRoots = scene.children.filter(o => (o.userData && o.userData.bakeKey) || extraRoots.has(o)); }
     const inBattle = (game.battleState && game.battleState.active) || game.raidMode;
     sRayT -= dt;
-    if (sRayT <= 0) {
+    const rayTick = sRayT <= 0;
+    if (rayTick) [0.9, 2.2, 3.4].forEach((h, i) => _p[i].set(tgt.x, (tgt.y || 0) + h, tgt.z));
+    let bHit = null;
+    if (inBattle) bHit = battleOcclusion(game, dt, cam, tgt, rayTick);
+    else if (ifade.size) ifade.forEach(e => e.want.fill(0));
+    stepInstFade(dt);
+    if (rayTick) {
       sRayT = 0.08;
-      const hit = new Set();
+      const hit = bHit || new Set();
       if (!inBattle && sRoots.length) {
-        [0.9, 2.2, 3.4].forEach((h, i) => _p[i].set(tgt.x, (tgt.y || 0) + h, tgt.z));
         const near = sRoots.filter(o => {
           if (!o.visible) return false;
           const sp = rootSphere(o);
@@ -1128,6 +1208,7 @@ const POLISH = (() => {
   }
 
   return {
+    _occDbg: () => ({ inst: [...ifade].map(([m, e]) => [m.count, [...e.cur].filter(v => v > 0).length]), meshes: sfade.size, bm: bMeshes.length, bi: bInst.length }),
     registerOccluder, rescanOccluder, attachBackView, makeBackTexture, damageNumber, createNearGrass,
     playerHurt, telegraphMaterial, dust, landing, dashBurst, getWaterMaterial,
     applyQuality, cycleQuality, initHud, toggleCompact, update, onTelegraph, attackImpact,

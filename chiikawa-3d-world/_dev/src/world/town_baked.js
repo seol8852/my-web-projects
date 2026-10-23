@@ -231,16 +231,48 @@ const TOWNBAKE = (() => {
   // 부품용 툰 외곽선 (인스턴스도 그대로 따라감): 법선 방향으로 부풀린 뒷면
   const KIT_OL = new THREE.MeshBasicMaterial({ color: 0x2b1d19, side: THREE.BackSide });
   KIT_OL.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * 0.035;'); };
+  // 카메라와 캐릭터 사이를 가리는 부품은 인스턴스별로 '점무늬 투명'(디더)으로 흐리게 → aFade(0~1)
+  const DITHER = `
+    float kitBayer(vec2 p){ return fract(52.9829189 * fract(dot(floor(p), vec2(0.06711056, 0.00583715)))); }`;
+  function fadeGeo(geo, n) {
+    const g = new THREE.BufferGeometry();
+    for (const k in geo.attributes) g.setAttribute(k, geo.attributes[k]);
+    if (geo.index) g.setIndex(geo.index);
+    g.boundingSphere = geo.boundingSphere; g.boundingBox = geo.boundingBox;
+    const fa = new THREE.InstancedBufferAttribute(new Float32Array(n), 1);
+    fa.setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('aFade', fa);
+    return g;
+  }
+  function fadePatch(mat, outlineMode) {
+    if (mat.userData._kitFade) return mat;
+    mat.userData._kitFade = true;
+    const prev = mat.onBeforeCompile;
+    mat.onBeforeCompile = (sh, r) => {
+      if (prev) prev(sh, r);
+      sh.vertexShader = 'attribute float aFade;\nvarying float vKitFade;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vKitFade = aFade;');
+      sh.fragmentShader = 'varying float vKitFade;\n' + DITHER + '\n' + sh.fragmentShader.replace('void main() {',
+        outlineMode ? 'void main() {\n  if (vKitFade > 0.05) discard;'
+                    : 'void main() {\n  if (vKitFade > 0.01 && kitBayer(gl_FragCoord.xy) < vKitFade * 0.72) discard;');
+    };
+    const key = mat.customProgramCacheKey ? mat.customProgramCacheKey.bind(mat) : () => '';
+    mat.customProgramCacheKey = () => key() + (outlineMode ? '|kfo' : '|kf');
+    return mat;
+  }
+  const KIT_OL_F = fadePatch(new THREE.MeshBasicMaterial({ color: 0x2b1d19, side: THREE.BackSide }), true);
+  KIT_OL_F.onBeforeCompile = ((inner) => (sh, r) => { inner(sh, r); sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * 0.035;'); })(KIT_OL_F.onBeforeCompile);
   function kitMesh(part, mat, matrices, outline = true) {
     const n = matrices.length;
-    const m = new THREE.InstancedMesh(part.geo, mat, n);
+    const geo = fadeGeo(part.geo, n);
+    const m = new THREE.InstancedMesh(geo, fadePatch(mat, false), n);
+    m.userData.kitFade = geo.attributes.aFade;
     matrices.forEach((M, i) => m.setMatrixAt(i, M));
     m.instanceMatrix.needsUpdate = true;
     m.castShadow = true; m.receiveShadow = true;
     m.computeBoundingSphere && m.computeBoundingSphere();
     m.frustumCulled = false;
     if (outline) {
-      const o = new THREE.InstancedMesh(part.geo, KIT_OL, n);
+      const o = new THREE.InstancedMesh(geo, KIT_OL_F, n);
       matrices.forEach((M, i) => o.setMatrixAt(i, M));
       o.userData.isOutline = true;
       o.frustumCulled = false;
