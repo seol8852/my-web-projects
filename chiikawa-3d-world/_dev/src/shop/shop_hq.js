@@ -2,6 +2,7 @@
 import THREE from '../core/three.js';
 import { soundFx } from '../core/sound.js';
 import { addCartoonOutline, getToonGradientMap } from '../core/models3d.js';
+import { MeshoptDecoder } from 'meshoptimizer';
 import { HAT_CATALOG, STAGE_CAMPAIGN_DATA, showToast } from '../game/minigames.js';
 import { Chiikawa3DWorldApp } from '../game/main.js';
 import { expose } from '../core/expose.js';
@@ -788,10 +789,105 @@ const SHOPHQ = (() => {
     g.userData.tip = tip;
     return g;
   }
+  // ------------------------------------------------------------------
+  // 🗡️ Blender로 만든 무기 16종 (assets/weapons.glb: 부품 이름 "모양|칸|단계")
+  //  - 칸: blade(날)·acc(장식)·grip(손잡이)·wrap(감은 끈)·gem(빛나는 보석)·metal·dark·white·wood·#고정색
+  //  - 단계(lv): 등급(C0 B1 A2 S3) + 강화/4 가 이 값 이상이면 보임 → 등급·강화가 오를수록 장식이 늘어남
+  //  - 불러오기 전/실패 시엔 아래 buildWeaponHead(코드로 만든 모양) 사용
+  // ------------------------------------------------------------------
+  const W_TIPS = { sword: 2.73, great: 3.43, claw: 2.6, spear: 3.6, trident: 3.9, sasumata: 2.95, axe: 2.5, hammer: 2.5, bow: 1.9, staff: 3.0, scythe: 2.9, broom: 1.8, ladle: 2.4, pan: 2.5, umbrella: 2.8, boomerang: 1.7 };
+  const W_FIXED = { metal: 0xd1d5db, dark: 0x334155, white: 0xffffff, wood: 0xa8703f };
+  let WLIB = null, wlibP = null;
+  function loadWeaponLib() {
+    if (wlibP) return wlibP;
+    if (typeof THREE.GLTFLoader === 'undefined') return (wlibP = Promise.resolve(null));
+    wlibP = fetch('assets/weapons.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : {})).catch(() => ({})).then(meta => new Promise(res => {
+      const l = new THREE.GLTFLoader();
+      if (typeof MeshoptDecoder !== 'undefined') l.setMeshoptDecoder(MeshoptDecoder);
+      l.load('assets/weapons.glb?v=' + (meta.v || '1'), gltf => {
+        const lib = {};
+        gltf.scene.updateMatrixWorld(true);
+        gltf.scene.traverse(o => {
+          if (!o.isMesh) return;
+          const [shape, slot, lv] = o.name.split('|');
+          if (!shape || !slot) return;
+          (lib[shape] = lib[shape] || []).push({ geo: floatGeo(o), slot, lv: +lv || 0 });
+        });
+        WLIB = lib;
+        res(lib);
+        refreshWeapons();
+      }, undefined, () => res(null));
+    }));
+    return wlibP;
+  }
+  // 압축(양자화)된 정점을 일반 좌표로 풀어 무기 기준 위치에 고정 (외곽선 두께가 부품마다 같게)
+  function floatGeo(o) {
+    const src = o.geometry, geo = new THREE.BufferGeometry();
+    ['position', 'normal'].forEach(n => {
+      const at = src.attributes[n];
+      if (!at) return;
+      const arr = new Float32Array(at.count * 3);
+      for (let i = 0; i < at.count; i++) { arr[i * 3] = at.getX(i); arr[i * 3 + 1] = at.getY(i); arr[i * 3 + 2] = at.getZ(i); }
+      geo.setAttribute(n, new THREE.BufferAttribute(arr, 3));
+    });
+    if (src.index) geo.setIndex(new THREE.BufferAttribute(Uint32Array.from(src.index.array), 1));
+    geo.applyMatrix4(o.matrixWorld);
+    geo.computeBoundingSphere();
+    return geo;
+  }
+  const W_OL = new THREE.MeshBasicMaterial({ color: 0x2b1d19, side: THREE.BackSide });
+  W_OL.userData.shared = true;
+  W_OL.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * 0.022;'); };
+  // 무기 모델이 늦게 도착하면 이미 들고 있는 무기를 새 모델로 다시 입힘 (내 캐릭터 + 파티원)
+  function refreshWeapons() {
+    const scene = window.gameApp && window.gameApp.scene;
+    if (!scene) return;
+    scene.traverse(o => {
+      const ud = o.userData;
+      if (ud && ud.parts && ud._gearW) { const wv = ud._gearW; ud._gearW = null; try { dressMesh(o, wv, ud._gearA); } catch (e) { /* 무시 */ } }
+    });
+  }
+  const _wMats = new Map();
+  function wMat(col, glow) {
+    const k = (glow ? 'g' : 't') + col;
+    if (!_wMats.has(k)) { const m = glow ? new THREE.MeshBasicMaterial({ color: col }) : tm(col); m.userData.shared = true; _wMats.set(k, m); }
+    return _wMats.get(k);
+  }
+  function buildWeaponFromLib(shape, P, lv) {
+    const parts = WLIB && WLIB[shape];
+    if (!parts) return null;
+    const g = new THREE.Group();
+    const dim = c => new THREE.Color(c).multiplyScalar(0.7).getHex();
+    parts.forEach(p => {
+      if (p.lv > lv) return;
+      const [base, role] = p.slot.split('-');
+      const col = base[0] === '#' ? parseInt(base.slice(1), 16) : W_FIXED[base] !== undefined ? W_FIXED[base] : base === 'wrap' ? dim(P.grip) : base === 'gem' ? P.glow : P[base];
+      let geo = p.geo;
+      if (role) {   // 돌아가는 부품은 제자리에서 돌도록 중심을 원점으로 (한 번만 만들어 공유)
+        if (!p.geoC) { p.geoC = p.geo.clone(); p.geoC.computeBoundingBox(); p.c = p.geoC.boundingBox.getCenter(new THREE.Vector3()); p.geoC.translate(-p.c.x, -p.c.y, -p.c.z); p.geoC.computeBoundingSphere(); }
+        geo = p.geoC;
+      }
+      const m = new THREE.Mesh(geo, wMat(col === undefined ? 0xffffff : col, base === 'gem'));
+      if (role) m.position.copy(p.c);
+      m.userData.sharedGeo = true;
+      m.castShadow = true;
+      if (base !== 'gem' && base !== 'white') {
+        const o2 = new THREE.Mesh(geo, W_OL);
+        o2.userData.isOutline = true; o2.userData.sharedGeo = true;
+        m.add(o2);
+      }
+      if (role === 'spin') g.userData.spin = m;
+      if (role === 'ring' && base === 'blade') g.userData.ring = m;
+      g.add(m);
+    });
+    g.userData.tip = W_TIPS[shape] || 2.6;
+    return g;
+  }
   function makeWeaponModel(shape, grade, enh) {
     const P = PAL[grade] || PAL.C;
     const root = new THREE.Group();
-    const head = buildWeaponHead(shape === 'dual' ? 'sword' : shape, P);
+    const lvW = (grade === 'S' ? 3 : grade === 'A' ? 2 : grade === 'B' ? 1 : 0) + Math.floor((enh || 0) / 4);
+    const head = buildWeaponFromLib(shape === 'dual' ? 'sword' : shape, P, lvW) || buildWeaponHead(shape === 'dual' ? 'sword' : shape, P);
     root.add(head);
     const tip = head.userData.tip;
     const lv = (grade === 'S' ? 3 : grade === 'A' ? 2 : grade === 'B' ? 1 : 0) + Math.floor((enh || 0) / 4);
@@ -882,8 +978,8 @@ const SHOPHQ = (() => {
   const gearAnimated = new Set();
   function disposeTree(o) {
     o.traverse(c => {
-      if (c.geometry) c.geometry.dispose();
-      if (c.material) (Array.isArray(c.material) ? c.material : [c.material]).forEach(m => { if (m.map && m.map === _glowTex) m.map = null; m.dispose(); });
+      if (c.geometry && !(c.userData && c.userData.sharedGeo)) c.geometry.dispose();
+      if (c.material) (Array.isArray(c.material) ? c.material : [c.material]).forEach(m => { if (m.userData && m.userData.shared) return; if (m.map && m.map === _glowTex) m.map = null; m.dispose(); });
     });
   }
   // 시각 키: 무기 "모양|등급|강화", 방어구 "스타일|등급"
@@ -967,6 +1063,7 @@ const SHOPHQ = (() => {
   // 연결
   // ------------------------------------------------------------------
   function install() {
+    setTimeout(() => { try { loadWeaponLib(); } catch (e) { /* 무시: 코드로 만든 무기 사용 */ } }, 0);
     // 머리 장식 모델 확장
     if (typeof window.createHatAccessory3D === 'function') {
       const orig = window.createHatAccessory3D;
@@ -1023,7 +1120,7 @@ const SHOPHQ = (() => {
     };
   }
 
-  return { install, apply, dressRemote, eqString, gearKeys, weaponShape, armorStyle, NAMES, atkMult, totals, recomputeHp, render, pull, makeItem, COSMETICS, GRADE, ECON };
+  return { install, apply, dressRemote, eqString, gearKeys, weaponShape, armorStyle, makeWeaponModel, loadWeaponLib, NAMES, atkMult, totals, recomputeHp, render, pull, makeItem, COSMETICS, GRADE, ECON };
 })();
 SHOPHQ.install();
 document.addEventListener('DOMContentLoaded', () => setTimeout(() => { if (window.gameApp) SHOPHQ.apply(window.gameApp); }, 0));
