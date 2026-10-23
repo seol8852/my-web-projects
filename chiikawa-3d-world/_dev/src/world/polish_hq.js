@@ -27,7 +27,9 @@ const POLISH = (() => {
   const segB = new THREE.Vector3();
   const tmp = new THREE.Vector3();
 
+  const extraRoots = new Set();   // 나무·버섯 → 새 시선 광선 방식으로 처리
   function registerOccluder(obj, centerOffsetY, radius) {
+    extraRoots.add(obj); return;
     const mats = [];
     const outlines = [];
     obj.traverse(o => {
@@ -90,6 +92,88 @@ const POLISH = (() => {
         oc.outlines.forEach(o => { o.visible = true; });
       }
     }
+  }
+
+  // ------------------------------------------------------------------
+  // 1-2) 카메라와 캐릭터 사이를 가리는 마을 구조물·소품 반투명 (실제 시선 광선으로 판정)
+  //  - 줌 아웃해도 정확하게: 카메라 → 캐릭터(발·몸·머리) 3줄 광선에 걸린 구조물만 흐리게
+  //  - 구운 모델은 같은 재질을 여러 개가 함께 쓰므로, 흐릴 때만 그 구조물 전용 복사본으로 바꿨다가 돌아오면 원래대로
+  // ------------------------------------------------------------------
+  const sfade = new Map();   // root → { fade, want, meshes: [{ m, orig }], outlines: [] }
+  const rayc = new THREE.Raycaster();
+  const sphereOf = new WeakMap();
+  let sRoots = [], sRootsT = 0, sRayT = 0;
+  const _p = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()], _d = new THREE.Vector3();
+  function rootSphere(o) {
+    let sp = sphereOf.get(o);
+    if (!sp) { sp = new THREE.Box3().setFromObject(o).getBoundingSphere(new THREE.Sphere()); sphereOf.set(o, sp); }
+    return sp;
+  }
+  function beginFade(root) {
+    const e = { fade: 0, want: 1, meshes: [], outlines: [] };
+    root.traverse(o => {
+      if (!o.isMesh || !o.material || !o.visible) return;
+      if ((o.userData && o.userData.isOutline) || o.material.side === THREE.BackSide) { e.outlines.push(o); return; }
+      if (!o.geometry || !o.geometry.attributes || !o.geometry.attributes.position) return;
+      const orig = o.material;
+      const own = (Array.isArray(orig) ? orig : [orig]).map(m => { const c = m.clone(); c.userData._baseOp = m.opacity !== undefined ? m.opacity : 1; c.transparent = true; c.depthWrite = false; return c; });
+      o.material = Array.isArray(orig) ? own : own[0];
+      e.meshes.push({ m: o, orig, own });
+    });
+    e.outlines.forEach(o => { o.userData._ocVis = o.visible; o.visible = false; });
+    sfade.set(root, e);
+    return e;
+  }
+  function endFade(root, e) {
+    e.meshes.forEach(({ m, orig, own }) => { m.material = orig; own.forEach(c => c.dispose()); });
+    e.outlines.forEach(o => { o.visible = o.userData._ocVis !== false; delete o.userData._ocVis; });
+    sfade.delete(root);
+  }
+  function updateStructOcclusion(game, dt) {
+    const cam = game.camera, scene = game.scene, tgt = game.playerPos;
+    if (!cam || !scene || !tgt) return;
+    // 후보: 마을 구조물·소품 (구운 모델 이름표 bakeKey) — 3초마다 목록 갱신
+    sRootsT -= dt;
+    if (sRootsT <= 0) { sRootsT = 3; sRoots = scene.children.filter(o => (o.userData && o.userData.bakeKey) || extraRoots.has(o)); }
+    const inBattle = (game.battleState && game.battleState.active) || game.raidMode;
+    sRayT -= dt;
+    if (sRayT <= 0) {
+      sRayT = 0.08;
+      const hit = new Set();
+      if (!inBattle && sRoots.length) {
+        [0.9, 2.2, 3.4].forEach((h, i) => _p[i].set(tgt.x, (tgt.y || 0) + h, tgt.z));
+        const near = sRoots.filter(o => {
+          if (!o.visible) return false;
+          const sp = rootSphere(o);
+          return distPointSegment(sp.center, cam.position, _p[1]) < sp.radius + 1.0;
+        });
+        if (near.length) {
+          rayc.camera = cam;
+          for (const p of _p) {
+            _d.copy(p).sub(cam.position);
+            const len = _d.length();
+            rayc.set(cam.position, _d.normalize());
+            rayc.far = Math.max(0.1, len - 0.8);
+            const hits = rayc.intersectObjects(near, true);
+            for (const h of hits) {
+              const o = h.object;
+              if (!o.isMesh || (o.userData && o.userData.isOutline)) continue;
+              let r = o;
+              while (r.parent && !near.includes(r)) r = r.parent;
+              if (near.includes(r)) hit.add(r);
+            }
+          }
+        }
+      }
+      sfade.forEach((e, r) => { e.want = hit.has(r) ? 1 : 0; });
+      hit.forEach(r => { if (!sfade.has(r)) beginFade(r); });
+    }
+    sfade.forEach((e, r) => {
+      e.fade += (e.want - e.fade) * Math.min(1, dt * 10);
+      if (e.want === 0 && e.fade < 0.02) { endFade(r, e); return; }
+      const op = 1 - e.fade * 0.72;
+      e.meshes.forEach(({ own }) => own.forEach(c => { c.opacity = op * c.userData._baseOp; }));
+    });
   }
 
   // ------------------------------------------------------------------
@@ -681,7 +765,7 @@ const POLISH = (() => {
     ${NOISE_GLSL}
     void main() {
       float facing = abs(dot(normalize(vN), normalize(vV)));
-      float rim = pow(1.0 - facing, 2.2);
+      float rim = pow(clamp(1.0 - facing, 0.0, 1.0), 2.2);
       float bands = fbm2(vec2(atan(vPos.x, vPos.z) * 3.0, vPos.y * 2.0 - uT * 5.0));
       float a = (rim * 1.3 + 0.06 + bands * 0.12) * uFade;
       vec3 col = mix(uColor, vec3(1.0, 0.85, 0.7), rim * 0.5);
@@ -831,7 +915,7 @@ const POLISH = (() => {
     varying vec2 vUv;
     ${NOISE_GLSL}
     void main() {
-      float across = 1.0 - abs(vUv.x - 0.5) * 2.0;
+      float across = max(1.0 - abs(vUv.x - 0.5) * 2.0, 0.0);
       float core = pow(across, 9.0);
       float glow = pow(across, 2.2);
       float flow = fbm2(vec2(vUv.y * uLen * 0.25 - uT * 14.0, vUv.x * 3.0));
@@ -1029,6 +1113,7 @@ const POLISH = (() => {
     updateWindups(game, dt);
     updateCharges(game);
     if (game.camera && game.playerPos) updateOccluders(game.camera, game.playerPos, dt);
+    try { updateStructOcclusion(game, dt); } catch (e) { if (!update._ocw) { update._ocw = true; console.warn('POLISH occlusion', e); } }
     const t = game.clock ? game.clock.elapsedTime : 0;
     if (nearGrass && nearGrass.visible) {
       nearGrass.userData.uniforms.uTime.value = t;

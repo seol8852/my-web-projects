@@ -165,7 +165,7 @@ const SKILLS = (() => {
     uniform vec3 uColor; uniform float uT; uniform float uFade;
     varying vec2 vUv; varying vec3 vN; varying vec3 vV; ${NOISE}
     void main() {
-      float fr = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.4);
+      float fr = pow(clamp(1.0 - abs(dot(normalize(vN), normalize(vV + vec3(0.0, 1e-5, 0.0)))), 0.0, 1.0), 2.4);
       float hex = fbm(vUv * vec2(18.0, 9.0) + vec2(uT * 0.6, -uT * 0.4));
       float shimmer = smoothstep(0.62, 0.8, hex) * 0.35;
       float a = (fr * 0.9 + 0.05 + shimmer * fr) * uFade;
@@ -189,7 +189,7 @@ const SKILLS = (() => {
     uniform vec3 uColor; uniform float uT; uniform float uFade; uniform float uLen;
     varying vec2 vUv; ${NOISE}
     void main() {
-      float across = 1.0 - abs(vUv.x - 0.5) * 2.0;
+      float across = max(1.0 - abs(vUv.x - 0.5) * 2.0, 0.0);
       float core = pow(across, 8.0);
       float glow = pow(across, 2.0);
       float flow = fbm(vec2(vUv.y * uLen * 0.3 - uT * 16.0, vUv.x * 3.0));
@@ -397,7 +397,7 @@ const SKILLS = (() => {
     const m = mat(`
       uniform vec3 uColor; uniform float uT; uniform float uFade; varying vec2 vUv;
       void main() {
-        float across = 1.0 - abs(vUv.x - 0.5) * 2.0;
+        float across = max(1.0 - abs(vUv.x - 0.5) * 2.0, 0.0);
         float tip = smoothstep(1.0, 0.7, vUv.y);
         float edge = pow(across, 1.6) * tip * smoothstep(0.0, 0.2, vUv.y);
         float a = (edge * 0.75 + pow(across, 10.0) * 0.9 * tip) * uFade;

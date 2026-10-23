@@ -426,6 +426,13 @@ class Chiikawa3DWorldApp {
         0.42,
         0.92
       );
+      // 블룸 입력 단계에서 NaN/무한대 픽셀을 걸러냄 (그래픽 높음·보통에서 궁극기 이펙트가 화면 전체를 한 색으로 덮던 문제)
+      try {
+        const hp = this.bloomPass.materialHighPassFilter;
+        hp.fragmentShader = hp.fragmentShader.replace('vec4 texel = texture2D( tDiffuse, vUv );',
+          'vec4 texel = texture2D( tDiffuse, vUv ); if (any(isnan(texel)) || any(isinf(texel))) texel = vec4(0.0); texel = min(texel, vec4(64.0));');
+        hp.needsUpdate = true;
+      } catch (e) {}
       this.composer.addPass(this.bloomPass);
 
       // 🎨 애니메이션 감성 컬러 그레이딩 + 부드러운 비네팅 (채도·대비·따뜻한 톤 보정)
@@ -457,6 +464,9 @@ class Chiikawa3DWorldApp {
             void main() {
               vec4 tex = texture2D(tDiffuse, vUv);
               vec3 c = tex.rgb;
+              // 깨진 값(NaN/무한대) 픽셀은 검정 처리 → 한 점이 화면 전체로 번지는 현상 방지
+              if (any(isnan(c)) || any(isinf(c)) || max(c.r, max(c.g, c.b)) > 6e4) c = vec3(0.0);
+              tex.a = 1.0;
               float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
               c = mix(vec3(l), c, uSaturation);
               c = (c - 0.5) * uContrast + 0.5;
@@ -2767,7 +2777,7 @@ class Chiikawa3DWorldApp {
         const pCenter = this.playerPos.clone();
         soundFx.playAttack();
         this.camShake = Math.max(this.camShake, waveIdx === hitTimings.length - 1 ? 0.85 : 0.5);
-        if (typeof FXHQ !== 'undefined') FXHQ.screenFlash(cfg.accentColor, waveIdx === hitTimings.length - 1 ? 0.2 : 0.08, 160);
+        if (typeof FXHQ !== 'undefined') FXHQ.screenFlash(cfg.accentColor, waveIdx === hitTimings.length - 1 ? 0.1 : 0.04, 140);
 
         if (charKey === 'chiikawa' && waveIdx === 0) {
           const impactPos = pCenter.clone().add(this.ultForward.clone().multiplyScalar(3.2));

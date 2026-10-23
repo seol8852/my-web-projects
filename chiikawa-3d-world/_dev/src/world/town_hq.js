@@ -2903,7 +2903,7 @@ const TOWNHQ = (() => {
       const obj = st.fn();
       add(obj, st.x, st.z, st.noFace ? 0 : Math.atan2(-st.x, -st.z));
       if (app.addZoneSign) app.addZoneSign(st.label, st.x, st.sy, st.z);
-      if (typeof window.POLISH !== 'undefined' && window.POLISH.registerOccluder) { try { window.POLISH.registerOccluder(obj, st.r * 0.6, 6); } catch (e) {} }
+      // 카메라 가림 반투명은 polish_hq.js 의 시선 광선 판정이 모든 구조물에 적용 (예전 반지름 방식은 줌 아웃 때 어긋나서 제외)
     });
 
     // ⚔️ 출격 포털 입장 존 링 (coop.js ZONES.stage와 같은 위치·반경)

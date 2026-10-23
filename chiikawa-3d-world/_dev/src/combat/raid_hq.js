@@ -81,7 +81,7 @@ const RAIDHQ = (() => {
     varying vec2 vUv; ${NOISE}
     void main() {
       float f = fbm(vec2(vUv.x * 40.0, vUv.y * 3.0 - uT * 1.4));
-      float fade = pow(1.0 - vUv.y, 2.2);
+      float fade = pow(max(1.0 - vUv.y, 0.0), 2.2);
       float lines = smoothstep(0.92, 1.0, fract(vUv.x * 96.0 + uT * 0.2)) * 0.5;
       float a = (fade * (0.25 + f * 0.55) + lines * fade) * (0.55 + uP3 * 0.35);
       vec3 col = mix(mix(uCol, vec3(1.0, 0.32, 0.06), uP3), vec3(1.0, 0.8, 0.7), fade * f * 0.5);
@@ -114,7 +114,7 @@ const RAIDHQ = (() => {
     void main() {
       float f = fbm(vec2(vUv.x * 9.0 + sin(vUv.y * 4.0 + uT) * 0.4, vUv.y * 2.6 - uT * 2.2));
       float g = fbm(vec2(vUv.x * 17.0, vUv.y * 5.0 - uT * 3.4));
-      float fade = pow(1.0 - vUv.y, 1.3) * smoothstep(0.0, 0.06, vUv.y);
+      float fade = pow(max(1.0 - vUv.y, 0.0), 1.3) * smoothstep(0.0, 0.06, vUv.y);
       float body = smoothstep(0.32, 0.72, f * 0.7 + g * 0.4 + fade * 0.35) * fade;
       vec3 col = mix(vec3(0.16, 0.0, 0.01), vec3(0.62, 0.0, 0.03), smoothstep(0.4, 0.9, f));
       col = mix(col, vec3(1.0, 0.18, 0.08), smoothstep(0.78, 1.0, g) * 0.6);
@@ -125,7 +125,7 @@ const RAIDHQ = (() => {
     varying vec2 vUv; ${NOISE}
     void main() {
       float f = fbm(vec2(vUv.x * 12.0, vUv.y * 3.2 - uT * 3.0));
-      float fade = pow(1.0 - vUv.y, 2.0) * smoothstep(0.0, 0.05, vUv.y);
+      float fade = pow(max(1.0 - vUv.y, 0.0), 2.0) * smoothstep(0.0, 0.05, vUv.y);
       float a = smoothstep(0.45, 0.85, f) * fade * 0.8 * uFade;
       vec3 col = mix(vec3(0.9, 0.02, 0.05), vec3(1.0, 0.45, 0.25), f);
       gl_FragColor = vec4(col * a, a);

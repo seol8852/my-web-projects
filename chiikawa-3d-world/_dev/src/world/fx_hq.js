@@ -604,7 +604,7 @@ const FXHQ = (() => {
       fragmentShader: `
         uniform vec3 uColor; uniform float uFade; uniform float uProg; varying vec2 vUv;
         void main() {
-          float across = 1.0 - abs(vUv.x - 0.5) * 2.0;
+          float across = max(1.0 - abs(vUv.x - 0.5) * 2.0, 0.0);
           float len = vUv.y;
           float a = pow(across, 2.2) * smoothstep(0.0, 0.7, len) * step(len, uProg) * uFade;
           a *= mix(0.6, 1.6, smoothstep(0.75, 1.0, len));
@@ -889,9 +889,9 @@ const FXHQ = (() => {
     const anim = (el, frames, o) => el && el.animate && el.animate(frames, o);
     if (P) {
       const ms = duration * 1000;
-      screenFlash(0xffffff, 0.3, 220);
-      P.vignette.style.background = `radial-gradient(ellipse at center, rgba(0,0,0,0) 58%, ${cssColor(color, 0.38)} 100%)`;
-      anim(P.vignette, [{ opacity: 0 }, { opacity: 0.85, offset: 0.12 }, { opacity: 0.85, offset: 0.7 }, { opacity: 0 }], { duration: ms, easing: 'ease-out' });
+      screenFlash(0xffffff, 0.16, 200);
+      P.vignette.style.background = `radial-gradient(ellipse at center, ${cssColor(color, 0)} 72%, ${cssColor(color, 0.22)} 100%)`;
+      anim(P.vignette, [{ opacity: 0 }, { opacity: 0.6, offset: 0.12 }, { opacity: 0.5, offset: 0.6 }, { opacity: 0 }], { duration: ms, easing: 'ease-out' });
       anim(P.lines, [
         { opacity: 0, transform: 'translate(-50%,-50%) scale(1.25) rotate(0deg)' },
         { opacity: 0.42, transform: 'translate(-50%,-50%) scale(1.0) rotate(4deg)', offset: 0.15 },
@@ -925,7 +925,7 @@ const FXHQ = (() => {
         void main() {
           vec2 p = vec2(vUv.x * 12.0, vUv.y * 3.0 - uTime * 2.6);
           float f = n(p) * 0.65 + n(p * 2.1 + 7.0) * 0.35;
-          float fadeY = pow(1.0 - vUv.y, 1.6);
+          float fadeY = pow(max(1.0 - vUv.y, 0.0), 1.6);
           float a = smoothstep(0.35, 0.85, f + fadeY * 0.45) * fadeY * uFade;
           vec3 col = mix(uColor, vec3(1.0), smoothstep(0.6, 1.0, f) * 0.6);
           gl_FragColor = vec4(col * a, a);

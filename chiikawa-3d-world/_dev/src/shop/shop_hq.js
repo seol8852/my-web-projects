@@ -9,7 +9,7 @@ import { expose } from '../core/expose.js';
 // ==========================================================================
 // 치이카와 3D 월드 - 상점 & 경제 개편 (shop_hq.js)
 //  · 재화 물가표(ECON): 쉬운 보상 1,000~3,000 / 스테이지 1,000→30,000 / 레이드 새 50,000 · 아노코 80,000
-//  · 장비 뽑기(무기·방어구): S 0.028% · A 0.2% · B 2% · C 나머지, 1회 10,000🪙
+//  · 장비 뽑기(무기·방어구): S 0.028% · A 0.2% · B 10% · C 나머지, 1회 10,000🪙
 //  · 꾸미기(머리 장식 + 액세서리): 착용 효과(공격·체력·치명·피해감소·코인·경험치)
 //  · 내 장비 가방: 장착 / 판매 / C급 일괄 판매
 //  ※ stage_hq.js 뒤에 로드 (main.js 프로토타입 감싸기)
@@ -32,7 +32,7 @@ const SHOPHQ = (() => {
   const GRADE = {
     S: { p: 0.00028, color: '#f59e0b', bg: 'linear-gradient(135deg,#fde68a,#f59e0b,#fb7185)', label: 'S', sell: 500000 },
     A: { p: 0.002, color: '#a855f7', bg: 'linear-gradient(135deg,#e9d5ff,#a855f7)', label: 'A', sell: 50000 },
-    B: { p: 0.02, color: '#3b82f6', bg: 'linear-gradient(135deg,#dbeafe,#3b82f6)', label: 'B', sell: 5000 },
+    B: { p: 0.1, color: '#3b82f6', bg: 'linear-gradient(135deg,#dbeafe,#3b82f6)', label: 'B', sell: 5000 },
     C: { p: 1, color: '#64748b', bg: 'linear-gradient(135deg,#f1f5f9,#94a3b8)', label: 'C', sell: 1000 }
   };
   const NAMES = {
@@ -377,7 +377,7 @@ const SHOPHQ = (() => {
             <div class="sh-gtitle">🎲 무기·방어구 랜덤 뽑기</div>
             <div class="sh-gdesc">무기와 방어구는 뽑기로만 얻을 수 있어요. 등급이 높을수록 효과 차이가 엄청나요!</div>
             <div class="sh-odds">
-              <span style="--gc:${GRADE.S.color}">S 0.028%</span><span style="--gc:${GRADE.A.color}">A 0.2%</span><span style="--gc:${GRADE.B.color}">B 2%</span><span style="--gc:${GRADE.C.color}">C 97.772%</span>
+              <span style="--gc:${GRADE.S.color}">S 0.028%</span><span style="--gc:${GRADE.A.color}">A 0.2%</span><span style="--gc:${GRADE.B.color}">B 10%</span><span style="--gc:${GRADE.C.color}">C 89.772%</span>
             </div>
             <div class="sh-ranges">
               ⚔️ 무기 — C 공격 +3~8% · B +15~25% · A +45~70% (치명 +3~5%) · <b>S +120~180% (치명 +8~12%)</b><br>
