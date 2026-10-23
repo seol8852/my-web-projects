@@ -484,3 +484,189 @@ def stone_lantern(x, z, stone, y0=0.0, s=1.0, moss=None):
         for k in range(4):
             a = random.uniform(0, TAU)
             finish(sphere(0.14 * s, seg=6, rings=4, pos=P_(math.cos(a) * 0.6, 0.36, math.sin(a) * 0.6), scale=(1, 0.4, 1)), moss)
+
+
+# ------------------------------------------------------------------
+# 부모 그룹 변환 (게임 좌표 4x4): 회전된 그룹 안의 부품을 원래 빌더처럼 배치
+#   g = Grp((x, y, z), (rx, ry, rz)); g.sub(pos, rot) 로 중첩, g(obj) 로 적용
+# ------------------------------------------------------------------
+_C = Matrix(((1, 0, 0, 0), (0, 0, -1, 0), (0, 1, 0, 0), (0, 0, 0, 1)))
+
+
+class Grp:
+    def __init__(self, pos=(0, 0, 0), rot=(0, 0, 0), scale=1.0, M=None, order='XYZ'):
+        if M is None:
+            M = Matrix.Translation(Vector(pos)) @ rotm(rot, order).to_4x4() @ Matrix.Diagonal((scale, scale, scale, 1))
+        self.M = M
+
+    def sub(self, pos=(0, 0, 0), rot=(0, 0, 0), scale=1.0, order='XYZ'):
+        return Grp(M=self.M @ Grp(pos, rot, scale, order=order).M)
+
+    def __call__(self, ob):
+        ob.data.transform(_C @ self.M @ _C.inverted())
+        return ob
+
+    def p(self, x, y, z):
+        v = self.M @ Vector((x, y, z))
+        return (v.x, v.y, v.z)
+
+
+def rbox(w, h, d, r=0.06, **kw):
+    """roundBox 비슷한 상자 (모서리 베벨은 finish에서) — 크기만 맞춤"""
+    return box(w, h, d, **kw)
+
+
+def bench_model(G, wood, iron):
+    """town_hq.js bench(): 판자 3장 + 등받이 2장 + 무쇠 다리 (부모 G 기준)"""
+    for i in range(3):
+        finish(G(box(2.4, 0.08, 0.22, pos=(0, 0.62, -0.25 + i * 0.25))), wood, bevel=0.025, seg=1, smooth=False, jitter=0.07, ol=(i == 0), ol_t=0.03)
+    for i in range(2):
+        finish(G(box(2.4, 0.2, 0.06, pos=(0, 0.95 + i * 0.28, -0.42), rot=(-0.15, 0, 0))), wood, bevel=0.02, seg=1, smooth=False, jitter=0.07)
+    for x in (-1.0, 1.0):
+        # 둥근 옆틀: 앞다리 + 뒷다리(등받이까지) + 팔걸이 곡선
+        finish(G(box(0.1, 0.62, 0.08, pos=(x, 0.31, 0.25))), iron, bevel=0.02, seg=1, smooth=False)
+        finish(G(box(0.1, 0.08, 0.72, pos=(x, 0.57, -0.07))), iron, bevel=0.02, seg=1, smooth=False)
+        finish(G(box(0.08, 1.38, 0.08, pos=(x, 0.69, -0.42), rot=(-0.08, 0, 0))), iron, bevel=0.02, seg=1, smooth=False)
+        finish(G(torus(0.32, 0.035, seg=12, rseg=4, arc=math.pi / 2, pos=(x, 0.62, 0.0), rot=(0, math.pi / 2, 0))), iron)
+        finish(G(torus(0.12, 0.025, seg=10, rseg=4, pos=(x, 0.3, 0.25), rot=(0, math.pi / 2, 0))), iron)
+        finish(G(cyl(0.07, 0.07, 0.04, seg=8, pos=(x, 0.02, 0.25))), iron)
+        finish(G(cyl(0.07, 0.07, 0.04, seg=8, pos=(x, 0.02, -0.42))), iron)
+
+
+def street_lamp_model(G, iron, gold=None):
+    """town_hq.js streetLamp(): 유리(+불빛)는 게임 부품 → 틀·지붕·받침만"""
+    finish(G(lathe([(0, 0), (0.44, 0), (0.44, 0.08), (0.36, 0.14), (0.32, 0.42), (0.26, 0.5), (0.14, 0.56), (0, 0.56)], seg=12)), iron, ol=True, ol_t=0.03)
+    finish(G(cyl(0.1, 0.13, 3.6, seg=12, pos=(0, 2.2, 0))), iron, ol=True, ol_t=0.04)
+    for k in range(6):  # 기둥 홈
+        a = TAU * k / 6
+        finish(G(box(0.04, 3.2, 0.04, pos=(math.cos(a) * 0.115, 2.2, math.sin(a) * 0.115), rot=(0, -a, 0))), iron, smooth=False)
+    finish(G(torus(0.16, 0.05, seg=12, rseg=5, pos=(0, 1.2, 0), rot=(math.pi / 2, 0, 0))), gold or iron)
+    finish(G(torus(0.15, 0.04, seg=12, rseg=5, pos=(0, 3.95, 0), rot=(math.pi / 2, 0, 0))), gold or iron)
+    finish(G(sphere(0.12, seg=10, rings=6, pos=(0, 4.08, 0))), gold or iron)
+    finish(G(torus(0.45, 0.05, seg=14, rseg=5, arc=math.pi, pos=(0.45, 4.0, 0))), iron)
+    finish(G(torus(0.14, 0.03, seg=10, rseg=4, pos=(0.32, 4.12, 0))), iron)  # 장식 소용돌이
+    # 랜턴 틀 (유리 y3.3~3.8 바깥)
+    lo = (0.9, 3.55, 0)
+    finish(G(cyl(0.0, 0.33, 0.28, seg=6, pos=(lo[0], lo[1] + 0.38, 0))), iron, ol=True, ol_t=0.02)
+    finish(G(sphere(0.06, seg=8, rings=5, pos=(lo[0], lo[1] + 0.56, 0))), gold or iron)
+    finish(G(cyl(0.2, 0.12, 0.08, seg=6, pos=(lo[0], lo[1] - 0.28, 0))), iron)
+    finish(G(cyl(0.25, 0.25, 0.04, seg=6, pos=(lo[0], lo[1] + 0.25, 0))), iron)
+    for k in range(6):
+        a = TAU * k / 6
+        finish(G(box(0.03, 0.52, 0.03, pos=(lo[0] + math.cos(a) * 0.215, lo[1], math.sin(a) * 0.215), rot=(0, -a, 0.08))), iron, smooth=False)
+
+
+def fence_model(G, wood, length=6, posts=4):
+    """town_hq.js fence(len, posts) (부모 G 기준)"""
+    for i in range(posts):
+        x = -length / 2 + (i / (posts - 1)) * length
+        finish(G(box(0.22, 1.3, 0.22, pos=(x, 0.65, 0), rot=(0, random.uniform(-0.05, 0.05), random.uniform(-0.03, 0.03)))), wood, bevel=0.03, seg=1, smooth=False, jitter=0.07, ol=True, ol_t=0.03)
+        finish(G(cyl(0.0, 0.16, 0.25, seg=4, pos=(x, 1.42, 0), rot=(0, math.pi / 4, 0))), wood, smooth=False, jitter=0.07)
+        for y in (0.45, 0.95):
+            finish(G(cyl(0.03, 0.03, 0.04, seg=6, pos=(x, y, 0.17), rot=(math.pi / 2, 0, 0))), material('nail', 0x52525b))
+    for y in (0.45, 0.95):
+        nseg = max(1, int(length / 2.2))
+        sl = length / nseg
+        for s in range(nseg):  # 가로대는 몇 장으로 이어붙임
+            finish(G(box(sl + 0.12, 0.12, 0.08, pos=(-length / 2 + sl * (s + 0.5), y + random.uniform(-0.02, 0.02), 0.12), rot=(0, 0, random.uniform(-0.015, 0.015)))), wood, bevel=0.02, seg=1, smooth=False, jitter=0.08)
+
+
+def bush_model(G, r, leaf_mats, seed=0, berries=None):
+    """둥근 잎 뭉치 덤불 (부모 G 기준, 바닥 y0)"""
+    rnd = random.Random(seed)
+    for i in range(5):
+        rr = r * (0.55 + rnd.random() * 0.35)
+        pos = ((rnd.random() - 0.5) * r * 1.1, r * 0.45 + rnd.random() * r * 0.25, (rnd.random() - 0.5) * r * 1.1)
+        b = rounded_pebble(rr, seed=seed * 7 + i, pos=pos, scale=(1, 0.82, 1))
+        finish(G(b), leaf_mats[i % len(leaf_mats)], jitter=0.08, ol=(i < 3), ol_t=0.03)
+    if berries:
+        for k in range(5):
+            a = rnd.uniform(0, TAU)
+            finish(G(sphere(0.09 * r, seg=6, rings=4, pos=(math.cos(a) * r * 0.75, r * (0.55 + rnd.random() * 0.3), math.sin(a) * r * 0.75))), berries)
+
+
+def mailbox_model(G, body, wood, flag):
+    finish(G(box(0.16, 1.1, 0.16, pos=(0, 0.55, 0))), wood, bevel=0.03, seg=1, smooth=False)
+    finish(G(box(0.5, 0.4, 0.75, pos=(0, 1.25, 0))), body, bevel=0.06, seg=2, smooth=False, ol=True, ol_t=0.04)
+    finish(G(cyl(0.25, 0.25, 0.75, seg=14, pos=(0, 1.45, 0), rot=(math.pi / 2, 0, 0))), body, ol=True, ol_t=0.04)
+    finish(G(box(0.3, 0.06, 0.02, pos=(0, 1.35, 0.385))), material('slot', 0x1f2937), smooth=False)
+    finish(G(box(0.04, 0.3, 0.14, pos=(0.27, 1.55, -0.1))), flag, smooth=False)
+
+
+def gable_building(G, w, d, h, rise, wall, roof, trim, base, roof_dk=None, ridge=None, plank=False, rows=None):
+    """town_hq.js building(): 돌 기초 + 벽 + 박공지붕(기와 줄) + 박공벽 + 모서리 기둥 + 처마 띠"""
+    # 돌 기초 (판석 띠)
+    finish(G(box(w + 0.5, 0.5, d + 0.5, pos=(0, 0.25, 0))), base, bevel=0.06, seg=2, smooth=False, ol=True, ol_t=0.02)
+    for side in range(4):
+        L = (w if side % 2 == 0 else d) + 0.5
+        n = max(3, int(L / 0.9))
+        for i in range(n):
+            x = -L / 2 + L * (i + 0.5) / n
+            lx, lz = (x, (d / 2 + 0.26) * (1 if side == 0 else -1)) if side % 2 == 0 else ((w / 2 + 0.26) * (1 if side == 1 else -1), x)
+            finish(G(box(L / n - 0.06, 0.2, 0.06, pos=(lx, 0.15 + 0.2 * (i % 2), lz), rot=(0, 0 if side % 2 == 0 else math.pi / 2, 0))), base, smooth=False, jitter=0.08)
+    # 벽
+    finish(G(box(w, h, d, pos=(0, h / 2 + 0.3, 0))), wall, bevel=0.06, seg=2, smooth=False, ol=True, ol_t=0.02)
+    if plank:
+        nrow = int(h / 0.38)
+        for side, (L, nx, nz, ry) in enumerate([(w, 0, d / 2, 0), (w, 0, -d / 2, math.pi), (d, w / 2, 0, math.pi / 2), (d, -w / 2, 0, -math.pi / 2)]):
+            for k in range(nrow):
+                y = 0.3 + (k + 0.5) * h / nrow
+                finish(G(box(L - 0.3, 0.05, 0.04, pos=(nx + math.sin(ry) * 0.01, y, nz + math.cos(ry) * 0.01), rot=(0, ry, 0))), trim if plank == 'trim' else wall, smooth=False, tint=(0.84, 0.82, 0.8))
+    # 박공지붕: 판 + 기와 줄
+    th = math.atan2(rise, d / 2)
+    over = 0.7
+    Lr = (d / 2 + over) / math.cos(th)
+    rows = rows or max(5, int(Lr / 0.42))
+    for side in (-1, 1):
+        cy = h + 0.3 + rise - (Lr / 2) * math.sin(th) + 0.1
+        cz = side * (Lr / 2) * math.cos(th)
+        rot = (side * th, 0, 0)
+        finish(G(box(w + over * 2, 0.2, Lr, pos=(0, cy, cz), rot=rot)), roof_dk or roof, bevel=0.05, seg=1, smooth=False, ol=True, ol_t=0.02)
+        for k in range(rows):
+            t = (k + 0.5) / rows
+            lz = -Lr / 2 + t * Lr
+            lp = lpos((0, cy, cz), rot, (0, 0.12 + 0.03 * (k % 2), side * lz))
+            # 기와 한 줄 = 겹쳐 얹은 긴 띠 (줄마다 살짝 다른 색) + 띠 끝 둥근 기와 마구리
+            finish(G(box(w + over * 2 - 0.05, 0.08, Lr / rows + 0.12, pos=lp, rot=(side * th - side * 0.07, 0, 0))), roof, bevel=0.03, seg=1, smooth=False, jitter=0.05)
+            # 기와 이음 홈 (줄마다 엇갈림)
+            nt = int((w + over * 2) / 0.6)
+            for j in range(nt):
+                x = -(w + over * 2) / 2 + (w + over * 2) * (j + 0.5 * (k % 2) + 0.25) / nt
+                if abs(x) > (w + over * 2) / 2 - 0.1:
+                    continue
+                gp = lpos(lp, (side * th - side * 0.07, 0, 0), (x, 0.042, 0))
+                finish(G(box(0.035, 0.012, Lr / rows + 0.08, pos=gp, rot=(side * th - side * 0.07, 0, 0))), roof_dk or roof, smooth=False)
+        for k in range(rows):
+            t = (k + 0.5) / rows
+            for sx in (-1, 1):
+                lp = lpos((0, cy, cz), rot, (sx * (w / 2 + over - 0.02), 0.16, side * (-Lr / 2 + t * Lr)))
+                finish(G(cyl(0.09, 0.09, 0.08, seg=8, pos=lp, rot=(0, 0, math.pi / 2))), roof_dk or roof)
+    finish(G(cyl(0.22, 0.22, w + over * 2 + 0.2, seg=12, pos=(0, h + 0.3 + rise + 0.18, 0), rot=(0, 0, math.pi / 2))), ridge or trim, ol=True, ol_t=0.02)
+    for x in (-1, 1):
+        finish(G(sphere(0.3, seg=10, rings=8, pos=(x * (w / 2 + over + 0.1), h + 0.3 + rise + 0.18, 0))), ridge or trim)
+    # 박공 삼각벽 + 박공 테두리 각목
+    for sx in (-1, 1):
+        tri = extrude_shape([(-d / 2, 0), (d / 2, 0), (0, rise)], 0.2, pos=(sx * (w / 2) - 0.1 * sx, h + 0.3, 0), rot=(0, math.pi / 2, 0))
+        finish(G(tri), wall, smooth=False)
+        for s2 in (-1, 1):
+            L2 = math.hypot(d / 2, rise)
+            finish(G(box(0.18, 0.18, L2, pos=(sx * (w / 2 + 0.02), h + 0.3 + rise / 2, s2 * d / 4), rot=(s2 * th, 0, 0))), trim, smooth=False)
+    # 모서리 기둥 + 처마 띠
+    for sx, sz in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+        finish(G(box(0.32, h, 0.32, pos=(sx * (w / 2), h / 2 + 0.3, sz * (d / 2)))), trim, bevel=0.04, seg=1, smooth=False, jitter=0.05)
+    finish(G(box(w + 0.2, 0.25, d + 0.2, pos=(0, h + 0.2, 0))), trim, bevel=0.04, seg=1, smooth=False)
+
+
+def arch_door(G, w, h, frame_m, door_m, knob_m, plank_n=5):
+    """town_hq.js doorW(): 아치 틀 + 판자문 + 손잡이·경첩 (부모 G 기준, 문 앞면 z≈0.24)"""
+    finish(G(extrude_shape(arch_pts(w + 0.4, h + 0.3, 16), 0.2, pos=(0, 0, 0.1))), frame_m, bevel=0.03, seg=1, smooth=False, ol=True, ol_t=0.03)
+    finish(G(extrude_shape(arch_pts(w, h, 16), 0.26, pos=(0, 0, 0.12))), door_m, smooth=False)
+    pw = w / plank_n
+    for i in range(plank_n):
+        x = -w / 2 + pw * (i + 0.5)
+        r = w / 2
+        top = h - r + math.sqrt(max(0.0, r * r - x * x)) - 0.08
+        finish(G(box(pw - 0.05, top - 0.06, 0.05, pos=(x, (top + 0.06) / 2, 0.27))), door_m, bevel=0.015, seg=1, smooth=False, jitter=0.07)
+    for y in (h * 0.25, h * 0.62):
+        finish(G(box(w * 0.75, 0.1, 0.03, pos=(-w * 0.06, y, 0.31))), material('hinge', 0x3b3550), smooth=False)
+    finish(G(sphere(0.1, seg=10, rings=6, pos=(w * 0.32, h * 0.45, 0.33))), knob_m)

@@ -1814,7 +1814,7 @@ const TOWNHQ = (() => {
     // 동그란 창문 2개
     [-1, 1].forEach(side => {
       const a = Math.PI / 2 + side * 0.75;
-      const wx = Math.cos(a) * 6.25, wz = Math.sin(a) * 5.75;
+      const wx = Math.cos(a) * 6.55, wz = Math.sin(a) * 6.0; // 언덕 표면 밖으로 (예전엔 반쯤 묻혀 있었음)
       const win = new THREE.Group();
       const fr = mesh(new THREE.TorusGeometry(0.62, 0.13, 8, 24), toon(0xa86b3c));
       outline(fr, 0.05);
@@ -1825,6 +1825,7 @@ const TOWNHQ = (() => {
       win.add(fr, gl, cr1);
       win.position.set(wx, 2.0, wz);
       win.lookAt(wx * 2, 2.0, wz * 2);
+      win.rotateX(-0.42); // 언덕 경사에 맞춰 뒤로 기울임
       g.add(win);
     });
     // 연통 + 연기
@@ -1968,6 +1969,7 @@ const TOWNHQ = (() => {
     const fm = toon(0x8a5a2b);
     const panel = mesh(new THREE.BoxGeometry(4.1, 2.4, 0.15), [fm, fm, fm, fm, toon(0xffffff, () => ft), fm]);
     panel.position.y = 2.3;
+    panel.userData.keepLive = true; // 전단지 글씨(캔버스 텍스처)는 굽지 않고 그대로
     outline(panel, 0.03);
     board.add(panel);
     const r = gableRoof(4.6, 1.2, 3.55, 0.55, toon(0x6d8fd1, TEX.shingle, [2, 1]), 0.3);
