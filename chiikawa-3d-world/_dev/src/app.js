@@ -4,6 +4,7 @@ import './core/models3d.js';
 import './world/world_hq.js';
 import './world/town_hq.js';
 import './world/town_baked.js';
+import './combat/monsters3d.js';
 import './world/fx_hq.js';
 import './world/polish_hq.js';
 import './combat/skills_hq.js';
