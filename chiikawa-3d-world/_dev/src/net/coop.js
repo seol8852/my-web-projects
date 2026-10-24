@@ -54,7 +54,15 @@ const RAID_BOSSES = {
     p3tex: 'assets/raid_bird_phase3.png', reward: [50000, 0, 420, 55], shock: 0x38bdf8
   }
 };
-const RAID_LIST = ['anoko', 'bird'];
+// 🐢 용암 거북 요새: 등의 화산에서 화산탄·용암 웅덩이, 등껍질 회전 돌진 (3D 모델, 3페이즈엔 화산 분화)
+RAID_BOSSES.turtle = {
+  name: '🐢 용암 거북 요새', p3name: '🌋 분화하는 용암 거북', mesh: 'lavaturtle', scale: 2.5, p3scale: 2.8, title: '🌋 협동 레이드 · 용암 거북 요새',
+  hpBase: 52000, hpPer: 36000, color: '#f97316', startMsg: '등에 화산을 짊어진 거북! 하늘에서 떨어지는 화산탄과 용암 웅덩이를 피하세요!',
+  p2msg: '등껍질 회전 돌진과 대분화가 추가돼요. 붉은 줄을 보면 옆으로 피하세요!',
+  p3title: '🌋 화산 대분화!!', p3msg: '등의 화산이 폭발했다! 체력이 절반까지 회복되고 화산탄이 쉴 새 없이 떨어져요!', p3color: '#c2410c',
+  reward: [70000, 0, 460, 62], shock: 0xff6a1f, slow: 0.72, heightK: 7.6
+};
+const RAID_LIST = ['anoko', 'bird', 'turtle'];
 const SEND_INTERVAL = 0.1;      // 위치 전송 주기(초) = 10Hz
 const KEEPALIVE = 1.0;          // 가만히 있어도 1초마다 전송
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -753,7 +761,7 @@ export class CoopManager {
     R.fly = null;
     if (typeof RAIDHQ !== 'undefined') { RAIDHQ.reset(g); RAIDHQ.ensureArena(g); if (RAIDHQ.setTheme) RAIDHQ.setTheme(R.kind); }
     if (typeof loadCleanCharacterTexture === 'function') {
-      loadCleanCharacterTexture(R.cfg.p3tex); // 3페이즈 미리 로드
+      if (R.cfg.p3tex) loadCleanCharacterTexture(R.cfg.p3tex); // 3페이즈 미리 로드
       if (R.kind === 'bird') ['assets/raid_bird_dive.png', 'assets/raid_bird_dive_phase3.png'].forEach(u => loadCleanCharacterTexture(u));
     }
 
@@ -814,7 +822,7 @@ export class CoopManager {
       bodyRadius: (mesh.userData.bodyRadius || 2.4) * scale, sizeH: (mesh.userData.sizeH || 8.6) * scale,
       isArmored: false, knockbackVel: new THREE.Vector3(), labelEl, statusEl: status, hpFillEl: fill,
       alive: true, respawnTimer: 999999, atkCooldown: 99, isWindingUp: false, slowTimer: 0, stunTimer: 0,
-      heightOffset: 8.8 * scale
+      heightOffset: (R.cfg.heightK || 8.8) * scale
     };
     g.monsters.push(m);
     R.boss = m;
@@ -1036,6 +1044,7 @@ export class CoopManager {
         m.alt = THREE.MathUtils.lerp(m.alt || 0, (R.net && R.net.h) || 0, 1 - Math.exp(-dt * 10));
         this.birdVisual(m, dt, t);
       } else m.mesh.position.set(m.pos.x, 0, m.pos.z);
+      if (R.kind === 'turtle' && m.mesh.userData.setSpin) m.mesh.userData.setSpin(!!(R.net && R.net.dv));
       return;
     }
 
@@ -1076,8 +1085,9 @@ export class CoopManager {
           if (R.dash.go <= 0) R.dash = null;
         }
       } else if (dist > Math.max(13, (m.bodyRadius || 0) + 5) && R.aiCd > 0.6 && !(m.windupT > 0)) {
-        m.pos.addScaledVector(dir.normalize(), dt * (phase === 3 ? 13.5 : phase === 2 ? 11.3 : 9.7));
+        m.pos.addScaledVector(dir.normalize(), dt * (phase === 3 ? 13.5 : phase === 2 ? 11.3 : 9.7) * (R.cfg.slow || 1));
       }
+      if (R.kind === 'turtle' && m.mesh.userData.setSpin) m.mesh.userData.setSpin(!!R.dash);
       // 성소 밖으로 나가지 않게
       const off = m.pos.clone().sub(RAID_CENTER).setY(0);
       if (off.length() > RAID_BOSS_R) m.pos.copy(RAID_CENTER).addScaledVector(off.normalize(), RAID_BOSS_R).setY(0);
@@ -1100,7 +1110,7 @@ export class CoopManager {
     R.sendT += dt;
     if (R.sendT >= 0.1) {
       R.sendT = 0;
-      set(this.path('raid/boss'), { x: r2(m.pos.x), z: r2(m.pos.z), yaw: r2(m.facingYaw), hp: Math.max(0, Math.round(m.hp)), ph: phase, h: r2(m.alt || 0), dv: (R.fly || m.landT > 0) ? 1 : 0, t: this.now() }).catch(() => {});
+      set(this.path('raid/boss'), { x: r2(m.pos.x), z: r2(m.pos.z), yaw: r2(m.facingYaw), hp: Math.max(0, Math.round(m.hp)), ph: phase, h: r2(m.alt || 0), dv: (R.fly || m.landT > 0 || (R.kind === 'turtle' && R.dash)) ? 1 : 0, t: this.now() }).catch(() => {});
     }
     // 종료 판정
     if (m.hp <= 0) {
@@ -1402,6 +1412,7 @@ export class CoopManager {
 
   bossAttack(m, target, alive, phase) {
     const R = this.raid;
+    if (R.kind === 'turtle') return this.turtleAttack(m, target, alive, phase);
     const roll = Math.random();
     const mx = m.pos.x, mz = m.pos.z;
     const toT = target.pos.clone().sub(m.pos).setY(0);
@@ -1463,6 +1474,95 @@ export class CoopManager {
       else if (roll < 0.6) { cross(); cross(Math.PI / 4); }
       else if (roll < 0.8) { meteors(12, 34); sweep(); }
       else { slam(); targets(); meteors(4); }
+    }
+  }
+
+  // 🐢 용암 거북 요새 공격 패턴
+  turtleAttack(m, target, alive, phase) {
+    const R = this.raid;
+    const roll = Math.random();
+    const mx = m.pos.x, mz = m.pos.z;
+    const toT = target.pos.clone().sub(m.pos).setY(0);
+    const yawT = Math.atan2(toT.x, toT.z);
+    const dm = (phase === 3 ? 1.5 : phase === 2 ? 1.25 : 1) * 1.8;
+    const D = v => Math.round(v * dm * 1.55);
+    const T = (p, x, z, yaw, r, dur, d, sk) => this.hostTelegraph(p, x, z, yaw, r, dur, d, sk);
+    const inArena = (x, z) => {
+      const v = new THREE.Vector3(x - RAID_CENTER.x, 0, z - RAID_CENTER.z);
+      if (v.length() > 44) v.setLength(44);
+      return [RAID_CENTER.x + v.x, RAID_CENTER.z + v.z];
+    };
+    // 💥 쿵! 내려찍기 + 바깥으로 번지는 여진
+    const stomp = () => {
+      T('circle', mx, mz, 0, 18, 1.2, D(44), '💥 쿵!!');
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2 + Math.random() * 0.3;
+        T('circle', mx + Math.cos(a) * 24, mz + Math.sin(a) * 24, 0, 5.5, 1.75, D(26));
+      }
+    };
+    // 🌋 화산탄: 플레이어마다 + 주변에 흩뿌림
+    const bombs = (extra = 3, dur = 1.35) => alive.forEach(p => {
+      T('circle', p.pos.x, p.pos.z, 0, 6.8, dur, D(32), '🌋 화산탄!');
+      for (let i = 0; i < extra; i++) {
+        const a = Math.random() * Math.PI * 2, r = 5 + Math.random() * 9;
+        const [x, z] = inArena(p.pos.x + Math.cos(a) * r, p.pos.z + Math.sin(a) * r);
+        T('circle', x, z, 0, 5.8, dur + 0.25 + i * 0.22, D(28));
+      }
+    });
+    // 🔥 용암 웅덩이: 같은 자리가 세 번 연달아 끓어오름 (한동안 들어가면 안 됨)
+    const pools = (count = 3) => {
+      const spots = alive.slice(0, count).map(p => [p.pos.x, p.pos.z]);
+      while (spots.length < count) {
+        const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 34;
+        spots.push([RAID_CENTER.x + Math.cos(a) * r, RAID_CENTER.z + Math.sin(a) * r]);
+      }
+      spots.forEach(([x, z], i) => [1.1, 2.0, 2.9].forEach((d, k) => T('circle', x, z, 0, 8, d + i * 0.15, D(k ? 20 : 30), i === 0 && k === 0 ? '🔥 용암 웅덩이!' : undefined)));
+      R.aiCd += 0.8;
+    };
+    // 🔥 용암 숨결 (부채꼴)
+    const breath = () => T('sector', mx, mz, yawT, 27, 1.05, D(40), '🔥 용암 숨결!');
+    // 🐢 등껍질 회전 돌진: 머리·다리 넣고 굴러감
+    const spin = (times = 1) => {
+      [-0.22, 0, 0.22].forEach(o => T('line', mx, mz, yawT + o, 56, 1.15, D(42), o === 0 ? '🐢 회전 돌진!' : undefined));
+      const dashTo = new THREE.Vector3(mx + Math.sin(yawT) * 40, 0, mz + Math.cos(yawT) * 40);
+      const off = dashTo.clone().sub(RAID_CENTER);
+      if (off.length() > RAID_BOSS_R) dashTo.copy(RAID_CENTER).addScaledVector(off.normalize(), RAID_BOSS_R);
+      R.dash = { wait: 1.15, go: 0.55, to: dashTo };
+      if (times > 1) R.aiCd += 0.6;
+    };
+    // 🌋 대분화: 거북 주변 큰 원 + 화산탄 비
+    const eruption = (rain = 6) => {
+      T('circle', mx, mz, 0, 24, 1.9, D(58), '🌋 대분화!!');
+      for (let i = 0; i < rain; i++) {
+        const a = Math.random() * Math.PI * 2, r = 26 + Math.random() * 16;
+        const [x, z] = inArena(mx + Math.cos(a) * r, mz + Math.sin(a) * r);
+        T('circle', x, z, 0, 6, 2.1 + i * 0.12, D(30));
+      }
+      R.aiCd += 0.7;
+    };
+    const rain = n => {
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 42;
+        T('circle', RAID_CENTER.x + Math.cos(a) * r, RAID_CENTER.z + Math.sin(a) * r, 0, 6.2, 1.0 + i * 0.09, D(30));
+      }
+    };
+    if (phase === 1) {
+      if (roll < 0.3) stomp();
+      else if (roll < 0.55) breath();
+      else if (roll < 0.85) bombs(2);
+      else spin();
+    } else if (phase === 2) {
+      if (roll < 0.15) eruption(6);
+      else if (roll < 0.35) spin();
+      else if (roll < 0.55) { bombs(3); breath(); }
+      else if (roll < 0.8) pools(3);
+      else { stomp(); bombs(1, 1.7); }
+    } else {
+      if (roll < 0.2) { eruption(10); }
+      else if (roll < 0.4) { spin(2); bombs(2, 1.6); }
+      else if (roll < 0.65) { pools(4); bombs(2); }
+      else if (roll < 0.85) { breath(); stomp(); }
+      else rain(16);
     }
   }
 

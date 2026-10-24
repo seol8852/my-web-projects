@@ -8,7 +8,7 @@ import { expose } from '../core/expose.js';
 import { MeshoptDecoder } from 'meshoptimizer';
 
 const MON3D = (() => {
-  const TYPES = new Set(['bug', 'goblin', 'chimera', 'midboss', 'iron_chimera']);
+  const TYPES = new Set(['bug', 'goblin', 'chimera', 'midboss', 'iron_chimera', 'lavaturtle']);
   let LIB = null, libP = null;
   const pending = new Set();
   const isOff = () => { try { return localStorage.getItem('chiikawa_mon3d') === 'off'; } catch (e) { return false; } };
@@ -57,7 +57,7 @@ const MON3D = (() => {
           const [type, part, kind] = o.name.split('|');
           if (!type || !part) return;
           const pivot = meta.pivots[`${type}|${part}`] || [0, 0, 0];
-          const T = lib[type] = lib[type] || { parts: {}, height: (meta.heights || {})[type] || 4 };
+          const T = lib[type] = lib[type] || { parts: {}, height: (meta.heights || {})[type] || 4, radius: (meta.radii || {})[type] || 0 };
           const P = T.parts[part] = T.parts[part] || { pivot, parent: (meta.parents || {})[`${type}|${part}`] || '', pieces: [] };
           P.pieces.push({ kind: kind || '', geo: partGeo(o, pivot) });
         });
@@ -137,13 +137,46 @@ const MON3D = (() => {
     const sizeH = ud.sizeH || 5;
     const H = T.height;
     const isBug = type === 'bug';
-    const heavy = type === 'iron_chimera' || type === 'midboss';
+    const turtle = type === 'lavaturtle';
+    const heavy = type === 'iron_chimera' || type === 'midboss' || turtle;
     if (marker) marker.position.set(0, H * 0.82, 0.9);
+    // 보스(레이드) 모델은 그림 기준 크기 대신 모델 크기로 판정
+    if (T.radius) {
+      ud.bodyRadius = T.radius;
+      ud.sizeH = H;
+      ud.hurtParts = {
+        head: { yMin: H * 0.45, yMax: H * 1.1, hitY: H * 0.5, mult: 1.5, label: '🎯머리 약점' },
+        body: { yMin: H * 0.2, yMax: H * 0.45, hitY: H * 0.35, mult: 1.0, label: '💥몸통' },
+        legs: { yMin: 0.0, yMax: H * 0.2, hitY: H * 0.1, mult: 1.05, label: '🦵다리(둔화)' }
+      };
+      if (hurtRing) hurtRing.scale.setScalar(T.radius / 2.4);
+    }
+    // 거북: 약점(머리) 표시를 머리에 붙여 함께 움직이게
+    if (turtle && marker && nodes.head) { nodes.head.add(marker); marker.position.set(0, 1.0, 2.4); }
+    // 🐢 등껍질 회전 돌진 (머리·다리를 집어넣고 팽이처럼 돎) / 🌋 3페이즈 (용암이 더 뜨겁게)
+    let spin = 0, spinAng = 0, lastT = 0;
+    ud.setSpin = on => { ud._spinOn = !!on; };
+    ud.setP3 = on => {
+      mats.forEach(m => {
+        if (m.isMeshBasicMaterial) m.color.setRGB(on ? 1.6 : 1, on ? 1.25 : 1, on ? 1.0 : 1);
+        else m.color.setRGB(1, on ? 0.78 : 1, on ? 0.72 : 1);
+      });
+    };
+    // 화산 분화구 위치 (월드 좌표)
+    ud.ventWorld = out => { out.set(0, H + 0.05, -0.35); return lean.localToWorld(out); };
 
     ud.updateMonsterMotion = (time, isChasing, phaseOffset, facingYaw = 0) => {
       const rel = facingYaw - group.rotation.y;
       if (hurtRing) hurtRing.rotation.y = rel;
-      root.rotation.y = rel;
+      const fdt = Math.min(0.1, Math.max(0, time - lastT)); lastT = time;
+      spin += ((ud._spinOn ? 1 : 0) - spin) * Math.min(1, fdt * 9);
+      if (spin > 0.02) spinAng += fdt * 16 * spin; else spinAng = 0;
+      root.rotation.y = rel + spinAng;
+      if (turtle) {
+        const k = 1 - spin * 0.85;
+        ['head', 'armL', 'armR', 'legL', 'legR', 'tail'].forEach(n => { const g = nodes[n]; if (g) g.scale.setScalar(Math.max(0.12, k)); });
+        root.position.y = spin * -0.6;
+      }
       if (ud.hitWobble > 0.001) ud.hitWobble *= 0.86; else ud.hitWobble = 0;
       const w = ud.hitWobble;
       const sp = isChasing ? (heavy ? 7 : 10) : 3.2;

@@ -25,8 +25,10 @@ const RAIDHQ = (() => {
   let phase = 1;
   let p3Mix = 0;     // 0 → 1 (3페이즈 분위기 전환)
   let aura = null;
-  let theme = 'anoko'; // 'anoko' | 'bird'
+  let theme = 'anoko'; // 'anoko' | 'bird' | 'turtle'
   const isBird = () => theme === 'bird';
+  const isTurtle = () => theme === 'turtle';
+  let eruptT = 0;
   let stormT = 0;
 
   const NOISE = `
@@ -375,7 +377,8 @@ const RAIDHQ = (() => {
     const R = (m.bodyRadius || 7) * 1.05;
     const tex = typeof loadCleanCharacterTexture === 'function' ? loadCleanCharacterTexture(isBird() ? 'assets/raid_bird_phase3.png' : 'assets/anoko_phase3.png') : null;
     const C = v => new THREE.Color(v[0], v[1], v[2]);
-    const pal = isBird()
+    const pal = isTurtle() ? { d1: [0.3, 0.05, 0.0], d2: [0.8, 0.25, 0.0], g1: [1.0, 0.5, 0.1], g2: [1.0, 0.85, 0.4], disc: 0xc2410c, aura: 0xff6a1f }
+      : isBird()
       ? { d1: [0.05, 0.05, 0.25], d2: [0.2, 0.25, 0.75], g1: [0.3, 0.75, 1.0], g2: [0.85, 0.95, 1.0], disc: 0x1e3a8a, aura: 0x4f46e5 }
       : { d1: [0.22, 0.0, 0.02], d2: [0.62, 0.0, 0.04], g1: [0.95, 0.05, 0.08], g2: [1.0, 0.45, 0.3], disc: 0x8b0000, aura: 0xb00010 };
     const sizeW = (m.mesh && m.mesh.userData && m.mesh.userData.sizeW) || 8.6;
@@ -394,8 +397,8 @@ const RAIDHQ = (() => {
       if (m.mesh) m.mesh.add(pl);
       return { pl, mm };
     };
-    const silDark = mkSil(0, -0.35);
-    const silGlow = mkSil(1, -0.3);
+    // 그림(스탠디) 보스만 실루엣 불꽃 오라 (3D 거북은 바닥 원 + 오라만)
+    const sils = isTurtle() ? [] : [mkSil(0, -0.35), mkSil(1, -0.3)];
     // 바닥 진홍 원
     const disc = new THREE.Mesh(new THREE.CircleGeometry(R * 2.1, 48), new THREE.MeshBasicMaterial({
       map: typeof fxTex === 'function' ? fxTex('glow') : null, color: pal.disc, transparent: true, opacity: 0.9, depthWrite: false
@@ -409,7 +412,7 @@ const RAIDHQ = (() => {
       g.add(bossAura);
     }
     game.scene.add(g);
-    aura = { group: g, sils: [silDark, silGlow], bossAura, t: 0, emit: 0, m };
+    aura = { group: g, sils, bossAura, t: 0, emit: 0, m };
   }
   function removeAura(game) {
     if (!aura) return;
@@ -431,7 +434,8 @@ const RAIDHQ = (() => {
     const p = m.pos.clone();
     // 변신 연출
     const B = isBird();
-    const cA = B ? 0x60a5fa : 0xff1a2a, cB = B ? 0x1e1b4b : 0x5a0008, cS = B ? 0x0b1030 : 0x1a0006;
+    const TT = isTurtle();
+    const cA = B ? 0x60a5fa : TT ? 0xff8a1f : 0xff1a2a, cB = B ? 0x1e1b4b : TT ? 0x7c2d12 : 0x5a0008, cS = B ? 0x0b1030 : TT ? 0x2a1208 : 0x1a0006;
     if (hasFx()) {
       FXHQ.screenFlash(cB, 0.55, 600);
       FXHQ.fovPunch(6, 1.2);
@@ -456,6 +460,16 @@ const RAIDHQ = (() => {
       pillar(V(p.x, 0, p.z), 8, 90, B ? 0x3b82f6 : 0xb0000f, 1.2);
     }
     if (game) game.camShake = Math.max(game.camShake || 0, 1.2);
+    // 🐢 거북: 모델은 그대로, 용암이 뜨거워지고 몸집이 커짐
+    if (isTurtle()) {
+      const cfgS = (window.coop && window.coop.raid && window.coop.raid.cfg && window.coop.raid.cfg.p3scale) || 2.8;
+      if (old.userData.setP3) old.userData.setP3(true);
+      m.baseScale = cfgS;
+      m.bodyRadius = (old.userData.bodyRadius || 4.3) * cfgS;
+      m.sizeH = (old.userData.sizeH || 6.6) * cfgS;
+      makeAura(game, m);
+      return;
+    }
     // 진짜 모습으로 교체
     try {
       const scale = B ? 4.0 : 4.65; // 3페이즈: 더 크게
@@ -657,8 +671,9 @@ const RAIDHQ = (() => {
     const R = tg.reach || 5;
     const g0 = V(c.x, 0, c.z);
     const p3 = phase >= 3;
-    const col = p3 ? 0xd0001a : (tg.patternType === 'line' ? 0xff6a1f : 0xff2a2a);
-    const col2 = p3 ? 0x5a0010 : 0xffb070;
+    const TT = tg.monster.raidKind === 'turtle';
+    const col = TT ? (p3 ? 0xff5a0a : 0xff8a1f) : p3 ? 0xd0001a : (tg.patternType === 'line' ? 0xff6a1f : 0xff2a2a);
+    const col2 = TT ? 0xffc04a : p3 ? 0x5a0010 : 0xffb070;
     const yaw = tg.yaw || 0;
     const fwd = V(Math.sin(yaw), 0, Math.cos(yaw));
 
@@ -758,6 +773,28 @@ const RAIDHQ = (() => {
         lightning(V(p.x + (Math.random() - 0.5) * 8, 60, p.z + (Math.random() - 0.5) * 8), V(p.x, 0.2, p.z), Math.random() < 0.5 ? 0xa5b4fc : 0xe0f2fe, 0.22, 0.14);
       }
     }
+    // 🐢 거북 등의 화산: 평소엔 불씨·연기, 3페이즈엔 용암이 계속 솟구침 (연출)
+    const cb = isTurtle() && hasFx() && window.coop && window.coop.raid && window.coop.raid.boss;
+    if (cb && cb.alive && cb.mesh && cb.mesh.userData.ventWorld) {
+      eruptT -= dt;
+      if (eruptT <= 0) {
+        const p3 = phase >= 3;
+        eruptT = p3 ? 0.045 : 0.22;
+        const v = cb.mesh.userData.ventWorld(V());
+        const n = p3 ? 2 : 1;
+        for (let i = 0; i < n; i++) {
+          const a = Math.random() * Math.PI * 2, sp = p3 ? 4 + Math.random() * 10 : 1 + Math.random() * 2;
+          FXHQ._glow(v.clone().add(V((Math.random() - 0.5) * 1.5, 0, (Math.random() - 0.5) * 1.5)), Math.random() < 0.4 ? 0xffd27a : 0xff6a1f,
+            V(Math.cos(a) * sp, p3 ? 30 + Math.random() * 22 : 7 + Math.random() * 5, Math.sin(a) * sp), p3 ? 1.6 + Math.random() * 1.4 : 0.9 + Math.random() * 0.6, p3 ? 1.3 : 1.0, p3 ? 26 : 2, 'glow');
+        }
+        if (!p3 && Math.random() < 0.35) {
+          const sm = FXHQ._sprite('smoke', 0x3a302c, false, 0.6);
+          sm.position.copy(v);
+          const sz = 3 + Math.random() * 3;
+          FXHQ._add(sm, 2.2, (it, dt2, k) => { sm.position.y += dt2 * 5; sm.position.x += dt2 * 1.2; sm.scale.setScalar(sz * (0.6 + k * 1.6)); sm.material.opacity = 0.55 * (1 - k); });
+        }
+      }
+    }
     arena.mats.forEach(m => {
       if (m.uniforms.uT) m.uniforms.uT.value = t;
       if (m.uniforms.uP3) m.uniforms.uP3.value = p3Mix;
@@ -830,7 +867,7 @@ const RAIDHQ = (() => {
   return {
     CENTER, ARENA_R, BOSS_R,
     update, impact, phase3, setPhase, reset, drawMinimap, ensureArena,
-    setTheme(k) { theme = k === 'bird' ? 'bird' : 'anoko'; },
+    setTheme(k) { theme = k === 'bird' ? 'bird' : k === 'turtle' ? 'turtle' : 'anoko'; },
     get phase() { return phase; }
   };
 })();

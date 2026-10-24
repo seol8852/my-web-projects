@@ -2021,9 +2021,10 @@ const MONSTER_IMAGE_MAP = {
   anoko: 'assets/anoko.png',
   anoko3: 'assets/anoko_phase3.png',
   pjbird: 'assets/raid_bird.png',            // 🐦 레이드 보스: 파자마 새 (급강하 자세: raid_bird_dive.png)
-  pjbird3: 'assets/raid_bird_phase3.png'
+  pjbird3: 'assets/raid_bird_phase3.png',
+  lavaturtle: 'assets/monster_iron_chimera.png'   // 🐢 레이드 보스: 용암 거북 요새 (3D 모델, 이 그림은 모델 불러오기 전 임시)
 };
-const isRaidBossType = t => t === 'anoko' || t === 'anoko3' || t === 'pjbird' || t === 'pjbird3';
+const isRaidBossType = t => t === 'anoko' || t === 'anoko3' || t === 'pjbird' || t === 'pjbird3' || t === 'lavaturtle';
 
 function createMonster3D(type = 'chimera') {
   const group = new THREE.Group();
@@ -2137,7 +2138,7 @@ function createMonster3D(type = 'chimera') {
   // [HQ] 보스급 몬스터 발밑 마력 오라 (회전 룬 + 떠오르는 불씨)
   let bossAura = null;
   if ((isArmored || isRaidBossType(type)) && typeof window.fxCreateBossAura === 'function') {
-    bossAura = window.fxCreateBossAura(bodyRadius * 1.25, type === 'anoko3' ? 0x8b0000 : type === 'anoko' ? 0xef4444 : type === 'pjbird' ? 0x38bdf8 : type === 'pjbird3' ? 0x4338ca : 0xa855f7);
+    bossAura = window.fxCreateBossAura(bodyRadius * 1.25, type === 'anoko3' ? 0x8b0000 : type === 'anoko' ? 0xef4444 : type === 'pjbird' ? 0x38bdf8 : type === 'pjbird3' ? 0x4338ca : type === 'lavaturtle' ? 0xff6a1f : 0xa855f7);
     group.add(bossAura);
   }
 

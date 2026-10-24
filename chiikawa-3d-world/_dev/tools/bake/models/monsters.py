@@ -489,8 +489,134 @@ def iron():
             C(cone((s * 1.7 + t * 0.18, 1.3, 0.72), (t * 0.2, -1, 0.6), 0.32, 0.09, seg=6), 0x2e2b35)
 
 
-ALL = [bug, goblin, chimera, midboss, iron]
-HEIGHTS = {'bug': 2.9, 'goblin': 3.9, 'chimera': 3.3, 'midboss': 4.75, 'iron_chimera': 5.5}
+# ---------------------------------------------------------------------------
+# 6) 🐢 용암 거북 요새 (레이드 보스: 등에 화산, 현무암 등딱지 사이로 용암이 흐름)
+#    앞다리 = armL/armR, 뒷다리 = legL/legR (게임의 걷기 흔들기 규칙을 그대로 사용 → 대각선 걸음)
+# ---------------------------------------------------------------------------
+def ell_pt(c, R, th, ph, k=1.0):
+    n = Vector((math.sin(th) * math.sin(ph) / R[0], math.cos(th) / R[1], math.sin(th) * math.cos(ph) / R[2]))
+    p = Vector((c[0] + R[0] * k * math.sin(th) * math.sin(ph), c[1] + R[1] * k * math.cos(th), c[2] + R[2] * k * math.sin(th) * math.cos(ph)))
+    return p, n.normalized()
+
+
+def turtle():
+    mon('lavaturtle')
+    SKIN, SKIN2, BELLY = 0x8c4e3a, 0x6e3b2c, 0xd9873f
+    ROCK, ROCK2, ROCKD = 0x4a413c, 0x3a332f, 0x2a2422
+    LAVA, LAVA2 = 0xff7a1a, 0xffc04a
+    rnd = random.Random(77)
+    part('body', (0, 2.2, 0), parent='')
+    # 몸통(배 쪽 살) + 배딱지
+    C(ell((0, 2.0, 0.0), 1.0, scale=(2.9, 1.25, 3.5), seg=40, rings=24), SKIN2)
+    C(ell((0, 1.45, 0.25), 1.0, scale=(2.5, 0.75, 3.1), seg=36, rings=20), BELLY)
+    for i in range(4):   # 배딱지 줄무늬
+        C(torus(1.0, 0.06, seg=40, rseg=5, pos=(0, 1.1, 0.25), rot=(math.pi / 2, 0, 0), scale=(2.1 - i * 0.35, 2.8 - i * 0.5, 1)), 0xb86a2e)
+    # 등딱지 돔
+    SC, SR = (0, 2.55, -0.15), (3.45, 2.35, 4.05)
+    C(sphere_cap(1.0, 0.0, math.pi * 0.5, seg=56, rings=22, pos=SC, scale=SR), ROCK2)
+    # 등딱지 테두리 (두툼한 고리 + 가시)
+    pts = []
+    for i in range(49):
+        a = TAU * i / 48
+        pts.append((math.sin(a) * 3.55, 2.5 + 0.12 * math.sin(a * 6), -0.15 + math.cos(a) * 4.15))
+    C(tube(pts, [0.42] * 49, seg=10, cap0=False, cap1=False), ROCKD)
+    for i in range(16):
+        a = TAU * (i + 0.5) / 16
+        if abs(math.cos(a)) > 0.9 and math.cos(a) > 0:
+            continue   # 머리 나오는 자리는 비움
+        d = Vector((math.sin(a), -0.15, math.cos(a)))
+        C(cone((math.sin(a) * 3.8, 2.45, -0.15 + math.cos(a) * 4.4), tuple(d), 0.75, 0.32, seg=7), 0x221d1b)
+    # 현무암 판 (등딱지 위 울퉁불퉁 돌판) + 판 사이 용암 틈
+    seams = []
+    rings = [(0.42, 6), (0.78, 9), (1.15, 12)]
+    for th, n in rings:
+        for j in range(n):
+            ph = TAU * (j + (0.5 if n == 9 else 0)) / n + rnd.uniform(-0.08, 0.08)
+            p, nn = ell_pt(SC, SR, th + rnd.uniform(-0.05, 0.05), ph, 0.97)
+            sz = 0.62 if th < 0.5 else 0.78 if th < 1 else 0.7
+            C(ell(tuple(p), sz, scale=(1.0 + rnd.random() * 0.25, 0.9 + rnd.random() * 0.2, 0.3), rot=face_rot(nn), seg=16, rings=10), ROCK if j % 2 else 0x524842)
+    kind('glow')
+    for th in (0.6, 0.97, 1.33):   # 가로 용암 틈
+        pts = []
+        for i in range(61):
+            ph = TAU * i / 60
+            p, nn = ell_pt(SC, SR, th + 0.04 * math.sin(ph * 7), ph, 1.0)
+            pts.append(tuple(p + nn * 0.02))
+        C(tube(pts, [0.11] * 61, seg=6, cap0=False, cap1=False), LAVA)
+    for j in range(12):   # 세로 용암 틈 (화산에서 흘러내림)
+        ph = TAU * j / 12 + 0.13
+        pts = []
+        for i in range(12):
+            th = 0.3 + 1.1 * i / 11
+            p, nn = ell_pt(SC, SR, th, ph + 0.06 * math.sin(i * 1.7 + j), 1.0)
+            pts.append(tuple(p + nn * 0.02))
+        C(tube(pts, [0.08 + 0.04 * (1 - i / 11) for i in range(12)], seg=6), LAVA if j % 3 else LAVA2)
+    kind('')
+    # 등 위 화산
+    C(lathe([(0.0, 0.0), (2.0, 0.0), (1.75, 0.6), (1.35, 1.35), (1.0, 2.05), (0.92, 2.2), (0.62, 2.12), (0.45, 1.8), (0.0, 1.75)], seg=40, pos=(0, 4.65, -0.35)), 0x3a302c)
+    for j in range(10):   # 화산 바위 결
+        a = TAU * j / 10 + 0.2
+        C(ell((math.sin(a) * 1.55, 5.25, -0.35 + math.cos(a) * 1.55), 0.45, scale=(1, 0.8, 0.6), rot=(0, a, 0)), 0x2e2624)
+    kind('glow')
+    C(cyl(0.66, 0.66, 0.1, seg=28, pos=(0, 6.62, -0.35)), LAVA2)                     # 분화구 용암
+    C(sphere_cap(0.6, 0.0, 0.9, seg=24, rings=6, pos=(0, 6.6, -0.35), scale=(1, 0.4, 1)), 0xffe08a)
+    prof = [(2.0, 0.0), (1.75, 0.6), (1.35, 1.35), (1.0, 2.05), (0.92, 2.2)]
+    def vr(h):
+        for (r0, y0), (r1, y1) in zip(prof, prof[1:]):
+            if y0 <= h <= y1:
+                return r0 + (r1 - r0) * (h - y0) / (y1 - y0)
+        return prof[-1][0]
+    for j in range(6):   # 화산 옆으로 흐르는 용암 줄기
+        a = TAU * j / 6 + 0.5
+        pts = []
+        for i in range(9):
+            k = i / 8
+            h = 2.12 - 1.9 * k
+            r = vr(h) + 0.04
+            aa = a + 0.12 * math.sin(k * 6 + j)
+            pts.append((math.sin(aa) * r, 4.65 + h, -0.35 + math.cos(aa) * r))
+        C(tube(pts, [0.17 - 0.07 * i / 8 for i in range(9)], seg=7, flat=0.6), LAVA if j % 2 else LAVA2)
+    kind('')
+    # 꼬리
+    part('tail', (0, 1.9, -3.7))
+    tp = bez((0, 1.9, -3.7), (0, 1.5, -4.8), (0.4, 0.9, -5.6), 9)
+    tr = [0.62, 0.55, 0.48, 0.4, 0.32, 0.25, 0.17, 0.09, 0.0]
+    C(tube(tp, tr, seg=12), SKIN)
+    for i in range(1, 7):
+        C(cone((tp[i].x, tp[i].y + tr[i] * 0.8, tp[i].z), (0, 1, -0.3), 0.32 - i * 0.03, 0.16 - i * 0.015, seg=6), ROCKD)
+    # 다리 (앞=arm, 뒤=leg)
+    for nm, x, z, fz in (('armL', 1, 2.3, 1), ('armR', -1, 2.3, 1), ('legL', 1, -2.3, -1), ('legR', -1, -2.3, -1)):
+        piv = (x * 2.35, 2.05, z)
+        part(nm, piv)
+        foot = (x * 3.05, 0.42, z + fz * 0.45)
+        C(tube([piv, ((piv[0] + foot[0]) / 2 + x * 0.25, 1.25, (piv[2] + foot[2]) / 2), foot], [0.95, 0.85, 0.8], seg=16), SKIN)
+        C(ell((foot[0], 0.36, foot[2] + fz * 0.15), 1.0, scale=(0.95, 0.42, 1.05), seg=24, rings=12), SKIN)
+        for t in (-1, 0, 1):
+            C(cone((foot[0] + t * 0.42, 0.28, foot[2] + fz * 0.95), (t * 0.25, -0.2, fz), 0.32, 0.14, seg=6), 0xeadfc6)   # 발톱
+        for k in range(3):   # 다리 바위 비늘
+            C(ell((piv[0] + x * 0.55, 1.9 - k * 0.45, piv[2] + fz * 0.25 * k), 0.34, scale=(1, 0.7, 0.55), rot=(0, x * 1.2, 0)), ROCK)
+    # 머리 (귀엽지만 성난 얼굴)
+    part('head', (0, 2.55, 3.55))
+    HC, HR = (0, 3.05, 4.75), (1.3, 1.08, 1.32)
+    C(tube([(0, 2.4, 3.3), (0, 2.75, 4.0), (0, 2.95, 4.4)], [0.95, 0.92, 0.9], seg=16), SKIN)   # 목
+    C(ell(HC, 1.0, scale=HR, seg=36, rings=22), SKIN)
+    C(ell((0, 2.38, 4.95), 1.0, scale=(0.95, 0.38, 0.85), seg=28, rings=14), BELLY)            # 턱 아래
+    C(ell((0, 3.95, 4.55), 1.0, scale=(0.95, 0.32, 0.85), rot=(-0.2, 0, 0), seg=24, rings=12), ROCK)   # 이마 바위 갑
+    for k, (x, z) in enumerate(((-0.45, 4.2), (0.45, 4.2), (0, 3.85))):
+        C(cone((x, 4.15, z), (x * 0.4, 1, -0.4), 0.42, 0.2, seg=7), 0x221d1b)
+    for s in (-1, 1):
+        eye(HC, HR, s * 0.56, 3.2, 0.29, sy=1.08, depth=0.45)
+        brow(HC, HR, s * 0.56, 3.62, 0.52, s * 0.45, col=0x2a1810, t=0.1)
+        blush(HC, HR, s * 0.88, 2.82, 0.17, col=0xf07050)
+        C(ell((s * 0.17, 3.0, surf_z(HC, HR, s * 0.17, 3.0) + 0.0), 0.05, scale=(1, 0.7, 0.6)), 0x2a1810)   # 콧구멍
+    path_mouth([(x, 2.62 + 0.09 * math.cos(x * 3.2), surf_z(HC, HR, x, 2.62) - 0.02) for x in [-0.55 + i * 0.1 for i in range(12)]], col=0x3a1410, t=0.05)
+    for s in (-1, 1):
+        C(cone((s * 0.32, 2.66, surf_z(HC, HR, s * 0.32, 2.66) - 0.02), (0, -1, 0.25), 0.2, 0.08, seg=6), 0xffffff)   # 송곳니
+
+
+ALL = [bug, goblin, chimera, midboss, iron, turtle]
+HEIGHTS = {'bug': 2.9, 'goblin': 3.9, 'chimera': 3.3, 'midboss': 4.75, 'iron_chimera': 5.5, 'lavaturtle': 6.6}
+RADII = {'lavaturtle': 4.3}
 
 
 def build():

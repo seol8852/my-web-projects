@@ -23,6 +23,7 @@ for _, m, _, _ in MM.PARTS:
     if m not in mons:
         mons.append(m)
 OFF = {m: i * 40.0 for i, m in enumerate(mons)}
+print('[monsters] mons', mons)
 for ob, m, p, k in MM.PARTS:
     ob.location.x += OFF[m]
 
@@ -96,7 +97,7 @@ if not PREVIEW:
                               export_materials='NONE', export_vertex_color='ACTIVE', export_yup=True, export_apply=True, export_animations=False)
     meta = {'pivots': {f'{m}|{p}': MM.PIVOTS[(m, p)] for (m, p) in MM.PIVOTS},
             'parents': {f'{m}|{p}': MM.PARENT[(m, p)] for (m, p) in MM.PARENT},
-            'heights': MM.HEIGHTS}
+            'heights': MM.HEIGHTS, 'radii': getattr(MM, 'RADII', {})}
     with open(os.path.join(ASSETS, 'monsters_meta.json'), 'w') as f:
         json.dump(meta, f)
     print('[monsters] wrote', OUT, os.path.getsize(OUT) // 1024, 'KB')
@@ -115,11 +116,11 @@ else:
     sd = bpy.data.lights.new('sun', 'SUN'); sd.energy = 3.5
     so = bpy.data.objects.new('sun', sd); sc.collection.objects.link(so)
     so.rotation_euler = Vector((0.5, -1.0, 1.0)).normalized().to_track_quat('Z', 'Y').to_euler()
-    cam_d = bpy.data.cameras.new('c'); cam_d.type = 'ORTHO'; cam_d.ortho_scale = 6.2 * len(mons)
+    cam_d = bpy.data.cameras.new('c'); cam_d.type = 'ORTHO'; cam_d.ortho_scale = float(os.environ.get('MON_ORTHO', 6.2 * len(mons)))
     cam = bpy.data.objects.new('cam', cam_d); sc.collection.objects.link(cam); sc.camera = cam
     yaw = float(os.environ.get('MON_YAW', '0.45'))
     d = Vector((math.sin(yaw), -math.cos(yaw), 0.28)).normalized()
-    cam.location = Vector((0, 0, 2.6)) + d * 40
+    cam.location = Vector((0, 0, float(os.environ.get('MON_CY', '2.6')))) + d * 40
     cam.rotation_euler = (-d).to_track_quat('-Z', 'Y').to_euler()
     sc.view_settings.view_transform = 'Standard'
     sc.render.filepath = '/home/claude/shots/mon_prev_%s.png' % os.environ.get('MON_TAG', 'a')
