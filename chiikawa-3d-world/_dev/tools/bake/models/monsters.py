@@ -10,6 +10,7 @@ from lib import *
 PARTS = []      # (obj, mon, part, kind)
 PIVOTS = {}     # (mon, part) -> (x, y, z) 게임 좌표
 PARENT = {}     # (mon, part) -> 부모 part ('' = 뿌리)
+PATHS = {}      # mon -> 꼬리 경로 점들 (꼬리 뼈 3마디로 나눔)
 _cur = {'mon': '', 'part': 'body', 'kind': ''}
 
 
@@ -273,6 +274,7 @@ def goblin():
     C(torus(0.6, 0.06, seg=28, rseg=6, pos=(0, 0.98, 0), rot=(math.pi / 2, 0, 0), scale=(1, 0.82, 1)), 0x4a2f1f)
     # 꼬리 (끝에 털뭉치)
     part('tail', (0, 0.95, -0.4))
+    PATHS['goblin'] = [tuple(v) for v in bez((0, 0.95, -0.4), (0.15, 0.7, -0.95), (0.45, 1.05, -1.15), 9)] + [(0.48, 1.12, -1.17)]
     C(tube(bez((0, 0.95, -0.4), (0.15, 0.7, -0.95), (0.45, 1.05, -1.15), 9), [0.07, 0.065, 0.06, 0.055, 0.05, 0.045, 0.04, 0.035, 0.035], seg=8), SK)
     C(fluff(1.0, (0.48, 1.12, -1.17), scale=(0.15, 0.15, 0.15), tufts=14, amp=0.35, seed=8, subdiv=2, sharp=10), SKD)
     # 다리
@@ -357,6 +359,7 @@ def chimera():
     # 비늘 꼬리
     part('tail', (0.55, 0.65, -0.75))
     pts = bez((0.55, 0.65, -0.75), (1.45, 0.25, -1.1), (2.0, 0.55, -0.85), 12)
+    PATHS['chimera'] = [tuple(v) for v in pts]
     radii = [0.32 * (1 - i / 11) ** 0.8 + 0.02 for i in range(12)]; radii[-1] = 0.0
     C(tube(pts, radii, seg=14, flat=0.8), 0xf3a4b9)
     for i in range(1, 10):
@@ -450,6 +453,7 @@ def iron():
     # 꼬리 (판 꼬리)
     part('tail', (0, 1.7, -0.95))
     pts = bez((0, 1.7, -0.95), (-0.6, 0.8, -2.2), (-1.9, 0.45, -2.6), 12)
+    PATHS['iron_chimera'] = [tuple(v) for v in pts]
     radii = [0.55 * (1 - i / 11) ** 0.9 + 0.03 for i in range(12)]; radii[-1] = 0.0
     C(tube(pts, radii, seg=14), SKN)
     for i in range(1, 11):
@@ -580,6 +584,7 @@ def turtle():
     # 꼬리
     part('tail', (0, 1.9, -3.7))
     tp = bez((0, 1.9, -3.7), (0, 1.5, -4.8), (0.4, 0.9, -5.6), 9)
+    PATHS['lavaturtle'] = [tuple(v) for v in tp]
     tr = [0.62, 0.55, 0.48, 0.4, 0.32, 0.25, 0.17, 0.09, 0.0]
     C(tube(tp, tr, seg=12), SKIN)
     for i in range(1, 7):

@@ -1,43 +1,22 @@
-// 👾 일반 몬스터 5종 3D 모델 (Blender로 만든 assets/monsters.glb)
+// 👾 3D 몬스터 (Blender로 만든 assets/monsters.glb — 뼈대 + 동작 클립)
 //  - createMonster3D 를 감싸서, 모델이 준비되면 그림(스탠디) 대신 입체 모델로 바꿈 (준비 전에 만든 몬스터도 도착하면 교체)
-//  - 부위(몸·머리·팔·다리·꼬리·날개)를 관절 기준으로 흔들어 걷기·숨쉬기·날갯짓·피격 반동을 표현
+//  - 동작: Idle(숨쉬기) / Walk(걷기) / Windup(공격 전 웅크림) / Strike(내려치기) / Hit(맞음) / Death(쓰러짐) / Spin(거북 등껍질 회전)
+//    · 공격 예고 장판이 깔리면 Windup → 장판이 터지는 순간 Strike
+//    · 맞으면 Hit, 쓰러지면 Death (feel_hq 처치 연출과 연결)
 //  - 외부에서 쓰는 userData(mats, flashHit, updateMonsterMotion, hurtParts …)는 그대로 유지
 //  - localStorage chiikawa_mon3d = 'off' 이면 예전 그림 몬스터
 import THREE from '../core/three.js';
 import { expose } from '../core/expose.js';
 import { MeshoptDecoder } from 'meshoptimizer';
+import { clone as skelClone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { Chiikawa3DWorldApp } from '../game/main.js';
 
 const MON3D = (() => {
   const TYPES = new Set(['bug', 'goblin', 'chimera', 'midboss', 'iron_chimera', 'lavaturtle']);
   let LIB = null, libP = null;
   const pending = new Set();
+  const live = new Set();   // 동작 재생 중인 몬스터 (매 프레임 한 번에 갱신)
   const isOff = () => { try { return localStorage.getItem('chiikawa_mon3d') === 'off'; } catch (e) { return false; } };
-
-  function partGeo(o, pivot) {
-    const src = o.geometry, geo = new THREE.BufferGeometry();
-    ['position', 'normal'].forEach(n => {
-      const at = src.attributes[n];
-      if (!at) return;
-      const arr = new Float32Array(at.count * 3);
-      for (let i = 0; i < at.count; i++) { arr[i * 3] = at.getX(i); arr[i * 3 + 1] = at.getY(i); arr[i * 3 + 2] = at.getZ(i); }
-      geo.setAttribute(n, new THREE.BufferAttribute(arr, 3));
-    });
-    const ca = src.attributes.color;
-    if (ca) {
-      const arr = new Float32Array(ca.count * 3);
-      // Blender에서 16진수 색 그대로 넣었으므로(sRGB 값), 게임의 다른 재질 색과 같게 선형으로 변환
-      const lin = THREE.ColorManagement && THREE.ColorManagement.enabled ? (v => (v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))) : (v => v);
-      for (let i = 0; i < ca.count; i++) { arr[i * 3] = lin(ca.getX(i)); arr[i * 3 + 1] = lin(ca.getY(i)); arr[i * 3 + 2] = lin(ca.getZ(i)); }
-      geo.setAttribute('color', new THREE.BufferAttribute(arr, 3));
-    }
-    if (src.index) geo.setIndex(new THREE.BufferAttribute(Uint32Array.from(src.index.array), 1));
-    geo.applyMatrix4(o.matrixWorld);
-    geo.translate(-pivot[0], -pivot[1], -pivot[2]);
-    const nm = geo.attributes.normal;
-    if (nm) geo.normalizeNormals();
-    geo.computeBoundingSphere();
-    return geo;
-  }
 
   function load() {
     if (libP) return libP;
@@ -51,15 +30,13 @@ const MON3D = (() => {
       if (typeof MeshoptDecoder !== 'undefined') l.setMeshoptDecoder(MeshoptDecoder);
       l.load('assets/monsters.glb?v=' + (ver.v || '1'), gltf => {
         const lib = {};
-        gltf.scene.updateMatrixWorld(true);
-        gltf.scene.traverse(o => {
-          if (!o.isMesh) return;
-          const [type, part, kind] = o.name.split('|');
-          if (!type || !part) return;
-          const pivot = meta.pivots[`${type}|${part}`] || [0, 0, 0];
-          const T = lib[type] = lib[type] || { parts: {}, height: (meta.heights || {})[type] || 4, radius: (meta.radii || {})[type] || 0 };
-          const P = T.parts[part] = T.parts[part] || { pivot, parent: (meta.parents || {})[`${type}|${part}`] || '', pieces: [] };
-          P.pieces.push({ kind: kind || '', geo: partGeo(o, pivot) });
+        gltf.scene.children.forEach(rig => {
+          const [type, what] = rig.name.split('|');
+          if (!type || what !== 'rig') return;
+          const clips = {};
+          gltf.animations.forEach(a => { const [t, n] = a.name.split('|'); if (t === type && n) clips[n] = a; });
+          rig.traverse(o => { if (o.isMesh) { o.frustumCulled = false; o.userData.kind = (o.name.split('|')[1] || 'skin'); } });
+          lib[type] = { rig, clips, height: (meta.heights || {})[type] || 4, radius: (meta.radii || {})[type] || 0 };
         });
         LIB = lib;
         res(lib);
@@ -70,7 +47,7 @@ const MON3D = (() => {
     return libP;
   }
 
-  // 외곽선 (법선 방향으로 부풀린 뒷면)
+  // 외곽선 (법선 방향으로 부풀린 뒷면, 뼈대 변형도 그대로 따라감)
   const OL = new THREE.MeshBasicMaterial({ color: 0x2b1d19, side: THREE.BackSide });
   OL.userData.shared = true;
   OL.onBeforeCompile = sh => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', 'vec3 transformed = position + normal * 0.035;'); };
@@ -93,54 +70,42 @@ const MON3D = (() => {
     const bodyWrap = ud.bodyWrap, hurtRing = ud.hurtRingGroup, marker = ud.weakPointMarker;
     if (!bodyWrap) return;
     // 그림(스탠디) 부품 치우기 (약점 표시만 남김)
-    bodyWrap.children.slice().forEach(c => { if (c !== marker) { bodyWrap.remove(c); } });
+    bodyWrap.children.slice().forEach(c => { if (c !== marker) bodyWrap.remove(c); });
     ud.rimUpdate = null; ud.rimFailed = true;
     const root = new THREE.Group();    // 방향 회전
-    const lean = new THREE.Group();    // 피격 반동(뒤로 젖힘)
-    root.add(lean);
     bodyWrap.add(root);
+    const rig = skelClone(T.rig);
+    rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0); rig.scale.set(1, 1, 1);
+    root.add(rig);
     const mats = [];
     const matOf = {};
-    const nodes = {};
-    const get = kind => matOf[kind] || (mats.push(matOf[kind] = makeMat(kind)), matOf[kind]);
-    // 관절 그룹 만들기 (부모 관절 기준 상대 위치)
-    const names = Object.keys(T.parts);
-    const mk = name => {
-      if (nodes[name]) return nodes[name];
-      const P = T.parts[name];
-      const g = new THREE.Group();
-      g.userData.rest = new THREE.Vector3();
-      nodes[name] = g;
-      let parentName = name.startsWith('leg') ? '' : P.parent;
-      if (parentName && !T.parts[parentName]) parentName = '';
-      const parent = parentName ? mk(parentName) : lean;
-      const pp = parentName ? T.parts[parentName].pivot : [0, 0, 0];
-      g.position.set(P.pivot[0] - pp[0], P.pivot[1] - pp[1], P.pivot[2] - pp[2]);
-      g.userData.rest.copy(g.position);
-      parent.add(g);
-      P.pieces.forEach(pc => {
-        const m = new THREE.Mesh(pc.geo, get(pc.kind));
-        m.castShadow = pc.kind !== 'wing';
-        g.add(m);
-        if (pc.kind === '') {
-          const o = new THREE.Mesh(pc.geo, OL);
-          o.userData.isOutline = true;
-          o.visible = !(window.gameApp && window.gameApp.lowPower);
-          m.add(o);
-        }
-      });
-      return g;
-    };
-    names.forEach(mk);
+    const bones = {};
+    rig.traverse(o => { if (o.isBone) bones[o.name.replace(/_\d+$/, '')] = o; });   // 내보내기 때 이름 겹침 방지로 붙은 _숫자 제거
+    const skinned = [];
+    rig.traverse(o => { if (o.isSkinnedMesh) skinned.push(o); });
+    skinned.forEach(o => {
+      const kind = o.userData.kind === 'skin' ? '' : o.userData.kind;
+      const m = matOf[kind] || (matOf[kind] = makeMat(kind), mats.push(matOf[kind]), matOf[kind]);
+      o.material = m;
+      o.castShadow = kind !== 'wing';
+      o.frustumCulled = false;
+      if (kind === '') {
+        const ol = new THREE.SkinnedMesh(o.geometry, OL);
+        ol.userData.isOutline = true;
+        ol.frustumCulled = false;
+        ol.position.copy(o.position); ol.quaternion.copy(o.quaternion); ol.scale.copy(o.scale);
+        o.parent.add(ol);
+        ol.bind(o.skeleton, o.bindMatrix);
+        ol.visible = !(window.gameApp && window.gameApp.lowPower);
+      }
+    });
     ud.mats = mats;
     ud._mon3d = true;
-    const sizeH = ud.sizeH || 5;
     const H = T.height;
-    const isBug = type === 'bug';
     const turtle = type === 'lavaturtle';
+    const isBug = type === 'bug';
     const heavy = type === 'iron_chimera' || type === 'midboss' || turtle;
     if (marker) marker.position.set(0, H * 0.82, 0.9);
-    // 보스(레이드) 모델은 그림 기준 크기 대신 모델 크기로 판정
     if (T.radius) {
       ud.bodyRadius = T.radius;
       ud.sizeH = H;
@@ -151,60 +116,112 @@ const MON3D = (() => {
       };
       if (hurtRing) hurtRing.scale.setScalar(T.radius / 2.4);
     }
-    // 거북: 약점(머리) 표시를 머리에 붙여 함께 움직이게
-    if (turtle && marker && nodes.head) { nodes.head.add(marker); marker.position.set(0, 1.0, 2.4); }
-    // 🐢 등껍질 회전 돌진 (머리·다리를 집어넣고 팽이처럼 돎) / 🌋 3페이즈 (용암이 더 뜨겁게)
-    let spin = 0, spinAng = 0, lastT = 0;
-    ud.setSpin = on => { ud._spinOn = !!on; };
+    const _mv = new THREE.Vector3();
+
+    // ---------------- 동작 재생기 ----------------
+    const mixer = new THREE.AnimationMixer(rig);
+    const act = {};
+    Object.entries(T.clips).forEach(([n, c]) => {
+      const a = mixer.clipAction(c);
+      if (n === 'Idle' || n === 'Walk' || n === 'Spin') a.setLoop(THREE.LoopRepeat, Infinity);
+      else { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; }
+      act[n] = a;
+    });
+    const A = {
+      mixer, act, base: null, one: null, oneEnd: 0, t: 0,
+      chasing: false, atk: null, dead: false, deadT: 0, spin: false, wing: 0, lastSeen: 0
+    };
+    ud.anim = A;
+    const fadeTo = (name, dur = 0.2) => {
+      const a = act[name];
+      if (!a) return null;
+      Object.entries(act).forEach(([n, b]) => { if (b !== a && b.isRunning()) b.fadeOut(dur); });
+      a.reset(); a.setEffectiveWeight(1); a.fadeIn(dur); a.play();
+      return a;
+    };
+    const setBase = name => {
+      if (A.base === name && !A.one) return;
+      A.base = name;
+      if (A.one) return;   // 단발 동작이 끝나면 돌아감
+      const a = fadeTo(name, 0.25);
+      if (a && name === 'Idle') a.time = Math.random() * a.getClip().duration;
+      if (a && name === 'Walk') a.timeScale = heavy ? 0.8 : 1.05;
+    };
+    const playOne = (name, fade = 0.08, hold = false) => {
+      const a = fadeTo(name, fade);
+      if (!a) return;
+      A.one = name;
+      A.oneEnd = A.t + a.getClip().duration / (a.timeScale || 1) + (hold ? 1e9 : 0);
+    };
+    A.playOne = playOne;
+    ud.playAnim = name => {
+      if (name === 'Death') { A.dead = true; A.deadT = A.t; A.atk = null; playOne('Death', 0.06, true); return true; }
+      if (!act[name]) return false;
+      playOne(name);
+      return true;
+    };
+    setBase('Idle');
+
+    A.tick = dt => {
+      A.t += dt;
+      const ta = A.t;
+      if (A.dead) {
+        // 다시 살아났으면(게임이 다시 움직이게 함) 원래 상태로
+        if (A.lastSeen > A.deadT + 0.05) { A.dead = false; A.one = null; A.base = null; setBase('Idle'); }
+      } else if (A.spin && act.Spin) {
+        if (A.base !== 'Spin') { A.one = null; A.base = 'Spin'; fadeTo('Spin', 0.15); }
+      } else if (A.atk) {
+        if (A.atk.tg && A.atk.tg.duration) A.atk.dur = Math.max(0.25, A.atk.tg.duration - 0.12);
+        const e = ta - A.atk.t0;
+        if (e < A.atk.dur) {
+          if (A.one !== 'Windup') playOne('Windup', 0.12, true);
+        } else if (!A.atk.struck) {
+          A.atk.struck = true;
+          playOne('Strike', 0.04);
+          A.atk = null;
+        }
+      } else {
+        if (A.base === 'Spin') A.base = null;
+        if (A.one && ta >= A.oneEnd) { A.one = null; const b = A.base || 'Idle'; A.base = null; setBase(b); }
+        setBase(A.chasing ? 'Walk' : 'Idle');
+      }
+      mixer.update(dt);
+      // 날갯짓은 동작 클립과 따로 (빠르게)
+      if (isBug) {
+        A.wing += dt * 34;
+        if (bones.wingL) bones.wingL.rotation.z = Math.sin(A.wing) * 0.7;
+        if (bones.wingR) bones.wingR.rotation.z = -Math.sin(A.wing) * 0.7;
+      }
+    };
+    live.add(group);
+
+    let spinAng = 0, lastT = 0;
+    ud.setSpin = on => { A.spin = !!on; };
     ud.setP3 = on => {
       mats.forEach(m => {
         if (m.isMeshBasicMaterial) m.color.setRGB(on ? 1.6 : 1, on ? 1.25 : 1, on ? 1.0 : 1);
         else m.color.setRGB(1, on ? 0.78 : 1, on ? 0.72 : 1);
       });
     };
-    // 화산 분화구 위치 (월드 좌표)
-    ud.ventWorld = out => { out.set(0, H + 0.05, -0.35); return lean.localToWorld(out); };
+    ud.ventWorld = out => { out.set(0, H + 0.05, -0.35); return rig.localToWorld(out); };
 
     ud.updateMonsterMotion = (time, isChasing, phaseOffset, facingYaw = 0) => {
       const rel = facingYaw - group.rotation.y;
       if (hurtRing) hurtRing.rotation.y = rel;
       const fdt = Math.min(0.1, Math.max(0, time - lastT)); lastT = time;
-      spin += ((ud._spinOn ? 1 : 0) - spin) * Math.min(1, fdt * 9);
-      if (spin > 0.02) spinAng += fdt * 16 * spin; else spinAng = 0;
+      if (A.spin) spinAng += fdt * 16; else spinAng = 0;
       root.rotation.y = rel + spinAng;
-      if (turtle) {
-        const k = 1 - spin * 0.85;
-        ['head', 'armL', 'armR', 'legL', 'legR', 'tail'].forEach(n => { const g = nodes[n]; if (g) g.scale.setScalar(Math.max(0.12, k)); });
-        root.position.y = spin * -0.6;
-      }
+      A.chasing = !!isChasing;
+      A.lastSeen = A.t;
       if (ud.hitWobble > 0.001) ud.hitWobble *= 0.86; else ud.hitWobble = 0;
-      const w = ud.hitWobble;
-      const sp = isChasing ? (heavy ? 7 : 10) : 3.2;
-      const t = time * sp + phaseOffset;
-      const amp = isChasing ? 1 : 0.18;
-      const s = Math.sin(t), c = Math.cos(t);
-      // 몸통: 걸음마다 통통 / 가만히 있을 땐 숨쉬기
-      const body = nodes.body;
-      if (body) {
-        const bob = isChasing ? Math.abs(s) * 0.07 * H * (heavy ? 0.6 : 1) : 0;
-        body.position.y = body.userData.rest.y + bob;
-        const br = isChasing ? 0 : Math.sin(time * 2.2 + phaseOffset) * 0.025;
-        body.scale.set(1 - br * 0.5, 1 + br, 1 - br * 0.5);
-        body.rotation.z = isChasing ? s * 0.06 : 0;
-      }
-      ['legL', 'legR'].forEach((n, i) => { const g = nodes[n]; if (g) g.rotation.x = (i ? -1 : 1) * s * 0.55 * amp; });
-      ['armL', 'armR'].forEach((n, i) => { const g = nodes[n]; if (g) { g.rotation.x = (i ? 1 : -1) * s * 0.4 * amp; g.rotation.z = (i ? -1 : 1) * (0.05 + Math.sin(time * 2 + i) * 0.04); } });
-      if (nodes.head) { nodes.head.rotation.z = Math.sin(time * 1.6 + phaseOffset) * 0.06; nodes.head.rotation.x = (isChasing ? c * 0.05 : Math.sin(time * 1.1) * 0.04) - (ud.lastHitPart === 'head' ? w * 0.9 : 0); }
-      if (nodes.tail) { nodes.tail.rotation.y = Math.sin(time * (isChasing ? 6 : 2.2) + phaseOffset) * 0.35; }
-      if (nodes.wingL) nodes.wingL.rotation.z = Math.sin(time * 34) * 0.7;
-      if (nodes.wingR) nodes.wingR.rotation.z = -Math.sin(time * 34) * 0.7;
-      if (isBug) root.position.y = Math.sin(time * 3 + phaseOffset) * 0.18;
-      // 피격: 뒤로 젖혔다 돌아옴 (+ 좌우 흔들림)
-      lean.rotation.x = -w * 0.55;
-      lean.rotation.z = Math.sin(time * 38) * w * 0.25;
       mats.forEach(mm => { const u = mm.userData.fxFlash; if (u && u.uFlash.value > 0.001 && !mm.userData.fxFlashing) u.uFlash.value *= 0.8; });
       if (ud._bossAura && ud._bossAura.userData.update) ud._bossAura.userData.update(time);
       if (marker && marker.visible) {
+        // 거북: 약점(머리) 표시가 머리를 따라다니게
+        if (turtle && bones.head) {
+          bones.head.getWorldPosition(_mv); bodyWrap.worldToLocal(_mv);
+          marker.position.set(_mv.x + Math.sin(rel) * 1.9, _mv.y + 0.9, _mv.z + Math.cos(rel) * 1.9);
+        }
         marker.rotation.z = time * 3.5;
         const k = 1.0 + Math.sin(time * 8) * 0.15;
         marker.scale.set(k, k, 1);
@@ -220,9 +237,14 @@ const MON3D = (() => {
         u.uFlash.value = 0.8;
         u.uFlashColor.value.setHex(partName === 'body' || partName === 'legs' ? 0xffffff : flashColor);
       });
+      // 기 모으기·내려치기 중엔 끊지 않음 (보스는 맞을 때마다 움찔하면 어색하므로 가끔만)
+      if (!A.dead && !A.atk && A.one !== 'Strike' && A.one !== 'Windup' && !A.spin) {
+        if (!T.radius || Math.random() < 0.25) playOne('Hit', 0.05);
+      }
     };
   }
 
+  // ---------------- 게임과 연결 ----------------
   const orig = window.createMonster3D;
   if (typeof orig === 'function') {
     window.createMonster3D = function (type = 'chimera') {
@@ -237,8 +259,45 @@ const MON3D = (() => {
       return g;
     };
   }
+  if (typeof Chiikawa3DWorldApp !== 'undefined') {
+    const P = Chiikawa3DWorldApp.prototype;
+    // 매 프레임: 동작 재생 (장면에서 빠진 몬스터는 목록에서 정리)
+    const origFx = P.updateEffects;
+    P.updateEffects = function (dt) {
+      const r = origFx.apply(this, arguments);
+      const d = Math.min(0.1, dt || 0.016);
+      live.forEach(g => {
+        const A = g.userData.anim;
+        if (!A) { live.delete(g); return; }
+        let p = g.parent, inScene = false;
+        while (p) { if (p.isScene) { inScene = true; break; } p = p.parent; }
+        if (!inScene) { if ((A.gone = (A.gone || 0) + d) > 3) live.delete(g); return; }
+        A.gone = 0;
+        if (!g.visible) return;
+        try { A.tick(d); } catch (e) { live.delete(g); }
+      });
+      return r;
+    };
+    // 공격 예고 장판 → 기 모으기, 장판이 터질 때 내려치기
+    const origTele = P.spawnMonsterAttackTelegraph;
+    if (typeof origTele === 'function') {
+      P.spawnMonsterAttackTelegraph = function (m) {
+        const r = origTele.apply(this, arguments);
+        try {
+          const A = m && m.mesh && m.mesh.userData.anim;
+          const tg = this.telegraphs && this.telegraphs[this.telegraphs.length - 1];
+          if (A && !A.dead) {
+            const dur = (tg && tg.duration) || 0.8;
+            // 보스가 장판을 여러 개 동시에 깔면 가장 늦게 터지는 것에 맞춤 (장판 시간은 나중에 바뀔 수 있어 tg를 기억)
+            if (!A.atk || A.t + dur > A.atk.t0 + A.atk.dur) A.atk = { t0: A.t, dur: Math.max(0.25, dur - 0.12), tg, struck: false };
+          }
+        } catch (e) { /* 동작만 생략 */ }
+        return r;
+      };
+    }
+  }
   if (!isOff()) load();
-  return { load, upgrade, get lib() { return LIB; } };
+  return { load, upgrade, get lib() { return LIB; }, live };
 })();
 
 expose({ get MON3D() { return MON3D; } });

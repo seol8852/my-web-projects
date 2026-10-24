@@ -180,6 +180,13 @@ const FEEL = (() => {
     if (!mesh) return;
     const d = (dir && dir.lengthSq() > 0.01 ? dir.clone() : V(Math.random() - 0.5, 0, Math.random() - 0.5)).setY(0).normalize();
     const big = (m.bodyRadius || 2) > 3.2;
+    // 3D 몬스터: 날아가며 빙글빙글 대신 '쓰러지는' 동작 + 살짝 밀려남
+    if (mesh.userData.playAnim && mesh.userData.playAnim('Death')) {
+      flyers.push({ m, mesh, t: 0, life: 1.15, die: true, vel: d.multiplyScalar(5).setY(2.5), spin: 0, p0: mesh.position.clone(), r0: mesh.rotation.clone(), s0: mesh.scale.clone() });
+      mesh.visible = true;
+      if (mesh.userData.flashHit) mesh.userData.flashHit('body');
+      return;
+    }
     flyers.push({
       m, mesh, t: 0, life: big ? 0.6 : 0.5,
       vel: d.multiplyScalar(big ? 7 : 12).setY(big ? 7 : 10.5),
@@ -201,6 +208,15 @@ const FEEL = (() => {
         if (!f.m.alive) { f.mesh.visible = false; f.mesh.position.copy(f.p0); }
         if (k >= 1 && typeof window.FXHQ !== 'undefined' && window.FXHQ.deathPoof) window.FXHQ.deathPoof(end, 0xfacc15);
         flyers.splice(i, 1);
+        continue;
+      }
+      if (f.die) {
+        f.vel.y -= 20 * dt;
+        f.vel.x *= Math.pow(0.02, dt); f.vel.z *= Math.pow(0.02, dt);
+        f.mesh.position.addScaledVector(f.vel, dt);
+        if (f.mesh.position.y < f.p0.y) { f.mesh.position.y = f.p0.y; f.vel.y = 0; }
+        const sc = k < 0.72 ? 1 : 1 - (k - 0.72) / 0.28 * 0.9;
+        f.mesh.scale.set(f.s0.x * sc, f.s0.y * sc, f.s0.z * sc);
         continue;
       }
       f.vel.y -= 32 * dt;
